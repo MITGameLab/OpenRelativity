@@ -7,4 +7,8 @@ Within this readme is a quick overview of each piece of code that we have put in
 
 How to use OpenRelativity:
 
-With our code base, there are a few simple rules around how to get an object into the 
+With our code base, there are a few simple rules around how to get an object into the Unity environment and have it work with our tools. We will start with the player object itself, and then other objects throughout the scene.
+
+The Player:
+
+The player is already set up with our movement code, game state code, and a quick script that puts the speed of light and player speed on the screen. It is set up as a nested object. The player mesh is the parent object, which has the physical aspects of the player. It has a mesh renderer, a collider, and a rigidbody. Each of these components is necessary for our code base. Any of these attributes can be modified, but if the rigidbody's drag, gravity, or frozen rotation settings are changed, the project will no longer adhere to the rules of special relativity 
