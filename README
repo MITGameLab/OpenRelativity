@@ -1,0 +1,10 @@
+Welcome to OpenRelativity! This project is a spin-off from the MIT Game Lab's game A Slower Speed of Light.
+
+OpenRelativity is a set of tools for simulating the effects of traveling near the speed of light in the Unity3D game engine. We are producing this simple engine in the hopes that more developers or educators can use our toolset to produce more simulations or explorations of travel near the speed of light.
+
+Within this readme is a quick overview of each piece of code that we have put into this project, along with a very quick description of how to use the toolset to make sure your project follows the rules of relativity. We hope you can use this toolset to produce something amazing, and if you find bugs or have an improvement to make to the code base, feel free to help turn OpenRelativity into an even better project.
+
+
+How to use OpenRelativity:
+
+With our code base, there are a few simple rules around how to get an object into the 
