@@ -52,9 +52,62 @@ With these components added to your new object, they will deform and change colo
 
 
 
-CODE AND ASSETS INCLUDED IN OPEN RELATIVITY
+CODE AND PREFAB ASSETS INCLUDED IN OPEN RELATIVITY
 
 This section details the uses of each object in the Open Relativity Unity project. Each piece will have an overview of its function, but line by line comments exist in the code pieces themselves.
 
+Index
+	Code:
+
+	1. Relativistic Object
+	2. Movement Scripts
+	3. Info Script
+	4. Game State	
+	5. Object Mesh Density
+	6. Relativity Shader
+	7. Skybox Shader	
+	8. Receiver and Receiver2 Script
+	9. Sender Script
+
+	Prefabs:
+	
+	1. Receiver
+	2. Sender
+	3. Moving Person
+
+	Materials and Textures
 
 
+
+
+1. Relativistic Object
+
+	Relativistic Object is the base code for all the non-player objects in the scene. Combined with the Relativity shader, it keeps track of relatvistic effects,moves the object if needed, and performs necessary actions for the shader to work. It first forces the object to have a unique material, so that the object's shader uses variables specific to that object, and not across all objects using the relativity shader (which is what would happen if we did nothing). It also keeps track of when the object was created and when it is supposed to disappear, so that the time-distorting effects of special relativity do not accidentally force the object to appear before its start location or after its disappearance. 
+
+2. Movement Scripts
+
+	Movement Scripts is what takes player input for the mouse and keyboard and moves the player accordingly. This code covers player movement, camera movement, and change in the speed of light. The movement follows a formula for relativistic velocity addition, which is included in the comments before the movement code. It is also currently set for free movement in three dimensions. If you wish to constrain the player to a flat ground plane (the X-Z plane, in Unity) then there are a couple lines of code that are marked for easy change. 
+
+3. Info Script
+
+	This just displays the two text boxes in the upper left hand corner, using info from Game State.
+
+4. Game State
+
+	Game State is the brain of the Open Relativity code. It stores important variables for relativistic effects and keeps track of changes in the player's status. Relativistic Object and Movement Scripts rely on being able to find Game State and access its information. It also keeps track of the pause state of the game, letting all other objects query game state rather than keeping track of it themselves.
+
+5. Object Mesh Density
+
+	Object Mesh density takes a constant value (named constant). It searches over the triangles on the mesh of the object that it is attached to. If it finds a triangle with area greater than the constant value, it splits that triangle into four smaller triangles, in a way that still works effectively with the relativistic code. The reason for this code is that the lorenz contraction looks better with a higher concentration of vertices (since it is a vertex shader).
+
+6. Relativity Shader
+
+	This shader implements a vertex shader that runs the Lorenz contraction, and a fragment shader that implements the relativistic doppler shift. 
+
+7. Skybox Shader
+	
+	This shader implements relativistic doppler shift on the skybox, because the lorenz contraction does not look good on the very low-vertex skybox.
+
+8. Receiver and Receiver2 Script
+	
+	
