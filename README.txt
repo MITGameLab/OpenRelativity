@@ -106,8 +106,31 @@ Index
 
 7. Skybox Shader
 	
-	This shader implements relativistic doppler shift on the skybox, because the lorenz contraction does not look good on the very low-vertex skybox.
+	This shader implements relativistic doppler shift on the skybox, because the lorenz contraction does not look good (and should not really be used) on the very low-vertex skybox.
 
 8. Receiver and Receiver2 Script
 	
+	This is the receiver side of the objects that create new moving characters. The receiver has to be given the transform of the sender object so that it knows where to face. Within the receiver object itself is the receiver2 object, whose only purpose is to know when the Moving Person object has entered its collider, and register a time for the Moving Person to delete itself. The receiver script simply takes a sender object's transform and points in that object's direction. The receiver2 script just has a collision modifier on it that causes any objects that collide with it to register a death time.
+
+9. Sender Script
+
+	The Sender script is the other half of the objects that create moving characters. It takes a time interval, a velocity, and a receiver's transform. On start up it will point the object to look at the receiver, and at every interval specified will create a new Moving Person object. The Moving Person object will then move with a velocity specified in the Sender Script until it hits the Receiver2 object.
+
+Prefabs:
+
+1. Receiver
 	
+	The Receiver object is made up of two separate objects. It has the Receiver as the parent object, and the Receiver2 as the child object. The meshes on this prefab can be changed without worry, as can the colliders. Be warned, however, that the collider for the Receiver2 object must be small enough that the Moving Person objects can enter the receiver before they disappear on colliding with the receiver2 object. In order to make the Receiver object work, it must be given a Sender object's transform, and the Sender must have the Receiver's transform. Also, the Receiver2 object and the Moving Person must collide with each other, while the Receiver object should not collide with the Moving Person object. This can be done by editing the layers of the Receiver2 and Receiver object.
+
+2. Sender
+
+	The Sender object is much simpler than the Receiver object. It just requires the Sender script and the transform of a Receiver. The mesh on this object can also be changed to anything else, as can its collider as there are no restrictions on the size of the collider or the mesh.
+
+3. Moving Person
+	
+	This is the object that will be created at a Sender and move towards a Receiver. There is nothing to change on the scripts in the Moving Person object, as everything is specified by the Sender that creates the Moving Person. The mesh and collider on the Moving Person can also be modified without changing the function of the Moving Person.
+
+
+Materials:
+
+	The materials that come provided with Open Relativity are built to work with the relativity shader. If you have an object that you want to create a new material for, you must make sure the material has the following properties. It must use the relativity shader, and if you want it to have IR or UV spectrum wavelengths on it, the IR/UV textures in the material must have a grayscale image.
