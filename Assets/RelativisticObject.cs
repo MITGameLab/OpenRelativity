@@ -183,7 +183,7 @@ public class RelativisticObject : MonoBehaviour {
             }
 
             //make our rigidbody's velocity viw
-            if (viw != null && GetComponent<Rigidbody>()!=null)
+            if (GetComponent<Rigidbody>()!=null)
             {
 				
                 if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)

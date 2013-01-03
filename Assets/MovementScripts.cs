@@ -19,8 +19,6 @@ public class MovementScripts: MonoBehaviour
     public int speedOfLightTarget;
     //What is each step we take to reach that target?
     private float speedOfLightStep;
-    //Get our max speed from the gamestate
-    private float maxSpeed;
     //For now, you can change this how you like.
     public float mouseSensitivity;
     //So we can use getAxis as keyHit function
@@ -42,8 +40,6 @@ public class MovementScripts: MonoBehaviour
         //Inverted, at first
         inverted = -1;
         
-        //collect this from gameObject
-        maxSpeed =(float) state.MaxSpeed;
         frames = 0;
     }
 	//Again, use LateUpdate to solve some collision issues.

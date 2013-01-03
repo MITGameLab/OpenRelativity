@@ -59,7 +59,7 @@ This section details the uses of each object in the Open Relativity Unity projec
 Index
 	Code:
 
-	1. Relativistic Object
+	1. Relativistic Object / Relativistic Parent
 	2. Movement Scripts
 	3. Info Script
 	4. Game State	
@@ -80,7 +80,7 @@ Index
 
 
 
-1. Relativistic Object
+1. Relativistic Object 
 
 	Relativistic Object is the base code for all the non-player objects in the scene. Combined with the Relativity shader, it keeps track of relatvistic effects,moves the object if needed, and performs necessary actions for the shader to work. It first forces the object to have a unique material, so that the object's shader uses variables specific to that object, and not across all objects using the relativity shader (which is what would happen if we did nothing). It also keeps track of when the object was created and when it is supposed to disappear, so that the time-distorting effects of special relativity do not accidentally force the object to appear before its start location or after its disappearance. 
 
@@ -102,7 +102,7 @@ Index
 
 6. Relativity Shader
 
-	This shader implements a vertex shader that runs the Lorenz contraction, and a fragment shader that implements the relativistic doppler shift. 
+	This shader implements a vertex shader that runs the Lorenz contraction, and a fragment shader that implements the relativistic doppler shift. More detail is available in the comments of the code, in a line-by-line explanation. 
 
 7. Skybox Shader
 	
