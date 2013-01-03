@@ -80,9 +80,11 @@ Index
 
 
 
-1. Relativistic Object 
+1. Relativistic Object / Relativistic Parent
 
 	Relativistic Object is the base code for all the non-player objects in the scene. Combined with the Relativity shader, it keeps track of relatvistic effects,moves the object if needed, and performs necessary actions for the shader to work. It first forces the object to have a unique material, so that the object's shader uses variables specific to that object, and not across all objects using the relativity shader (which is what would happen if we did nothing). It also keeps track of when the object was created and when it is supposed to disappear, so that the time-distorting effects of special relativity do not accidentally force the object to appear before its start location or after its disappearance. 
+
+	Relativistic Parent is much the same as Relativistic Object. However, for complex parented objects with many smaller parts, each with their own materials, it vastly increases the speed of the engine if they are all kept on a single object. This code takes all the meshes of the parent object's children and combines them with its own, attaching the materials and textures necessary to the correct submeshes. There is one important problem: I do not combine the colliders of the child objects, so it is important that the parent object's collider contains within it all of the child objects, or else the player will be able to clip through their meshes as only the parent's collider remains after the combining of all the meshes.
 
 2. Movement Scripts
 
