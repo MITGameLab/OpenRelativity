@@ -10,7 +10,29 @@ public class RelativisticParent : MonoBehaviour {
     //Store this object's velocity here.
     public Vector3 viw;
     private GameState state;
-
+	//When was this object created? use for moving objects
+    private float startTime = 0;
+    //When should we die? again, for moving objects
+    private float deathTime = 0;
+	
+	// Get the start time of our object, so that we know where not to draw it
+    public void SetStartTime()
+    {
+        startTime = (float) GameObject.FindGameObjectWithTag("Player").GetComponent<GameState>().TotalTimeWorld;
+    }
+	//Set the death time, so that we know at what point to destroy the object in the player's view point.
+    public void SetDeathTime()
+    {
+        deathTime = (float)state.TotalTimeWorld;
+    }
+	//This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
+    private void checkSpeed()
+    {
+        if (viw.magnitude > state.MaxSpeed-.01)
+        {
+            viw = viw.normalized * (float)(state.MaxSpeed-.01f);
+        }
+    }
     // Use this for initialization
     void Start()
     {
@@ -19,8 +41,7 @@ public class RelativisticParent : MonoBehaviour {
             GetComponent<ObjectMeshDensity>().enabled = false;
         }
         int vertCount = 0, triangleCount = 0;
-		
-        checkSpeed();
+		checkSpeed ();
         Matrix4x4 worldLocalMatrix = transform.worldToLocalMatrix;
 
         //This code combines the meshes of children of parent objects
@@ -151,8 +172,13 @@ public class RelativisticParent : MonoBehaviour {
             Material quickSwapMaterial = Instantiate((tempRenderer as Renderer).materials[0]) as Material;
             //Then, set the value that we want
             quickSwapMaterial.SetFloat("_viw", 0);
+			
             //And stick it back into our renderer. We'll do the SetVector thing every frame.
             tempRenderer.materials[0] = quickSwapMaterial;
+			
+			//set our start time and start position in the shader.
+                tempRenderer.materials[0].SetFloat("_strtTime", (float)startTime);
+                tempRenderer.materials[0].SetVector("_strtPos", new Vector4(transform.position.x, transform.position.y, transform.position.z, 0));
         }
 
         //This code is a hack to ensure that frustrum culling does not take place
@@ -175,72 +201,93 @@ public class RelativisticParent : MonoBehaviour {
     {
         
      
+		//Grab our renderer.
+        MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
+		
         if (meshFilter != null && !state.MovementFrozen)
         {
-        }
+        
+			//Send our object's v/c (Velocity over the Speed of Light) to the shader
+            if (tempRenderer != null)
+            {
+                Vector3 tempViw = viw / (float)state.SpeedOfLight;
+                tempRenderer.materials[0].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
+            }
+			
+			//As long as our object is actually alive, perform these calculations
+            if (transform!=null && deathTime != 0)
+            {
+                //Here I take the angle that the player's velocity vector makes with the z axis
+                float rotationAroundZ = 57.2957795f * Mathf.Acos(Vector3.Dot(state.PlayerVelocityVector, Vector3.forward) / state.PlayerVelocityVector.magnitude);
 
+                if (state.PlayerVelocityVector.sqrMagnitude == 0)
+                {
+                    rotationAroundZ = 0;
+                }
+                
+                //Now we turn that rotation into a quaternion
+
+                Quaternion rotateZ = Quaternion.AngleAxis(-rotationAroundZ, Vector3.Cross(state.PlayerVelocityVector,Vector3.forward));
+                //******************************************************************
+
+                //Place the vertex to be changed in a new Vector3
+                Vector3 riw = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+                riw -= state.playerTransform.position; 
+
+
+                //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
+                riw = rotateZ * riw;
+
+
+                //Here begins the original code, made by the guys behind the Relativity game
+                /****************************
+                     * Start Part 6 Bullet 1
+                
+                */
+
+                //Rotate that velocity!
+                Vector3 storedViw = rotateZ * viw;
+
+                float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
+
+                float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
+
+                float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
+
+                /****************************
+                 * Start Part 6 Bullet 2
+                 * **************************/
+
+                float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
+				//If we're past our death time (in the player's view, as seen by tisw)
+                if (state.TotalTimeWorld + tisw > deathTime)
+                {
+                    Destroy(this.gameObject);
+                }
+
+            }
+		
+		//make our rigidbody's velocity viw
+            if (GetComponent<Rigidbody>()!=null)
+            {
+				
+                if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                {
+                    Vector3 tempViw = viw;
+					//ASK RYAN WHY THESE WERE DIVIDED BY THIS
+                    tempViw.x /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                    tempViw.y /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                    tempViw.z /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+
+                    GetComponent<Rigidbody>().velocity = tempViw;
+                }
+     			        
+                
+            }
+		}
 
 
     }
 
-    public Vector3 RecursiveTransform(Vector3 pt, Transform trans)
-    {
-        //Basically, this will transform the point until it has no more parent transforms.
-        Vector3 pt1 = Vector3.zero;
-        //If we have a parent transform, run this function again
-        if (trans.parent != null)
-        {
-            pt = RecursiveTransform(pt1, trans.parent);
-
-            return pt;
-        }
-        else
-        {
-            pt1 = trans.TransformPoint(pt);
-            return pt1;
-        }
-    }
-	/*
-    //Use this function to add distance to our object moving with periodic motion
-    public void PeriodicAddTime()
-    {
-        meshFilter.transform.Translate(new Vector3(0, amp * Mathf.Sin((float)(period * state.TotalTimeWorld)) - amp * Mathf.Sin((float)(period * (state.TotalTimeWorld - state.DeltaTimeWorld))), 0));
-    }
-    //Use this function to simulate the "flight time" of a photon, pass it tisw
-    public Vector3 PeriodicSubtractTime(float tisw, Quaternion rotation)
-    {
-        Vector3 addedVelocity = rotation * (new Vector3(0, amp * Mathf.Sin((float)(period * (state.TotalTimeWorld + tisw))) - amp * Mathf.Sin((float)(period * (state.TotalTimeWorld))), 0));
-        return addedVelocity;
-    }
-    //Use this to get our current velocity in world.
-    public Vector3 CurrentVelocity()
-    {
-        Vector3 velocity = Vector3.zero;
-
-        velocity.y = amp * period * Mathf.Cos((float)(period * state.TotalTimeWorld));
-
-        return velocity;
-    }
-    public Vector4 CurrentVelocity4()
-    {
-        Vector4 velocity = Vector4.zero;
-
-        velocity.y = amp * period * Mathf.Cos((float)(period * state.TotalTimeWorld));
-
-        return velocity;
-    }
-    */
-    private void checkSpeed()
-    {/*
-        if (periodic && amp * period > 4.95f)
-        {
-            period = 4.95f / amp;
-        }
-        else if (viw.magnitude > 4.95f)
-        {
-            viw = viw.normalized * 4.95f;
-        }
-        */
-    }
     
 }
