@@ -38,10 +38,10 @@ Shader "Relativity/SkyboxShift" {
 	
 	struct v2f {
 		float4 pos : POSITION;
-		float4 pos2;
-		float2 uv1;
-		float svc;
-		float4 vr;
+		float4 pos2 : TEXCOORD0;
+		float2 uv1  : TEXCOORD1;
+		float svc  : TEXCOORD2; 
+		float4 vr  : TEXCOORD3;
 	};
 		
 	sampler2D _MainTex;
