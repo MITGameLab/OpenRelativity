@@ -11,12 +11,12 @@ Shader "Relativity/ColorShift"
 	}
 	
 	CGINCLUDE
-// Upgrade NOTE: excluded shader from DX11 and Xbox360; has structs without semantics (struct v2f members pos2,uv1,svc,vr,draw)
-#pragma exclude_renderers d3d11 xbox360
+	// Upgrade NOTE: excluded shader from DX11 and Xbox360; has structs without semantics (struct v2f members pos2,uv1,svc,vr,draw)
+	#pragma exclude_renderers d3d11 xbox360
 	// Upgrade NOTE: excluded shader from Xbox360; has structs without semantics (struct v2f members pos2,uv1,svc,vr)	
-	// Not sure when this^ got added, seems like unity did it autimatically some update?
+	// Not sure when this^ got added, seems like unity did it automatically some update?
 	#pragma exclude_renderers xbox360
-		
+	#pragma glsl
 	#include "UnityCG.cginc"
 	
 	//Color shift variables, used to make guassians for XYZ curves
@@ -47,11 +47,11 @@ Shader "Relativity/ColorShift"
 	struct v2f 
 	{
 		float4 pos : POSITION; //internal, used for display
-		float4 pos2; //Position in world, relative to player position in world
-		float2 uv1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
-		float svc; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment
-		float4 vr; //Relative velocity of object vpc - viw
-		float draw; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created
+		float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
+		float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
+		float svc: TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
+		float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
+		float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
 	};
 	
 
@@ -67,7 +67,7 @@ Shader "Relativity/ColorShift"
 	float _spdOfLight = 100; //current speed of light
 	float _wrldTime = 0; //current time in world
 	float _strtTime = 0; //starting time in world
-	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight)
+	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 	float xyr = 1; // xy ratio
 	float xs = 1; // x scale
@@ -90,48 +90,55 @@ Shader "Relativity/ColorShift"
 		//vw + vp/(1+vw*vp/c^2)
 	
 	
-		float vuDot = (_vpc.x*_viw.x + _vpc.y*_viw.y + _vpc.z*_viw.z);
+		float vuDot = (_vpc.x*_viw.x + _vpc.y*_viw.y + _vpc.z*_viw.z); //Get player velocity dotted with velocity of the object.
 		float4 uparra;
+		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 		if ( speed != 0 )
 		{
-			uparra = (vuDot/(speed*speed)) * _vpc;
+			uparra = (vuDot/(speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 		}
+		//If our speed is zero, set parallel velocity to zero
 		else
 		{
 			uparra = 0; 
 		}
+		//Get the perpendicular component of our velocity, just by subtraction
 		float4 uperp = _viw - uparra;
+		//relative velocity calculation
 		float4 vr =( _vpc - uparra - (sqrt(1-speed*speed))*uperp)/(1+vuDot);
 	 
-
+		//set our relative velocity
 		o.vr = vr;
 		vr *= -1;
+		//relative speed
 		float speedr = sqrt( pow((vr.x),2) + pow((vr.y),2) + pow((vr.z),2));
-		o.svc = sqrt( 1 - speedr * speedr); // To decrease number of operations in fragment shader 
+		o.svc = sqrt( 1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 		
 		//You need this otherwise the screen flips and weird stuff happens
 		#ifdef SHADER_API_D3D9
 		if (_MainTex_TexelSize.y < 0)
 			 o.uv1.y = 1.0- o.uv1.y;
 		#endif 
-	
+		//riw = location in world, for reference
         float4 riw = o.pos; //Position that will be used in the output
 		
         if (speedr != 0) // If speed is zero, rotation fails
         {
-			float a;
-			float ux;
+			float a;  //angle
+			float ux; 
 			float uy;
-			float ca;
-			float sa;
+			float ca; //cosine of a
+			float sa; /// sine of a
 			if ( speed != 0 )
 			{
-				a = -acos(-_vpc.z/sqrt(_vpc.x*_vpc.x + _vpc.y*_vpc.y + _vpc.z*_vpc.z));
+				//we're getting the angle between our z direction of movement and the world's Z axis
+				a = -acos(-_vpc.z/speed);
 				if ( _vpc.x != 0 || _vpc.y != 0 )	
 				{
 					ux = _vpc.y/sqrt(_vpc.x*_vpc.x + _vpc.y*_vpc.y);
 					uy = -_vpc.x/sqrt(_vpc.x*_vpc.x + _vpc.y*_vpc.y);
 				}
+				
 				else
 				{
 					ux = 0;
@@ -139,7 +146,10 @@ Shader "Relativity/ColorShift"
 				}
 				ca = cos(a);
 				sa = sin(a);
-
+				
+				//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+				//This is because all of our equations are based off of movement in one direction.
+				
 				//And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
 				riw.x = o.pos.x * (ca + ux*ux*(1-ca)) + o.pos.y*(ux*uy*(1-ca)) + o.pos.z*(uy*sa);
 				riw.y = o.pos.x * (uy*ux*(1-ca)) + o.pos.y * ( ca + uy*uy*(1-ca)) - o.pos.z*(ux*sa);
@@ -150,10 +160,11 @@ Shader "Relativity/ColorShift"
 		
 			//Here begins the original code, made by the guys behind the Relativity game
 
-   			//Rotate that velocity!
+   			//Rotate our velocity
 			float4 rotateViw = float4(0,0,0,0);
 			if ( speed != 0 )
 			{	
+				//Here we rotate our object's velocity so that we keep consistent with the rotation of our player's velocity.
 			    rotateViw.x = (_viw.x * (ca + ux*ux*(1-ca)) + _viw.y*(ux*uy*(1-ca)) + _viw.z*(uy*sa))*_spdOfLight;
 				rotateViw.y = (_viw.x * (uy*ux*(1-ca)) + _viw.y * ( ca + uy*uy*(1-ca)) - _viw.z*(ux*sa))*_spdOfLight;
 				rotateViw.z = (_viw.x * (-uy*sa) + _viw.y * (ux*sa) + _viw.z*(ca))*_spdOfLight;
@@ -171,9 +182,9 @@ Shader "Relativity/ColorShift"
 
 			float d = (_spdOfLight*_spdOfLight) - (rotateViw.x*rotateViw.x + rotateViw.y*rotateViw.y + rotateViw.z*rotateViw.z);
 
-			float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
+			float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d))); 
 
-			//Check to make sure that objects that have velocity do not appear before they were created (objects behind huts) 
+			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
   			if (_wrldTime + tisw > _strtTime || _strtTime==0)
 			{
 				o.draw = 1;
@@ -200,14 +211,14 @@ Shader "Relativity/ColorShift"
 			newz = riw.z + newz;
 			newz /= (float)sqrt(1 - (speed*speed));
 			riw.z = newz;
-		   	if (speed != 0)
+		  	if (speed != 0)
 			{
 				float trx = riw.x;
-				float try = riw.y;
+				float trry = riw.y;
 	
 				riw.x = riw.x * (ca + ux*ux*(1-ca)) + riw.y*(ux*uy*(1-ca)) - riw.z*(uy*sa);
 				riw.y = trx * (uy*ux*(1-ca)) + riw.y * ( ca + uy*uy*(1-ca)) + riw.z*(ux*sa);
-				riw.z = trx * (uy*sa) - try * (ux*sa) + riw.z*(ca);
+				riw.z = trx * (uy*sa) - trry * (ux*sa) + riw.z*(ca);
 			}
 		}
 		else
@@ -328,11 +339,11 @@ Shader "Relativity/ColorShift"
 		
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 		float shift = (1-((x1*i.vr.x + y1*i.vr.y + z1*i.vr.z)/sqrt( x1 * x1 + y1 * y1 + z1 * z1)))/i.svc; 
-		if ( _colorShift == 0) //TODO: Make this less silly
+		if ( _colorShift == 0) 
 		{
 			shift /= shift;
 		}
-		//Get initial color
+		//Get initial color 
 		float4 data = tex2D (_MainTex, i.uv1).rgba;   
 		float UV = tex2D( _UVTex, i.uv1).r;
 		float IR = tex2D( _IRTex, i.uv1).r;
