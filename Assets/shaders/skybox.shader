@@ -9,7 +9,8 @@ Shader "Relativity/SkyboxShift" {
 	CGINCLUDE
 // Upgrade NOTE: excluded shader from Xbox360; has structs without semantics (struct v2f members pos2,uv1,svc,vr)	
 #pragma exclude_renderers xbox360
-		
+	
+	#pragma glsl
 	#include "UnityCG.cginc"
 	
 	#define xla 0.39842970153455692
