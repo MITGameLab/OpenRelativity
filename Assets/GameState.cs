@@ -98,7 +98,7 @@ public class GameState : MonoBehaviour
     private const float ORB_SPEED_INC = 0.05f;
     private const float ORB_DECEL_RATE = 0.6f;
     private const float ORB_SPEED_DUR = 2f;
-    private const float MAX_SPEED = 5.00f;
+    private const float MAX_SPEED = 20.00f;
     public  const float NORM_PERCENT_SPEED = .99f;
     public const int splitDistance = 21000;
     #endregion
