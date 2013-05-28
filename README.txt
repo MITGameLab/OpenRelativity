@@ -11,7 +11,7 @@ With our code base, there are a few simple rules around how to get an object int
 
 General Notes on Relativity and the Limitations of our Code:
 
-While we have tried to produce a physically accurate representation of special relativity, there are some unfortunate limitations to our code, and they are as follows
+To most accurately simulate the effects of special relativity using our toolkit, please adhere to the following guidelines:
 
 1. Only the player object may move freely. All other objects must either have a constant velocity originating at infinity and ending at infinity, or else be still.
 
