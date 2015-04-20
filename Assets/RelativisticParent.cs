@@ -149,7 +149,7 @@ public class RelativisticParent : MonoBehaviour {
         GetComponent<MeshFilter>().mesh = myMesh;
         GetComponent<MeshRenderer>().enabled = true;
         GetComponent<MeshFilter>().mesh.RecalculateNormals();
-        GetComponent<MeshFilter>().renderer.materials = tempMaterials;
+        GetComponent<MeshFilter>().GetComponent<Renderer>().materials = tempMaterials;
 
         transform.gameObject.SetActive(true);
         //End section of combining meshes

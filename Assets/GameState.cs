@@ -134,7 +134,7 @@ public class GameState : MonoBehaviour
         {
 			//When we unpause, lock the cursor and hide it so that it doesn't get in the way
             movementFrozen = false;
-            Screen.showCursor = false;
+            Cursor.visible = false;
             Screen.lockCursor = true;
         }
         else 
@@ -142,7 +142,7 @@ public class GameState : MonoBehaviour
 			//When we pause, set our velocity to zero, show the cursor and unlock it.
             GameObject.FindGameObjectWithTag("Playermesh").GetComponent<Rigidbody>().velocity = Vector3.zero;
 			movementFrozen = true;
-            Screen.showCursor = true;
+            Cursor.visible = true;
             Screen.lockCursor = false;
         }
        

@@ -1,3 +1,5 @@
+#warning Upgrade NOTE: unity_Scale shader variable was removed; replaced 'unity_Scale.w' with '1.0'
+
 Shader "Relativity/ColorShift" 
 {
 	Properties 
@@ -229,7 +231,7 @@ Shader "Relativity/ColorShift"
 		riw += _playerOffset;
 	
         //Transform the vertex back into local space for the mesh to use it
-		o.pos = mul(_World2Object*unity_Scale.w,riw);
+		o.pos = mul(_World2Object*1.0,riw);
 
 		o.pos2 = mul(_Object2World, o.pos );
 		o.pos2 -= _playerOffset;
