@@ -280,18 +280,23 @@ public class GameState : MonoBehaviour
         double y = q.y;
         double z = q.z;
 
+		double wSqrd = w * w;
+		double xSqrd = x * x;
+		double ySqrd = y * y;
+		double zSqrd = z * z;
+
         Matrix4x4 matrix;
-        matrix.m00 = (float)(Math.Pow((double)w, 2) + Math.Pow((double)x, 2.0) - Math.Pow((double)y, 2) - Math.Pow((double)z, 2));
+		matrix.m00 = (float)(wSqrd + xSqrd - ySqrd - zSqrd);
         matrix.m01 = (float)(2 * x * y - 2 * w * z);
         matrix.m02 = (float)(2 * x * z + 2 * w * y);
         matrix.m03 = (float)0;
         matrix.m10 = (float)(2 * x * y + 2 * w * z);
-        matrix.m11 = (float)(Math.Pow((double)w, 2) - Math.Pow((double)x, 2.0) + Math.Pow((double)y, 2) - Math.Pow((double)z, 2));
+		matrix.m11 = (float)(wSqrd - xSqrd + ySqrd - zSqrd);
         matrix.m12 = (float)(2 * y * z + 2 * w * x);
         matrix.m13 = (float)0;
         matrix.m20 = (float)(2 * x * z - 2 * w * y);
         matrix.m21 = (float)(2 * y * z - 2 * w * x);
-        matrix.m22 = (float)(Math.Pow((double)w, 2) - Math.Pow((double)x, 2.0) - Math.Pow((double)y, 2) + Math.Pow((double)z, 2));
+		matrix.m22 = (float)(wSqrd - xSqrd - ySqrd + zSqrd);
         matrix.m23 = 0;
         matrix.m30 = 0;
         matrix.m31 = 0;
