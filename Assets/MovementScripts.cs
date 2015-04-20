@@ -43,7 +43,7 @@ public class MovementScripts: MonoBehaviour
         inverted = -1;
         
 		
-        viwMax = Mathf.Min(viwMax,(float)GameObject.FindGameObjectWithTag("Player").GetComponent<GameState>().MaxSpeed);
+		viwMax = Mathf.Min(viwMax,(float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
 		
         frames = 0;
     }

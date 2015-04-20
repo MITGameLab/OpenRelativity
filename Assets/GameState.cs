@@ -140,7 +140,7 @@ public class GameState : MonoBehaviour
         else 
         {
 			//When we pause, set our velocity to zero, show the cursor and unlock it.
-            GameObject.FindGameObjectWithTag("Playermesh").GetComponent<Rigidbody>().velocity = Vector3.zero;
+            GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
 			movementFrozen = true;
             Cursor.visible = true;
             Screen.lockCursor = false;
@@ -237,12 +237,12 @@ public class GameState : MonoBehaviour
             //Set our rigidbody's velocity
             if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
             {
-                GameObject.FindGameObjectWithTag("Playermesh").GetComponent<Rigidbody>().velocity = -1*(playerVelocityVector / (float)sqrtOneMinusVSquaredCWDividedByCSquared);
+                GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1*(playerVelocityVector / (float)sqrtOneMinusVSquaredCWDividedByCSquared);
             }
 			//But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
             else
             {
-                GameObject.FindGameObjectWithTag("Playermesh").GetComponent<Rigidbody>().velocity = Vector3.zero;
+				GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
             }
                 /*****************************
              * PART 3 OF ALGORITHM
