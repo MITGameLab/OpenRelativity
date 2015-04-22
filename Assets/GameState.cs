@@ -135,7 +135,7 @@ public class GameState : MonoBehaviour
 			//When we unpause, lock the cursor and hide it so that it doesn't get in the way
             movementFrozen = false;
             Cursor.visible = false;
-            Screen.lockCursor = true;
+            Cursor.lockState = CursorLockMode.Locked;
         }
         else 
         {
@@ -143,7 +143,7 @@ public class GameState : MonoBehaviour
             GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
 			movementFrozen = true;
             Cursor.visible = true;
-            Screen.lockCursor = false;
+            Cursor.lockState = CursorLockMode.None;
         }
        
     }
@@ -217,7 +217,7 @@ public class GameState : MonoBehaviour
              * THE TIME PASSED IN WORLD FRAME
              * ****************************/
             //find this constant
-            sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - Math.Pow(playerVelocity, 2) / cSqrd);
+            sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - (playerVelocity * playerVelocity) / cSqrd);
 			
 			//Set by Unity, time since last update
 			deltaTimePlayer = (double)Time.deltaTime; 
@@ -260,8 +260,6 @@ public class GameState : MonoBehaviour
             Quaternion WorldOrientation = Quaternion.Inverse(orientation);
             Normalize(orientation);
             worldRotation = CreateFromQuaternion(WorldOrientation);
-
-           
 
             //Add up our rotation so that we know where the character (NOT CAMERA) should be facing 
             playerRotation += deltaRotation;
@@ -310,10 +308,11 @@ public class GameState : MonoBehaviour
     {
         Quaternion q = quat;
 
-        if (Math.Pow(q.w, 2) + Math.Pow(q.x, 2) + Math.Pow(q.y, 2) + Math.Pow(q.z, 2) != 1)
+		double magnitudeSqr = q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z;
+        if (magnitudeSqr != 1)
         {
-            double magnitude = (double)Math.Sqrt(Math.Pow(q.w, 2) + Math.Pow(q.x, 2) + Math.Pow(q.y, 2) + Math.Pow(q.z, 2));
-            q.w = (float)((double)q.w / magnitude);
+			double magnitude = (double)Math.Sqrt(magnitudeSqr);
+			q.w = (float)((double)q.w / magnitude);
             q.x = (float)((double)q.x / magnitude);
             q.y = (float)((double)q.y / magnitude);
             q.z = (float)((double)q.z / magnitude);

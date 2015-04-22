@@ -35,7 +35,7 @@ public class MovementScripts: MonoBehaviour
 		//grab Game State, we need it for many actions
         state = GetComponent<GameState>();
        //Lock and hide cursor
-        Screen.lockCursor = true;
+        Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 		//Set the speed of light to the starting speed of light in GameState
 		speedOfLightTarget = (int)state.SpeedOfLight;
