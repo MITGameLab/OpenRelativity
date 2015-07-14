@@ -1,3 +1,5 @@
+#warning Upgrade NOTE: unity_Scale shader variable was removed; replaced 'unity_Scale.w' with '1.0'
+
 Shader "Relativity/SkyboxShift" {
 	Properties {
 		_MainTex ("Base (RGB)", 2D) = "" {}
@@ -220,7 +222,7 @@ Shader "Relativity/SkyboxShift" {
 		float3 rgbFinal = XYZToRGBC(xf,yf,zf);
 		//rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z);
 
-  		float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
+  		float4x4 temp  = mul(1.0*_Object2World, _World2Object);
 		float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1));
 		//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1);
 		return temp2; 

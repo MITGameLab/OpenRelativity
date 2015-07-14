@@ -35,15 +35,15 @@ public class MovementScripts: MonoBehaviour
 		//grab Game State, we need it for many actions
         state = GetComponent<GameState>();
        //Lock and hide cursor
-        Screen.lockCursor = true;
-        Screen.showCursor = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
 		//Set the speed of light to the starting speed of light in GameState
 		speedOfLightTarget = (int)state.SpeedOfLight;
         //Inverted, at first
         inverted = -1;
         
 		
-        viwMax = Mathf.Min(viwMax,(float)GameObject.FindGameObjectWithTag("Player").GetComponent<GameState>().MaxSpeed);
+		viwMax = Mathf.Min(viwMax,(float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
 		
         frames = 0;
     }

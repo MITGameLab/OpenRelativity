@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 public class RelativisticObject : MonoBehaviour {
+	public const float RAD_2_DEG = 57.2957795f; 
     //Keep track of our own Mesh Filter
     private MeshFilter meshFilter;
     //Store our raw vertices in this variable, so that we can refer to them later
@@ -16,11 +17,17 @@ public class RelativisticObject : MonoBehaviour {
     private float startTime = 0;
     //When should we die? again, for moving objects
     private float deathTime = 0;
-	
+
+	void Awake()
+	{
+		//Get the player's GameState, use it later for general information
+		state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+	}
+
 	// Get the start time of our object, so that we know where not to draw it
     public void SetStartTime()
     {
-        startTime = (float) GameObject.FindGameObjectWithTag("Player").GetComponent<GameState>().TotalTimeWorld;
+		startTime = (float) state.TotalTimeWorld;
     }
 	//Set the death time, so that we know at what point to destroy the object in the player's view point.
     public void SetDeathTime()
@@ -28,11 +35,7 @@ public class RelativisticObject : MonoBehaviour {
         deathTime = (float)state.TotalTimeWorld;
     }
     void Start()
-    {
-		
-        //Get the player's GameState, use it later for general information
-        state = GameObject.FindGameObjectWithTag("Player").GetComponent<GameState>();
-		
+	{
         checkSpeed();
 		//Get the meshfilter
         meshFilter = GetComponent<MeshFilter>();
@@ -68,7 +71,7 @@ public class RelativisticObject : MonoBehaviour {
 		//At high speeds the Lorenz contraction means that some objects not normally in the view frame are actually visible
 		//If we did frustrum culling, these objects would be ignored (because we cull BEFORE running the shader, which does the lorenz contraction)
         Transform camTransform = Camera.main.transform;
-        float distToCenter = (Camera.main.farClipPlane - Camera.main.nearClipPlane) / 2.0f;
+        float distToCenter = (Camera.main.farClipPlane + Camera.main.nearClipPlane) / 2.0f;
         Vector3 center = camTransform.position + camTransform.forward * distToCenter;
         float extremeBound = 500000.0f;
         meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
@@ -133,7 +136,7 @@ public class RelativisticObject : MonoBehaviour {
             if (transform!=null && deathTime != 0)
             {
                 //Here I take the angle that the player's velocity vector makes with the z axis
-                float rotationAroundZ = 57.2957795f * Mathf.Acos(Vector3.Dot(state.PlayerVelocityVector, Vector3.forward) / state.PlayerVelocityVector.magnitude);
+				float rotationAroundZ = RAD_2_DEG * Mathf.Acos(Vector3.Dot(state.PlayerVelocityVector, Vector3.forward) / state.PlayerVelocityVector.magnitude);
 
                 if (state.PlayerVelocityVector.sqrMagnitude == 0)
                 {

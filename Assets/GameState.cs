@@ -134,16 +134,16 @@ public class GameState : MonoBehaviour
         {
 			//When we unpause, lock the cursor and hide it so that it doesn't get in the way
             movementFrozen = false;
-            Screen.showCursor = false;
-            Screen.lockCursor = true;
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
         }
         else 
         {
 			//When we pause, set our velocity to zero, show the cursor and unlock it.
-            GameObject.FindGameObjectWithTag("Playermesh").GetComponent<Rigidbody>().velocity = Vector3.zero;
+            GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
 			movementFrozen = true;
-            Screen.showCursor = true;
-            Screen.lockCursor = false;
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
         }
        
     }
@@ -217,7 +217,7 @@ public class GameState : MonoBehaviour
              * THE TIME PASSED IN WORLD FRAME
              * ****************************/
             //find this constant
-            sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - Math.Pow(playerVelocity, 2) / cSqrd);
+            sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - (playerVelocity * playerVelocity) / cSqrd);
 			
 			//Set by Unity, time since last update
 			deltaTimePlayer = (double)Time.deltaTime; 
@@ -237,12 +237,12 @@ public class GameState : MonoBehaviour
             //Set our rigidbody's velocity
             if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
             {
-                GameObject.FindGameObjectWithTag("Playermesh").GetComponent<Rigidbody>().velocity = -1*(playerVelocityVector / (float)sqrtOneMinusVSquaredCWDividedByCSquared);
+                GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1*(playerVelocityVector / (float)sqrtOneMinusVSquaredCWDividedByCSquared);
             }
 			//But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
             else
             {
-                GameObject.FindGameObjectWithTag("Playermesh").GetComponent<Rigidbody>().velocity = Vector3.zero;
+				GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
             }
                 /*****************************
              * PART 3 OF ALGORITHM
@@ -261,8 +261,6 @@ public class GameState : MonoBehaviour
             Normalize(orientation);
             worldRotation = CreateFromQuaternion(WorldOrientation);
 
-           
-
             //Add up our rotation so that we know where the character (NOT CAMERA) should be facing 
             playerRotation += deltaRotation;
 
@@ -280,18 +278,23 @@ public class GameState : MonoBehaviour
         double y = q.y;
         double z = q.z;
 
+		double wSqrd = w * w;
+		double xSqrd = x * x;
+		double ySqrd = y * y;
+		double zSqrd = z * z;
+
         Matrix4x4 matrix;
-        matrix.m00 = (float)(Math.Pow((double)w, 2) + Math.Pow((double)x, 2.0) - Math.Pow((double)y, 2) - Math.Pow((double)z, 2));
+		matrix.m00 = (float)(wSqrd + xSqrd - ySqrd - zSqrd);
         matrix.m01 = (float)(2 * x * y - 2 * w * z);
         matrix.m02 = (float)(2 * x * z + 2 * w * y);
         matrix.m03 = (float)0;
         matrix.m10 = (float)(2 * x * y + 2 * w * z);
-        matrix.m11 = (float)(Math.Pow((double)w, 2) - Math.Pow((double)x, 2.0) + Math.Pow((double)y, 2) - Math.Pow((double)z, 2));
+		matrix.m11 = (float)(wSqrd - xSqrd + ySqrd - zSqrd);
         matrix.m12 = (float)(2 * y * z + 2 * w * x);
         matrix.m13 = (float)0;
         matrix.m20 = (float)(2 * x * z - 2 * w * y);
         matrix.m21 = (float)(2 * y * z - 2 * w * x);
-        matrix.m22 = (float)(Math.Pow((double)w, 2) - Math.Pow((double)x, 2.0) - Math.Pow((double)y, 2) + Math.Pow((double)z, 2));
+		matrix.m22 = (float)(wSqrd - xSqrd - ySqrd + zSqrd);
         matrix.m23 = 0;
         matrix.m30 = 0;
         matrix.m31 = 0;
@@ -305,10 +308,11 @@ public class GameState : MonoBehaviour
     {
         Quaternion q = quat;
 
-        if (Math.Pow(q.w, 2) + Math.Pow(q.x, 2) + Math.Pow(q.y, 2) + Math.Pow(q.z, 2) != 1)
+		double magnitudeSqr = q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z;
+        if (magnitudeSqr != 1)
         {
-            double magnitude = (double)Math.Sqrt(Math.Pow(q.w, 2) + Math.Pow(q.x, 2) + Math.Pow(q.y, 2) + Math.Pow(q.z, 2));
-            q.w = (float)((double)q.w / magnitude);
+			double magnitude = (double)Math.Sqrt(magnitudeSqr);
+			q.w = (float)((double)q.w / magnitude);
             q.x = (float)((double)q.x / magnitude);
             q.y = (float)((double)q.y / magnitude);
             q.z = (float)((double)q.z / magnitude);
