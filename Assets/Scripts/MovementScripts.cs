@@ -186,7 +186,6 @@ public class MovementScripts: MonoBehaviour
 			  	
 				//Get our input axis (DEFAULT N, M) value to determine how much to change the speed of light
 				int temp2 = (int)(Input.GetAxis("Speed of Light"));
-				Debug.Log(temp2);
 				//If it's too low, don't subtract from the speed of light, and reset the speed of light
 				if(temp2<0 && speedOfLightTarget<=state.MaxSpeed)
 				{
