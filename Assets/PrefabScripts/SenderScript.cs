@@ -10,6 +10,7 @@ public class SenderScript : MonoBehaviour {
     //how much time has passed
     private float launchCounter;
 
+	public string prefabName = "Moving Person";
     //What's their speed?
     public float viwMax = 3;
 	
@@ -22,7 +23,9 @@ public class SenderScript : MonoBehaviour {
             launchTimer = 3;
         }
 		//Point to the associated receiver.
-        this.transform.LookAt(receiverTransform);
+		if (receiverTransform != null) {
+			this.transform.LookAt (receiverTransform);
+		}
 		//Take the minimum of the chosen viwMax, and the Game State's chosen Max Speed
         viwMax = Mathf.Min(viwMax,(float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
     }
@@ -46,14 +49,34 @@ public class SenderScript : MonoBehaviour {
     void LaunchObject()
     {	
 		//Instantiate a new Object (You can find this object in the GameObjects folder, it's a prefab.
-        GameObject launchedObject = (GameObject)Instantiate(Resources.Load("GameObjects/Moving Person", typeof(GameObject)), transform.position, this.transform.rotation);
+        GameObject launchedObject = (GameObject)Instantiate(Resources.Load("GameObjects/"+prefabName, typeof(GameObject)), transform.position, this.transform.rotation);
         //Translate it to our center, and put it so that it's just touching the ground
 		launchedObject.transform.Translate((new Vector3(0, launchedObject.GetComponent<MeshFilter>().mesh.bounds.extents.y, 0) ));
 		//Make it a child of our transform.
         launchedObject.transform.parent = transform;
-		//Their velocity should be in the direction we're facing, at viwMax magnitude
-        launchedObject.GetComponent<RelativisticObject>().viw = viwMax * this.transform.forward;
-		//And let the object know when it was created, so that it knows when not to be seen by the player
-        launchedObject.GetComponent<RelativisticObject>().SetStartTime();
+		RelativisticObject ro = launchedObject.GetComponent<RelativisticObject>();
+		RelativisticObject [] ros = launchedObject.GetComponentsInChildren<RelativisticObject>();
+
+		if (ro != null)
+		{
+			ro.viw = viwMax * this.transform.forward;
+			//And let the object know when it was created, so that it knows when not to be seen by the player
+			ro.SetStartTime();
+		}
+		else if(ros.Length>0)
+		{
+			for(int i=0;i<ros.Length;i++)
+			{
+				ros[i].viw = viwMax * this.transform.forward;
+				//And let the object know when it was created, so that it knows when not to be seen by the player
+				ros[i].SetStartTime();
+			}
+		}
+		else if(launchedObject.GetComponent<Firework>()!=null)
+		{
+			launchedObject.GetComponent<Firework>().viw = viwMax * transform.forward;
+			//And let the object know when it was created, so that it knows when not to be seen by the player
+			launchedObject.GetComponent<Firework>().SetStartTime();
+		}
     }
 }
