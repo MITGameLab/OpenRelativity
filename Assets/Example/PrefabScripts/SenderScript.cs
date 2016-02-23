@@ -54,6 +54,7 @@ public class SenderScript : MonoBehaviour {
 		launchedObject.transform.Translate((new Vector3(0, launchedObject.GetComponent<MeshFilter>().mesh.bounds.extents.y, 0) ));
 		//Make it a child of our transform.
         launchedObject.transform.parent = transform;
+		//Determine if it has a Relativistic Object, Firework, or multiple RO's to set VIW on.
 		RelativisticObject ro = launchedObject.GetComponent<RelativisticObject>();
 		RelativisticObject [] ros = launchedObject.GetComponentsInChildren<RelativisticObject>();
 

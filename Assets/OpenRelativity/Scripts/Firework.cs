@@ -27,25 +27,26 @@ public class Firework : MonoBehaviour
 
 	float timer=0;
 
+	//This is in case you implement memory pools for generated objects. Whenever they are re enabled they should activate again
 	void OnEnable()
 	{
 		timer = startTimer;
 		ResetDeathTime();
 	}
+	//Grab the gamestate and keep it safe
 	void Awake()
 	{
 		//Get the player's GameState, use it later for general information
 		state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-		transform.LookAt(state.transform);
-		transform.Rotate(new Vector3(90,0,0));
 	}
 
 	// Get the start time of our object, so that we know where not to draw it
+	//Turn off the mesh renderer to avoid transparency problems
 	public void SetStartTime()
 	{
 		startTime = (float)state.TotalTimeWorld;
 		GetComponent<MeshRenderer>().enabled = false;
-
+		//start my countdown
 		timer = startTimer;
 	}
 	//Set the death time, so that we know at what point to destroy the object in the player's view point.
@@ -92,17 +93,21 @@ public class Firework : MonoBehaviour
 		float extremeBound = 500000.0f;
 		meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound); 
 	}
-
+	//If you reenable the object, it will destroy itself unless you reset the death time
 	void ResetDeathTime()
 	{
 		deathTime = 0;
 	}
+	//Set our death time. This tells the object when to die (it's not where it should be due to runtime effect)
 	public  void SetDeathTime()
 	{
+		//If we're a firework not a particle, explode into particles!
 		if (!isParticle)
 		{
 			//float slerp = 1.0f / count;
+			//Get a spacing for the generated particles
 			float spacing = (float)(360) / count;
+			//Roll around a sphere, and send off a bunch of particles. Add judder to ensure it looks naturally not uniform
 			for (int j = 0; j < count*2; j++)
 			{
 				for (int i = 0; i < count; i++)
@@ -113,9 +118,10 @@ public class Firework : MonoBehaviour
 				}
 			}
 		}
-
+		//and, set the death time
 		deathTime = (float)state.TotalTimeWorld;
 	}
+	//Standard update, taken out of Relativistic Object
 	public void Update()
 	{
 		//Grab our renderer.
@@ -228,7 +234,7 @@ public class Firework : MonoBehaviour
 
 			}
 
-			//make our rigidbody's velocity viw
+			//make our rigidbody's velocity the same as viw
 			if (GetComponent<Rigidbody> () != null && !isParticle) {
 
 				if (!double.IsNaN ((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0) {
@@ -255,9 +261,9 @@ public class Firework : MonoBehaviour
 			GetComponent<Rigidbody>().velocity = Vector3.zero;
 		}
 
-
+		//This time transformation goes from world time to this objects personal time
 		timer -= (float)(state.DeltaTimeWorld * (Math.Sqrt(1 - (viw.sqrMagnitude) / state.SpeedOfLightSqrd)));
-
+		//If we've passed the time to explode, blow it up
 		if (timer <= 0)
 		{
 			SetDeathTime();
@@ -265,11 +271,12 @@ public class Firework : MonoBehaviour
 			timer = float.MaxValue;
 		}
 	}
-
+	//Actually destroy the object
 	public void KillObject()
 	{
 		GameObject.Destroy(gameObject);
 	}
+
 	public Vector3 RecursiveTransform(Vector3 pt, Transform trans)
 	{
 		//Basically, this will transform the point until it has no more parent transforms.
@@ -296,7 +303,7 @@ public class Firework : MonoBehaviour
 			viw = viw.normalized * (float)(state.MaxSpeed - .01f);
 		}
 	}
-
+	//Launch a single particle, see SetDeathTime above for its use
 	public void EmitParticle(float gamma,float theta)
 	{
 		//rotate the direction down by gamma, around by theta

@@ -60,14 +60,15 @@ Index
 	Code:
 
 	1. Relativistic Object / Relativistic Parent
-	2. Movement Scripts
-	3. Info Script
-	4. Game State	
-	5. Object Mesh Density
-	6. Relativity Shader
-	7. Skybox Shader	
-	8. Receiver and Receiver2 Script
-	9. Sender Script
+	2. Firework
+	3. Movement Scripts
+	4. Info Script
+	5. Game State	
+	6. Object Mesh Density
+	7. Relativity Shader
+	8. Skybox Shader	
+	9. Receiver and Receiver2 Script
+	10. Sender Script
 
 	Prefabs:
 	
@@ -76,7 +77,8 @@ Index
 	3. Moving Person
 
 	Materials and Textures
-
+	
+	Controller Support
 
 
 
@@ -85,7 +87,8 @@ Index
 	Relativistic Object is the base code for all the non-player objects in the scene. Combined with the Relativity shader, it keeps track of relatvistic effects,moves the object if needed, and performs necessary actions for the shader to work. It first forces the object to have a unique material, so that the object's shader uses variables specific to that object, and not across all objects using the relativity shader (which is what would happen if we did nothing). It also keeps track of when the object was created and when it is supposed to disappear, so that the time-distorting effects of special relativity do not accidentally force the object to appear before its start location or after its disappearance. 
 
 	Relativistic Parent is much the same as Relativistic Object. However, for complex parented objects with many smaller parts, each with their own materials, it vastly increases the speed of the engine if they are all kept on a single object. This code takes all the meshes of the parent object's children and combines them with its own, attaching the materials and textures necessary to the correct submeshes. There is one important problem: I do not combine the colliders of the child objects, so it is important that the parent object's collider contains within it all of the child objects, or else the player will be able to clip through their meshes as only the parent's collider remains after the combining of all the meshes.
-
+2. Firework
+	Firework is identical to Relativistic Object except that there is also a timer on the object. When it dies, it releases a cloud of particles. This behaviour is mostly to show the possibilites of working with timers. As you lower the speed of light and the fireworks travel closer to the speed of light, you will notice they last longer (as will their particles) due to time dilation.
 2. Movement Scripts
 
 	Movement Scripts is what takes player input for the mouse and keyboard and moves the player accordingly. This code covers player movement, camera movement, and change in the speed of light. The movement follows a formula for relativistic velocity addition, which is included in the comments before the movement code. It is also currently set for free movement in three dimensions. If you wish to constrain the player to a flat ground plane (the X-Z plane, in Unity) then there are a couple lines of code that are marked for easy change. 
@@ -116,7 +119,7 @@ Index
 
 9. Sender Script
 
-	The Sender script is the other half of the objects that create moving characters. It takes a time interval, a velocity, and a receiver's transform. On start up it will point the object to look at the receiver, and at every interval specified will create a new Moving Person object. The Moving Person object will then move with a velocity specified in the Sender Script until it hits the Receiver2 object.
+	The Sender script is the other half of the objects that create moving characters. It takes the name of a prefab in the Resources/Gameobjects folder, time interval, a velocity, and a receiver's transform. On start up it will point the object to look at the receiver, and at every interval specified will create a new Moving Person object. The Moving Person object will then move with a velocity specified in the Sender Script until it hits the Receiver2 object.
 
 Prefabs:
 
@@ -128,6 +131,9 @@ Prefabs:
 
 	The Sender object is much simpler than the Receiver object. It just requires the Sender script and the transform of a Receiver. The mesh on this object can also be changed to anything else, as can its collider as there are no restrictions on the size of the collider or the mesh.
 
+	If you choose to leave the receiver transform blank and point it to a prefab with the firework script, it will launch self-deleting objects.
+
+
 3. Moving Person
 	
 	This is the object that will be created at a Sender and move towards a Receiver. There is nothing to change on the scripts in the Moving Person object, as everything is specified by the Sender that creates the Moving Person. The mesh and collider on the Moving Person can also be modified without changing the function of the Moving Person.
@@ -136,3 +142,15 @@ Prefabs:
 Materials:
 
 	The materials that come provided with Open Relativity are built to work with the relativity shader. If you have an object that you want to create a new material for, you must make sure the material has the following properties. It must use the relativity shader, and if you want it to have IR or UV spectrum wavelengths on it, the IR/UV textures in the material must have a grayscale image.
+
+Controller Support:
+
+	OpenRelativity has two separate InputManager.asset files that should be switched out depending on your target platform. The standard one (that is already in the project) is designed to work on Windows with an Xbox 360 controller. The file labeled InputManager - OSXPS3 is built to use a PS3 controller on OSX platforms. Simply rename the file "InputManager.asset" and replace the existing InputManager.asset file in the Project Settings folder to change which configuration you use.
+
+	The controls are as follows:
+	Movement: left analog stick
+	Camera Movement: right analog stick
+	Invert Camera Y Axis: Y/Triangle button
+	Toggle Color Effects: B/Circle Button
+	Pause/Unpause Game: Start Button
+	Change C: Left/Right D-Pad keys

@@ -278,27 +278,11 @@ public class MovementScripts: MonoBehaviour
 					Camera.main.useOcclusionCulling = false;
 				}
 				
-				//This code is for an extra test level that should appear soon, to give an idea of what to do with open relativity.
-				//Get mouse input for our bullet code
-			/*	if(Input.GetMouseButtonDown(0))
-				{
-					LaunchObject();
-				}*/
+
 			}
 		}
     
 
 
-    }
-	void LaunchObject()
-    {	
-		//Instantiate a new Object (You can find this object in the GameObjects folder, it's a prefab.
-        GameObject launchedObject = (GameObject)Instantiate(Resources.Load("GameObjects/Bullet", typeof(GameObject)), transform.parent.position, this.transform.parent.rotation);
-        //Translate it to our center, and put it so that it's just touching the ground
-		launchedObject.transform.Translate((new Vector3(0, launchedObject.GetComponent<MeshFilter>().mesh.bounds.extents.y, 0) ));
-		//Their velocity should be in the direction we're facing, at viwMax magnitude
-        launchedObject.GetComponent<RelativisticObject>().viw = viwMax * camTransform.forward;
-		//And let the object know when it was created, so that it knows when not to be seen by the player
-        launchedObject.GetComponent<RelativisticObject>().SetStartTime();
     }
 }
