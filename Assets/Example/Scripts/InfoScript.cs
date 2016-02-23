@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections;
-
+///Written by user tyoc213
 public class InfoScript : MonoBehaviour {
 	GameObject infoPanel;
 	//Gamestate reference for quick access

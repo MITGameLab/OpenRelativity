@@ -150,4 +150,6 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-Thank you to Gerd Kortemeyer and the MIT Game Lab for their contribution and instruction on this project
+Thank you to Gerd Kortemeyer and the MIT Game Lab for their contribution and instruction on this project.
+
+Thanks to users tyoc213, matthewh806, and sethwoodworth for contributing to the repo! 
