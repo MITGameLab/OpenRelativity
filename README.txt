@@ -145,7 +145,7 @@ Materials:
 
 Controller Support:
 
-	OpenRelativity has two separate InputManager.asset files that should be switched out depending on your target platform. The standard one (that is already in the project) is designed to work on Windows with an Xbox 360 controller. The file labeled InputManager - OSXPS3 is built to use a PS3 controller on OSX platforms. Simply rename the file "InputManager.asset" and replace the existing InputManager.asset file in the Project Settings folder to change which configuration you use.
+	OpenRelativity has two separate InputManager.asset files that should be switched out depending on your target platform. The standard one (that is already in the project) is designed to work on Windows with an Xbox 360 controller. The file labeled InputManager - OSXPS3 is built to use a PS3 controller on OSX platforms. Simply rename the file "InputManager.asset" and replace the existing InputManager.asset file in the Project Settings folder to change which configuration you use. Again, these configurations are for both separate platforms and separate controllers.
 
 	The controls are as follows:
 	Movement: left analog stick
