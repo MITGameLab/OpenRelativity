@@ -132,7 +132,7 @@ namespace OpenRelativity
             return Quaternion.Inverse(rot) * rotInt;
         }
 
-        public static Vector3 InverseBoostIntervalBy(this Vector3 interval, Vector3 velocity)
+        public static Vector3 InverseContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
             if (interval == Vector3.zero)
             {
