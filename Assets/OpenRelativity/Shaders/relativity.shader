@@ -52,6 +52,7 @@ Shader "Relativity/ColorShift"
 	#define PI_F 3.14159265f;
 
 	//Quaternion rotation
+	//https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
 	inline float3 rot3(quaternion q, float3 v) {
 		if (dot(q.xyz, q.xyz) == 0.0f) return v;
 		float3 t = 2.0f * cross(q.xyz, v);
