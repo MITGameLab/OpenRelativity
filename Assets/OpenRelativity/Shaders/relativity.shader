@@ -66,7 +66,7 @@ Shader "Relativity/ColorShift"
 	}
 
 	inline quaternion makeRotQ(float angle, float3 direction) {
-		return quaternion(sin(angle) * direction, cos(angle));
+		return quaternion(sin(angle / 2.0f) * direction, cos(angle / 2.0f));
 	}
 
 	inline quaternion inverse(quaternion q) {
