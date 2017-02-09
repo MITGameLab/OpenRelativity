@@ -1,3 +1,6 @@
+// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+// Upgrade NOTE: replaced '_World2Object' with 'unity_WorldToObject'
+
 Shader "Relativity/ColorShift" 
 {
 	Properties 
@@ -5,16 +8,15 @@ Shader "Relativity/ColorShift"
 		_MainTex ("Base (RGB)", 2D) = "" {} //Visible Spectrum Texture ( RGB )
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
+		_piw("piw", Vector) = (0,0,0,0) //Vector that represents object's position in world frame
 		_viw ("viw", Vector)=(0,0,0,0) //Vector that represents object's velocity in world frame
+		_aviw ("aviw", Vector)=(0,0,0,0) //Vector that represents object's angular velocity times the object's world scale
 		_strtTime ("strtTime", float)=0 //For moving objects, when they created, this variable is set to current world time
 		_Cutoff ("Base Alpha cutoff", Range (0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
 	
 	CGINCLUDE
-	// Upgrade NOTE: excluded shader from DX11 and Xbox360; has structs without semantics (struct v2f members pos2,uv1,svc,vr,draw)
-	#pragma exclude_renderers d3d11 xbox360
-	// Upgrade NOTE: excluded shader from Xbox360; has structs without semantics (struct v2f members pos2,uv1,svc,vr)	
-	// Not sure when this^ got added, seems like unity did it automatically some update?
+
 	#pragma exclude_renderers xbox360
 	#pragma glsl
 	#include "UnityCG.cginc"
@@ -42,6 +44,35 @@ Shader "Relativity/ColorShift"
 	#define UV_RANGE 380
 	#define UV_START 0
 
+	//Prevent infinite and NaN values
+	#define divByZeroCutoff 0.00001f
+
+	//Quaternion math
+	#define quaternion float4
+	#define PI_F 3.14159265f;
+
+	//Quaternion rotation
+	inline float3 rot3(quaternion q, float3 v) {
+		if (dot(q.xyz, q.xyz) == 0.0f) return v;
+		float3 t = 2.0f * cross(q.xyz, v);
+		return v + q.w * t + cross(q.xyz, t);
+	}
+
+	inline float4 rot4(quaternion q, float4 v) {
+		if (dot(q.xyz, q.xyz) == 0.0f) return v;
+		float3 t = 2.0f * cross(q.xyz, v.xyz);
+		t = v.xyz + q.w * t + cross(q.xyz, t);
+		return quaternion(t.x, t.y, t.z, 0.0f);
+	}
+
+	inline quaternion makeRotQ(float angle, float3 direction) {
+		return quaternion(sin(angle) * direction, cos(angle));
+	}
+
+	inline quaternion inverse(quaternion q) {
+		return quaternion(-q.xyz, q.w);
+	}
+
 	 
 	//This is the data sent from the vertex shader to the fragment shader
 	struct v2f 
@@ -61,7 +92,9 @@ Shader "Relativity/ColorShift"
 	sampler2D _UVTex;
 	sampler2D _CameraDepthTexture;
 	
+	float4 _piw = float4(0, 0, 0, 0); //position of object in world
 	float4 _viw = float4(0,0,0,0); //velocity of object in world
+	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0,0,0,0); //velocity of player
 	float4 _playerOffset = float4(0,0,0,0); //player position in world
 	float _spdOfLight = 100; //current speed of light
@@ -79,31 +112,48 @@ Shader "Relativity/ColorShift"
 	v2f vert( appdata_img v ) 
 	{
 		v2f o;
-
-		o.pos = mul(_Object2World, v.vertex); //get position in world frame	
-		o.pos -= _playerOffset; //Shift such that we use a coordinate system where the player is at 0,0,0
 		
+		float4 viw = _viw;
+
+		o.pos = mul(unity_ObjectToWorld, v.vertex) - _piw; //get position in world coordinates, with object at origin
+		//We relativistically add the tangential velocity to the translational.
+		if (dot(_aviw, _aviw) != 0.0f) // If angular speed is zero, no need
+		{
+			float siwSqr = dot(viw, viw); //speed of object in world, squared
+			float3 tv3 = -cross(_aviw, o.pos) / _spdOfLight; //tangential velocity in world
+			float4 tv = float4(tv3.x, tv3.y, tv3.z, 0.0f);
+			if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
+				float invGamma = sqrt(1.0f - siwSqr);
+				float vdtv = dot(viw, tv); //velocity dotted with tangential velocity
+				viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
+			}
+			else { //If the object has no speed, the velocity of the point is just the tangential velocity
+				viw = tv;
+			}
+		}
+		o.pos = o.pos + _piw - _playerOffset; //Shift coordinates so player is at origin
 
 		o.uv1.xy = v.texcoord; //get the UV coordinate for the current vertex, will be passed to fragment shade
 
-		float speed = sqrt( pow((_vpc.x),2) + pow((_vpc.y),2) + pow((_vpc.z),2));
+		float speed = sqrt(dot(_vpc, _vpc));
 		//vw + vp/(1+vw*vp/c^2)
 	
 	
-		float vuDot = (_vpc.x*_viw.x + _vpc.y*_viw.y + _vpc.z*_viw.z); //Get player velocity dotted with velocity of the object.
+		float vuDot = dot(_vpc.x, viw.x); //Get player velocity dotted with velocity of the object.
 		float4 uparra;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if ( speed != 0 )
+		if (speed > divByZeroCutoff)
 		{
-			uparra = (vuDot/(speed*speed)) * _vpc; //Get the parallel component of the object's velocity
+			uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 		}
-		//If our speed is zero, set parallel velocity to zero
+		//If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
 		else
 		{
-			uparra = 0; 
+			speed = 0;
+			uparra = 0;
 		}
 		//Get the perpendicular component of our velocity, just by subtraction
-		float4 uperp = _viw - uparra;
+		float4 uperp = viw - uparra;
 		//relative velocity calculation
 		float4 vr =( _vpc - uparra - (sqrt(1-speed*speed))*uperp)/(1+vuDot);
 	 
@@ -111,7 +161,7 @@ Shader "Relativity/ColorShift"
 		o.vr = vr;
 		vr *= -1;
 		//relative speed
-		float speedr = sqrt( pow((vr.x),2) + pow((vr.y),2) + pow((vr.z),2));
+		float speedr = sqrt(dot(vr, vr));
 		o.svc = sqrt( 1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 		
 		//You need this otherwise the screen flips and weird stuff happens
@@ -124,36 +174,20 @@ Shader "Relativity/ColorShift"
 		
         if (speedr != 0) // If speed is zero, rotation fails
         {
-			float a;  //angle
-			float ux; 
-			float uy;
-			float ca; //cosine of a
-			float sa; /// sine of a
+			quaternion vpcToZRot = quaternion(0.0f, 0.0f, 0.0f, 1.0f);
 			if ( speed != 0 )
 			{
-				//we're getting the angle between our z direction of movement and the world's Z axis
-				a = -acos(-_vpc.z/speed);
-				if ( _vpc.x != 0 || _vpc.y != 0 )	
-				{
-					ux = _vpc.y/sqrt(_vpc.x*_vpc.x + _vpc.y*_vpc.y);
-					uy = -_vpc.x/sqrt(_vpc.x*_vpc.x + _vpc.y*_vpc.y);
+				//We're getting the angle between our z direction of movement and the world's Z axis
+				float4 direction = normalize(_vpc);
+				// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
+				if (abs(direction.z) - 1.0f > divByZeroCutoff) {
+					float a = -acos(-direction.z / speed);
+					vpcToZRot = makeRotQ(a, direction);
+					riw = rot4(vpcToZRot, o.pos);
+
+					//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+					//This is because all of our equations are based off of movement in one direction.
 				}
-				
-				else
-				{
-					ux = 0;
-					uy = 0;
-				}
-				ca = cos(a);
-				sa = sin(a);
-				
-				//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-				//This is because all of our equations are based off of movement in one direction.
-				
-				//And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
-				riw.x = o.pos.x * (ca + ux*ux*(1-ca)) + o.pos.y*(ux*uy*(1-ca)) + o.pos.z*(uy*sa);
-				riw.y = o.pos.x * (uy*ux*(1-ca)) + o.pos.y * ( ca + uy*uy*(1-ca)) - o.pos.z*(ux*sa);
-				riw.z = o.pos.x * (-uy*sa) + o.pos.y * (ux*sa) + o.pos.z*(ca);
 			}
 			
 
@@ -161,26 +195,13 @@ Shader "Relativity/ColorShift"
 			//Here begins the original code, made by the guys behind the Relativity game
 
    			//Rotate our velocity
-			float4 rotateViw = float4(0,0,0,0);
-			if ( speed != 0 )
-			{	
-				//Here we rotate our object's velocity so that we keep consistent with the rotation of our player's velocity.
-			    rotateViw.x = (_viw.x * (ca + ux*ux*(1-ca)) + _viw.y*(ux*uy*(1-ca)) + _viw.z*(uy*sa))*_spdOfLight;
-				rotateViw.y = (_viw.x * (uy*ux*(1-ca)) + _viw.y * ( ca + uy*uy*(1-ca)) - _viw.z*(ux*sa))*_spdOfLight;
-				rotateViw.z = (_viw.x * (-uy*sa) + _viw.y * (ux*sa) + _viw.z*(ca))*_spdOfLight;
-			}
-			else
-			{
-				rotateViw.x = (_viw.x) * _spdOfLight;
-				rotateViw.z = (_viw.z) * _spdOfLight; 
-				rotateViw.y = (_viw.y) * _spdOfLight; 
-			}	
+			float4 rotateViw = _spdOfLight * rot4(vpcToZRot, viw);
 
-			float c = -(riw.x*riw.x + riw.y*riw.y + riw.z*riw.z); //first get position squared (position doted with position)
+			float c = -dot(riw, riw); //first get position squared (position doted with position)
 
-			float b = -(2 * ( riw.x*rotateViw.x + riw.y*rotateViw.y + riw.z*rotateViw.z)); //next get position doted with velocity, should be only in the Z direction
+			float b = -(2 * dot(riw, rotateViw)); //next get position doted with velocity, should be only in the Z direction
 
-			float d = (_spdOfLight*_spdOfLight) - (rotateViw.x*rotateViw.x + rotateViw.y*rotateViw.y + rotateViw.z*rotateViw.z);
+			float d = (_spdOfLight*_spdOfLight) - dot(rotateViw, rotateViw);
 
 			float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d))); 
 
@@ -194,14 +215,10 @@ Shader "Relativity/ColorShift"
 				o.draw = 0;
 			}
 
-
-
 			//get the new position offset, based on the new time we just found
 			//Should only be in the Z direction
 
-			riw.x += rotateViw.x * tisw;
-			riw.y += rotateViw.y * tisw;
-			riw.z += rotateViw.z * tisw;   
+			riw += rotateViw * tisw;
 
 			//Apply Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
@@ -211,15 +228,9 @@ Shader "Relativity/ColorShift"
 			newz = riw.z + newz;
 			newz /= (float)sqrt(1 - (speed*speed));
 			riw.z = newz;
-		  	if (speed != 0)
-			{
-				float trx = riw.x;
-				float trry = riw.y;
-	
-				riw.x = riw.x * (ca + ux*ux*(1-ca)) + riw.y*(ux*uy*(1-ca)) - riw.z*(uy*sa);
-				riw.y = trx * (uy*ux*(1-ca)) + riw.y * ( ca + uy*uy*(1-ca)) + riw.z*(ux*sa);
-				riw.z = trx * (uy*sa) - trry * (ux*sa) + riw.z*(ca);
-			}
+
+			//Rotate back to our original orientation
+			riw = rot4(inverse(vpcToZRot), riw);
 		}
 		else
 		{
@@ -229,10 +240,11 @@ Shader "Relativity/ColorShift"
 		riw += _playerOffset;
 	
         //Transform the vertex back into local space for the mesh to use it
-		o.pos = mul(_World2Object*1.0,riw);
+		o.pos = mul(unity_WorldToObject*1.0,riw);
 
-		o.pos2 = mul(_Object2World, o.pos );
-		o.pos2 -= _playerOffset;
+		//o.pos2 = mul(unity_ObjectToWorld, o.pos );
+		//o.pos2 -= _playerOffset;
+		o.pos2 = riw - _playerOffset;
 		
 
 		o.pos = mul(UNITY_MATRIX_MVP, o.pos);

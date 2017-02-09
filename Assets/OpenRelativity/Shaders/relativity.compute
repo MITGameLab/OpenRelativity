@@ -1,0 +1,193 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#define quaternion float4
+#define PI_F 3.14159265f;
+
+struct GlobalParams {
+	float4x4 ltwMatrix; //local-to-world transform matrix
+	float4x4 wtlMatrix; //world-to-local transform matrix
+	float3 piw; //position of object in world
+	float3 viw; //velocity of object in world
+	float3 aviw; //angular velocity of object in inverse local scale
+	float3 vpc; //velocity of player
+	float3 playerOffset; //player position in world
+	float speed; //speed of player;
+	float spdOfLight; //current speed of light
+	float wrldTime; //current time in world
+	float strtTime; //starting time in world
+};
+
+//struct VertDraw {
+//	float3 vert;
+//	float draw;
+//};
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+StructuredBuffer<GlobalParams> glblPrms;
+RWStructuredBuffer<float3> verts;
+//RWStructuredBuffer<float> drawBools;
+
+// Quaternion rotation
+inline float3 rot3(quaternion q, float3 v) {
+	if (dot(q.xyz, q.xyz) == 0.0f) return v;
+	float3 t = 2.0f * cross(q.xyz, v);
+	return v + q.w * t + cross(q.xyz, t);
+}
+
+inline float4 rot4(quaternion q, float4 v) {
+	if (dot(q.xyz, q.xyz) == 0.0f) return v;
+	float3 t = 2.0f * cross(q.xyz, v.xyz);
+	t = v.xyz + q.w * t + cross(q.xyz, t);
+	return quaternion(t.x, t.y, t.z, 0.0f);
+}
+
+inline quaternion makeRotQ(float angle, float3 direction) {
+	return quaternion(sin(angle) * direction, cos(angle));
+}
+
+inline quaternion inverse(quaternion q) {
+	return quaternion(-q.xyz, q.w);
+}
+
+[numthreads(64,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	//Float values very close to zero might lead to infinite values:
+	const float divByZeroCutoff = 0.00001f;
+
+	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
+	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
+	float3 piw = glblPrms[0].piw;
+	float3 viw = glblPrms[0].viw;
+	float3 aviw = glblPrms[0].aviw;
+	float3 vpc = glblPrms[0].vpc;
+	float3 playerOffset = glblPrms[0].playerOffset;
+	float speed = glblPrms[0].speed;
+	float spdOfLight = glblPrms[0].spdOfLight;
+	float wrldTime = glblPrms[0].wrldTime;
+	float strtTime = glblPrms[0].strtTime;	
+
+	float3 pos = verts[id.x];
+	float4 tempPos = mul(ltwMatrix, float4(pos.x, pos.y, pos.z, 1.0f));
+	pos = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w - piw;
+	//We relativistically add the tangential velocity to the translational.
+	if (dot(aviw, aviw) != 0.0f) // If angular speed is zero, no need
+	{
+		float siwSqr = dot(viw, viw); //speed of object in world, squared
+		float3 tv3 = -cross(aviw, pos) / spdOfLight; //tangential velocity in world
+		if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
+			float invGamma = sqrt(1.0f - siwSqr);
+			float vdtv = dot(viw, tv3); //velocity dotted with tangential velocity
+			viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv3 + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
+		}
+		else { //If the object has no speed, the velocity of the point is just the tangential velocity
+			viw = tv3;
+		}
+	}
+
+	pos = pos + piw - playerOffset;
+
+	float vuDot = dot(vpc.x, viw.x); //Get player velocity dotted with velocity of the object.
+	float3 uparra;
+	//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+	if (speed > divByZeroCutoff)
+	{
+		uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
+	}
+	//If our speed is nearly zero, set it to exactly zero, and set parallel velocity to zero
+	else
+	{
+		speed = 0;
+		vpc = float3(0,0,0);
+		uparra = 0;
+	}
+	//Get the perpendicular component of our velocity, just by subtraction
+	float3 uperp = viw - uparra;
+
+	//relative velocity calculation
+	float3 vr = -(vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+	//float4 vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+	//set our relative velocity
+	//o.vr = vr;
+	//vr *= -1;
+
+	//relative speed
+	float speedr = sqrt(dot(vr, vr));
+	//riw = location in world, for reference
+	float3 riw = pos; //Position that will be used in the output
+
+	if (speedr != 0) // If speed is zero, rotation fails
+	{
+		quaternion vpcToZRot = quaternion(0.0f, 0.0f, 0.0f, 1.0f);
+		if (speed != 0)
+		{
+			//We're getting the angle between our z direction of movement and the world's Z axis
+			float3 direction = normalize(vpc);
+			// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
+			if (abs(direction.z) - 1.0f > divByZeroCutoff) {
+				float a = -acos(-direction.z / speed);
+				vpcToZRot = makeRotQ(a, direction);
+				riw = rot3(vpcToZRot, pos);
+
+				//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+				//This is because all of our equations are based off of movement in one direction.
+			}
+		}
+
+
+
+		//Here begins the original code, made by the guys behind the Relativity game
+
+		//Rotate our velocity
+		float3 rotateViw = spdOfLight * rot3(vpcToZRot, viw);
+
+		float c = -dot(riw, riw); //first get position squared (position dotted with position)
+
+		float b = -(2 * dot(riw, rotateViw)); //next get position doted with velocity, should be only in the Z direction
+
+		float d = (spdOfLight*spdOfLight) - dot(rotateViw, rotateViw);
+
+		float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
+
+		//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
+		/*if (wrldTime + tisw > strtTime || strtTime == 0)
+		{
+			o.draw = 1;
+		}
+		else
+		{
+			o.draw = 0;
+		}*/
+
+
+
+		//get the new position offset, based on the new time we just found
+		//Should only be in the Z direction
+
+		riw += rotateViw * tisw;
+
+		//Apply Lorentz transform
+		// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+		//I had to break it up into steps, unity was getting order of operations wrong.	
+		float newz = (((float)speed*spdOfLight) * tisw);
+
+		newz = riw.z + newz;
+		newz /= (float)sqrt(1 - (speed*speed));
+		riw.z = newz;
+		
+		//Rotate back to our original orientation
+		riw = rot3(inverse(vpcToZRot), riw);
+	}
+	/*else
+	{
+		o.draw = 1;
+	}*/
+
+	riw += playerOffset;
+
+	//Transform the vertex back into local space for the mesh to use it
+	tempPos = mul(wtlMatrix, float4(riw.x, riw.y, riw.z, 1.0f));
+	verts[id.x] = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w;
+}
