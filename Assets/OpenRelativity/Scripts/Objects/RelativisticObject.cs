@@ -36,6 +36,9 @@ namespace OpenRelativity.Objects
             // and then boost by the new velocity.
             set
             {
+                //This makes instantiation cleaner:
+                initViw = value;
+
                 //Transform from real space to position space for the original velocity, then back to real space for the new velocity
                 Vector3 playerPos = state.transform.position;
                 transform.position = (transform.position - playerPos).RealToPosition(_viw).RealToPosition(-value) + playerPos;
