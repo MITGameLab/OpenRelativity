@@ -150,19 +150,19 @@ namespace OpenRelativity
             return Quaternion.Inverse(rot) * rotInt;
         }
 
+        //This method transforms a real-space position to a Minkowski space-time position.
+        // (It uses logic grabbed out of the original relativity.shader.)
+        // Note that the inverse of pos = real.RealToPosition(vel) is real = pos.RealToPosition(-vel),
+        // since a second Lorentz transform by the velocity in the opposite direction returns to an
+        // inertial frame with the same initial velocity.
         public static Vector3 RealToPosition(this Vector3 realPos, Vector3 velocity)
         {
             float spdOfLight = SRelativityUtil.c;
 
-            //Vector3 vpc = srCamera.PlayerVelocityVector / spdOfLight;
             Vector3 vpc = Vector3.zero;
-            //float speed = vpc.magnitude;
             float speed = 0.0f;
-            //Vector3 playerOffset = srCamera.transform.position;
-            Vector3 pos = realPos;// - playerOffset;
+            Vector3 pos = realPos;
             Vector3 viw = velocity / spdOfLight;
-            //float3 pos = verts[id.x];
-            //pos = pos - playerOffset;
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object
             Vector3 uparra;
@@ -247,6 +247,67 @@ namespace OpenRelativity
         public static float GetInverseGamma(this Vector3 velocity)
         {
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / SRelativityUtil.cSqrd);
+        }
+
+        public static float InverseAccelerateTime(Vector3 accel, Vector3 vel, float deltaT)
+        {
+            float dilatedTime;
+            float invGamma = Mathf.Sqrt(1.0f - vel.sqrMagnitude / c);
+            float accelMag = accel.magnitude;
+            if (accelMag == 0.0f)
+            {
+                dilatedTime = deltaT * invGamma;
+            }
+            else
+            {
+                float properDeltaTime = Time.deltaTime * invGamma;
+                dilatedTime = Mathf.Abs((Mathf.Exp(accelMag * properDeltaTime) - 1.0f) / accelMag) * invGamma;
+            }
+
+            return dilatedTime;
+        }
+        public static float AccelerateTime(Vector3 accel, Vector3 vel, float deltaT)
+        {
+            if (deltaT == 0.0f) return 0.0f;
+
+            float dilatedTime;
+            float gamma = 1.0f / Mathf.Sqrt(1.0f - vel.sqrMagnitude / cSqrd);
+            float accelMag = accel.magnitude;
+            if (accelMag == 0.0f)
+            {
+                dilatedTime = deltaT * gamma;
+            }
+            else
+            {
+                float arg = Mathf.Abs(accelMag * gamma * deltaT);
+                dilatedTime = gamma / accelMag * Mathf.Log(1.0f + arg);
+                if (deltaT < 0.0f)
+                {
+                    dilatedTime = -Mathf.Abs(dilatedTime);
+                }
+            }
+
+            return dilatedTime;
+        }
+
+        public static float LightDelayWithGravity(Vector3 location1, Vector3 location2)
+        {
+            return LightDelayWithGravity(location1, location2, Vector3.zero);
+        }
+
+        public static float LightDelayWithGravity(Vector3 location1, Vector3 location2, Vector3 relativeVelocity)
+        {
+            return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, (location1 - location2).magnitude / c);
+        }
+
+        public static float LightDelayWithGravity(float deltaT, Vector3 relativeVelocity)
+        {
+            return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, deltaT);
+        }
+
+        public static float LightDelayWithGravity(float deltaT)
+        {
+            return AccelerateTime(srCamera.PlayerAccelerationVector, Vector3.zero, deltaT);
         }
     }
 }

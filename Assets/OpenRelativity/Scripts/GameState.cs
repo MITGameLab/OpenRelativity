@@ -26,6 +26,10 @@ namespace OpenRelativity
         private Matrix4x4 worldRotation;
         //Player's velocity in vector format
         private Vector3 playerVelocityVector;
+        //Player's acceleration in vector format
+        private Vector3 playerAccelerationVector;
+        //We use this to update the player acceleration vector:
+        private Vector3 oldPlayerVelocityVector;
 
         //grab the player's transform so that we can use it
         public Transform playerTransform;
@@ -80,6 +84,7 @@ namespace OpenRelativity
         public Matrix4x4 WorldRotation { get { return worldRotation; } }
         public Quaternion Orientation { get { return orientation; } }
         public Vector3 PlayerVelocityVector { get { return playerVelocityVector; } set { playerVelocityVector = value; } }
+        public Vector3 PlayerAccelerationVector { get { return playerAccelerationVector; } set { playerAccelerationVector = value; } }
 
         public double PctOfSpdUsing { get { return pctOfSpdUsing; } set { pctOfSpdUsing = value; } }
         public double PlayerVelocity { get { return playerVelocity; } }
@@ -111,6 +116,12 @@ namespace OpenRelativity
             //Initialize the player's speed to zero
             playerVelocityVector = Vector3.zero;
             playerVelocity = 0;
+            //If the player starts out resting on a surface, then their initial acceleration is due to gravity.
+            // If the player is in free fall (i.e. "not affected by gravity" in the sense of Einstein equivalance principle,)
+            // then their acceleration is zero.
+            oldPlayerVelocityVector = Vector3.zero;
+            playerAccelerationVector = Vector3.zero;
+            
             //Set our constants
             MaxSpeed = MAX_SPEED;
             pctOfSpdUsing = NORM_PERCENT_SPEED;
@@ -193,6 +204,11 @@ namespace OpenRelativity
 
                 //update our player velocity
                 playerVelocity = playerVelocityVector.magnitude;
+
+                //update our acceleration
+                playerAccelerationVector = (playerVelocityVector - oldPlayerVelocityVector) / Time.deltaTime;
+                // and then update the old velocity for the calculation of the acceleration on the next frame
+                oldPlayerVelocityVector = playerVelocityVector;
 
 
                 //During colorshift on/off, during the last level we don't want to have the funky
