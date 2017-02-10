@@ -362,7 +362,7 @@ namespace OpenRelativity.Objects
                     Material quickSwapMaterial = Instantiate((tempRenderer as Renderer).materials[i]) as Material;
                     //Then, set the value that we want
                     quickSwapMaterial.SetFloat("_viw", 0);
-                    quickSwapMaterial.SetFloat("_sav", 0);
+                    quickSwapMaterial.SetFloat("_aviw", 0);
                     quickSwapMaterial.SetFloat("_piw", 0);
                     colliderShaderParams.viw = Vector3.zero;
                     colliderShaderParams.aviw = Vector3.zero;
