@@ -262,7 +262,7 @@ namespace OpenRelativity
             else
             {
                 double properDeltaTime = deltaT * invGamma;
-                dilatedTime = Math.Abs((Math.Exp(accelMag * properDeltaTime) - 1.0) / accelMag) * invGamma;
+                dilatedTime = Math.Sign(deltaT) * Math.Abs((Math.Exp(accelMag * properDeltaTime) - 1.0) / accelMag) * invGamma;
             }
 
             //To catch garbage in:

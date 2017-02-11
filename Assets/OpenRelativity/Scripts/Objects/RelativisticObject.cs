@@ -841,11 +841,6 @@ namespace OpenRelativity.Objects
 
                     totalDeltaTime += deltaTimeCorrection;
 
-                    if (float.IsNaN(totalDeltaTime))
-                    {
-                        var putBreakPointHere = 1;
-                    }
-
                     iterationCount++;
                 }
                 while (Mathf.Abs(deltaTimeCorrection) > 0.001f && iterationCount < maxIterations);
