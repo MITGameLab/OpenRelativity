@@ -158,11 +158,16 @@ namespace OpenRelativity
         // inertial frame with the same initial velocity.
         public static Vector3 RealToMinkowski(this Vector3 realPos, Vector3 velocity)
         {
+            return RealToMinkowski(realPos, velocity, Vector3.zero);
+        }
+
+        public static Vector3 RealToMinkowski(this Vector3 realPos, Vector3 velocity, Vector3 origin)
+        {
             float spdOfLight = SRelativityUtil.c;
 
             Vector3 vpc = Vector3.zero;
             float speed = 0.0f;
-            Vector3 pos = realPos;
+            Vector3 pos = realPos - origin;
             Vector3 viw = velocity / spdOfLight;
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object
@@ -235,7 +240,7 @@ namespace OpenRelativity
                 riw = Quaternion.Inverse(rotFromVPCtoZ) * riw;
             }
 
-            //riw = riw;// + playerOffset;
+            riw += origin;
 
             return riw;
         }
