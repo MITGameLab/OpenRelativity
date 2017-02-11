@@ -826,7 +826,7 @@ namespace OpenRelativity.Objects
                     distanceFromPlayer = (_piw - playerPositionLastFrame).magnitude;
                     //If the distance INCREASES, the apparent optical time should DECREASE
                     deltaDistance = (distanceFromPlayer - oldDistanceFromPlayer);
-                    deltaTimeCorrection = SRelativityUtil.LightDelayWithGravity(-deltaDistance / spdOfLight);
+                    deltaTimeCorrection = (float)SRelativityUtil.LightDelayWithGravity(-deltaDistance / spdOfLight);
 
                     _viw = _viw * (1.0f - drag * deltaTimeCorrection);
                     _aviw = _aviw * (1.0f - angularDrag * deltaTimeCorrection);
@@ -840,6 +840,11 @@ namespace OpenRelativity.Objects
                     //}
 
                     totalDeltaTime += deltaTimeCorrection;
+
+                    if (float.IsNaN(totalDeltaTime))
+                    {
+                        var putBreakPointHere = 1;
+                    }
 
                     iterationCount++;
                 }

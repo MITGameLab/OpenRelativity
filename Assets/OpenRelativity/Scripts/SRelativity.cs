@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -249,63 +250,69 @@ namespace OpenRelativity
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / SRelativityUtil.cSqrd);
         }
 
-        public static float InverseAccelerateTime(Vector3 accel, Vector3 vel, float deltaT)
+        public static double InverseAccelerateTime(Vector3 accel, Vector3 vel, double deltaT)
         {
-            float dilatedTime;
-            float invGamma = Mathf.Sqrt(1.0f - vel.sqrMagnitude / c);
-            float accelMag = accel.magnitude;
-            if (accelMag == 0.0f)
+            double dilatedTime;
+            double invGamma = Math.Sqrt(1.0 - vel.sqrMagnitude / srCamera.SpeedOfLightSqrd);
+            double accelMag = accel.magnitude;
+            if (accelMag == 0.0 || double.IsNaN(accelMag))
             {
                 dilatedTime = deltaT * invGamma;
             }
             else
             {
-                float properDeltaTime = Time.deltaTime * invGamma;
-                dilatedTime = Mathf.Abs((Mathf.Exp(accelMag * properDeltaTime) - 1.0f) / accelMag) * invGamma;
+                double properDeltaTime = deltaT * invGamma;
+                dilatedTime = Math.Abs((Math.Exp(accelMag * properDeltaTime) - 1.0) / accelMag) * invGamma;
+            }
+
+            //To catch garbage in:
+            if (double.IsNaN(dilatedTime))
+            {
+                dilatedTime = 0.0;
             }
 
             return dilatedTime;
         }
-        public static float AccelerateTime(Vector3 accel, Vector3 vel, float deltaT)
+        public static double AccelerateTime(Vector3 accel, Vector3 vel, double deltaT)
         {
             if (deltaT == 0.0f) return 0.0f;
 
-            float dilatedTime;
-            float gamma = 1.0f / Mathf.Sqrt(1.0f - vel.sqrMagnitude / cSqrd);
-            float accelMag = accel.magnitude;
+            double dilatedTime;
+            double gamma = 1.0f / Math.Sqrt(1.0f - vel.sqrMagnitude / cSqrd);
+            double accelMag = accel.magnitude;
             if (accelMag == 0.0f)
             {
                 dilatedTime = deltaT * gamma;
             }
             else
             {
-                float arg = Mathf.Abs(accelMag * gamma * deltaT);
-                dilatedTime = gamma / accelMag * Mathf.Log(1.0f + arg);
+                double arg = Math.Abs(accelMag * gamma * deltaT);
+                dilatedTime = gamma / accelMag * Math.Log(1.0f + arg);
                 if (deltaT < 0.0f)
                 {
-                    dilatedTime = -Mathf.Abs(dilatedTime);
+                    dilatedTime = -Math.Abs(dilatedTime);
                 }
             }
 
             return dilatedTime;
         }
 
-        public static float LightDelayWithGravity(Vector3 location1, Vector3 location2)
+        public static double LightDelayWithGravity(Vector3 location1, Vector3 location2)
         {
             return LightDelayWithGravity(location1, location2, Vector3.zero);
         }
 
-        public static float LightDelayWithGravity(Vector3 location1, Vector3 location2, Vector3 relativeVelocity)
+        public static double LightDelayWithGravity(Vector3 location1, Vector3 location2, Vector3 relativeVelocity)
         {
             return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, (location1 - location2).magnitude / c);
         }
 
-        public static float LightDelayWithGravity(float deltaT, Vector3 relativeVelocity)
+        public static double LightDelayWithGravity(double deltaT, Vector3 relativeVelocity)
         {
             return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, deltaT);
         }
 
-        public static float LightDelayWithGravity(float deltaT)
+        public static double LightDelayWithGravity(float deltaT)
         {
             return AccelerateTime(srCamera.PlayerAccelerationVector, Vector3.zero, deltaT);
         }

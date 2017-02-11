@@ -246,9 +246,11 @@ namespace OpenRelativity
                     totalTimePlayer += deltaTimePlayer;
                     if (!double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                     {
+                        /*********** This is old logic for interial frames (without acceleration)**************/
                         //Get the delta time passed for the world, changed by relativistic effects
                         deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
-                        //and get the total time passed in the world
+                        /*********** This is corrects for an accelerating player frame**********************************/
+                        deltaTimeWorld = SRelativityUtil.InverseAccelerateTime(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
                         totalTimeWorld += deltaTimeWorld;
                     }
                 }
