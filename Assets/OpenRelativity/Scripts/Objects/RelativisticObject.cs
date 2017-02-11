@@ -267,7 +267,9 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            startTime = (float)state.TotalTimeWorld;
+            //startTime = (float)state.TotalTimeWorld;
+            //Probably a good sign if we can do this:
+            startTime = float.NegativeInfinity;
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
         }
