@@ -732,10 +732,10 @@ namespace OpenRelativity.Objects
             //The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
             float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
-            for (int i = 0; i < rawVerts.Length; i++)
+            for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
             {
-                float radius = rawVerts[i].magnitude;
-                Vector3 tangentialVel = viw.AddVelocity(trnsfrmdMeshVerts[i].magnitude * aviw);
+                float radius = trnsfrmdMeshVerts[i].magnitude;
+                Vector3 tangentialVel = viw.AddVelocity((transform.rotation * trnsfrmdMeshVerts[i]).InverseContractLengthBy(viw).magnitude * aviw);
                 float tanVelMagSqr = tangentialVel.sqrMagnitude;
                 if (tanVelMagSqr > maxSpeedSqr)
                 {
