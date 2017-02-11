@@ -75,13 +75,16 @@ namespace OpenRelativity.Objects
             }
             set
             {
-                initialAviw = value;
-                _aviw = value;
-                if (myRigidbody != null)
+                if (!float.IsNaN(value.x + value.y + value.z))
                 {
-                    //Changes in angular velocity do not change the object's position in real space relative to Minkowski space,
-                    // so just update the base rigid body angular velocity without updating the position.
-                    myRigidbody.angularVelocity = value;
+                    initialAviw = value;
+                    _aviw = value;
+                    if (myRigidbody != null)
+                    {
+                        //Changes in angular velocity do not change the object's position in real space relative to Minkowski space,
+                        // so just update the base rigid body angular velocity without updating the position.
+                        myRigidbody.angularVelocity = value;
+                    }
                 }
             }
         }
@@ -725,6 +728,24 @@ namespace OpenRelativity.Objects
             if (viw.magnitude > state.MaxSpeed - .01)
             {
                 viw = viw.normalized * (float)(state.MaxSpeed - .01f);
+            }
+
+            //The tangential velocities of each vertex should also not be greater than the maximum speed.
+            // (This is a relatively computationally costly check, but it's good practice.
+            if (trnsfrmdMeshVerts != null)
+            {
+                float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+                {
+                    float radius = trnsfrmdMeshVerts[i].magnitude;
+                    Vector3 tangentialVel = viw.AddVelocity(trnsfrmdMeshVerts[i].magnitude * aviw);
+                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
+                    if (tanVelMagSqr > maxSpeedSqr)
+                    {
+                        tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
+                        aviw = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+                    }
+                }
             }
         }
 
