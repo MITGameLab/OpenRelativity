@@ -75,16 +75,13 @@ namespace OpenRelativity.Objects
             }
             set
             {
-                if (!float.IsNaN(value.x + value.y + value.z))
+                initialAviw = value;
+                _aviw = value;
+                if (myRigidbody != null)
                 {
-                    initialAviw = value;
-                    _aviw = value;
-                    if (myRigidbody != null)
-                    {
-                        //Changes in angular velocity do not change the object's position in real space relative to Minkowski space,
-                        // so just update the base rigid body angular velocity without updating the position.
-                        myRigidbody.angularVelocity = value;
-                    }
+                    //Changes in angular velocity do not change the object's position in real space relative to Minkowski space,
+                    // so just update the base rigid body angular velocity without updating the position.
+                    myRigidbody.angularVelocity = value;
                 }
             }
         }
@@ -125,7 +122,7 @@ namespace OpenRelativity.Objects
         public PhysicMaterial physicMaterial;
 
         //We use a recursive algorithm to approach the exact propagation delay of light
-        public int lightSearchIterations = 4;
+        public int lightSearchIterations = 10;
         //In calculating propagation delay, we also need to account for the player's change in position,
         // so we store the player position last frame here
         private Vector3 playerPositionLastFrame;
@@ -439,13 +436,29 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularVelocity = aviw;
             }
 
-            checkSpeed();
             //Get the meshfilter
             if (isParent)
             {
                 CombineParent();
             }
             meshFilter = GetComponent<MeshFilter>();
+
+            //Get the vertices of our mesh
+            if (meshFilter != null)
+            {
+                rawVerts = meshFilter.mesh.vertices;
+            }
+            else
+                rawVerts = null;
+
+            //Once we have the mesh vertices, allocate and immediately transform the collider:
+            if (myCollider != null)
+            {
+                trnsfrmdMeshVerts = new Vector3[rawVerts.Length];
+                //UpdateCollider();
+            }
+
+            checkSpeed();
 
             //Also get the meshrenderer so that we can give it a unique material
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
@@ -477,20 +490,6 @@ namespace OpenRelativity.Objects
                     tempRenderer.materials[i].SetVector("_strtPos", new Vector4(transform.position.x, transform.position.y, transform.position.z, 0));
                     //}
                 }
-            }
-            //Get the vertices of our mesh
-            if (meshFilter != null)
-            {
-                rawVerts = meshFilter.mesh.vertices;
-            }
-            else
-                rawVerts = null;
-
-            //Once we have the mesh vertices, allocate and immediately transform the collider:
-            if (myCollider != null)
-            {
-                trnsfrmdMeshVerts = new Vector3[rawVerts.Length];
-                //UpdateCollider();
             }
 
             //This code is a hack to ensure that frustrum culling does not take place
@@ -732,19 +731,16 @@ namespace OpenRelativity.Objects
 
             //The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
-            if (trnsfrmdMeshVerts != null)
+            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+            for (int i = 0; i < rawVerts.Length; i++)
             {
-                float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
-                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+                float radius = rawVerts[i].magnitude;
+                Vector3 tangentialVel = viw.AddVelocity(trnsfrmdMeshVerts[i].magnitude * aviw);
+                float tanVelMagSqr = tangentialVel.sqrMagnitude;
+                if (tanVelMagSqr > maxSpeedSqr)
                 {
-                    float radius = trnsfrmdMeshVerts[i].magnitude;
-                    Vector3 tangentialVel = viw.AddVelocity(trnsfrmdMeshVerts[i].magnitude * aviw);
-                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
-                    if (tanVelMagSqr > maxSpeedSqr)
-                    {
-                        tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
-                        aviw = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
-                    }
+                    tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
+                    aviw = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
                 }
             }
         }
