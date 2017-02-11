@@ -205,8 +205,9 @@ namespace OpenRelativity
                 //update our player velocity
                 playerVelocity = playerVelocityVector.magnitude;
 
-                //update our acceleration
-                playerAccelerationVector = (playerVelocityVector - oldPlayerVelocityVector) / Time.deltaTime;
+                //update our acceleration (which relates rapidities rather than velocities)
+                float invGamma = oldPlayerVelocityVector.GetInverseGamma();
+                playerAccelerationVector = invGamma * (playerVelocityVector - oldPlayerVelocityVector) / Time.deltaTime;
                 // and then update the old velocity for the calculation of the acceleration on the next frame
                 oldPlayerVelocityVector = playerVelocityVector;
 

@@ -29,7 +29,7 @@ namespace OpenRelativity.Objects
                 _piw = value;
                 Vector3 playerPos = state.playerTransform.position;
                 //Inverse Lorentz transform the Minkowski space position back to real space and update:
-                transform.position = (value - playerPos).RealToPosition(-viw) + playerPos;
+                transform.position = (value - playerPos).RealToMinkowski(-viw) + playerPos;
             }
         }
         //(Note that 4D rigid body quantities will generally track Minkowski space, in the
@@ -54,13 +54,13 @@ namespace OpenRelativity.Objects
 
                 //Transform from real space to position space for the original velocity, then back to real space for the new velocity
                 Vector3 playerPos = state.transform.position;
-                transform.position = (transform.position - playerPos).RealToPosition(_viw).RealToPosition(-value) + playerPos;
+                transform.position = (transform.position - playerPos).RealToMinkowski(_viw).RealToMinkowski(-value) + playerPos;
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
                     myRigidbody.velocity = value;
-                    myRigidbody.centerOfMass = transform.InverseTransformPoint(((myRigidbody.worldCenterOfMass - playerPos).RealToPosition(_viw).RealToPosition(-value) + playerPos));
+                    myRigidbody.centerOfMass = transform.InverseTransformPoint(((myRigidbody.worldCenterOfMass - playerPos).RealToMinkowski(_viw).RealToMinkowski(-value) + playerPos));
                 }
             }
         }
@@ -108,7 +108,7 @@ namespace OpenRelativity.Objects
                 /*Total time on the world clock...*/
                 return (float)(state.TotalTimeWorld
                     /*...Delayed by the distance between the player and object in Minkowski space*/
-                    - (transform.position.RealToPosition(-state.PlayerVelocityVector) - state.playerTransform.position).magnitude / state.SpeedOfLight);
+                    - (transform.position.RealToMinkowski(-state.PlayerVelocityVector) - state.playerTransform.position).magnitude / state.SpeedOfLight);
             }
         }
         public float deltaOpticalTime { get; set; }
@@ -753,7 +753,7 @@ namespace OpenRelativity.Objects
             //Store a physics material
             // (The collider geometry transformation screws up the base material.)
             this.physicMaterial = new PhysicMaterial();
-            this.physicMaterial.bounciness = 0.95f;
+            this.physicMaterial.bounciness = 0.8f;
             this.physicMaterial.staticFriction = 0.6f;
             this.physicMaterial.dynamicFriction = 0.2f;
 
@@ -768,7 +768,7 @@ namespace OpenRelativity.Objects
             didCollide = false;
             collisionResultVel3 = viw;
 
-            piw = oldPos.RealToPosition(-state.PlayerVelocityVector);
+            piw = oldPos.RealToMinkowski(-state.PlayerVelocityVector);
         }
 
         //(We're not going to worry about gravity imposing accelerated frames for now, but this is a TODO.)
@@ -859,7 +859,7 @@ namespace OpenRelativity.Objects
 
             //We were putting off the transformations in these setters, to reduce overhead.
             // First make sure the transform is moved to the true real space position.
-            transform.Translate(_piw.RealToPosition(_viw) - transform.position);
+            transform.Translate(_piw.RealToMinkowski(_viw) - transform.position);
             // Then trip all the setters.
             piw = _piw;
             viw = _viw;
@@ -1049,7 +1049,7 @@ namespace OpenRelativity.Objects
             Vector3 otherContactVel = otherVel.AddVelocity(otherAngTanVel);
             //Boost to the inertial frame where my velocity is 0 along the line of action:
             Vector3 relVel = otherContactVel.AddVelocity(-myParVel);
-            Vector3 lineOfAction = (-contactPoint.normal).RealToPosition(-myParVel).normalized;
+            Vector3 lineOfAction = (-contactPoint.normal).RealToMinkowski(-myParVel).normalized;
             //parra is the remaining projection of the relative velocity on the unit of action:
             Vector3 parra = Vector3.Project(relVel, lineOfAction);
             //perp is a perpendicular projection:
@@ -1057,7 +1057,7 @@ namespace OpenRelativity.Objects
             //With parra and perp, we can find the velocity that removes the perpendicular component of motion:
             Vector3 relVelPerp = -parra.GetGamma() * perp;
             Vector3 relVelParra = relVel.AddVelocity(relVelPerp);
-            lineOfAction = (-contactPoint.normal).RealToPosition(relVelPerp).normalized;
+            lineOfAction = (-contactPoint.normal).RealToMinkowski(relVelPerp).normalized;
             //Rotate so our parrallel velocity is on the forward vector:
             Quaternion rotRVtoForward = Quaternion.FromToRotation(lineOfAction, Vector3.forward);
             relVelParra = rotRVtoForward * relVelParra;
