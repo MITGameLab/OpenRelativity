@@ -530,7 +530,10 @@ namespace OpenRelativity.Objects
         public void Update()
         {
             EnforceCollision();
-            UpdateRigidBodyImage(lightSearchIterations);
+            if (!state.MovementFrozen)
+            {
+                UpdateRigidBodyImage(lightSearchIterations);
+            }
 
             //Grab our renderer.
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
