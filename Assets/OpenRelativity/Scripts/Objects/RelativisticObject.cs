@@ -1064,8 +1064,8 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position).RealToMinkowski(-myVel, playerPos)).RealToMinkowski(-myVel);
-            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position).RealToMinkowski(-otherVel, playerPos)).RealToMinkowski(-otherVel);
+            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position).RealToMinkowski(-myVel, playerPos)).RealToMinkowski(myVel);
+            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position).RealToMinkowski(-otherVel, playerPos)).RealToMinkowski(otherVel);
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myParVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
