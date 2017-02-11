@@ -141,8 +141,8 @@ namespace OpenRelativity.Objects
         //For a buffer of rawVerts plus other vectors to transform
         private Vector3[] vertsToTransform;
         //Store this object's velocity here.
-        
-        //Keep track of Game State so that we can reference it quickly
+
+        //Keep track of Game State so that we can reference it quickly.
         private GameState state;
         //When was this object created? use for moving objects
         private float startTime = 0;
@@ -859,7 +859,7 @@ namespace OpenRelativity.Objects
 
             //We were putting off the transformations in these setters, to reduce overhead.
             // First make sure the transform is moved to the true real space position.
-            transform.Translate(_piw.RealToMinkowski(_viw) - transform.position);
+            transform.Translate(_piw.RealToMinkowski(-_viw) - transform.position);
             // Then trip all the setters.
             piw = _piw;
             viw = _viw;

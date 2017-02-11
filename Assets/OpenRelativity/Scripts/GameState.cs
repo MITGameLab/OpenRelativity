@@ -248,7 +248,7 @@ namespace OpenRelativity
                     {
                         /*********** This is old logic for interial frames (without acceleration)**************/
                         //Get the delta time passed for the world, changed by relativistic effects
-                        deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
+                        //deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
                         /*********** This is corrects for an accelerating player frame**********************************/
                         deltaTimeWorld = SRelativityUtil.InverseAccelerateTime(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
                         totalTimeWorld += deltaTimeWorld;

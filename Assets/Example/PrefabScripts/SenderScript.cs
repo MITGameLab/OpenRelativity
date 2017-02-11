@@ -63,10 +63,13 @@ namespace OpenRelativity.PrefabScripts
             RelativisticObject ro = launchedObject.GetComponent<RelativisticObject>();
             RelativisticObject[] ros = launchedObject.GetComponentsInChildren<RelativisticObject>();
 
+            //Get the Relativistic Object of me, the sender, myself
+            RelativisticObject myRO = GetComponent<RelativisticObject>();
+
             if (ro != null)
             {
                 ro.viw = viwMax * this.transform.forward;
-                ro.transform.position = this.transform.position;
+                ro.piw = myRO.piw;
                 ro.transform.rotation = this.transform.rotation;
                 //And let the object know when it was created, so that it knows when not to be seen by the player
                 ro.SetStartTime();
@@ -76,7 +79,7 @@ namespace OpenRelativity.PrefabScripts
                 for (int i = 0; i < ros.Length; i++)
                 {
                     ros[i].viw = viwMax * this.transform.forward;
-                    ros[i].transform.position = this.transform.position;
+                    ros[i].piw = myRO.piw;
                     ros[i].transform.rotation = this.transform.rotation;
                     //And let the object know when it was created, so that it knows when not to be seen by the player
                     ros[i].SetStartTime();
