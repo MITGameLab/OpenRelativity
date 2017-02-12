@@ -29,7 +29,7 @@ namespace OpenRelativity.Objects
                 _piw = value;
                 Vector3 playerPos = state.playerTransform.position;
                 //Inverse Lorentz transform the Minkowski space position back to real space and update:
-                transform.position = (value - playerPos).RealToMinkowski(-viw) + playerPos;
+                transform.position = value.RealToMinkowski(-viw, playerPos);
             }
         }
         //(Note that 4D rigid body quantities will generally track Minkowski space, in the
@@ -54,13 +54,13 @@ namespace OpenRelativity.Objects
 
                 //Transform from real space to position space for the original velocity, then back to real space for the new velocity
                 Vector3 playerPos = state.transform.position;
-                transform.position = (transform.position - playerPos).RealToMinkowski(_viw).RealToMinkowski(-value) + playerPos;
+                transform.position = transform.position.RealToMinkowski(_viw, playerPos).RealToMinkowski(-value, playerPos);
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
                     myRigidbody.velocity = value;
-                    myRigidbody.centerOfMass = transform.InverseTransformPoint(((myRigidbody.worldCenterOfMass - playerPos).RealToMinkowski(_viw).RealToMinkowski(-value) + playerPos));
+                    myRigidbody.centerOfMass = transform.InverseTransformPoint((myRigidbody.worldCenterOfMass.RealToMinkowski(_viw, playerPos).RealToMinkowski(-value, playerPos)));
                 }
             }
         }
@@ -108,7 +108,7 @@ namespace OpenRelativity.Objects
                 /*Total time on the world clock...*/
                 return (float)(state.TotalTimeWorld
                     /*...Delayed by the distance between the player and object in Minkowski space*/
-                    - (transform.position.RealToMinkowski(-state.PlayerVelocityVector) - state.playerTransform.position).magnitude / state.SpeedOfLight);
+                    - (transform.position.RealToMinkowski(-state.PlayerVelocityVector, state.playerTransform.position).magnitude / state.SpeedOfLight));
             }
         }
         public float deltaOpticalTime { get; set; }
@@ -276,7 +276,7 @@ namespace OpenRelativity.Objects
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
-            deathTime = (float)state.TotalTimeWorld;
+            deathTime = float.PositiveInfinity;//(float)state.TotalTimeWorld;
         }
         void CombineParent()
         {
@@ -732,15 +732,44 @@ namespace OpenRelativity.Objects
             //The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
             float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
-            for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+            if (trnsfrmdMeshVerts != null)
             {
-                float radius = trnsfrmdMeshVerts[i].magnitude;
-                Vector3 tangentialVel = viw.AddVelocity((transform.rotation * trnsfrmdMeshVerts[i]).InverseContractLengthBy(viw).magnitude * aviw);
-                float tanVelMagSqr = tangentialVel.sqrMagnitude;
-                if (tanVelMagSqr > maxSpeedSqr)
+                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
                 {
-                    tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
-                    aviw = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+                    float radius = trnsfrmdMeshVerts[i].magnitude;
+                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * trnsfrmdMeshVerts[i]).InverseContractLengthBy(viw).magnitude * aviw);
+                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
+                    if (tanVelMagSqr > maxSpeedSqr)
+                    {
+                        tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
+                        aviw = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+                    }
+                }
+            }
+        }
+
+        private void checkCollisionSpeed()
+        {
+            if (collisionResultVel3.magnitude > state.MaxSpeed - .01)
+            {
+                collisionResultVel3 = collisionResultVel3.normalized * (float)(state.MaxSpeed - .01f);
+            }
+
+            //The tangential velocities of each vertex should also not be greater than the maximum speed.
+            // (This is a relatively computationally costly check, but it's good practice.
+            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+            if (trnsfrmdMeshVerts != null)
+            {
+                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+                {
+                    float radius = trnsfrmdMeshVerts[i].magnitude;
+                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * trnsfrmdMeshVerts[i]).InverseContractLengthBy(viw).magnitude * collisionResultAngVel3);
+                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
+                    if (tanVelMagSqr > maxSpeedSqr)
+                    {
+                        tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
+                        collisionResultAngVel3 = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+                    }
                 }
             }
         }
@@ -790,7 +819,7 @@ namespace OpenRelativity.Objects
             didCollide = false;
             collisionResultVel3 = viw;
 
-            piw = oldPos.RealToMinkowski(-state.PlayerVelocityVector);
+            piw = oldPos.RealToMinkowski(-state.PlayerVelocityVector, state.playerTransform.position);
         }
 
         //(We're not going to worry about gravity imposing accelerated frames for now, but this is a TODO.)
@@ -810,12 +839,12 @@ namespace OpenRelativity.Objects
             // need here, and then we'll pass the results through the setters at the end.)
 
             //First Account for rigid body drag.
-            _viw = _viw * (1.0f - drag * worldDeltaTime);
-            _aviw = _aviw * (1.0f - angularDrag * worldDeltaTime);
+            Vector3 newViw = _viw * (1.0f - drag * worldDeltaTime);
+            Vector3 newAviw = _aviw * (1.0f - angularDrag * worldDeltaTime);
             Vector3 relVel = _viw.AddVelocity(-playerVel);
             float relVelMag = relVel.magnitude;
             float totalDeltaTime = worldDeltaTime;
-            _piw += totalDeltaTime * _viw;
+            Vector3 newPiw = _piw + totalDeltaTime * _viw;
             float distanceFromPlayer = (_piw - playerPositionLastFrame).magnitude;
 
             //For gravity, we need to account for a potentially accelerated frame
@@ -850,9 +879,9 @@ namespace OpenRelativity.Objects
                     deltaDistance = (distanceFromPlayer - oldDistanceFromPlayer);
                     deltaTimeCorrection = (float)SRelativityUtil.LightDelayWithGravity(-deltaDistance / spdOfLight);
 
-                    _viw = _viw * (1.0f - drag * deltaTimeCorrection);
-                    _aviw = _aviw * (1.0f - angularDrag * deltaTimeCorrection);
-                    _piw += deltaTimeCorrection * _viw;
+                    newViw = newViw * (1.0f - drag * deltaTimeCorrection);
+                    newAviw = _aviw * (1.0f - angularDrag * deltaTimeCorrection);
+                    newPiw += deltaTimeCorrection * _viw;
 
                     //if (isFalling && applyGravity)
                     //{
@@ -883,9 +912,9 @@ namespace OpenRelativity.Objects
             // First make sure the transform is moved to the true real space position.
             transform.Translate(_piw.RealToMinkowski(-_viw) - transform.position);
             // Then trip all the setters.
-            piw = _piw;
-            viw = _viw;
-            aviw = _aviw;
+            piw = newPiw;
+            viw = newViw;
+            aviw = newAviw;
 
             //Update the rotation due to the apparent change in time, times the angular velocity.
             Vector3 angInc = totalDeltaTime * Mathf.Rad2Deg * _aviw;
@@ -1064,15 +1093,15 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position).RealToMinkowski(myVel, playerPos)).RealToMinkowski(-myVel);
-            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position).RealToMinkowski(otherVel, playerPos)).RealToMinkowski(-otherVel);
+            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position).RealToMinkowski(myVel, playerPos)).RealToMinkowski(-myVel, playerPos);
+            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position).RealToMinkowski(otherVel, playerPos)).RealToMinkowski(-otherVel, playerPos);
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myParVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
             Vector3 otherContactVel = otherVel.AddVelocity(otherAngTanVel);
             //Boost to the inertial frame where my velocity is 0 along the line of action:
             Vector3 relVel = otherContactVel.AddVelocity(-myParVel);
-            Vector3 lineOfAction = (-contactPoint.normal).RealToMinkowski(-myParVel).normalized;
+            Vector3 lineOfAction = (-contactPoint.normal).ContractLengthBy(-myParVel).normalized;
             //parra is the remaining projection of the relative velocity on the unit of action:
             Vector3 parra = Vector3.Project(relVel, lineOfAction);
             //perp is a perpendicular projection:
@@ -1080,7 +1109,7 @@ namespace OpenRelativity.Objects
             //With parra and perp, we can find the velocity that removes the perpendicular component of motion:
             Vector3 relVelPerp = -parra.GetGamma() * perp;
             Vector3 relVelParra = relVel.AddVelocity(relVelPerp);
-            lineOfAction = (-contactPoint.normal).RealToMinkowski(relVelPerp).normalized;
+            lineOfAction = (-contactPoint.normal).InverseContractLengthBy(relVelPerp).normalized;
             //Rotate so our parrallel velocity is on the forward vector:
             Quaternion rotRVtoForward = Quaternion.FromToRotation(lineOfAction, Vector3.forward);
             relVelParra = rotRVtoForward * relVelParra;
@@ -1126,9 +1155,11 @@ namespace OpenRelativity.Objects
             Vector3 finalParraRapidity = myParVel.GetGamma() * myParVel + impulse / mass * lineOfAction;
             //The change in rapidity perpendincular to the line of action:
             Vector3 finalPerpRapidity = myAngTanVel.GetGamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
-            Vector3 tanVelFinal = finalPerpRapidity.GetInverseGamma() * finalPerpRapidity;
+            //Velocities aren't linearly additive in relativity, but rapidities are:
+            Vector3 finalTotalRapidity = finalParraRapidity + finalPerpRapidity;
+            Vector3 tanVelFinal = finalTotalRapidity.GetInverseGamma() * finalPerpRapidity;
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalParraRapidity.GetInverseGamma() * finalParraRapidity;
+            collisionResultVel3 = finalTotalRapidity.GetInverseGamma() * finalParraRapidity;
             //If the angle of the torque is close to 0 or 180, we have rounding problems:
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)
@@ -1139,6 +1170,11 @@ namespace OpenRelativity.Objects
             {
                 collisionResultAngVel3 = myAngVel;
             }
+            //In the ideal, it shouldn't be necessary to clamp the speed
+            // in order to prevent FTL collision results, but we could
+            // still exceed the max speed and come very close to the speed of light
+            checkCollisionSpeed();
+
             //Velocity overwrite will come on next frame:
             oldCollisionResultVel3 = collisionResultVel3;
             oldCollisionResultAngVel3 = collisionResultAngVel3;
