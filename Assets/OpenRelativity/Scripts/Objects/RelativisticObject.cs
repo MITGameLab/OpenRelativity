@@ -110,7 +110,7 @@ namespace OpenRelativity.Objects
                 /*Total time on the world clock...*/
                 return (float)(state.TotalTimeWorld
                     /*...Delayed by the distance between the player and object in Minkowski space*/
-                    - (transform.position.RealToMinkowski(-state.PlayerVelocityVector, state.playerTransform.position).magnitude / state.SpeedOfLight));
+                    - (transform.position - state.playerTransform.position).RealToMinkowski(viw.AddVelocity(-state.PlayerVelocityVector)).magnitude / state.SpeedOfLight);
             }
         }
         public float deltaOpticalTime { get; set; }
@@ -278,7 +278,7 @@ namespace OpenRelativity.Objects
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
-            deathTime = float.PositiveInfinity;//(float)state.TotalTimeWorld;
+            deathTime = (float)totalOpticalTime;
         }
         void CombineParent()
         {
@@ -506,6 +506,14 @@ namespace OpenRelativity.Objects
                 float extremeBound = 500000.0f;
                 meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
             }
+
+            //We iterate the mechanics one frame forward at initialization,
+            // and then we LateUpdate() the mechanics for all future frames,
+            // so that we can catch the deltaOpticalTime in Update() in other scripts;
+            if (!state.MovementFrozen)
+            {
+                UpdateRigidBodyImage(lightSearchIterations);
+            }
         }
 
         private void EnforceCollision()
@@ -533,13 +541,19 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public void Update()
+        public void LateUpdate()
         {
-            EnforceCollision();
+            //We put this is LateUpdate() so that other scripts can catch the result in the next frame on Update()
+            //If we iterate one frame on initialization, we should be up-to-date.
             if (!state.MovementFrozen)
             {
                 UpdateRigidBodyImage(lightSearchIterations);
             }
+        }
+
+        public void Update()
+        {
+            EnforceCollision();
 
             //Grab our renderer.
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
@@ -641,25 +655,25 @@ namespace OpenRelativity.Objects
                     */
 
                     //Rotate that velocity!
-                    Vector3 storedViw = rotateZ * viw;
+                    //Vector3 storedViw = rotateZ * viw;
 
-                    float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
+                    //float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
 
-                    float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
+                    //float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
 
-                    float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
+                    //float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
 
                     /****************************
                      * Start Part 6 Bullet 2
                      * **************************/
 
-                    float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
+                    //float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
                     //If we're past our death time (in the player's view, as seen by tisw)
-                    if (state.TotalTimeWorld + tisw > deathTime && deathTime != 0)
+                    if (totalOpticalTime > deathTime && deathTime != 0)
                     {
                         KillObject();
                     }
-                    if (state.TotalTimeWorld + tisw > startTime && !tempRenderer.enabled)
+                    if (totalOpticalTime > startTime && !tempRenderer.enabled)
                     {
                         tempRenderer.enabled = true;
                         if (GetComponent<AudioSource>() != null)
@@ -827,8 +841,6 @@ namespace OpenRelativity.Objects
         //(We're not going to worry about gravity imposing accelerated frames for now, but this is a TODO.)
         public void UpdateRigidBodyImage(int maxIterations/*, bool applyGravity */)
         {
-            //WARNING: Doppler shift might lag behind a frame due to order of player and object frame updates
-
             float worldDeltaTime = (float)state.DeltaTimeWorld;
             Vector3 playerVel = state.PlayerVelocityVector;
 
@@ -841,13 +853,14 @@ namespace OpenRelativity.Objects
             // need here, and then we'll pass the results through the setters at the end.)
 
             //First Account for rigid body drag.
-            Vector3 newViw = _viw * (1.0f - drag * worldDeltaTime);
-            Vector3 newAviw = _aviw * (1.0f - angularDrag * worldDeltaTime);
-            Vector3 relVel = _viw.AddVelocity(-playerVel);
+            float oldDistanceFromPlayer = (piw - playerPositionLastFrame).magnitude;
+            Vector3 newViw = viw * (1.0f - drag * worldDeltaTime);
+            Vector3 newAviw = aviw * (1.0f - angularDrag * worldDeltaTime);
+            Vector3 relVel = viw.AddVelocity(-playerVel);
             float relVelMag = relVel.magnitude;
             float totalDeltaTime = worldDeltaTime;
-            Vector3 newPiw = _piw + totalDeltaTime * _viw;
-            float distanceFromPlayer = (_piw - playerPositionLastFrame).magnitude;
+            Vector3 newPiw = piw + totalDeltaTime * viw;
+            float distanceFromPlayer = (piw - playerPositionLastFrame).magnitude;
 
             //For gravity, we need to account for a potentially accelerated frame
             //if (isFalling && applyGravity)
@@ -867,23 +880,14 @@ namespace OpenRelativity.Objects
                 float iterationCount = 0;
                 float deltaTimeCorrection = totalDeltaTime;
 
-                float oldDistanceFromPlayer;
-
                 //We iterate the mechanics back and forth to narrow in on the exact optical time delta.
                 //(Some of these iterations will be forward in optical time, and some will be backward,
                 // so we can't assume the sign of the time delta correction.)
                 do
                 {
-
-                    oldDistanceFromPlayer = distanceFromPlayer;
-                    distanceFromPlayer = (_piw - playerPositionLastFrame).magnitude;
-                    //If the distance INCREASES, the apparent optical time should DECREASE
-                    deltaDistance = (distanceFromPlayer - oldDistanceFromPlayer);
-                    deltaTimeCorrection = (float)SRelativityUtil.LightDelayWithGravity(-deltaDistance / spdOfLight);
-
                     newViw = newViw * (1.0f - drag * deltaTimeCorrection);
-                    newAviw = _aviw * (1.0f - angularDrag * deltaTimeCorrection);
-                    newPiw += deltaTimeCorrection * _viw;
+                    newAviw = newAviw * (1.0f - angularDrag * deltaTimeCorrection);
+                    newPiw += deltaTimeCorrection * newViw;
 
                     //if (isFalling && applyGravity)
                     //{
@@ -893,6 +897,12 @@ namespace OpenRelativity.Objects
                     //}
 
                     totalDeltaTime += deltaTimeCorrection;
+
+                    oldDistanceFromPlayer = distanceFromPlayer;
+                    distanceFromPlayer = (newPiw - playerPositionLastFrame).magnitude;
+                    //If the distance INCREASES, the apparent optical time should DECREASE
+                    deltaDistance = (distanceFromPlayer - oldDistanceFromPlayer);
+                    deltaTimeCorrection = (float)SRelativityUtil.LightDelayWithGravity(-deltaDistance / spdOfLight);
 
                     iterationCount++;
                 }
@@ -919,7 +929,7 @@ namespace OpenRelativity.Objects
             aviw = newAviw;
 
             //Update the rotation due to the apparent change in time, times the angular velocity.
-            Vector3 angInc = totalDeltaTime * Mathf.Rad2Deg * _aviw;
+            Vector3 angInc = totalDeltaTime * Mathf.Rad2Deg * aviw;
             float angIncMag = angInc.magnitude;
             if (angIncMag > 0.0f)
             {

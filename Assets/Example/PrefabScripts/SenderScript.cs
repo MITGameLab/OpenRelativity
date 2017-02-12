@@ -22,13 +22,14 @@ namespace OpenRelativity.PrefabScripts
         {
             GameState state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             RelativisticObject myRO = GetComponent<RelativisticObject>();
-            float speedOfLightDelay = (float)((myRO.piw - state.playerTransform.position).magnitude / state.SpeedOfLight);
+            //Factor in speed of light delay between the sender and player
+            launchCounter = -(float)((myRO.piw - state.playerTransform.position).magnitude / state.SpeedOfLight);
 
             //We let you set a public variable to determine the number of seconds between each launch of an object.
             //If that variable is unset, we make sure to put it at 3 here.
             if (launchTimer <= 0)
             {
-                launchTimer = 3 + speedOfLightDelay;
+                launchTimer = 3;
             }
             //Point to the associated receiver.
             if (receiverTransform != null)
@@ -40,7 +41,7 @@ namespace OpenRelativity.PrefabScripts
         }
 
         // Update is called once per frame
-        void LateUpdate()
+        void Update()
         {   //If we're not paused, increment the timer
             GameState state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             RelativisticObject myRO = GetComponent<RelativisticObject>();
@@ -52,7 +53,7 @@ namespace OpenRelativity.PrefabScripts
             if (launchCounter >= launchTimer)
             {
                 //Reset the counter
-                launchTimer += 3;
+                launchCounter -= 3.0f;
                 //And instantiate a new object
                 LaunchObject();
             }
