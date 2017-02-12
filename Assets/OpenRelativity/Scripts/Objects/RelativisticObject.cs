@@ -30,6 +30,8 @@ namespace OpenRelativity.Objects
                 Vector3 playerPos = state.playerTransform.position;
                 //Inverse Lorentz transform the Minkowski space position back to real space and update:
                 transform.position = value.RealToMinkowski(-viw, playerPos);
+                //(The change should actually be smooth (transform.Translate(...)) in both Minkowski space and real space,
+                // but we're using instanenous impulse collision mechanics, so we just discontinuously change the position instead.
             }
         }
         //(Note that 4D rigid body quantities will generally track Minkowski space, in the

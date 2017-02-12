@@ -25,7 +25,30 @@ namespace OpenRelativity
         //world rotation so that we can transform between the two
         private Matrix4x4 worldRotation;
         //Player's velocity in vector format
-        private Vector3 playerVelocityVector;
+        private Vector3 _playerVelocityVector;
+        private Vector3 playerVelocityVector
+        {
+            get
+            {
+                return _playerVelocityVector;
+            }
+            set
+            {
+                //The player is always in their own rest frame, and we generally use the
+                // player position as the origin for maps from real space to Minkowski space.
+                // However, if we pick an arbitrary origin point in Unity coordinates,
+                // There is a change in the length contraction between the player and that point,
+                // if the player velocity changes. Since we rely on the Unity world origin, we need
+                // to factor the change in length contraction between us and that point.
+                Vector3 newWorldOrigin = ((Vector3.zero - playerTransform.position)
+                    .InverseContractLengthBy(playerVelocityVector)
+                    .ContractLengthBy(value)
+                    + playerTransform.position);
+                //The change in velocity implies smooth motion:
+                playerTransform.Translate(-newWorldOrigin);
+                _playerVelocityVector = value;
+            }
+        }
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
         //We use this to update the player acceleration vector:
@@ -249,7 +272,7 @@ namespace OpenRelativity
                         /*********** This is old logic for interial frames (without acceleration)**************/
                         //Get the delta time passed for the world, changed by relativistic effects
                         //deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
-                        /*********** This is corrects for an accelerating player frame**********************************/
+                        /*********** This corrects for an accelerating player frame****************************/
                         deltaTimeWorld = SRelativityUtil.InverseAccelerateTime(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
                         totalTimeWorld += deltaTimeWorld;
                     }
