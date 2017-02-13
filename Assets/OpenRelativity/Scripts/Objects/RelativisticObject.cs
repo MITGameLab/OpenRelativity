@@ -17,27 +17,6 @@ namespace OpenRelativity.Objects
         // The base 3D rigid body will generally track quantities in "real space,"
         // while the 4D rigid body tracks quantities in Minkowski space.
 
-        //This is our Minkowski space position, with the Unity world coordinate origin convention
-        private Vector3 _piw;
-        public Vector3 piw {
-            get
-            {
-                return _piw;
-            }
-            set
-            {
-                _piw = value;
-                Vector3 playerPos = state.playerTransform.position;
-                //Inverse Lorentz transform the Minkowski space position back to real space and update:
-                transform.position = value.RealToMinkowski(-viw, playerPos);
-                //(The change should actually be smooth (transform.Translate(...)) in both Minkowski space and real space,
-                // but we're using instanenous impulse collision mechanics, so we just discontinuously change the position instead.
-            }
-        }
-        //(Note that 4D rigid body quantities will generally track Minkowski space, in the
-        // inertial frame of the the Unity world coordinate origin, with the same origin as
-        // the Unity world coordinates, by convention.) 
-
         public Vector3 initialViw;
         private Vector3 _viw = Vector3.zero;
         public Vector3 viw
@@ -54,15 +33,14 @@ namespace OpenRelativity.Objects
                 //This makes instantiation cleaner:
                 initialViw = value;
 
-                //Transform from real space to position space for the original velocity, then back to real space for the new velocity
+                //Under instantaneous changes in velocity, the optical position should be invariant:
                 Vector3 playerPos = state.transform.position;
-                transform.position = transform.position.RealToMinkowski(_viw, playerPos).RealToMinkowski(-value, playerPos);
+                transform.position = transform.position.RealToOpticalMinkowski(_viw, playerPos).RealToOpticalMinkowski(-value, playerPos);
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
                     myRigidbody.velocity = value;
-                    myRigidbody.centerOfMass = transform.InverseTransformPoint((myRigidbody.worldCenterOfMass.RealToMinkowski(_viw, playerPos).RealToMinkowski(-value, playerPos)));
                 }
             }
         }
@@ -100,34 +78,14 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public float totalOpticalTime {
-            get
-            {
-                //In addition to being Lorentz transformed, physics should (only) appear optically delayed
-                // by the amount of time it takes light to travel between an object and the player.
-                // We want the game physics entirely in line with the optics, (not just the Lorentz transform), since that's what the player should see.
-
-                /*Total time on the world clock...*/
-                return (float)(state.TotalTimeWorld
-                    /*...Delayed by the distance between the player and object in Minkowski space*/
-                    - (transform.position - state.playerTransform.position).RealToMinkowski(viw.AddVelocity(-state.PlayerVelocityVector)).magnitude / state.SpeedOfLight);
-            }
-        }
-        public float deltaOpticalTime { get; set; }
-
         //Not sure why, but the physics values in our collider materials and rigid bodies become "corrupt"
         // before we can use them. We instantiate duplicates and keep them around:
         // (TODO: Identify why and fix this.)
         public float drag = 0.0f;
         public float angularDrag = 0.0f;
+        public float bounciness = 0.8f;
         public Vector3 inertiaTensor;
-        public PhysicMaterial physicMaterial;
 
-        //We use a recursive algorithm to approach the exact propagation delay of light
-        public int lightSearchIterations = 10;
-        //In calculating propagation delay, we also need to account for the player's change in position,
-        // so we store the player position last frame here
-        private Vector3 playerPositionLastFrame;
         //This is a velocity we "sleep" the rigid body at:
         public float sleepVelocity = 0.14f;
         //This is a cap on penalty method collision.
@@ -262,14 +220,11 @@ namespace OpenRelativity.Objects
         {
             //Get the player's GameState, use it later for general information
             state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-
-            AwakeRigidbody();
         }
 
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            //startTime = (float)state.TotalTimeWorld;
             //Probably a good sign if we can do this:
             startTime = float.NegativeInfinity;
             if (GetComponent<MeshRenderer>() != null)
@@ -278,7 +233,7 @@ namespace OpenRelativity.Objects
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
-            deathTime = (float)totalOpticalTime;
+            deathTime = (float)state.TotalTimeWorld;
         }
         void CombineParent()
         {
@@ -423,8 +378,8 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
-            //Initialize the light delay attributes;
-            playerPositionLastFrame = state.playerTransform.position;
+            _viw = initialViw;
+            _aviw = initialAviw;
 
             didCollide = false;
             myCollider = GetComponent<MeshCollider>();
@@ -506,14 +461,6 @@ namespace OpenRelativity.Objects
                 float extremeBound = 500000.0f;
                 meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
             }
-
-            //We iterate the mechanics one frame forward at initialization,
-            // and then we LateUpdate() the mechanics for all future frames,
-            // so that we can catch the deltaOpticalTime in Update() in other scripts;
-            if (!state.MovementFrozen)
-            {
-                UpdateRigidBodyImage(lightSearchIterations);
-            }
         }
 
         private void EnforceCollision()
@@ -538,16 +485,6 @@ namespace OpenRelativity.Objects
                     myRigidbody.angularVelocity = aviw;
                     didCollide = false;
                 }
-            }
-        }
-
-        public void LateUpdate()
-        {
-            //We put this is LateUpdate() so that other scripts can catch the result in the next frame on Update()
-            //If we iterate one frame on initialization, we should be up-to-date.
-            if (!state.MovementFrozen)
-            {
-                UpdateRigidBodyImage(lightSearchIterations);
             }
         }
 
@@ -615,7 +552,7 @@ namespace OpenRelativity.Objects
                     for (int i = 0; i < tempRenderer.materials.Length; i++)
                     {
                         tempRenderer.materials[i].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
-                        tempRenderer.materials[i].SetVector("_aviw", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
+                        tempRenderer.materials[i].SetVector("_sav", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
                         tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
                         colliderShaderParams.viw = tempViw;
                         colliderShaderParams.aviw = tempAviw;
@@ -655,25 +592,25 @@ namespace OpenRelativity.Objects
                     */
 
                     //Rotate that velocity!
-                    //Vector3 storedViw = rotateZ * viw;
+                    Vector3 storedViw = rotateZ * viw;
 
-                    //float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
+                    float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
 
-                    //float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
+                    float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
 
-                    //float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
+                    float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
 
                     /****************************
                      * Start Part 6 Bullet 2
                      * **************************/
 
-                    //float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
+                    float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
                     //If we're past our death time (in the player's view, as seen by tisw)
-                    if (totalOpticalTime > deathTime && deathTime != 0)
+                    if (state.TotalTimeWorld + tisw > deathTime && deathTime != 0)
                     {
                         KillObject();
                     }
-                    if (totalOpticalTime > startTime && !tempRenderer.enabled)
+                    if (state.TotalTimeWorld + tisw > startTime && !tempRenderer.enabled)
                     {
                         tempRenderer.enabled = true;
                         if (GetComponent<AudioSource>() != null)
@@ -683,24 +620,29 @@ namespace OpenRelativity.Objects
                     }
                 }
 
-                //Deprecated:
-                //make our rigidbody's velocity viw
-                //if (myRigidbody != null)
-                //{
-                //    if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
-                //    {
-                //        Vector3 tempViw = viw;
-                //        //ASK RYAN WHY THESE WERE DIVIDED BY THIS
-                //        tempViw.x /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                //        tempViw.y /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                //        tempViw.z /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                //update our viw and set the rigid body proportionally
+                if (myRigidbody != null)
+                {
 
-                //        myRigidbody.velocity = tempViw;
+                    if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                    {
+                        //Dragging probably happens intrinsically in the rest frame,
+                        // so it acts on the rapidity.
+                        // TODO: Replace with drag force
+                        //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.GetGamma() * viw;
+                        //viw = rapidity.GetInverseGamma() * rapidity;
+                        //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
 
-                //        //Store the angular velocity for collision resolution:
-                //        aviw = myRigidbody.angularVelocity;
-                //    }
-                //}
+                        Vector3 tempViw = viw;
+                        //ASK RYAN WHY THESE WERE DIVIDED BY THIS
+                        tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        myRigidbody.velocity = tempViw;
+                        //Store the angular velocity for collision resolution:
+                        aviw = myRigidbody.angularVelocity;
+                    }
+
+
+                }
             }
             //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
             else if (meshFilter != null && tempRenderer != null && myRigidbody != null)
@@ -714,6 +656,7 @@ namespace OpenRelativity.Objects
                 UpdateCollider();
             }
         }
+
         public void KillObject()
         {
             gameObject.SetActive(false);
@@ -800,150 +743,6 @@ namespace OpenRelativity.Objects
         }
 
         #region 4D Rigid body mechanics
-
-        private void AwakeRigidbody()
-        {
-            Vector3 oldPos = transform.position;
-
-            myRigidbody = GetComponent<Rigidbody>();
-            //There's no good way to abstract around the fact that every relativistic object
-            // needs a rigid body to track its local clock:
-            if (myRigidbody == null)
-            {
-                myRigidbody = gameObject.AddComponent<Rigidbody>();
-            }
-
-            //Save these for physics later:
-            //this.drag = myRigidbody.drag;
-            //this.angularDrag = myRigidbody.angularDrag;
-            this.inertiaTensor = myRigidbody.inertiaTensor;
-            //Store a physics material
-            // (The collider geometry transformation screws up the base material.)
-            this.physicMaterial = new PhysicMaterial();
-            this.physicMaterial.bounciness = 0.8f;
-            this.physicMaterial.staticFriction = 0.6f;
-            this.physicMaterial.dynamicFriction = 0.2f;
-
-            //We're overriding the 3D real space mechanics with 4D relativistic mechanics:
-            myRigidbody.constraints = RigidbodyConstraints.FreezeAll;
-            myRigidbody.Sleep();
-            myRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-
-            viw = initialViw;
-            aviw = initialAviw;
-
-            didCollide = false;
-            collisionResultVel3 = viw;
-
-            piw = oldPos.RealToMinkowski(-state.PlayerVelocityVector, state.playerTransform.position);
-        }
-
-        //(We're not going to worry about gravity imposing accelerated frames for now, but this is a TODO.)
-        public void UpdateRigidBodyImage(int maxIterations/*, bool applyGravity */)
-        {
-            float worldDeltaTime = (float)state.DeltaTimeWorld;
-            Vector3 playerVel = state.PlayerVelocityVector;
-
-            //If it weren't for optical speed of light travel delay,
-            // we'd just update the the position based on the player time and acceleration.
-            // This is a good starting point for finding the optical behavior.
-
-            //(We're going to use the private variables behind the setters and getters, here,
-            // to reduce the overhead due to Lorentz transformations. We'll just calculate the parts we
-            // need here, and then we'll pass the results through the setters at the end.)
-
-            //First Account for rigid body drag.
-            float oldDistanceFromPlayer = (piw - playerPositionLastFrame).magnitude;
-            Vector3 newViw = viw * (1.0f - drag * worldDeltaTime);
-            Vector3 newAviw = aviw * (1.0f - angularDrag * worldDeltaTime);
-            Vector3 relVel = viw.AddVelocity(-playerVel);
-            float relVelMag = relVel.magnitude;
-            float totalDeltaTime = worldDeltaTime;
-            Vector3 newPiw = piw + totalDeltaTime * viw;
-            float distanceFromPlayer = (piw - playerPositionLastFrame).magnitude;
-
-            //For gravity, we need to account for a potentially accelerated frame
-            //if (isFalling && applyGravity)
-            //{
-            //    UpdateGravity(relDelT);
-            //}
-
-            //If the relative velocity happens to be zero, like if the player is at rest
-            // relative to terrain objects, we can entirely skip this:
-            if (relVelMag > 0.0f)
-            {
-                
-                float spdOfLight = (float)state.SpeedOfLight;
-
-                float deltaDistance = 0.0f;
-
-                float iterationCount = 0;
-                float deltaTimeCorrection = totalDeltaTime;
-
-                //We iterate the mechanics back and forth to narrow in on the exact optical time delta.
-                //(Some of these iterations will be forward in optical time, and some will be backward,
-                // so we can't assume the sign of the time delta correction.)
-                do
-                {
-                    newViw = newViw * (1.0f - drag * deltaTimeCorrection);
-                    newAviw = newAviw * (1.0f - angularDrag * deltaTimeCorrection);
-                    newPiw += deltaTimeCorrection * newViw;
-
-                    //if (isFalling && applyGravity)
-                    //{
-                    //    UpdateGravity(SRelativity.AccelerateTime(cameraTRevCtrl.GetUnreversedAcceleration(), relVel, iterateDelT));
-                    //    relVel = _viw.AddSRVelocity(-playerVel);
-                    //    //relVelMag = relVel.magnitude;
-                    //}
-
-                    totalDeltaTime += deltaTimeCorrection;
-
-                    oldDistanceFromPlayer = distanceFromPlayer;
-                    distanceFromPlayer = (newPiw - playerPositionLastFrame).magnitude;
-                    //If the distance INCREASES, the apparent optical time should DECREASE
-                    deltaDistance = (distanceFromPlayer - oldDistanceFromPlayer);
-                    deltaTimeCorrection = (float)SRelativityUtil.LightDelayWithGravity(-deltaDistance / spdOfLight);
-
-                    iterationCount++;
-                }
-                while (Mathf.Abs(deltaTimeCorrection) > 0.001f && iterationCount < maxIterations);
-
-                relVelMag = relVel.magnitude;
-            }
-
-            //if (totalDeltaTimeCorrection <= 0.0f)
-            //{
-            //    detectCollisions = false;
-            //}
-            //else
-            //{
-            //    detectCollisions = true;
-            //}
-
-            //We were putting off the transformations in these setters, to reduce overhead.
-            // First make sure the transform is moved to the true real space position.
-            transform.Translate(_piw.RealToMinkowski(-_viw) - transform.position);
-            // Then trip all the setters.
-            piw = newPiw;
-            viw = newViw;
-            aviw = newAviw;
-
-            //Update the rotation due to the apparent change in time, times the angular velocity.
-            Vector3 angInc = totalDeltaTime * Mathf.Rad2Deg * aviw;
-            float angIncMag = angInc.magnitude;
-            if (angIncMag > 0.0f)
-            {
-                Quaternion rot = Quaternion.AngleAxis(angIncMag, Vector3.forward);
-                transform.localRotation = rot * transform.localRotation;
-            }
-
-            //Save the player position to account for player velocity in the next frame:
-            playerPositionLastFrame = state.playerTransform.position;
-
-            //We can now update the object's time delta
-            deltaOpticalTime = totalDeltaTime;
-        }
-
         //This is a reference type to package collision points with collision normal vectors
         private class PointAndNorm
         {
@@ -1011,10 +810,10 @@ namespace OpenRelativity.Objects
             }
 
             RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
-            PhysicMaterial otherMaterial = otherRO.physicMaterial;
-            PhysicMaterial myMaterial = this.physicMaterial;
+            PhysicMaterial otherMaterial = collision.collider.material;
+            PhysicMaterial myMaterial = myCollider.material;
             float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
-            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, myMaterial.bounciness, otherMaterial.bounciness);
+            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, this.bounciness, otherRO.bounciness);
 
             //Tangental relationship scales normalized "bounciness" to a Young's modulus
             float combYoungsModulus;
@@ -1105,8 +904,8 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position).RealToMinkowski(myVel, playerPos)).RealToMinkowski(-myVel, playerPos);
-            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position).RealToMinkowski(otherVel, playerPos)).RealToMinkowski(-otherVel, playerPos);
+            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position)).InverseContractLengthBy(myVel);
+            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position)).InverseContractLengthBy(-otherVel);
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myParVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
@@ -1132,7 +931,7 @@ namespace OpenRelativity.Objects
             //Rotate my relative contact point:
             Vector3 rotatedLoc = Quaternion.Inverse(transform.rotation) * myLocPoint;
             //The relative contact point is the lever arm of the torque:
-            float myMOI = Vector3.Dot(this.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
+            float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
             rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
             //In special relativity, the impulse relates the change in rapidities, rather than the change in velocities.
             float impulse;
@@ -1142,7 +941,7 @@ namespace OpenRelativity.Objects
             }
             else
             {
-                float otherMOI = Vector3.Dot(otherRO.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
+                float otherMOI = Vector3.Dot(otherRB.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
                 impulse = -rapidityOnLoA.magnitude * (combRestCoeff + 1.0f) / (1.0f / mass + 1.0f / otherRB.mass + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, lineOfAction), myLocPoint)) + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / otherMOI * Vector3.Cross(otLocPoint, lineOfAction), otLocPoint)));
             }
 
