@@ -10,7 +10,7 @@ namespace OpenRelativity.PrefabScripts
         //Store our partner's transform
         public Transform receiverTransform;
         //how long between character creation?
-        public int launchTimer;
+        public float launchTimer;
         //how much time has passed
         private float launchCounter;
 
@@ -20,6 +20,11 @@ namespace OpenRelativity.PrefabScripts
 
         void Start()
         {
+            GameState state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+            RelativisticObject myRO = GetComponent<RelativisticObject>();
+            //Factor in speed of light delay between the sender and player
+            launchCounter = -(float)((myRO.piw - state.playerTransform.position).magnitude / state.SpeedOfLight);
+
             //We let you set a public variable to determine the number of seconds between each launch of an object.
             //If that variable is unset, we make sure to put it at 3 here.
             if (launchTimer <= 0)
@@ -39,15 +44,16 @@ namespace OpenRelativity.PrefabScripts
         void Update()
         {   //If we're not paused, increment the timer
             GameState state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+            RelativisticObject myRO = GetComponent<RelativisticObject>();
             if (!state.MovementFrozen)
             {
-                launchCounter += Time.deltaTime;
+                launchCounter += (float)myRO.deltaOpticalTime;
             }
             //If it has been at least LaunchTimer seconds since we last fired an object
             if (launchCounter >= launchTimer)
             {
                 //Reset the counter
-                launchCounter = 0;
+                launchCounter -= 3.0f;
                 //And instantiate a new object
                 LaunchObject();
             }
@@ -64,9 +70,14 @@ namespace OpenRelativity.PrefabScripts
             RelativisticObject ro = launchedObject.GetComponent<RelativisticObject>();
             RelativisticObject[] ros = launchedObject.GetComponentsInChildren<RelativisticObject>();
 
+            //Get the Relativistic Object of me, the sender, myself
+            RelativisticObject myRO = GetComponent<RelativisticObject>();
+
             if (ro != null)
             {
                 ro.viw = viwMax * this.transform.forward;
+                ro.piw = myRO.piw;
+                ro.transform.rotation = this.transform.rotation;
                 //And let the object know when it was created, so that it knows when not to be seen by the player
                 ro.SetStartTime();
             }
@@ -75,6 +86,8 @@ namespace OpenRelativity.PrefabScripts
                 for (int i = 0; i < ros.Length; i++)
                 {
                     ros[i].viw = viwMax * this.transform.forward;
+                    ros[i].piw = myRO.piw;
+                    ros[i].transform.rotation = this.transform.rotation;
                     //And let the object know when it was created, so that it knows when not to be seen by the player
                     ros[i].SetStartTime();
                 }

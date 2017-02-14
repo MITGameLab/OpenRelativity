@@ -25,7 +25,32 @@ namespace OpenRelativity
         //world rotation so that we can transform between the two
         private Matrix4x4 worldRotation;
         //Player's velocity in vector format
-        private Vector3 playerVelocityVector;
+        private Vector3 _playerVelocityVector;
+        private Vector3 playerVelocityVector
+        {
+            get
+            {
+                return _playerVelocityVector;
+            }
+            set
+            {
+                //The player is always in their own rest frame, and we generally use the
+                // player position as the origin for maps from real space to Minkowski space.
+                // However, if we pick an arbitrary origin point in Unity world coordinates,
+                // There is a change in the length contraction between the player and that point,
+                // if the player velocity changes. Since we rely on the Unity world origin, we need
+                // to factor the change in length contraction between us and that point.
+                Vector3 oldOrigin = Vector3.zero.RealToMinkowski(-playerVelocityVector);
+                Vector3 newWorldOrigin = oldOrigin
+                    .InverseContractLengthBy(playerVelocityVector)
+                    .ContractLengthBy(value)
+                    .RealToMinkowski(value);
+                //The change in velocity implies smooth motion:
+                playerTransform.Translate(newWorldOrigin);
+                //(Now the world origin is zero again.)
+                _playerVelocityVector = value;
+            }
+        }
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
         //We use this to update the player acceleration vector:
