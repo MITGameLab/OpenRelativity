@@ -3,8 +3,7 @@ using System.Collections;
 
 namespace OpenRelativity.PrefabScripts
 {
-    public class ReceiverScript : MonoBehaviour
-    {
+    public class ReceiverScript : MonoBehaviour {
 
         //Store our partner's transform
         public Transform senderTransform;

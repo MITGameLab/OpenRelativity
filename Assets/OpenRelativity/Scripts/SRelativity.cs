@@ -156,12 +156,12 @@ namespace OpenRelativity
         // Note that the inverse of pos = real.RealToPosition(vel) is real = pos.RealToPosition(-vel),
         // since a second Lorentz transform by the velocity in the opposite direction returns to an
         // inertial frame with the same initial velocity.
-        public static Vector3 RealToMinkowski(this Vector3 realPos, Vector3 velocity)
+        public static Vector3 RealToOpticalMinkowski(this Vector3 realPos, Vector3 velocity)
         {
-            return RealToMinkowski(realPos, velocity, Vector3.zero);
+            return RealToOpticalMinkowski(realPos, velocity, Vector3.zero);
         }
 
-        public static Vector3 RealToMinkowski(this Vector3 realPos, Vector3 velocity, Vector3 origin)
+        public static Vector3 RealToOpticalMinkowski(this Vector3 realPos, Vector3 velocity, Vector3 origin)
         {
             float spdOfLight = SRelativityUtil.c;
 
