@@ -255,71 +255,79 @@ namespace OpenRelativity
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / SRelativityUtil.cSqrd);
         }
 
+        //public static double InverseAccelerateTime(Vector3 accel, Vector3 vel, double deltaT)
+        //{
+        //    double dilatedTime;
+        //    double invGamma = Math.Sqrt(1.0 - vel.sqrMagnitude / srCamera.SpeedOfLightSqrd);
+        //    double accelMag = accel.magnitude;
+        //    if (accelMag == 0.0 || double.IsNaN(accelMag))
+        //    {
+        //        dilatedTime = deltaT * invGamma;
+        //    }
+        //    else
+        //    {
+        //        double properDeltaTime = deltaT * invGamma;
+        //        dilatedTime = Math.Sign(deltaT) * Math.Abs((Math.Exp(accelMag * properDeltaTime) - 1.0) / accelMag) * invGamma;
+        //    }
+
+        //    //To catch garbage in:
+        //    if (double.IsNaN(dilatedTime))
+        //    {
+        //        dilatedTime = 0.0;
+        //    }
+
+        //    return dilatedTime;
+        //}
+        //public static double AccelerateTime(Vector3 accel, Vector3 vel, double deltaT)
+        //{
+        //    if (deltaT == 0.0f) return 0.0f;
+
+        //    double dilatedTime;
+        //    double gamma = 1.0f / Math.Sqrt(1.0f - vel.sqrMagnitude / cSqrd);
+        //    double accelMag = accel.magnitude;
+        //    if (accelMag == 0.0f)
+        //    {
+        //        dilatedTime = deltaT * gamma;
+        //    }
+        //    else
+        //    {
+        //        double arg = Math.Abs(accelMag * gamma * deltaT);
+        //        dilatedTime = gamma / accelMag * Math.Log(1.0f + arg);
+        //        if (deltaT < 0.0f)
+        //        {
+        //            dilatedTime = -Math.Abs(dilatedTime);
+        //        }
+        //    }
+
+        //    return dilatedTime;
+        //}
+
         public static double InverseAccelerateTime(Vector3 accel, Vector3 vel, double deltaT)
         {
-            double dilatedTime;
-            double invGamma = Math.Sqrt(1.0 - vel.sqrMagnitude / srCamera.SpeedOfLightSqrd);
-            double accelMag = accel.magnitude;
-            if (accelMag == 0.0 || double.IsNaN(accelMag))
-            {
-                dilatedTime = deltaT * invGamma;
-            }
-            else
-            {
-                double properDeltaTime = deltaT * invGamma;
-                dilatedTime = Math.Sign(deltaT) * Math.Abs((Math.Exp(accelMag * properDeltaTime) - 1.0) / accelMag) * invGamma;
-            }
-
-            //To catch garbage in:
-            if (double.IsNaN(dilatedTime))
-            {
-                dilatedTime = 0.0;
-            }
-
-            return dilatedTime;
-        }
-        public static double AccelerateTime(Vector3 accel, Vector3 vel, double deltaT)
-        {
-            if (deltaT == 0.0f) return 0.0f;
-
-            double dilatedTime;
-            double gamma = 1.0f / Math.Sqrt(1.0f - vel.sqrMagnitude / cSqrd);
-            double accelMag = accel.magnitude;
-            if (accelMag == 0.0f)
-            {
-                dilatedTime = deltaT * gamma;
-            }
-            else
-            {
-                double arg = Math.Abs(accelMag * gamma * deltaT);
-                dilatedTime = gamma / accelMag * Math.Log(1.0f + arg);
-                if (deltaT < 0.0f)
-                {
-                    dilatedTime = -Math.Abs(dilatedTime);
-                }
-            }
-
-            return dilatedTime;
+            //This formula assumes that the deltaT is small enough that an integral over it can replaced by deltaT times an endpoint.
+            double cSqrd = SRelativityUtil.cSqrd;
+            double gamma = 1.0 / Math.Sqrt(1.0 - vel.sqrMagnitude / cSqrd);
+            return deltaT * Math.Sqrt(1.0 - 1.0 / cSqrd * (vel.sqrMagnitude + 2 * Vector3.Dot(vel, accel) * deltaT * gamma + deltaT * deltaT * gamma * gamma));
         }
 
-        public static double LightDelayWithGravity(Vector3 location1, Vector3 location2)
-        {
-            return LightDelayWithGravity(location1, location2, Vector3.zero);
-        }
+        //public static double LightDelayWithGravity(Vector3 location1, Vector3 location2)
+        //{
+        //    return LightDelayWithGravity(location1, location2, Vector3.zero);
+        //}
 
-        public static double LightDelayWithGravity(Vector3 location1, Vector3 location2, Vector3 relativeVelocity)
-        {
-            return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, (location1 - location2).magnitude / c);
-        }
+        //public static double LightDelayWithGravity(Vector3 location1, Vector3 location2, Vector3 relativeVelocity)
+        //{
+        //    return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, (location1 - location2).magnitude / c);
+        //}
 
-        public static double LightDelayWithGravity(double deltaT, Vector3 relativeVelocity)
-        {
-            return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, deltaT);
-        }
+        //public static double LightDelayWithGravity(double deltaT, Vector3 relativeVelocity)
+        //{
+        //    return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, deltaT);
+        //}
 
-        public static double LightDelayWithGravity(float deltaT)
-        {
-            return AccelerateTime(srCamera.PlayerAccelerationVector, Vector3.zero, deltaT);
-        }
+        //public static double LightDelayWithGravity(float deltaT)
+        //{
+        //    return AccelerateTime(srCamera.PlayerAccelerationVector, Vector3.zero, deltaT);
+        //}
     }
 }

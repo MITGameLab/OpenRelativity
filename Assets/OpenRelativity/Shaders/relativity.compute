@@ -74,19 +74,19 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float4 tempPos = mul(ltwMatrix, float4(pos.x, pos.y, pos.z, 1.0f));
 	pos = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w - piw;
 	//We relativistically add the tangential velocity to the translational.
-	if (dot(aviw, aviw) != 0.0f) // If angular speed is zero, no need
-	{
-		float siwSqr = dot(viw, viw); //speed of object in world, squared
-		float3 tv3 = -cross(aviw, pos) / spdOfLight; //tangential velocity in world
-		if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
-			float invGamma = sqrt(1.0f - siwSqr);
-			float vdtv = dot(viw, tv3); //velocity dotted with tangential velocity
-			viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv3 + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
-		}
-		else { //If the object has no speed, the velocity of the point is just the tangential velocity
-			viw = tv3;
-		}
-	}
+	//if (dot(aviw, aviw) != 0.0f) // If angular speed is zero, no need
+	//{
+	//	float siwSqr = dot(viw, viw); //speed of object in world, squared
+	//	float3 tv3 = -cross(aviw, pos) / spdOfLight; //tangential velocity in world
+	//	if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
+	//		float invGamma = sqrt(1.0f - siwSqr);
+	//		float vdtv = dot(viw, tv3); //velocity dotted with tangential velocity
+	//		viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv3 + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
+	//	}
+	//	else { //If the object has no speed, the velocity of the point is just the tangential velocity
+	//		viw = tv3;
+	//	}
+	//}
 	pos = pos + piw - playerOffset; //Shift coordinates so player is at origin
 	//vw + vp/(1+vw*vp/c^2)
 

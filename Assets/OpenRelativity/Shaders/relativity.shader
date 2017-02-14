@@ -118,20 +118,20 @@ Shader "Relativity/ColorShift"
 
 		o.pos = mul(unity_ObjectToWorld, v.vertex) - _piw; //get position in world coordinates, with object at origin
 		//We relativistically add the tangential velocity to the translational.
-		if (dot(_aviw, _aviw) != 0.0f) // If angular speed is zero, no need
-		{
-			float siwSqr = dot(viw, viw); //speed of object in world, squared
-			float3 tv3 = -cross(_aviw, o.pos) / _spdOfLight; //tangential velocity in world
-			float4 tv = float4(tv3.x, tv3.y, tv3.z, 0.0f);
-			if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
-				float invGamma = sqrt(1.0f - siwSqr);
-				float vdtv = dot(viw, tv); //velocity dotted with tangential velocity
-				viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
-			}
-			else { //If the object has no speed, the velocity of the point is just the tangential velocity
-				viw = tv;
-			}
-		}
+		//if (dot(_aviw, _aviw) != 0.0f) // If angular speed is zero, no need
+		//{
+		//	float siwSqr = dot(viw, viw); //speed of object in world, squared
+		//	float3 tv3 = -cross(_aviw, o.pos) / _spdOfLight; //tangential velocity in world
+		//	float4 tv = float4(tv3.x, tv3.y, tv3.z, 0.0f);
+		//	if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
+		//		float invGamma = sqrt(1.0f - siwSqr);
+		//		float vdtv = dot(viw, tv); //velocity dotted with tangential velocity
+		//		viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
+		//	}
+		//	else { //If the object has no speed, the velocity of the point is just the tangential velocity
+		//		viw = tv;
+		//	}
+		//}
 		o.pos = o.pos + _piw - _playerOffset; //Shift coordinates so player is at origin
 
 		o.uv1.xy = v.texcoord; //get the UV coordinate for the current vertex, will be passed to fragment shade
