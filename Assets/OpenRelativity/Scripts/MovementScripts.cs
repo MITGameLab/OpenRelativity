@@ -173,7 +173,7 @@ namespace OpenRelativity
                         addedVelocity = rotateX * addedVelocity;
 
                         //get gamma so we don't have to bother getting it every time
-                        float gamma = (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        float gamma = (float)state.AcceleratedGamma;
                         //Do relativistic velocity addition as described by the above equation.
                         rotatedVelocity = (1 / (1 + (rotatedVelocity.x * addedVelocity.x) / (float)state.SpeedOfLightSqrd)) *
                             (new Vector3(addedVelocity.x + rotatedVelocity.x, addedVelocity.y * gamma, gamma * addedVelocity.z));

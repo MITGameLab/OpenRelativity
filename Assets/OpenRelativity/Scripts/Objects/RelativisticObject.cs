@@ -624,7 +624,7 @@ namespace OpenRelativity.Objects
                 if (myRigidbody != null)
                 {
 
-                    if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                    if (!double.IsNaN((double)state.AcceleratedGamma) && (float)state.AcceleratedGamma != 0)
                     {
                         //Dragging probably happens intrinsically in the rest frame,
                         // so it acts on the rapidity.
@@ -635,7 +635,7 @@ namespace OpenRelativity.Objects
 
                         Vector3 tempViw = viw;
                         //ASK RYAN WHY THESE WERE DIVIDED BY THIS
-                        tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        tempViw /= (float)state.AcceleratedGamma;
                         myRigidbody.velocity = tempViw;
                         //Store the angular velocity for collision resolution:
                         aviw = myRigidbody.angularVelocity;
@@ -918,14 +918,14 @@ namespace OpenRelativity.Objects
             //perp is a perpendicular projection:
             Vector3 perp = relVel - parra;
             //With parra and perp, we can find the velocity that removes the perpendicular component of motion:
-            Vector3 relVelPerp = -parra.GetGamma() * perp;
+            Vector3 relVelPerp = -parra.Gamma() * perp;
             Vector3 relVelParra = relVel.AddVelocity(relVelPerp);
             lineOfAction = (-contactPoint.normal).InverseContractLengthBy(relVelPerp).normalized;
             //Rotate so our parrallel velocity is on the forward vector:
             Quaternion rotRVtoForward = Quaternion.FromToRotation(lineOfAction, Vector3.forward);
             relVelParra = rotRVtoForward * relVelParra;
             //Find the relative rapidity on the line of action, where the perpendicular component of the velocity is 0:
-            Vector3 rapidityOnLoA = relVelParra.GetGamma() * relVelParra;
+            Vector3 rapidityOnLoA = relVelParra.Gamma() * relVelParra;
             otLocPoint = otLocPoint.ContractLengthBy(relVel);
 
             //Rotate my relative contact point:
@@ -963,14 +963,14 @@ namespace OpenRelativity.Objects
             //We still need to apply a spring constant at the end.
 
             //The change in rapidity on the line of action:
-            Vector3 finalParraRapidity = myParVel.GetGamma() * myParVel + impulse / mass * lineOfAction;
+            Vector3 finalParraRapidity = myParVel.Gamma() * myParVel + impulse / mass * lineOfAction;
             //The change in rapidity perpendincular to the line of action:
-            Vector3 finalPerpRapidity = myAngTanVel.GetGamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
+            Vector3 finalPerpRapidity = myAngTanVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
             //Velocities aren't linearly additive in relativity, but rapidities are:
             Vector3 finalTotalRapidity = finalParraRapidity + finalPerpRapidity;
-            Vector3 tanVelFinal = finalTotalRapidity.GetInverseGamma() * finalPerpRapidity;
+            Vector3 tanVelFinal = finalTotalRapidity.InverseGamma() * finalPerpRapidity;
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalTotalRapidity.GetInverseGamma() * finalParraRapidity;
+            collisionResultVel3 = finalTotalRapidity.InverseGamma() * finalParraRapidity;
             //If the angle of the torque is close to 0 or 180, we have rounding problems:
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)

@@ -67,6 +67,9 @@ namespace OpenRelativity
 
         //This is a value that gets used in many calculations, so we calculate it each frame
         private double sqrtOneMinusVSquaredCWDividedByCSquared;
+        //This is the equivalent of the above value for an accelerated player frame
+        private double acceleratedGamma;
+
         //Player rotation and change in rotation since last frame
         public Vector3 playerRotation = new Vector3(0, 0, 0);
         public Vector3 deltaRotation = new Vector3(0, 0, 0);
@@ -89,6 +92,7 @@ namespace OpenRelativity
         public double PctOfSpdUsing { get { return pctOfSpdUsing; } set { pctOfSpdUsing = value; } }
         public double PlayerVelocity { get { return playerVelocity; } }
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get { return sqrtOneMinusVSquaredCWDividedByCSquared; } }
+        public double AcceleratedGamma { get { return acceleratedGamma; } }
         public double DeltaTimeWorld { get { return deltaTimeWorld; } }
         public double DeltaTimePlayer { get { return deltaTimePlayer; } }
         public double TotalTimePlayer { get { return totalTimePlayer; } }
@@ -206,7 +210,7 @@ namespace OpenRelativity
                 playerVelocity = playerVelocityVector.magnitude;
 
                 //update our acceleration (which relates rapidities rather than velocities)
-                float invGamma = oldPlayerVelocityVector.GetInverseGamma();
+                float invGamma = oldPlayerVelocityVector.InverseGamma();
                 playerAccelerationVector = invGamma * (playerVelocityVector - oldPlayerVelocityVector) / Time.deltaTime;
                 // and then update the old velocity for the calculation of the acceleration on the next frame
                 oldPlayerVelocityVector = playerVelocityVector;
@@ -237,6 +241,7 @@ namespace OpenRelativity
                 * ****************************/
                 //find this constant
                 sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - (playerVelocity * playerVelocity) / cSqrd);
+                acceleratedGamma = SRelativityUtil.AcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
 
                 //Set by Unity, time since last update
                 deltaTimePlayer = (double)Time.deltaTime;
@@ -244,13 +249,13 @@ namespace OpenRelativity
                 if (keyHit)
                 {
                     totalTimePlayer += deltaTimePlayer;
-                    if (!double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
+                    if (!double.IsNaN(acceleratedGamma))
                     {
                         /*********** This is old logic for interial frames (without acceleration)**************/
                         //Get the delta time passed for the world, changed by relativistic effects
                         //deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
                         /*********** This corrects for an accelerating player frame****************************/
-                        deltaTimeWorld = SRelativityUtil.InverseAccelerateTime(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
+                        deltaTimeWorld = deltaTimePlayer / acceleratedGamma;
                         totalTimeWorld += deltaTimeWorld;
                     }
                 }
