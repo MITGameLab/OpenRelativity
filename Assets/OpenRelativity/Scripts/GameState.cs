@@ -241,7 +241,7 @@ namespace OpenRelativity
                 * ****************************/
                 //find this constant
                 sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - (playerVelocity * playerVelocity) / cSqrd);
-                acceleratedGamma = SRelativityUtil.AcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
+                acceleratedGamma = SRelativityUtil.AcceleratedInverseGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
 
                 //Set by Unity, time since last update
                 deltaTimePlayer = (double)Time.deltaTime;

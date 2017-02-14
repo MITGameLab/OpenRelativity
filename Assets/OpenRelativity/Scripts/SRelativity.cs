@@ -255,12 +255,13 @@ namespace OpenRelativity
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / SRelativityUtil.cSqrd);
         }
 
-        public static double AcceleratedGamma(Vector3 accel, Vector3 vel, double deltaT)
+        public static double AcceleratedInverseGamma(Vector3 accel, Vector3 vel, double deltaT)
         {
             //This formula assumes that the deltaT is small enough that an integral over it can replaced by deltaT times an endpoint.
+            // (The approximation could be improved by including more points in the Riemann sum.)
             double cSqrd = SRelativityUtil.cSqrd;
-            double gamma = 1.0 / Math.Sqrt(1.0 - vel.sqrMagnitude / cSqrd);
-            return Math.Sqrt(1.0 - 1.0 / cSqrd * (vel.sqrMagnitude + 2 * Vector3.Dot(vel, accel) * deltaT * gamma + deltaT * deltaT * gamma * gamma));
+            double invGamma = Math.Sqrt(1.0 - vel.sqrMagnitude / cSqrd);
+            return Math.Sqrt(1.0 - 1.0 / cSqrd * (vel.sqrMagnitude + 2 * Vector3.Dot(vel, accel) * deltaT * invGamma + deltaT * deltaT * invGamma * invGamma));
         }
 
         //public static double LightDelayWithGravity(Vector3 location1, Vector3 location2)
