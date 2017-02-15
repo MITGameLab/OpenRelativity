@@ -41,13 +41,13 @@ namespace OpenRelativity.PrefabScripts
             GameState state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             if (!state.MovementFrozen)
             {
-                launchCounter += Time.deltaTime;
+                launchCounter += (float)state.DeltaTimeWorld;
             }
             //If it has been at least LaunchTimer seconds since we last fired an object
             if (launchCounter >= launchTimer)
             {
                 //Reset the counter
-                launchCounter = 0;
+                launchCounter -= launchTimer;
                 //And instantiate a new object
                 LaunchObject();
             }
