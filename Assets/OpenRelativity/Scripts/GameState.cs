@@ -25,7 +25,28 @@ namespace OpenRelativity
         //world rotation so that we can transform between the two
         private Matrix4x4 worldRotation;
         //Player's velocity in vector format
-        private Vector3 playerVelocityVector;
+        private Vector3 _playerVelocityVector;
+        private Vector3 playerVelocityVector
+        {
+            get
+            {
+                return _playerVelocityVector;
+            }
+            set
+            {
+                //Optical transforms assume the player position as the origin.
+                // However, when the player's velocity changes, there is a change
+                // due to length contraction in the position of the effective
+                // world origin. This setter corrects for the length contraction
+                // between the world origin and the player.
+                Vector3 newOrigin = (Vector3.zero - playerTransform.position)
+                    .InverseContractLengthBy(-playerVelocityVector)
+                    .ContractLengthBy(value)
+                    + playerTransform.position;
+                playerTransform.Translate(-newOrigin);
+                _playerVelocityVector = value;
+            }
+        }
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
         //We use this to update the player acceleration vector:
@@ -241,7 +262,7 @@ namespace OpenRelativity
                 * ****************************/
                 //find this constant
                 sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - (playerVelocity * playerVelocity) / cSqrd);
-                acceleratedGamma = SRelativityUtil.AcceleratedInverseGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
+                acceleratedGamma = SRelativityUtil.InverseAcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
 
                 //Set by Unity, time since last update
                 deltaTimePlayer = (double)Time.deltaTime;

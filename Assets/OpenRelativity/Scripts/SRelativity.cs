@@ -255,7 +255,7 @@ namespace OpenRelativity
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / SRelativityUtil.cSqrd);
         }
 
-        public static double AcceleratedInverseGamma(Vector3 accel, Vector3 vel, double deltaT)
+        public static double InverseAcceleratedGamma(Vector3 accel, Vector3 vel, double deltaT)
         {
             //This formula assumes that the deltaT is small enough that an integral over it can replaced by deltaT times an endpoint.
             // (The approximation could be improved by including more points in the Riemann sum.)
