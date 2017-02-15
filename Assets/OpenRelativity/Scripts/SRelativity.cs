@@ -156,18 +156,18 @@ namespace OpenRelativity
         // Note that the inverse of pos = real.RealToPosition(vel) is real = pos.RealToPosition(-vel),
         // since a second Lorentz transform by the velocity in the opposite direction returns to an
         // inertial frame with the same initial velocity.
-        public static Vector3 RealToOpticalMinkowski(this Vector3 realPos, Vector3 velocity)
+        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity)
         {
-            return RealToOpticalMinkowski(realPos, velocity, Vector3.zero);
+            return WorldToOptical(realPos, velocity, Vector3.zero);
         }
 
-        public static Vector3 RealToOpticalMinkowski(this Vector3 realPos, Vector3 velocity, Vector3 origin)
+        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin)
         {
             float spdOfLight = SRelativityUtil.c;
 
-            Vector3 vpc = Vector3.zero;
+            Vector3 vpc = srCamera.PlayerVelocityVector;
             float speed = 0.0f;
-            Vector3 pos = realPos - origin;
+            Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object

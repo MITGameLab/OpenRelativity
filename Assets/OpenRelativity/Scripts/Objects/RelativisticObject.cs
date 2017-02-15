@@ -35,13 +35,34 @@ namespace OpenRelativity.Objects
 
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 Vector3 playerPos = state.transform.position;
-                transform.position = transform.position.RealToOpticalMinkowski(_viw, playerPos).RealToOpticalMinkowski(-value, playerPos);
+                transform.position = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
                     myRigidbody.velocity = value;
                 }
+                
+                /*
+                if (startTime > state.TotalTimeWorld)
+                {
+                    //Under instantaneous changes in velocity, the optical position should be invariant:
+                    Vector3 playerPos = state.transform.position;
+
+                    Vector3 oPos = transform.position.WorldToOptical(_viw, playerPos);
+                    Vector3 temp = transform.position.WorldToOptical(value, playerPos);
+                    float oTps = Mathf.Sqrt((oPos - transform.position).InverseContractLengthBy(viw).sqrMagnitude / viw.sqrMagnitude);
+                    float tps = Mathf.Sqrt((temp - transform.position).InverseContractLengthBy(value).sqrMagnitude / value.sqrMagnitude);
+                    transform.position = transform.position - tps * value + oTps * _viw;
+
+                    //Also update the Rigidbody, if any
+                    if (myRigidbody != null)
+                    {
+                        myRigidbody.velocity = value / (float)state.InverseAcceleratedGamma;
+                    }
+                }
+
+                _viw = value;*/
             }
         }
         //Store this object's angular velocity here.
