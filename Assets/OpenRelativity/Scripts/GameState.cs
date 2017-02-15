@@ -25,7 +25,25 @@ namespace OpenRelativity
         //world rotation so that we can transform between the two
         private Matrix4x4 worldRotation;
         //Player's velocity in vector format
+        //private Vector3 _playerVelocityVector;
         private Vector3 playerVelocityVector;
+        //Lengh contraction appears to asymmetric in sphere. Might be coordinate artifact.
+        // The commented code below is an attempt to fix this.
+        //{
+        //    get
+        //    {
+        //        return _playerVelocityVector;
+        //    }
+        //    set
+        //    {
+        //        Vector3 newOrigin = (Vector3.zero - transform.position)
+        //            .InverseContractLengthBy(-playerVelocityVector)
+        //            .ContractLengthBy(-value)
+        //            + transform.position;
+        //        playerTransform.Translate(-newOrigin);
+        //        _playerVelocityVector = value;
+        //    }
+        //}
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
         //We use this to update the player acceleration vector:
@@ -68,7 +86,7 @@ namespace OpenRelativity
         //This is a value that gets used in many calculations, so we calculate it each frame
         private double sqrtOneMinusVSquaredCWDividedByCSquared;
         //This is the equivalent of the above value for an accelerated player frame
-        private double acceleratedGamma;
+        private double inverseAcceleratedGamma;
 
         //Player rotation and change in rotation since last frame
         public Vector3 playerRotation = new Vector3(0, 0, 0);
@@ -92,7 +110,7 @@ namespace OpenRelativity
         public double PctOfSpdUsing { get { return pctOfSpdUsing; } set { pctOfSpdUsing = value; } }
         public double PlayerVelocity { get { return playerVelocity; } }
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get { return sqrtOneMinusVSquaredCWDividedByCSquared; } }
-        public double AcceleratedGamma { get { return acceleratedGamma; } }
+        public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
         public double DeltaTimeWorld { get { return deltaTimeWorld; } }
         public double DeltaTimePlayer { get { return deltaTimePlayer; } }
         public double TotalTimePlayer { get { return totalTimePlayer; } }
@@ -241,7 +259,7 @@ namespace OpenRelativity
                 * ****************************/
                 //find this constant
                 sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - (playerVelocity * playerVelocity) / cSqrd);
-                acceleratedGamma = SRelativityUtil.InverseAcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
+                inverseAcceleratedGamma = SRelativityUtil.InverseAcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
 
                 //Set by Unity, time since last update
                 deltaTimePlayer = (double)Time.deltaTime;
@@ -249,13 +267,13 @@ namespace OpenRelativity
                 if (keyHit)
                 {
                     totalTimePlayer += deltaTimePlayer;
-                    if (!double.IsNaN(acceleratedGamma))
+                    if (!double.IsNaN(inverseAcceleratedGamma))
                     {
                         /*********** This is old logic for interial frames (without acceleration)**************/
                         //Get the delta time passed for the world, changed by relativistic effects
                         //deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
                         /*********** This corrects for an accelerating player frame****************************/
-                        deltaTimeWorld = deltaTimePlayer / acceleratedGamma;
+                        deltaTimeWorld = deltaTimePlayer / inverseAcceleratedGamma;
                         totalTimeWorld += deltaTimeWorld;
                     }
                 }

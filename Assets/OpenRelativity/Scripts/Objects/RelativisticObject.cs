@@ -40,29 +40,10 @@ namespace OpenRelativity.Objects
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
-                    myRigidbody.velocity = value;
-                }
-                
-                /*
-                if (startTime > state.TotalTimeWorld)
-                {
-                    //Under instantaneous changes in velocity, the optical position should be invariant:
-                    Vector3 playerPos = state.transform.position;
-
-                    Vector3 oPos = transform.position.WorldToOptical(_viw, playerPos);
-                    Vector3 temp = transform.position.WorldToOptical(value, playerPos);
-                    float oTps = Mathf.Sqrt((oPos - transform.position).InverseContractLengthBy(viw).sqrMagnitude / viw.sqrMagnitude);
-                    float tps = Mathf.Sqrt((temp - transform.position).InverseContractLengthBy(value).sqrMagnitude / value.sqrMagnitude);
-                    transform.position = transform.position - tps * value + oTps * _viw;
-
-                    //Also update the Rigidbody, if any
-                    if (myRigidbody != null)
-                    {
-                        myRigidbody.velocity = value / (float)state.InverseAcceleratedGamma;
-                    }
+                    myRigidbody.velocity = value / (float)state.InverseAcceleratedGamma;
                 }
 
-                _viw = value;*/
+                _viw = value;
             }
         }
         //Store this object's angular velocity here.
@@ -645,7 +626,7 @@ namespace OpenRelativity.Objects
                 if (myRigidbody != null)
                 {
 
-                    if (!double.IsNaN((double)state.AcceleratedGamma) && (float)state.AcceleratedGamma != 0)
+                    if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
                     {
                         //Dragging probably happens intrinsically in the rest frame,
                         // so it acts on the rapidity.
@@ -656,7 +637,7 @@ namespace OpenRelativity.Objects
 
                         Vector3 tempViw = viw;
                         //ASK RYAN WHY THESE WERE DIVIDED BY THIS
-                        tempViw /= (float)state.AcceleratedGamma;
+                        tempViw /= (float)state.InverseAcceleratedGamma;
                         myRigidbody.velocity = tempViw;
                         //Store the angular velocity for collision resolution:
                         aviw = myRigidbody.angularVelocity;

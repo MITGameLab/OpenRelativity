@@ -274,11 +274,11 @@ namespace OpenRelativity.Objects
                 if (GetComponent<Rigidbody>() != null)
                 {
 
-                    if (!double.IsNaN((double)state.AcceleratedGamma) && (float)state.AcceleratedGamma != 0)
+                    if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
                     {
                         Vector3 tempViw = viw;
                         //ASK RYAN WHY THESE WERE DIVIDED BY THIS
-                        tempViw /= (float)state.AcceleratedGamma;
+                        tempViw /= (float)state.InverseAcceleratedGamma;
 
                         GetComponent<Rigidbody>().velocity = tempViw;
                     }

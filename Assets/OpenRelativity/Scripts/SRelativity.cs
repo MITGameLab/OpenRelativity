@@ -117,16 +117,12 @@ namespace OpenRelativity
 
         public static Vector3 ContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
-            if (interval == Vector3.zero)
-            {
-                return Vector3.zero;
-            }
-            float sqrMag = velocity.sqrMagnitude;
-            if (sqrMag == 0.0f)
+            float speedSqr = velocity.sqrMagnitude;
+            if (speedSqr == 0.0)
             {
                 return interval;
             }
-            float invGamma = Mathf.Sqrt(1.0f - sqrMag / cSqrd);
+            float invGamma = Mathf.Sqrt(1.0f - speedSqr / cSqrd);
             Quaternion rot = Quaternion.FromToRotation(velocity.normalized, Vector3.forward);
             Vector3 rotInt = rot * interval;
             rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z * invGamma);
@@ -135,16 +131,12 @@ namespace OpenRelativity
 
         public static Vector3 InverseContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
-            if (interval == Vector3.zero)
-            {
-                return Vector3.zero;
-            }
-            float sqrMag = velocity.sqrMagnitude;
-            if (sqrMag == 0.0f)
+            float speedSqr = velocity.sqrMagnitude;
+            if (speedSqr == 0.0)
             {
                 return interval;
             }
-            float invGamma = Mathf.Sqrt(1.0f - sqrMag / cSqrd);
+            float invGamma = Mathf.Sqrt(1.0f - speedSqr / cSqrd);
             Quaternion rot = Quaternion.FromToRotation(velocity.normalized, Vector3.forward);
             Vector3 rotInt = rot * interval;
             rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z / invGamma);
@@ -165,24 +157,24 @@ namespace OpenRelativity
         {
             float spdOfLight = SRelativityUtil.c;
 
-            Vector3 vpc = srCamera.PlayerVelocityVector;
-            float speed = 0.0f;
+            Vector3 vpc = Vector3.zero;// srCamera.PlayerVelocityVector;
+            float speed = 0;// (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object
             Vector3 uparra;
 
-            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed != 0)
-            {
-                uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
-            }
-            //If our speed is zero, set parallel velocity to zero
-            else
-            {
-                uparra = Vector3.zero;
-            }
+            ////IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+            //if (speed != 0)
+            //{
+            //    uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
+            //}
+            ////If our speed is zero, set parallel velocity to zero
+            //else
+            //{
+            uparra = Vector3.zero;
+            //}
             Vector3 uperp = viw - uparra;
             //relative velocity calculation
             Vector3 vr = -1 * (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
@@ -199,17 +191,109 @@ namespace OpenRelativity
             if (speedr != 0) // If speed is zero, rotation fails
             {
                 Quaternion rotFromVPCtoZ = Quaternion.identity;
-                if (speed != 0)
-                {
-                    //we're getting the angle between our z direction of movement and the world's Z axis
-                    rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));
+                //if (speed != 0)
+                //{
+                //    //we're getting the angle between our z direction of movement and the world's Z axis
+                //    rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));
 
-                    //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-                    //This is because all of our equations are based off of movement in one direction.
+                //    //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+                //    //This is because all of our equations are based off of movement in one direction.
 
-                    //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
-                    riw = rotFromVPCtoZ * riw;
-                }
+                //    //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
+                //    riw = rotFromVPCtoZ * riw;
+                //}
+
+                //Here begins the original code, made by the guys behind the Relativity game
+
+                //Rotate our velocity
+                Vector3 rotateViw = rotFromVPCtoZ * viw * spdOfLight;
+
+                float c = -(riw.sqrMagnitude); //first get position squared (position dotted with position)
+
+                float b = -(2.0f * Vector3.Dot(riw, rotateViw)); //next get position dotted with velocity, should be only in the Z direction
+
+                float d = (spdOfLight * spdOfLight) - rotateViw.sqrMagnitude;
+
+                float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
+
+                //get the new position offset, based on the new time we just found
+                //Should only be in the Z direction
+
+                riw += tisw * rotateViw;
+
+                //Apply Lorentz transform
+                //I had to break it up into steps, unity was getting order of operations wrong.	
+                float newz = (((float)speed * spdOfLight) * tisw);
+
+                newz = riw.z + newz;
+                newz /= Mathf.Sqrt(1 - (speed * speed));
+                riw.z = newz;
+
+                riw = Quaternion.Inverse(rotFromVPCtoZ) * riw;
+            }
+
+            riw += origin;
+
+            return riw;
+        }
+
+        public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity)
+        {
+            return piw.OpticalToWorld(velocity, Vector3.zero);
+        }
+
+        public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin)
+        {
+            //TODO: This method is still logically incorrect. It does not properly invert
+            // the shader code. It just replaces the velocities with negative velocities.
+
+            float spdOfLight = SRelativityUtil.c;
+
+            Vector3 vpc = Vector3.zero; //-srCamera.PlayerVelocityVector;
+            float speed = 0; // (float)srCamera.playerVelocity;
+            Vector3 pos = piw - origin;
+            Vector3 viw = -velocity / spdOfLight;
+
+            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object
+            Vector3 uparra;
+
+            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+            //if (speed != 0)
+            //{
+            //    uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
+            //}
+            ////If our speed is zero, set parallel velocity to zero
+            //else
+            //{
+            uparra = Vector3.zero;
+            //}
+            Vector3 uperp = viw - uparra;
+            //relative velocity calculation
+            Vector3 vr = -1 * (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
+            //float3 vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+            //set our relative velocity
+            //o.vr = vr;
+            //vr *= -1;
+            float speedr = vr.magnitude;
+            float svc = Mathf.Sqrt(1 - speedr * speedr);
+
+            //riw = location in world, for reference
+            Vector3 riw = pos; //Position that will be used in the output
+
+            if (speedr != 0) // If speed is zero, rotation fails
+            {
+                Quaternion rotFromVPCtoZ = Quaternion.identity;
+                //if (speed != 0)
+                //{
+                //    //we're getting the angle between our z direction of movement and the world's Z axis
+                //    rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));
+
+                //    //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+                //    //This is because all of our equations are based off of movement in one direction.
+
+                //    //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
+                //    riw = rotFromVPCtoZ * riw;
+                //}
 
                 //Here begins the original code, made by the guys behind the Relativity game
 
