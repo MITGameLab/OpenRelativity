@@ -267,7 +267,8 @@ namespace OpenRelativity
                 if (keyHit)
                 {
                     totalTimePlayer += deltaTimePlayer;
-                    if (!double.IsNaN(inverseAcceleratedGamma))
+                    //if (!double.IsNaN(inverseAcceleratedGamma))
+                    if (!double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                     {
                         /*********** This is old logic for interial frames (without acceleration)**************/
                         //Get the delta time passed for the world, changed by relativistic effects
