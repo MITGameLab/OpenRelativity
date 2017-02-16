@@ -35,7 +35,7 @@ namespace OpenRelativity.Objects
 
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 Vector3 playerPos = state.transform.position;
-                transform.position = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
+                transform.position = transform.position.WorldToOptical(_viw, playerPos).PseudoOpticalToWorld(value, playerPos);
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
@@ -719,12 +719,12 @@ namespace OpenRelativity.Objects
             //The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
             float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
-            if (trnsfrmdMeshVerts != null)
+            if (rawVerts != null)
             {
-                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+                for (int i = 0; i < rawVerts.Length; i++)
                 {
                     float radius = trnsfrmdMeshVerts[i].magnitude;
-                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * trnsfrmdMeshVerts[i]).InverseContractLengthBy(viw).magnitude * collisionResultAngVel3);
+                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * rawVerts[i]).magnitude * collisionResultAngVel3);
                     float tanVelMagSqr = tangentialVel.sqrMagnitude;
                     if (tanVelMagSqr > maxSpeedSqr)
                     {
@@ -906,8 +906,8 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position)).InverseContractLengthBy(myVel);
-            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position)).InverseContractLengthBy(-otherVel);
+            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position.WorldToOptical(myPRelVel, playerPos))).InverseContractLengthBy(myVel);
+            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position.WorldToOptical(otherPRelVel, playerPos))).InverseContractLengthBy(-otherVel);
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myParVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
