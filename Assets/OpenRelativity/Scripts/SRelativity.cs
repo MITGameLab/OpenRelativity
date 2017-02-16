@@ -159,8 +159,8 @@ namespace OpenRelativity
         {
             float spdOfLight = SRelativityUtil.c;
 
-            Vector3 vpc = playerVel;// srCamera.PlayerVelocityVector;
-            float speed = playerVel.magnitude; // (float)srCamera.playerVelocity;
+            Vector3 vpc = playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
 
@@ -241,12 +241,17 @@ namespace OpenRelativity
 
         public static Vector3 PseudoOpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin)
         {
+            return piw.PseudoOpticalToWorld(velocity, origin, Vector3.zero);
+        }
+
+        public static Vector3 PseudoOpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
+        {
             //This "inverse" of WorldToOptical is incorrect. However, it gives passable collision results.
 
             float spdOfLight = SRelativityUtil.c;
 
-            Vector3 vpc = Vector3.zero;// srCamera.PlayerVelocityVector;
-            float speed = 0; // (float)srCamera.playerVelocity;
+            Vector3 vpc = playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = -velocity / spdOfLight;
 
