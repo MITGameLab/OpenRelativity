@@ -41,7 +41,8 @@ namespace OpenRelativity.Objects
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
-                    myRigidbody.velocity = value / (float)state.InverseAcceleratedGamma;
+                    myRigidbody.velocity = value / (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                    //myRigidbody.velocity = value / (float)state.InverseAcceleratedGamma;
                 }
             }
         }
@@ -624,8 +625,8 @@ namespace OpenRelativity.Objects
                 //update our viw and set the rigid body proportionally
                 if (myRigidbody != null)
                 {
-
-                    if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
+                    if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                    //if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
                     {
                         //Dragging probably happens intrinsically in the rest frame,
                         // so it acts on the rapidity.
@@ -636,7 +637,8 @@ namespace OpenRelativity.Objects
 
                         Vector3 tempViw = viw;
                         //ASK RYAN WHY THESE WERE DIVIDED BY THIS
-                        tempViw /= (float)state.InverseAcceleratedGamma;
+                        tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        //tempViw /= (float)state.InverseAcceleratedGamma;
                         myRigidbody.velocity = tempViw;
                         //Store the angular velocity for collision resolution:
                         aviw = myRigidbody.angularVelocity;
