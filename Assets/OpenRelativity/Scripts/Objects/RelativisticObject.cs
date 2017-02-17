@@ -35,15 +35,14 @@ namespace OpenRelativity.Objects
 
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 Vector3 playerPos = state.transform.position;
-                transform.position = transform.position.WorldToOptical(_viw, playerPos).PseudoOpticalToWorld(value, playerPos);
+                Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
+                transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).PseudoOpticalToWorld(value, playerPos, state.PlayerVelocityVector, otwEst);
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
                     myRigidbody.velocity = value / (float)state.InverseAcceleratedGamma;
                 }
-
-                _viw = value;
             }
         }
         //Store this object's angular velocity here.
@@ -906,28 +905,28 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - (myRigidbody.centerOfMass + transform.position).WorldToOptical(viw, playerPos, playerVel)).InverseContractLengthBy(myVel);
-            Vector3 otLocPoint = (contactPoint.point - (otherRB.centerOfMass + otherRB.position).WorldToOptical(otherVel, playerPos, playerVel)).InverseContractLengthBy(-otherVel);
+            Vector3 myLocPoint = (contactPoint.point - myRigidbody.worldCenterOfMass.WorldToOptical(viw, playerPos, playerVel)).InverseContractLengthBy(myPRelVel);
+            Vector3 otLocPoint = (contactPoint.point - otherRB.worldCenterOfMass.WorldToOptical(otherVel, playerPos, playerVel)).InverseContractLengthBy(-otherPRelVel);
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
-            Vector3 myParVel = myVel.AddVelocity(myAngTanVel);
+            Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
-            Vector3 otherContactVel = otherVel.AddVelocity(otherAngTanVel);
-            //Boost to the inertial frame where my velocity is 0 along the line of action:
-            Vector3 relVel = otherContactVel.AddVelocity(-myParVel);
-            Vector3 lineOfAction = (-contactPoint.normal).ContractLengthBy(-myParVel).normalized;
-            //parra is the remaining projection of the relative velocity on the unit of action:
-            Vector3 parra = Vector3.Project(relVel, lineOfAction);
-            //perp is a perpendicular projection:
-            Vector3 perp = relVel - parra;
-            //With parra and perp, we can find the velocity that removes the perpendicular component of motion:
-            Vector3 relVelPerp = -parra.Gamma() * perp;
-            Vector3 relVelParra = relVel.AddVelocity(relVelPerp);
-            lineOfAction = (-contactPoint.normal).InverseContractLengthBy(relVelPerp).normalized;
+            Vector3 otherTotalVel = otherVel.AddVelocity(otherAngTanVel);
+            Vector3 lineOfAction = -contactPoint.normal;
+            //Decompose velocity in parallel and perpendicular components:
+            Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
+            Vector3 myPerpVel = Vector3.Cross(lineOfAction, Vector3.Cross(lineOfAction, myTotalVel));
+            //Boost to the inertial frame where my velocity is entirely along the line of action:
+            Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
+            //Find the relative velocity:
+            Vector3 relVel = otherContactVel.AddVelocity(myParraVel);
+            lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
             //Rotate so our parrallel velocity is on the forward vector:
             Quaternion rotRVtoForward = Quaternion.FromToRotation(lineOfAction, Vector3.forward);
-            relVelParra = rotRVtoForward * relVelParra;
-            //Find the relative rapidity on the line of action, where the perpendicular component of the velocity is 0:
-            Vector3 rapidityOnLoA = relVelParra.Gamma() * relVelParra;
+            Vector3 myContactVel = rotRVtoForward * myParraVel;
+            otherContactVel = rotRVtoForward * otherContactVel;
+            //Find the relative rapidity on the line of action, where my contact velocity is 0:
+            Vector3 rapidityOnLoA = relVel.Gamma() * relVel;
+            myLocPoint = myLocPoint.ContractLengthBy(relVel);
             otLocPoint = otLocPoint.ContractLengthBy(relVel);
 
             //Rotate my relative contact point:
@@ -965,9 +964,9 @@ namespace OpenRelativity.Objects
             //We still need to apply a spring constant at the end.
 
             //The change in rapidity on the line of action:
-            Vector3 finalParraRapidity = myParVel.Gamma() * myParVel + impulse / mass * lineOfAction;
+            Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;
             //The change in rapidity perpendincular to the line of action:
-            Vector3 finalPerpRapidity = myAngTanVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
+            Vector3 finalPerpRapidity = myVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
             //Velocities aren't linearly additive in relativity, but rapidities are:
             Vector3 finalTotalRapidity = finalParraRapidity + finalPerpRapidity;
             Vector3 tanVelFinal = finalTotalRapidity.InverseGamma() * finalPerpRapidity;
