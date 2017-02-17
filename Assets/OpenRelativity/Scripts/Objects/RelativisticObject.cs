@@ -629,11 +629,12 @@ namespace OpenRelativity.Objects
                     //if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
                     {
                         //Dragging probably happens intrinsically in the rest frame,
-                        // so it acts on the rapidity.
+                        // so it acts on the rapidity. (Drag is computationally expensive
+                        // due to tripping the velocity setter every frame.)
                         // TODO: Replace with drag force
-                        Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
-                        viw = rapidity.InverseGamma() * rapidity;
-                        aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
+                        //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
+                        //viw = rapidity.InverseGamma() * rapidity;
+                        //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
 
                         Vector3 tempViw = viw;
                         //ASK RYAN WHY THESE WERE DIVIDED BY THIS

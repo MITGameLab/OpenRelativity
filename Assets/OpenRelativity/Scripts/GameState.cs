@@ -28,7 +28,7 @@ namespace OpenRelativity
         //private Vector3 _playerVelocityVector;
         private Vector3 playerVelocityVector;
         //Lengh contraction appears to asymmetric in sphere. Might be coordinate artifact.
-        // The commented code below is an attempt to fix this.
+        //The commented code below is an attempt to fix this.
         //{
         //    get
         //    {
@@ -36,11 +36,11 @@ namespace OpenRelativity
         //    }
         //    set
         //    {
-        //        Vector3 newOrigin = (Vector3.zero - transform.position)
+        //        Vector3 newOrigin = Vector3.zero.WorldToOptical(-value, playerTransform.position)
         //            .InverseContractLengthBy(-playerVelocityVector)
         //            .ContractLengthBy(-value)
-        //            + transform.position;
-        //        playerTransform.Translate(-newOrigin);
+        //            .OpticalToWorldSearch(-value, playerTransform.position, Vector3.zero, Vector3.zero);
+        //        playerTransform.Translate(newOrigin);
         //        _playerVelocityVector = value;
         //    }
         //}

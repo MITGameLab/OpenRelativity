@@ -251,28 +251,139 @@ namespace OpenRelativity
             // (That is, this neglects player velocity, using only the object's velocity and player's position. Notice the minus sign on newViw.)
             // You can use this to seed the search.
 
+            //High level, more expensive implementation:
+            //***************************************************************************************************************************//
+
+            //Vector3 estimate = initPIWestimate;
+            //Vector3 newEst = estimate;
+            //Vector3 newOPos = estimate.WorldToOptical(velocity, origin, playerVel);
+            //float newSqrError = (oPos - newOPos).sqrMagnitude;
+            //float sqrError;
+            //int iterationCount = 0;
+            //do
+            //{
+            //    estimate = newEst;
+            //    sqrError = newSqrError;
+            //    newEst = estimate + (oPos - newOPos);
+            //    newOPos = newEst.WorldToOptical(velocity, origin, playerVel);
+            //    newSqrError = (oPos - newOPos).sqrMagnitude;
+            //    iterationCount++;
+            //} while (newSqrError < sqrError && newSqrError > sqrErrorTolerance && iterationCount < defaultOpticalToWorldMaxIterations);
+
+            //if (newSqrError < sqrError)
+            //{
+            //    estimate = newEst;
+            //}
+
+            //return estimate;
+
+            //***************************************************************************************************************************//
+
+            //Low level, less expensive implementation:
+
             Vector3 estimate = initPIWestimate;
             Vector3 newEst = estimate;
             Vector3 newOPos = estimate.WorldToOptical(velocity, origin, playerVel);
-            float newSqrError = (oPos - newOPos).sqrMagnitude;
-            float sqrError;
-            int iterationCount = 0;
-            do
-            {
-                estimate = newEst;
-                sqrError = newSqrError;
-                newEst = estimate + (oPos - newOPos);
-                newOPos = newEst.WorldToOptical(velocity, origin, playerVel);
-                newSqrError = (oPos - newOPos).sqrMagnitude;
-                iterationCount++;
-            } while (newSqrError < sqrError && newSqrError > sqrErrorTolerance && iterationCount < defaultOpticalToWorldMaxIterations);
 
-            if (newSqrError < sqrError)
+            float spdOfLight = SRelativityUtil.c;
+
+            Vector3 vpc = playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
+            Vector3 viw = velocity / spdOfLight;
+
+            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object
+            Vector3 uparra;
+
+            ////IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+            if (speed != 0)
             {
-                estimate = newEst;
+                uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
             }
+            //If our speed is zero, set parallel velocity to zero
+            else
+            {
+                uparra = Vector3.zero;
+            }
+            Vector3 uperp = viw - uparra;
+            //relative velocity calculation
+            Vector3 vr = -1 * (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
+            //float3 vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+            //set our relative velocity
+            //o.vr = vr;
+            //vr *= -1;
+            float speedr = vr.magnitude;
+            float svc = Mathf.Sqrt(1 - speedr * speedr);
 
-            return estimate;
+            Quaternion rotFromVPCtoZ = Quaternion.identity;
+            if (speedr == 0) // If the relative speed is zero, the optical position is equal to the world position.
+            {
+                return oPos;
+            }
+            else
+            {
+                if (speed != 0)
+                {
+                    //we're getting the angle between our z direction of movement and the world's Z axis
+                    rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));
+
+                    //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+                    //This is because all of our equations are based off of movement in one direction.
+                }
+
+                Vector3 riw; //Position that will be used in the output
+
+                float newSqrError = (oPos - newOPos).sqrMagnitude;
+                float sqrError;
+                int iterationCount = 0;
+                float c, b, d, tisw, newz;
+                Vector3 rotateViw;
+                do
+                {
+                    estimate = newEst;
+                    sqrError = newSqrError;
+                    newEst = estimate + (oPos - newOPos);
+
+                    riw = rotFromVPCtoZ * (newEst - origin);
+
+                    rotateViw = rotFromVPCtoZ * viw * spdOfLight;
+
+                    c = -(riw.sqrMagnitude); //first get position squared (position dotted with position)
+
+                    b = -(2.0f * Vector3.Dot(riw, rotateViw)); //next get position dotted with velocity, should be only in the Z direction
+
+                    d = (spdOfLight * spdOfLight) - rotateViw.sqrMagnitude;
+
+                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
+
+                    //get the new position offset, based on the new time we just found
+                    //Should only be in the Z direction
+
+                    riw += tisw * rotateViw;
+
+                    //Apply Lorentz transform
+                    //I had to break it up into steps, unity was getting order of operations wrong.	
+                    newz = (((float)speed * spdOfLight) * tisw);
+
+                    newz = riw.z + newz;
+                    newz /= Mathf.Sqrt(1 - (speed * speed));
+                    riw.z = newz;
+
+                    riw = Quaternion.Inverse(rotFromVPCtoZ) * riw;
+
+                    riw += origin;
+
+                    newOPos = riw;
+                    newSqrError = (oPos - newOPos).sqrMagnitude;
+                    iterationCount++;
+                } while (newSqrError < sqrError && newSqrError > sqrErrorTolerance && iterationCount < defaultOpticalToWorldMaxIterations);
+
+                if (newSqrError < sqrError)
+                {
+                    estimate = newEst;
+                }
+
+                return estimate;
+            }
         }
 
         public static float Gamma(this Vector3 velocity)
