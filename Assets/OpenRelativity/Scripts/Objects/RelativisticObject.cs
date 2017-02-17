@@ -36,7 +36,7 @@ namespace OpenRelativity.Objects
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 Vector3 playerPos = state.transform.position;
                 Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
-                transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).PseudoOpticalToWorld(value, playerPos, state.PlayerVelocityVector, otwEst);
+                transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
@@ -631,9 +631,9 @@ namespace OpenRelativity.Objects
                         //Dragging probably happens intrinsically in the rest frame,
                         // so it acts on the rapidity.
                         // TODO: Replace with drag force
-                        //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.GetGamma() * viw;
-                        //viw = rapidity.GetInverseGamma() * rapidity;
-                        //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
+                        Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
+                        viw = rapidity.InverseGamma() * rapidity;
+                        aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
 
                         Vector3 tempViw = viw;
                         //ASK RYAN WHY THESE WERE DIVIDED BY THIS

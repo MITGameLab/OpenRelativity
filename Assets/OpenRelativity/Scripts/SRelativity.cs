@@ -239,12 +239,17 @@ namespace OpenRelativity
             return riw;
         }
 
-        const int defaultOpticalToWorldMaxIterations = 3;
-        const float defaultOpticalToWorldSqrErrorTolerance = 0.01f;
+        const int defaultOpticalToWorldMaxIterations = 5;
+        const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector3 PseudoOpticalToWorld(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
+        public static Vector3 OpticalToWorldSearch(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
         {
-            //This "inverse" of WorldToOptical is incorrect. However, it gives passable collision results.
+            //The exact inverse of WorldToOptical is either really complicated or transcendental (i.e., can't be solved for).
+            // However, we can approximate the inverse numerically.
+            // Turns out from trial and error that a good initial estimate for a round trip to and from optical position on a velocity change is:
+            // position.WorldToOptical(oldViw, state.PlayerTransform.position).WorldToOptical(-newViw, state.PlayerTransform.position)
+            // (That is, this neglects player velocity, using only the object's velocity and player's position. Notice the minus sign on newViw.)
+            // You can use this to seed the search.
 
             Vector3 estimate = initPIWestimate;
             Vector3 newEst = estimate;
