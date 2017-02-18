@@ -86,7 +86,7 @@ namespace OpenRelativity
         //This is a value that gets used in many calculations, so we calculate it each frame
         private double sqrtOneMinusVSquaredCWDividedByCSquared;
         //This is the equivalent of the above value for an accelerated player frame
-        private double inverseAcceleratedGamma;
+        //private double inverseAcceleratedGamma;
 
         //Player rotation and change in rotation since last frame
         public Vector3 playerRotation = new Vector3(0, 0, 0);
@@ -110,9 +110,10 @@ namespace OpenRelativity
         public double PctOfSpdUsing { get { return pctOfSpdUsing; } set { pctOfSpdUsing = value; } }
         public double PlayerVelocity { get { return playerVelocity; } }
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get { return sqrtOneMinusVSquaredCWDividedByCSquared; } }
-        public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
+        //public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
         public double DeltaTimeWorld { get { return deltaTimeWorld; } }
         public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / sqrtOneMinusVSquaredCWDividedByCSquared; } }
+        //public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / inverseAcceleratedGamma; } }
         public double DeltaTimePlayer { get { return deltaTimePlayer; } }
         public double FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
         public double TotalTimePlayer { get { return totalTimePlayer; } }
@@ -262,7 +263,7 @@ namespace OpenRelativity
                 * ****************************/
                 //find this constant
                 sqrtOneMinusVSquaredCWDividedByCSquared = (double)Math.Sqrt(1 - (playerVelocity * playerVelocity) / cSqrd);
-                inverseAcceleratedGamma = SRelativityUtil.InverseAcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
+                //inverseAcceleratedGamma = SRelativityUtil.InverseAcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
 
                 //Set by Unity, time since last update
                 deltaTimePlayer = (double)Time.deltaTime;
@@ -277,6 +278,10 @@ namespace OpenRelativity
                         //Get the delta time passed for the world, changed by relativistic effects
                         deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
                         /*********** This corrects for an accelerating player frame**********************/
+                        //NOTE: Dan says, he's not sure if this is the exact correction for acceleration, or if there is any.
+                        // However, player acceleration in almost any video game is going to be of a magnitude
+                        // that's large compared to the natural scale of the relativistic physics, so it
+                        // needs to be accounted for to be qualitatively physically accurate.
                         //deltaTimeWorld = deltaTimePlayer / inverseAcceleratedGamma;
                         totalTimeWorld += deltaTimeWorld;
                     }
@@ -287,6 +292,10 @@ namespace OpenRelativity
                 {
                     GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1 * (playerVelocityVector / (float)sqrtOneMinusVSquaredCWDividedByCSquared);
                 }
+                //if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(inverseAcceleratedGamma))
+                //{
+                //    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1 * (playerVelocityVector / (float)inverseAcceleratedGamma);
+                //}
                 //But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
                 else
                 {

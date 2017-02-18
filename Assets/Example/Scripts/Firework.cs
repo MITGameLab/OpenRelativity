@@ -244,23 +244,29 @@ namespace OpenRelativity.Objects
                     if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
                     {
                         Vector3 tempViw = viw;
-                        tempViw.x /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        tempViw.y /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        tempViw.z /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-
+                        tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
                         GetComponent<Rigidbody>().velocity = tempViw;
                     }
 
-
+                    //if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
+                    //{
+                    //    Vector3 tempViw = viw;
+                    //    tempViw /= (float)state.InverseAcceleratedGamma;
+                    //    GetComponent<Rigidbody>().velocity = tempViw;
+                    //}
                 }
                 else if (isParticle)
                 {
                     Vector3 tempViw = viw;
-                    tempViw.x /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                    tempViw.y /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                    tempViw.z /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                    tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
                     transform.position = transform.position + tempViw * Time.deltaTime;
                 }
+                //else if (isParticle)
+                //{
+                //    Vector3 tempViw = viw;
+                //    tempViw /= (float)state.InverseAcceleratedGamma;
+                //    transform.position = transform.position + tempViw * Time.deltaTime;
+                //}
             }
             //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
             else if (meshFilter != null && tempRenderer != null && GetComponent<Rigidbody>() != null)
