@@ -1209,21 +1209,30 @@ namespace OpenRelativity.Objects
 
         private void Sleep()
         {
-            if (!isSleeping)
+            if (myRigidbody != null && !myRigidbody.isKinematic)
             {
-                sleepRotation = transform.rotation;
+                if (!isSleeping)
+                {
+                    //Dan says, I think the compute shader is already effectively correcting for length contraction:
+                    //Vector3 relVel = viw.AddVelocity(-state.PlayerVelocityVector);
+                    //sleepForwardOrientation = transform.forward.InverseContractLengthBy(relVel).normalized;
+
+                    sleepRotation = transform.rotation;
+                }
+                //Vector3 myPRelVel = viw.AddVelocity(-state.PlayerVelocityVector);
+                //transform.forward = sleepRotation.ContractLengthBy(myPRelVel).normalized;
+                transform.rotation = sleepRotation;
+                viw = Vector3.zero;
+                collisionResultVel3 = Vector3.zero;
+                oldCollisionResultVel3 = Vector3.zero;
+                myRigidbody.velocity = Vector3.zero;
+                aviw = Vector3.zero;
+                collisionResultAngVel3 = Vector3.zero;
+                oldCollisionResultAngVel3 = Vector3.zero;
+                myRigidbody.angularVelocity = Vector3.zero;
+                myRigidbody.Sleep();
+                isSleeping = true;
             }
-            transform.rotation = sleepRotation;
-            viw = Vector3.zero;
-            collisionResultVel3 = Vector3.zero;
-            oldCollisionResultVel3 = Vector3.zero;
-            myRigidbody.velocity = Vector3.zero;
-            aviw = Vector3.zero;
-            collisionResultAngVel3 = Vector3.zero;
-            oldCollisionResultAngVel3 = Vector3.zero;
-            myRigidbody.angularVelocity = Vector3.zero;
-            myRigidbody.Sleep();
-            isSleeping = true;
         }
         #endregion
     }
