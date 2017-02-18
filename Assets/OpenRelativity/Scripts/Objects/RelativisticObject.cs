@@ -97,6 +97,9 @@ namespace OpenRelativity.Objects
         private List<Collider> sleepingOnColliders;
         //TODO: Rigidbody doesn't stay asleep. Figure out why, and get rid of this:
         private bool isSleeping;
+        //Length contraction and rounding error pulls sleeping objects off the surfaces they rest on.
+        // Save the original orientation on sleep, and force it back while sleeping.
+        private Quaternion sleepRotation;
         //This is a cap on penalty method collision.
         //(It is the approximate Young's Modulus of diamond.)
         private const float maxYoungsModulus = 1220.0e9f;
@@ -1206,6 +1209,11 @@ namespace OpenRelativity.Objects
 
         private void Sleep()
         {
+            if (!isSleeping)
+            {
+                sleepRotation = transform.rotation;
+            }
+            transform.rotation = sleepRotation;
             viw = Vector3.zero;
             collisionResultVel3 = Vector3.zero;
             oldCollisionResultVel3 = Vector3.zero;
