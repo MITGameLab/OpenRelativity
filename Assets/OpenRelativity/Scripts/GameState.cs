@@ -59,6 +59,8 @@ namespace OpenRelativity
         private double deltaTimeWorld;
         //time passed since last frame in the player frame
         private double deltaTimePlayer;
+        //time passed since last fixed update in the player frame
+        private double fixedDeltaTimePlayer;
         //total time passed in the player frame
         private double totalTimePlayer;
         //total time passed in the world frame
@@ -112,7 +114,9 @@ namespace OpenRelativity
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get { return sqrtOneMinusVSquaredCWDividedByCSquared; } }
         public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
         public double DeltaTimeWorld { get { return deltaTimeWorld; } }
+        public double FixedDeltaTimeWorld { get { return fixedDeltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared; } }
         public double DeltaTimePlayer { get { return deltaTimePlayer; } }
+        public double FixedDeltaTimePlayer { get { return fixedDeltaTimePlayer; } }
         public double TotalTimePlayer { get { return totalTimePlayer; } }
         public double TotalTimeWorld { get { return totalTimeWorld; } }
         public double SpeedOfLight { get { return c; } set { c = value; cSqrd = value * value; } }
@@ -181,6 +185,12 @@ namespace OpenRelativity
             }
 
         }
+
+        public void FixedUpdate()
+        {
+            fixedDeltaTimePlayer = Time.fixedDeltaTime;
+        }
+
         //We set this in late update because of timing issues with collisions
         public void LateUpdate()
         {

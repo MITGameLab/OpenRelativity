@@ -226,6 +226,9 @@ namespace OpenRelativity.Objects
             myCollider.sharedMesh = trnsfrmdMesh;
             //Reset center of mass:
             myRigidbody.centerOfMass = initCOM;
+
+            meshFilter.mesh.RecalculateBounds();
+            meshFilter.mesh.RecalculateNormals();
         }
 
         void Awake()
@@ -899,9 +902,9 @@ namespace OpenRelativity.Objects
             oldCollisionResultAngVel3 = aviw;
             otherRO.oldCollisionResultVel3 = otherRO.viw;
             otherRO.oldCollisionResultAngVel3 = otherRO.aviw;
-            //Collide(collision, otherRO, contactPoint, combRestCoeff, combFriction, combYoungsModulus, (collision.rigidbody == null) || (collision.rigidbody.isKinematic));
-            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
-            didCollide = true;
+            Collide(collision, otherRO, contactPoint, combRestCoeff, combFriction, combYoungsModulus, (collision.rigidbody == null) || (collision.rigidbody.isKinematic));
+            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            //didCollide = true;
         }
 
         private float CombinePhysics(PhysicMaterialCombine physMatCombine, float mine, float theirs)
@@ -1131,7 +1134,7 @@ namespace OpenRelativity.Objects
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
             rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * (state.DeltaTimeWorld * myPRelVel.Gamma()));
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld);
 
             //The change in rapidity on the line of action:
             Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;
@@ -1166,8 +1169,8 @@ namespace OpenRelativity.Objects
             float penDist = 0.0f;
             float penTest = 0.0f;
             float temp = 0.0f;
-            Vector3 scale = transform.lossyScale;
-            float startDist = 4.0f * Mathf.Max(scale.x, scale.y, scale.z);
+            Vector3 extents = meshFilter.mesh.bounds.extents;
+            float startDist = 4.0f * Mathf.Max(extents.x, extents.y, extents.z);
             RaycastHit hitInfo;
             ContactPoint point;
             float maxLCV = collision.contacts.Length;

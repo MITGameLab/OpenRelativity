@@ -18,8 +18,12 @@ namespace OpenRelativity.PrefabScripts
         //What's their speed?
         public float viwMax = 3;
 
+        GameState state;
+
         void Start()
         {
+            state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+
             //We let you set a public variable to determine the number of seconds between each launch of an object.
             //If that variable is unset, we make sure to put it at 3 here.
             if (launchTimer <= 0)
@@ -31,6 +35,9 @@ namespace OpenRelativity.PrefabScripts
             {
                 this.transform.LookAt(receiverTransform);
             }
+            //Get the rest frame launch direction:
+            //Vector3 myPRelVel = -state.PlayerVelocityVector;
+            //launchDirection = this.transform.forward.InverseContractLengthBy(myPRelVel).normalized;
             //Take the minimum of the chosen viwMax, and the Game State's chosen Max Speed
             viwMax = Mathf.Min(viwMax, (float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
         }
@@ -38,7 +45,6 @@ namespace OpenRelativity.PrefabScripts
         // Update is called once per frame
         void Update()
         {   //If we're not paused, increment the timer
-            GameState state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             if (!state.MovementFrozen)
             {
                 launchCounter += (float)state.DeltaTimeWorld;
@@ -46,7 +52,7 @@ namespace OpenRelativity.PrefabScripts
             //If it has been at least LaunchTimer seconds since we last fired an object
             if (launchCounter >= launchTimer)
             {
-                //Reset the counter
+                //Reset the counter (carrying the remainder)
                 launchCounter -= launchTimer;
                 //And instantiate a new object
                 LaunchObject();
@@ -64,8 +70,11 @@ namespace OpenRelativity.PrefabScripts
             RelativisticObject ro = launchedObject.GetComponent<RelativisticObject>();
             RelativisticObject[] ros = launchedObject.GetComponentsInChildren<RelativisticObject>();
 
+            //Vector3 myPRelVel = -state.PlayerVelocityVector;
+            //Vector3 launchDir = launchDirection.ContractLengthBy(myPRelVel).normalized;
+
             if (ro != null)
-            {
+            {    
                 ro.viw = viwMax * this.transform.forward;
                 //And let the object know when it was created, so that it knows when not to be seen by the player
                 ro.SetStartTime();
