@@ -317,7 +317,7 @@ namespace OpenRelativity
             Quaternion rotFromVPCtoZ = Quaternion.identity;
             if (speedr == 0) // If the relative speed is zero, the optical position is equal to the world position.
             {
-                return oPos;
+                estimate = oPos;
             }
             else
             {
@@ -381,9 +381,9 @@ namespace OpenRelativity
                 {
                     estimate = newEst;
                 }
-
-                return estimate;
             }
+
+            return estimate;
         }
 
         public static float Gamma(this Vector3 velocity)

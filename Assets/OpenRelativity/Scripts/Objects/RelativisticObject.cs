@@ -89,7 +89,14 @@ namespace OpenRelativity.Objects
         public Vector3 inertiaTensor;
 
         //This is a velocity we "sleep" the rigid body at:
-        public float sleepVelocity = 0.14f;
+        private const float sleepVelocity = 0.05f;
+        //Once we're below the sleep velocity threshold, this is how many frames we wait for
+        // before sleeping the object:
+        private const int sleepFrameDelay = 3;
+        private int sleepFrameCounter;
+        private List<Collider> sleepingOnColliders;
+        //TODO: Rigidbody doesn't stay asleep. Figure out why, and get rid of this:
+        private bool isSleeping;
         //This is a cap on penalty method collision.
         //(It is the approximate Young's Modulus of diamond.)
         private const float maxYoungsModulus = 1220.0e9f;
@@ -382,8 +389,10 @@ namespace OpenRelativity.Objects
         {
             _viw = initialViw;
             _aviw = initialAviw;
-
+            isSleeping = false;
+            sleepingOnColliders = new List<Collider>();
             didCollide = false;
+            sleepFrameCounter = 0;
             myCollider = GetComponent<MeshCollider>();
             myRigidbody = GetComponent<Rigidbody>();
             if (myCollider != null)
@@ -493,6 +502,20 @@ namespace OpenRelativity.Objects
         public void Update()
         {
             EnforceCollision();
+
+            if (myRigidbody != null && viw.sqrMagnitude <= sleepVelocity * sleepVelocity && aviw.sqrMagnitude < sleepVelocity * sleepVelocity)
+            {
+                sleepFrameCounter++;
+                if (sleepFrameCounter >= sleepFrameDelay)
+                {
+                    sleepFrameCounter = sleepFrameDelay;
+                    Sleep();
+                }
+            }
+            else
+            {
+                sleepFrameCounter = 0;
+            }
 
             //Grab our renderer.
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
@@ -760,42 +783,52 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
+            else if (isSleeping)
+            {
+                int i = 0;
+                while (i < sleepingOnColliders.Count && !sleepingOnColliders[i].Equals(collision.collider))
+                {
+                    i++;
+                }
+                if (i >= sleepingOnColliders.Count)
+                {
+                    sleepingOnColliders.Add(collision.collider);
+                }
+                Sleep();
+                return;
+            }
+
+            //If we made it this far, we shouldn't be sleeping:
+            isSleeping = false;
 
             if (!didCollide)
             {
                 OnCollisionEnter(collision);
             }
 
-            //if (myRigidbody.IsSleeping())
-            //{
-            //    CorrectPosition(collision, true);
-            //}
-            //else
-            //{
-                RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
-                PhysicMaterial otherMaterial = collision.collider.material;
-                PhysicMaterial myMaterial = myCollider.material;
-                float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
-                float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, this.bounciness, otherRO.bounciness);
+            RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
+            PhysicMaterial otherMaterial = collision.collider.material;
+            PhysicMaterial myMaterial = myCollider.material;
+            float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
+            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, this.bounciness, otherRO.bounciness);
 
-                //Tangental relationship scales normalized "bounciness" to a Young's modulus
-                float combYoungsModulus;
-                if (combRestCoeff < 1.0f)
-                {
-                    combYoungsModulus = Mathf.Tan(combRestCoeff);
-                    //If the Young's modulus is higher than a realistic material, cap it.
-                    if (combYoungsModulus > maxYoungsModulus) combYoungsModulus = maxYoungsModulus;
-                }
-                else
-                {
-                    //If the coeffecient of restitution is one, set the Young's modulus to max:
-                    combYoungsModulus = maxYoungsModulus;
-                }
+            //Tangental relationship scales normalized "bounciness" to a Young's modulus
+            float combYoungsModulus;
+            if (combRestCoeff < 1.0f)
+            {
+                combYoungsModulus = Mathf.Tan(combRestCoeff);
+                //If the Young's modulus is higher than a realistic material, cap it.
+                if (combYoungsModulus > maxYoungsModulus) combYoungsModulus = maxYoungsModulus;
+            }
+            else
+            {
+                //If the coeffecient of restitution is one, set the Young's modulus to max:
+                combYoungsModulus = maxYoungsModulus;
+            }
 
-                PointAndNorm contactPoint = DecideContactPoint(collision);
-                ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
-                didCollide = true;
-            //}
+            PointAndNorm contactPoint = DecideContactPoint(collision);
+            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            didCollide = true;
         }
 
         public void OnCollisionEnter(Collision collision)
@@ -804,7 +837,33 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
+            else if (isSleeping)
+            {
+                if (sleepingOnColliders.Count == 0)
+                {
+                    //In this case, we're sitting just at the point to trip OnCollisionEnter constantly,
+                    // but we haven't registered the collider we're sleeping on, yet.
+                    sleepingOnColliders.Add(collision.collider);
+                    Sleep();
+                    return;
+                }
+                for (int i = 0; i < sleepingOnColliders.Count; i++)
+                {
+                    //If we're sleeping on this collider, and length contraction made us
+                    // come a little unglued, ignore the OnCollisionEnter
+                    if (sleepingOnColliders[i].Equals(collision.collider))
+                    {
+                        Sleep();
+                        return;
+                    }
+                }
+            }
 
+            //If we made it this far, we shouldn't be sleeping:
+            isSleeping = false;
+
+            //If we made it this far, we're no longer sleeping.
+            sleepingOnColliders.Clear();
             didCollide = true;
             //Debug.Log("Entered");
 
@@ -833,13 +892,12 @@ namespace OpenRelativity.Objects
                 //If the coeffecient of restitution is one, set the Young's modulus to max:
                 combYoungsModulus = maxYoungsModulus;
             }
-            //Collide(collision, otherRO, contactPoint, combRestCoeff, combFriction, combYoungsModulus, (collision.rigidbody == null) || (collision.rigidbody.isKinematic));
             oldCollisionResultVel3 = viw;
             oldCollisionResultAngVel3 = aviw;
             otherRO.oldCollisionResultVel3 = otherRO.viw;
             otherRO.oldCollisionResultAngVel3 = otherRO.aviw;
+            //Collide(collision, otherRO, contactPoint, combRestCoeff, combFriction, combYoungsModulus, (collision.rigidbody == null) || (collision.rigidbody.isKinematic));
             ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
-            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, maxYoungsModulus);
             didCollide = true;
         }
 
@@ -902,10 +960,10 @@ namespace OpenRelativity.Objects
             //We grab the velocities from the RelativisticObject rather than the Rigidbody,
             // since the Rigidbody velocity is not directly physical.
             float mass = myRigidbody.mass;
-            Vector3 myVel = viw;
-            preCollisionVel3 = viw;
-            Vector3 myAngVel = aviw;
-            preCollisionAngVel3 = aviw;
+            Vector3 myVel = oldCollisionResultVel3;
+            preCollisionVel3 = myVel;
+            Vector3 myAngVel = oldCollisionResultAngVel3;
+            preCollisionAngVel3 = myAngVel;
             Rigidbody otherRB = collision.rigidbody;
             Vector3 otherVel = otherRO.viw;
             Vector3 otherAngVel = otherRO.aviw;
@@ -963,15 +1021,16 @@ namespace OpenRelativity.Objects
             //To conserve energy, we subtract the energy of "spring" deformation at the initial time of collision,
             // and then we immediately start applying Hooke's law to make up the difference.
             //The impulse has units of momentum. By the definition of the kinetic energy as K=p^2/2, what is the loss of momentum?
-            //PointAndNorm dupePointAndNorm = new PointAndNorm()
-            //{
-            //    normal = contactPoint.normal,
-            //    point = contactPoint.point
-            //};
-            //float penDepth = GetPenetrationDepth(collision, myPRelVel, ref dupePointAndNorm);
-            ////Treat the Young's modulus rather as just a 1 dimensional spring constant:
-            //float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
-            //impulse -= momentumLoss;
+            PointAndNorm dupePointAndNorm = new PointAndNorm()
+            {
+                normal = contactPoint.normal,
+                point = contactPoint.point
+            };
+            Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel);
+            float penDepth = GetPenetrationDepth(collision, myPRelVel, oPos, ref dupePointAndNorm);
+            //Treat the Young's modulus rather as just a 1 dimensional spring constant:
+            float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
+            impulse -= momentumLoss;
             //We still need to apply a spring constant at the end.
 
             //The change in rapidity on the line of action:
@@ -1005,11 +1064,11 @@ namespace OpenRelativity.Objects
             collideTimeStart = (float)state.TotalTimeWorld;
 
             //Now, we start applying penalty methods:
-            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
         }
 
         //EXPERIMENTAL PENALTY METHOD CODE BELOW
-        private const float hookeMultiplier = 20.0f;
+        private const float hookeMultiplier = 1.0f;
         private void ApplyPenalty(Collision collision, RelativisticObject otherRO, PointAndNorm contactPoint, float combFriction, float combYoungsModulus)
         {
             //We grab the velocities from the RelativisticObject rather than the Rigidbody,
@@ -1094,11 +1153,6 @@ namespace OpenRelativity.Objects
             // in order to prevent FTL collision results, but we could
             // still exceed the max speed and come very close to the speed of light
             checkCollisionSpeed();
-
-            //if (collision.contacts.Length > 1)
-            //{
-            //    CorrectPosition(collision, false);
-            //}
         }
 
         private float GetPenetrationDepth(Collision collision, Vector3 myPRelVel, Vector3 oPos, ref PointAndNorm contactPoint)
@@ -1114,18 +1168,21 @@ namespace OpenRelativity.Objects
             RaycastHit hitInfo;
             ContactPoint point;
             float maxLCV = collision.contacts.Length;
+            Ray ray = new Ray();
             for (int i = 0; i < maxLCV; i++)
             {
                 point = collision.contacts[i];
                 testNormal = point.normal;
-                Ray ray = new Ray(oPos + startDist * testNormal, -testNormal);
+                ray.origin = oPos + startDist * testNormal;
+                ray.direction = -testNormal;
                 if (collision.collider.Raycast(ray, out hitInfo, startDist * 2.0f))
                 {
                     penTest = hitInfo.distance - startDist;
-                    ray = new Ray(oPos - startDist * testNormal, testNormal);
+                    ray.origin = oPos - startDist * testNormal;
+                    ray.direction = testNormal;
                     if (myCollider.Raycast(ray, out hitInfo, startDist))
                     {
-                        temp = Mathf.Abs((startDist - hitInfo.distance) - penTest * gamma);
+                        temp = Mathf.Abs(((startDist - hitInfo.distance) - penTest) * gamma);
                         if (temp > 0.0f)
                         {
                             penTest = temp;
@@ -1139,118 +1196,26 @@ namespace OpenRelativity.Objects
                 if (penTest > penDist)
                 {
                     penDist = penTest;
-                    contactPoint = new PointAndNorm()
-                    {
-                        point = point.point,
-                        normal = point.normal
-                    };
+                    contactPoint.point = point.point;
+                    contactPoint.normal = point.normal;
                 }
             }
 
             return penDist;
         }
 
-        //private void CorrectPosition(Collision collision, bool glueToSurface)
-        //{
-        //    PointAndNorm contactPoint = null;
-        //    RaycastHit hitInfo;
-        //    Vector3 testNormal = Vector3.up;
-        //    float penTest;
-        //    float penDist = 100.0f;
-        //    float startDist;
-        //    foreach (ContactPoint point in collision.contacts)
-        //    {
-        //        testNormal = point.normal;
-        //        startDist = 10.0f * Vector3.Dot(transform.lossyScale, transform.lossyScale);
-        //        Ray ray = new Ray(transform.position + startDist * testNormal, -testNormal);
-        //        if (collision.collider.Raycast(ray, out hitInfo, startDist * 2.0f))
-        //        {
-        //            penTest = hitInfo.distance - startDist;
-        //            ray = new Ray(transform.position - startDist * testNormal, testNormal);
-        //            if (myCollider.Raycast(ray, out hitInfo, startDist))
-        //            {
-        //                penTest = ((startDist - hitInfo.distance) - penTest);
-        //            }
-        //            else
-        //            {
-        //                penTest = 0.0f;
-        //            }
-        //        }
-        //        else
-        //        {
-        //            penTest = 100.0f;
-        //        }
-        //        if (penTest < penDist)
-        //        {
-        //            penDist = penTest;
-        //            contactPoint = new PointAndNorm()
-        //            {
-        //                point = point.point,
-        //                normal = point.normal
-        //            };
-        //        }
-        //    }
-        //    //penDist -= 0.05f;
-        //    Vector3 newVel = collisionResultVel3;
-        //    if (contactPoint != null && glueToSurface || penDist > 0.0f)
-        //    {
-        //        Vector3 disp;
-        //        try
-        //        {
-        //            disp = penDist * contactPoint.normal;
-        //        }
-        //        catch
-        //        {
-        //            return;
-        //        }
-        //        transform.position += disp;
-        //        float recipGamma = 1.0f / oldCollisionResultVel3.Gamma();
-        //        Rigidbody otherRB = collision.rigidbody;
-        //        if (otherRB.isKinematic)
-        //        {
-        //            Vector3 parra = Vector3.Project(oldCollisionResultVel3, contactPoint.normal);
-        //            Vector3 perp = collisionResultVel3 - parra;
-        //            Vector3 relVelPerp = -parra.Gamma() * perp;
-        //            newVel = newVel.AddVelocity(relVelPerp);
-        //            List<Vector3> directions = new List<Vector3>();
-        //            directions.Add(transform.up);
-        //            directions.Add(-transform.up);
-        //            directions.Add(transform.right);
-        //            directions.Add(-transform.right);
-        //            directions.Add(transform.forward);
-        //            directions.Add(-transform.forward);
-        //            float angle, minAngle = 180;
-        //            Vector3 closestDirection = Vector3.forward;
-        //            for (int i = 0; i < directions.Count; i++)
-        //            {
-        //                angle = Vector3.Angle(directions[i], contactPoint.normal);
-        //                if (angle < minAngle)
-        //                {
-        //                    minAngle = angle;
-        //                    closestDirection = directions[i];
-        //                }
-        //            }
-        //            Quaternion rotToStraight = Quaternion.FromToRotation(closestDirection, contactPoint.normal);
-        //            transform.rotation = Quaternion.RotateTowards(Quaternion.identity, rotToStraight, Mathf.Min((float)(90.0 * state.DeltaTimeWorld), minAngle)) * transform.rotation;
-        //            if (transform.rotation == rotToStraight)
-        //            {
-        //                Sleep();
-        //            }
-        //            float gammaPowT = Mathf.Pow(oldCollisionResultVel3.AddVelocity(state.PlayerVelocityVector).GetGamma(), (float)(0.5 * 250.0 * state.DeltaTimeWorld));
-        //            collisionResultVel3 = gammaPowT * newVel;
-        //        }
-        //    }
-        //}
-
         private void Sleep()
         {
             viw = Vector3.zero;
             collisionResultVel3 = Vector3.zero;
+            oldCollisionResultVel3 = Vector3.zero;
             myRigidbody.velocity = Vector3.zero;
             aviw = Vector3.zero;
             collisionResultAngVel3 = Vector3.zero;
+            oldCollisionResultAngVel3 = Vector3.zero;
             myRigidbody.angularVelocity = Vector3.zero;
             myRigidbody.Sleep();
+            isSleeping = true;
         }
         #endregion
     }
