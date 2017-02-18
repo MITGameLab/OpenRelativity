@@ -145,21 +145,21 @@ namespace OpenRelativity
 
 
         //This method converts the position of an object in the world to its position after the shader is applied.
-        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity)
+        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity/*, float gtt = 1.0f*/)
         {
-            return WorldToOptical(realPos, velocity, Vector3.zero, Vector3.zero);
+            return WorldToOptical(realPos, velocity, Vector3.zero, Vector3.zero/*, gtt*/);
         }
 
-        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity, Vector3 origin)
+        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity, Vector3 origin/*, float gtt = 1.0f*/)
         {
-            return WorldToOptical(realPos, velocity, origin, Vector3.zero);
+            return WorldToOptical(realPos, velocity, origin, Vector3.zero/*, gtt*/);
         }
 
-        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
+        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel/*, float gtt = 1.0f*/)
         {
             float spdOfLight = SRelativityUtil.c;
 
-            Vector3 vpc = playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
             float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
@@ -218,6 +218,11 @@ namespace OpenRelativity
 
                 float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
 
+                //if (gtt != 0)
+                //{
+                //    tisw /= gtt;
+                //}
+
                 //get the new position offset, based on the new time we just found
                 //Should only be in the Z direction
 
@@ -242,7 +247,7 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector3 OpticalToWorldSearch(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
+        public static Vector3 OpticalToWorldSearch(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, /*float gtt = 1.0f,*/ float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
         {
             //The exact inverse of WorldToOptical is either really complicated or transcendental (i.e., can't be solved for).
             // However, we can approximate the inverse numerically.
@@ -287,7 +292,7 @@ namespace OpenRelativity
 
             float spdOfLight = SRelativityUtil.c;
 
-            Vector3 vpc = playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
             float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
             Vector3 viw = velocity / spdOfLight;
 
@@ -354,6 +359,11 @@ namespace OpenRelativity
                     d = (spdOfLight * spdOfLight) - rotateViw.sqrMagnitude;
 
                     tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
+
+                    //if (gtt != 0)
+                    //{
+                    //    tisw /= gtt;
+                    //}
 
                     //get the new position offset, based on the new time we just found
                     //Should only be in the Z direction

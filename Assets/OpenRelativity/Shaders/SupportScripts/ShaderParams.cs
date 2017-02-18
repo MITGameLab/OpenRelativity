@@ -22,12 +22,14 @@ namespace OpenRelativity
         //[FieldOffset(44)]
         public Vector3 playerOffset; //player position in world
         //[FieldOffset(47)]
-        public float speed; //speed of player;
+        //public float gtt; //metric tensor 00 component
         //[FieldOffset(48)]
-        public float spdOfLight; //current speed of light
+        public float speed; //speed of player;
         //[FieldOffset(49)]
-        public float wrldTime; //current time in world
+        public float spdOfLight; //current speed of light
         //[FieldOffset(50)]
+        public float wrldTime; //current time in world
+        //[FieldOffset(51)]
         public float strtTime; //starting time in world
     }
 }

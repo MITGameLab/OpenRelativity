@@ -11,6 +11,7 @@ Shader "Relativity/ColorShift"
 		_piw("piw", Vector) = (0,0,0,0) //Vector that represents object's position in world frame
 		_viw ("viw", Vector)=(0,0,0,0) //Vector that represents object's velocity in world frame
 		_aviw ("aviw", Vector)=(0,0,0,0) //Vector that represents object's angular velocity times the object's world scale
+		//_gtt("gtt", float) = 0 //float that represents 00 component of metric due to player acceleration
 		_strtTime ("strtTime", float)=0 //For moving objects, when they created, this variable is set to current world time
 		_Cutoff ("Base Alpha cutoff", Range (0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
@@ -97,6 +98,7 @@ Shader "Relativity/ColorShift"
 	float4 _viw = float4(0,0,0,0); //velocity of object in world
 	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0,0,0,0); //velocity of player
+	//float _gtt = 1; //velocity of player
 	float4 _playerOffset = float4(0,0,0,0); //player position in world
 	float _spdOfLight = 100; //current speed of light
 	float _wrldTime = 0; //current time in world
@@ -204,7 +206,11 @@ Shader "Relativity/ColorShift"
 
 			float d = (_spdOfLight*_spdOfLight) - dot(rotateViw, rotateViw);
 
-			float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d))); 
+			float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
+
+			//if (_gtt != 0) {
+			//	tisw /= _gtt;
+			//}
 
 			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
   			if (_wrldTime + tisw > _strtTime || _strtTime==0)

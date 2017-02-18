@@ -12,6 +12,7 @@ struct GlobalParams {
 	float3 aviw; //angular velocity of object in inverse local scale
 	float3 vpc; //velocity of player
 	float3 playerOffset; //player position in world
+	//float gtt; // 00 component of metric, due to player acceleration
 	float speed; //speed of player;
 	float spdOfLight; //current speed of light
 	float wrldTime; //current time in world
@@ -65,6 +66,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float3 aviw = glblPrms[0].aviw;
 	float3 vpc = glblPrms[0].vpc;
 	float3 playerOffset = glblPrms[0].playerOffset;
+	//float gtt = glblPrms[0].gtt;
 	float speed = glblPrms[0].speed;
 	float spdOfLight = glblPrms[0].spdOfLight;
 	float wrldTime = glblPrms[0].wrldTime;
@@ -147,6 +149,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 		float d = (spdOfLight*spdOfLight) - dot(rotateViw, rotateViw);
 
 		float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
+
+		/*if (gtt != 0) {
+			tisw /= gtt;
+		}*/
 
 		//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
 		/*if (wrldTime + tisw > strtTime || strtTime == 0)

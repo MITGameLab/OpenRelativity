@@ -36,6 +36,8 @@ namespace OpenRelativity.Objects
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 Vector3 playerPos = state.transform.position;
                 Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
+                //float gtt = GetGtt();
+                //transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector, gtt).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst, gtt);
                 transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
                 _viw = value;
                 //Also update the Rigidbody, if any
@@ -185,7 +187,7 @@ namespace OpenRelativity.Objects
                 myRigidbody.isKinematic = wasKinematic;
             }
 
-            if (!GetComponent<MeshRenderer>().enabled)
+            if (!GetComponent<MeshRenderer>().enabled /*|| colliderShaderParams.gtt == 0*/)
             {
                 return;
             }
@@ -197,6 +199,7 @@ namespace OpenRelativity.Objects
             //colliderShaderParams.viw = viw / (float)state.SpeedOfLight;
             //colliderShaderParams.aviw = aviw;
             colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
+            //colliderShaderParams.gtt = 
             colliderShaderParams.playerOffset = state.playerTransform.position;
             colliderShaderParams.speed = (float)(state.PlayerVelocity / state.SpeedOfLight);
             colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
@@ -678,9 +681,9 @@ namespace OpenRelativity.Objects
                         if (state.SpeedOfLightSqrd != 0)
                         {
                             //Attempt to correct for acceleration:
-                            Vector3 playerPos = state.playerTransform.position;
-                            Vector3 playerVel = state.PlayerVelocityVector;
-                            tempViw /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel) - playerPos));
+                            float gtt = GetGtt();
+                            tempViw /= gtt;
+                            //colliderShaderParams.gtt = gtt;
                         }
                         myRigidbody.velocity = tempViw;
                         //Store the angular velocity for collision resolution:
@@ -1047,7 +1050,7 @@ namespace OpenRelativity.Objects
                 normal = contactPoint.normal,
                 point = contactPoint.point
             };
-            Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel);
+            Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel/*, GetGtt()*/);
             float penDepth = GetPenetrationDepth(collision, myPRelVel, oPos, ref dupePointAndNorm);
             //Treat the Young's modulus rather as just a 1 dimensional spring constant:
             float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
@@ -1109,7 +1112,7 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             Vector3 lineOfAction = contactPoint.normal;
-            Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel);
+            Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel/*, GetGtt()*/);
             float penDist = GetPenetrationDepth(collision, myPRelVel, oPos, ref contactPoint);
 
             if (penDist <= 0.0f)
@@ -1253,5 +1256,12 @@ namespace OpenRelativity.Objects
             }
         }
         #endregion
+
+        private float GetGtt()
+        {
+            Vector3 playerPos = state.playerTransform.position;
+            Vector3 playerVel = state.PlayerVelocityVector;
+            return (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel) - playerPos));
+        }
     }
 }
