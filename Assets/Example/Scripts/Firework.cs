@@ -245,6 +245,10 @@ namespace OpenRelativity.Objects
                     {
                         Vector3 tempViw = viw;
                         tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        //Attempt to correct for acceleration:
+                        Vector3 playerPos = state.playerTransform.position;
+                        Vector3 playerVel = state.PlayerVelocityVector;
+                        tempViw /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos));
                         GetComponent<Rigidbody>().velocity = tempViw;
                     }
 
@@ -259,6 +263,10 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 tempViw = viw;
                     tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                    //Attempt to correct for acceleration:
+                    Vector3 playerPos = state.playerTransform.position;
+                    Vector3 playerVel = state.PlayerVelocityVector;
+                    tempViw /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos));
                     transform.position = transform.position + tempViw * Time.deltaTime;
                 }
                 //else if (isParticle)

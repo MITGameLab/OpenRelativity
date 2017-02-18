@@ -36,10 +36,10 @@ namespace OpenRelativity
         //    }
         //    set
         //    {
-        //        Vector3 newOrigin = Vector3.zero.WorldToOptical(-value, playerTransform.position)
+        //        Vector3 newOrigin = Vector3.zero//.WorldToOptical(-_playerVelocityVector, playerTransform.position)
         //            .InverseContractLengthBy(-playerVelocityVector)
-        //            .ContractLengthBy(-value)
-        //            .OpticalToWorldSearch(-value, playerTransform.position, Vector3.zero, Vector3.zero);
+        //            .ContractLengthBy(-value);
+        //            //.OpticalToWorldSearch(-value, playerTransform.position, Vector3.zero, Vector3.zero);
         //        playerTransform.Translate(newOrigin);
         //        _playerVelocityVector = value;
         //    }
@@ -232,10 +232,10 @@ namespace OpenRelativity
                 playerVelocity = playerVelocityVector.magnitude;
 
                 //update our acceleration (which relates rapidities rather than velocities)
-                float invGamma = oldPlayerVelocityVector.InverseGamma();
-                playerAccelerationVector = invGamma * (playerVelocityVector - oldPlayerVelocityVector) / Time.deltaTime;
+                //float invGamma = oldPlayerVelocityVector.InverseGamma();
+                //playerAccelerationVector = invGamma * (playerVelocityVector - oldPlayerVelocityVector) / Time.deltaTime;
                 // and then update the old velocity for the calculation of the acceleration on the next frame
-                oldPlayerVelocityVector = playerVelocityVector;
+                //oldPlayerVelocityVector = playerVelocityVector;
 
 
                 //During colorshift on/off, during the last level we don't want to have the funky
@@ -274,15 +274,12 @@ namespace OpenRelativity
                     //if (!double.IsNaN(inverseAcceleratedGamma))
                     if (!double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                     {
-                        /*********** This is logic for interial frames without acceleration**************/
                         //Get the delta time passed for the world, changed by relativistic effects
                         deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
-                        /*********** This corrects for an accelerating player frame**********************/
-                        //NOTE: Dan says, he's not sure if this is the exact correction for acceleration, or if there is any.
-                        // However, player acceleration in almost any video game is going to be of a magnitude
-                        // that's large compared to the natural scale of the relativistic physics, so it
-                        // needs to be accounted for to be qualitatively physically accurate.
-                        //deltaTimeWorld = deltaTimePlayer / inverseAcceleratedGamma;
+                        //NOTE: Dan says, there should also be a correction for acceleration in the 00 component of the metric tensor.
+                        // This correction is dependent on object position and needs to factored by the RelativisticObject itself.
+                        // (Pedagogical explanation at http://aether.lbl.gov/www/classes/p139/homework/eight.pdf.
+                        // See "The Metric for a Uniformly Accelerating System.")
                         totalTimeWorld += deltaTimeWorld;
                     }
                 }
@@ -292,10 +289,6 @@ namespace OpenRelativity
                 {
                     GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1 * (playerVelocityVector / (float)sqrtOneMinusVSquaredCWDividedByCSquared);
                 }
-                //if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(inverseAcceleratedGamma))
-                //{
-                //    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1 * (playerVelocityVector / (float)inverseAcceleratedGamma);
-                //}
                 //But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
                 else
                 {

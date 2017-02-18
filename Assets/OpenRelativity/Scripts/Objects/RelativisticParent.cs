@@ -280,7 +280,10 @@ namespace OpenRelativity.Objects
                         Vector3 tempViw = viw;
                         //ASK RYAN WHY THESE WERE DIVIDED BY THIS
                         tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        //tempViw /= (float)state.InverseAcceleratedGamma;
+                        //Attempt to correct for acceleration:
+                        Vector3 playerPos = state.playerTransform.position;
+                        Vector3 playerVel = state.PlayerVelocityVector;
+                        tempViw /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos));
 
                         GetComponent<Rigidbody>().velocity = tempViw;
                     }

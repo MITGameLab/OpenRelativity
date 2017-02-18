@@ -122,13 +122,17 @@ namespace OpenRelativity
 
                     float temp;
                     //Movement due to left/right input
-                    addedVelocity += new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE * (float)Time.deltaTime);
+                    Vector3 acceleration = new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE * (float)Time.deltaTime);
+                    Vector3 totalAccel = acceleration;
+                    addedVelocity += acceleration;
                     if (temp != 0)
                     {
+
                         state.keyHit = true;
                     }
-
-                    addedVelocity += new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE * (float)Time.deltaTime, 0, 0);
+                    acceleration = new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE * (float)Time.deltaTime, 0, 0);
+                    totalAccel += acceleration;
+                    addedVelocity += acceleration;
                     if (temp != 0)
                     {
                         state.keyHit = true;
@@ -144,18 +148,26 @@ namespace OpenRelativity
                     if (addedVelocity.x == 0)
                     {
                         //find our current direction of movement and oppose it
-                        addedVelocity += new Vector3(-1 * SLOW_DOWN_RATE * playerVelocityVector.x * (float)Time.deltaTime, 0, 0);
+                        acceleration = new Vector3(-1 * SLOW_DOWN_RATE * playerVelocityVector.x * (float)Time.deltaTime, 0, 0);
+                        totalAccel += acceleration;
+                        addedVelocity += acceleration;
                     }
                     //If we are not adding velocity this round to our z direction, slow down
                     if (addedVelocity.z == 0)
                     {
-                        addedVelocity += new Vector3(0, 0, -1 * SLOW_DOWN_RATE * playerVelocityVector.z * (float)Time.deltaTime);
+                        acceleration = new Vector3(0, 0, -1 * SLOW_DOWN_RATE * playerVelocityVector.z * (float)Time.deltaTime);
+                        totalAccel += acceleration;
+                        addedVelocity += acceleration;
                     }
                     //If we are not adding velocity this round to our y direction, slow down
                     if (addedVelocity.y == 0)
                     {
-                        addedVelocity += new Vector3(0, -1 * SLOW_DOWN_RATE * playerVelocityVector.y * (float)Time.deltaTime, 0);
+                        acceleration = new Vector3(0, -1 * SLOW_DOWN_RATE * playerVelocityVector.y * (float)Time.deltaTime, 0);
+                        totalAccel += acceleration;
+                        addedVelocity += acceleration;
                     }
+
+                    state.PlayerAccelerationVector = totalAccel;
                     /*
                      * IF you turn on this bit of code, you'll get head bob. It's a fun little effect, but if you make the magnitude of the cosine too large it gets sickening.
                     if (!double.IsNaN((float)(0.2 * Mathf.Cos((float)GetComponent<GameState>().TotalTimePlayer) * Time.deltaTime)) && frames > 2)
