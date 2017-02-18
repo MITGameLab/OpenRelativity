@@ -138,6 +138,8 @@ namespace OpenRelativity.Objects
         private Mesh trnsfrmdMesh;
         //If we have a Rigidbody, we cache it here
         private Rigidbody myRigidbody;
+        //The center of mass calculation in the rigidbody becomes non-physical when we transform the collider
+        Vector3 opticalWorldCenterOfMass;
 
         //Did we collide last frame?
         private bool didCollide;
@@ -152,7 +154,7 @@ namespace OpenRelativity.Objects
         //Time when the collision started
         private double collideTimeStart;
         //Collision-softening time
-        public float collideSoftenTime = 0.2f;
+        //public float collideSoftenTime = 0.2f;
         //For penalty methods, we need an intermediate collision velocity result
         private Vector3 oldCollisionResultVel3;
         private Vector3 oldCollisionResultAngVel3;
@@ -226,7 +228,9 @@ namespace OpenRelativity.Objects
             //Change mesh:
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
             myCollider.sharedMesh = trnsfrmdMesh;
-            //Reset center of mass:
+            //Cache actual and reset local center of mass:
+            myRigidbody.ResetCenterOfMass();
+            opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
             myRigidbody.centerOfMass = initCOM;
 
             meshFilter.mesh.RecalculateBounds();
@@ -384,9 +388,8 @@ namespace OpenRelativity.Objects
         {
             if (myRigidbody != null)
             {
-                vertsToTransform = new Vector3[rawVerts.Length + 1];
+                vertsToTransform = new Vector3[rawVerts.Length];
                 System.Array.Copy(rawVerts, vertsToTransform, rawVerts.Length);
-                vertsToTransform[rawVerts.Length] = myRigidbody.worldCenterOfMass;
             }
             else
             {
@@ -490,21 +493,21 @@ namespace OpenRelativity.Objects
 
             if (didCollide)
             {
-                float fracCollTime = (float)((state.TotalTimeWorld - collideTimeStart) / collideSoftenTime);
-                if (fracCollTime < 1.0f)
-                {
-                    viw = Vector3.Lerp(preCollisionVel3, collisionResultVel3, fracCollTime);
-                    aviw = Vector3.Lerp(preCollisionAngVel3, collisionResultAngVel3, fracCollTime);
-                    myRigidbody.angularVelocity = aviw;
-                }
-                else
-                {
+                //float fracCollTime = (float)((state.TotalTimeWorld - collideTimeStart) / collideSoftenTime);
+                //if (fracCollTime < 1.0f)
+                //{
+                //    viw = Vector3.Lerp(preCollisionVel3, collisionResultVel3, fracCollTime);
+                //    aviw = Vector3.Lerp(preCollisionAngVel3, collisionResultAngVel3, fracCollTime);
+                //    myRigidbody.angularVelocity = aviw;
+                //}
+                //else
+                //{
                     //Finish and shut off enforcement
                     viw = collisionResultVel3;
                     aviw = collisionResultAngVel3;
                     myRigidbody.angularVelocity = aviw;
                     didCollide = false;
-                }
+                //}
             }
         }
 
@@ -754,7 +757,8 @@ namespace OpenRelativity.Objects
         {
             if (collisionResultVel3.magnitude > state.MaxSpeed - .01)
             {
-                collisionResultVel3 = collisionResultVel3.normalized * (float)(state.MaxSpeed - .01f);
+                oldCollisionResultVel3 = oldCollisionResultVel3.normalized * (float)(state.MaxSpeed - .01f);
+                collisionResultVel3 = oldCollisionResultVel3;
             }
 
             //The tangential velocities of each vertex should also not be greater than the maximum speed.
@@ -765,12 +769,13 @@ namespace OpenRelativity.Objects
                 for (int i = 0; i < rawVerts.Length; i++)
                 {
                     float radius = trnsfrmdMeshVerts[i].magnitude;
-                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * rawVerts[i]).magnitude * collisionResultAngVel3);
+                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * rawVerts[i]).magnitude * oldCollisionResultAngVel3);
                     float tanVelMagSqr = tangentialVel.sqrMagnitude;
                     if (tanVelMagSqr > maxSpeedSqr)
                     {
                         tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
-                        collisionResultAngVel3 = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+                        oldCollisionResultAngVel3 = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+                        collisionResultVel3 = oldCollisionResultVel3;
                     }
                 }
             }
@@ -843,7 +848,7 @@ namespace OpenRelativity.Objects
             }
 
             PointAndNorm contactPoint = DecideContactPoint(collision);
-            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
             didCollide = true;
         }
 
@@ -990,8 +995,8 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - myRigidbody.worldCenterOfMass.WorldToOptical(viw, playerPos, playerVel)).InverseContractLengthBy(myPRelVel);
-            Vector3 otLocPoint = (contactPoint.point - otherRB.worldCenterOfMass.WorldToOptical(otherVel, playerPos, playerVel)).InverseContractLengthBy(-otherPRelVel);
+            Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass).InverseContractLengthBy(-myPRelVel);
+            Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass).InverseContractLengthBy(-otherPRelVel);
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
@@ -1037,16 +1042,16 @@ namespace OpenRelativity.Objects
             //To conserve energy, we subtract the energy of "spring" deformation at the initial time of collision,
             // and then we immediately start applying Hooke's law to make up the difference.
             //The impulse has units of momentum. By the definition of the kinetic energy as K=p^2/2, what is the loss of momentum?
-            //PointAndNorm dupePointAndNorm = new PointAndNorm()
-            //{
-            //    normal = contactPoint.normal,
-            //    point = contactPoint.point
-            //};
-            //Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel);
-            //float penDepth = GetPenetrationDepth(collision, myPRelVel, oPos, ref dupePointAndNorm);
-            ////Treat the Young's modulus rather as just a 1 dimensional spring constant:
-            //float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
-            //impulse -= momentumLoss;
+            PointAndNorm dupePointAndNorm = new PointAndNorm()
+            {
+                normal = contactPoint.normal,
+                point = contactPoint.point
+            };
+            Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel);
+            float penDepth = GetPenetrationDepth(collision, myPRelVel, oPos, ref dupePointAndNorm);
+            //Treat the Young's modulus rather as just a 1 dimensional spring constant:
+            float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
+            impulse -= momentumLoss;
             //We still need to apply a spring constant at the end.
 
             //The change in rapidity on the line of action:
@@ -1077,10 +1082,10 @@ namespace OpenRelativity.Objects
             oldCollisionResultVel3 = collisionResultVel3;
             oldCollisionResultAngVel3 = collisionResultAngVel3;
             didCollide = true;
-            collideTimeStart = (float)state.TotalTimeWorld;
+            //collideTimeStart = (float)state.TotalTimeWorld;
 
             //Now, we start applying penalty methods:
-            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
         }
 
         //EXPERIMENTAL PENALTY METHOD CODE BELOW
@@ -1113,8 +1118,8 @@ namespace OpenRelativity.Objects
             }
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - myRigidbody.worldCenterOfMass.WorldToOptical(viw, playerPos, playerVel)).InverseContractLengthBy(myPRelVel);
-            Vector3 otLocPoint = (contactPoint.point - otherRB.worldCenterOfMass.WorldToOptical(otherVel, playerPos, playerVel)).InverseContractLengthBy(-otherPRelVel);
+            Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass).InverseContractLengthBy(myPRelVel);
+            Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass).InverseContractLengthBy(-otherPRelVel);
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
