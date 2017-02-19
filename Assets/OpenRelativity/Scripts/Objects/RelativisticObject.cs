@@ -249,16 +249,16 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            //float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector) - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
-            //timeDelayToPlayer = (float)(timeDelayToPlayer / (state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt()));
-            startTime = -float.NegativeInfinity; //(float)state.TotalTimeWorld;
+            float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
+            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
         }
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
-            deathTime = (float)(state.TotalTimeWorld);
+            deathTime = (float)state.TotalTimeWorld;
         }
         void CombineParent()
         {

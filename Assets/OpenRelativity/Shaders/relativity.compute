@@ -150,9 +150,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 		float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
 
-		/*if (gtt != 0) {
-			tisw /= gtt;
-		}*/
+		//if (gtt != 0) {
+		//	tisw *= gtt;
+		//}
 
 		//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
 		/*if (wrldTime + tisw > strtTime || strtTime == 0)

@@ -209,7 +209,7 @@ Shader "Relativity/ColorShift"
 			float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
 
 			//if (_gtt != 0) {
-			//	tisw /= _gtt;
+			//	tisw *= _gtt;
 			//}
 
 			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 

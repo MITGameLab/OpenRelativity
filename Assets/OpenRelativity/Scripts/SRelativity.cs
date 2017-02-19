@@ -220,7 +220,7 @@ namespace OpenRelativity
 
                 //if (gtt != 0)
                 //{
-                //    tisw /= gtt;
+                //    tisw *= gtt;
                 //}
 
                 //get the new position offset, based on the new time we just found
@@ -362,7 +362,7 @@ namespace OpenRelativity
 
                     //if (gtt != 0)
                     //{
-                    //    tisw /= gtt;
+                    //    tisw *= gtt;
                     //}
 
                     //get the new position offset, based on the new time we just found

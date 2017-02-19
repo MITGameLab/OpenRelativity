@@ -49,7 +49,7 @@ namespace OpenRelativity.PrefabScripts
         {   //If we're not paused, increment the timer
             if (!state.MovementFrozen)
             {
-                launchCounter += Time.deltaTime;
+                launchCounter += (float)(state.DeltaTimeWorld * myRO.GetGtt());
             }
             //If it has been at least LaunchTimer seconds since we last fired an object
             if (launchCounter >= launchTimer)
