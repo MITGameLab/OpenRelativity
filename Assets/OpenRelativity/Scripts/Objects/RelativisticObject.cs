@@ -141,7 +141,7 @@ namespace OpenRelativity.Objects
         //If we have a Rigidbody, we cache it here
         private Rigidbody myRigidbody;
         //The center of mass calculation in the rigidbody becomes non-physical when we transform the collider
-        Vector3 opticalWorldCenterOfMass;
+        public Vector3 opticalWorldCenterOfMass;
 
         //Did we collide last frame?
         private bool didCollide;
@@ -250,7 +250,7 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            timeDelayToPlayer = (float)(timeDelayToPlayer * (GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared));
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
@@ -1261,7 +1261,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
-            return (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel) - playerPos));
+            return (float)Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel) - playerPos), 2);
         }
     }
 }
