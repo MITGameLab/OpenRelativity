@@ -249,16 +249,16 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            //startTime = (float)state.TotalTimeWorld;
-            //Probably a good sign if we can do this:
-            startTime = float.NegativeInfinity;
+            //float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector) - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
+            //timeDelayToPlayer = (float)(timeDelayToPlayer / (state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt()));
+            startTime = -float.NegativeInfinity; //(float)state.TotalTimeWorld;
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
         }
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
-            deathTime = (float)state.TotalTimeWorld;
+            deathTime = (float)(state.TotalTimeWorld);
         }
         void CombineParent()
         {
@@ -682,7 +682,7 @@ namespace OpenRelativity.Objects
                         {
                             //Attempt to correct for acceleration:
                             float gtt = GetGtt();
-                            tempViw /= gtt;
+                            tempViw *= gtt;
                             //colliderShaderParams.gtt = gtt;
                         }
                         myRigidbody.velocity = tempViw;
@@ -1257,7 +1257,7 @@ namespace OpenRelativity.Objects
         }
         #endregion
 
-        private float GetGtt()
+        public float GetGtt()
         {
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
