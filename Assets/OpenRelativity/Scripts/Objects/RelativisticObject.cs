@@ -134,8 +134,11 @@ namespace OpenRelativity.Objects
         private ShaderParams colliderShaderParams;
         //We save and reuse the transformed vert array to avoid garbage collection 
         private Vector3[] trnsfrmdMeshVerts;
-        //If we have a mesh collider to transform, we cache it here
-        private MeshCollider myCollider;
+        //If we have a collider to transform, we cache it here
+        private Collider myCollider;
+        //If we specifically have a mesh collider, we need to know to transform the verts of the mesh itself.
+        private bool myColliderIsMesh;
+        private bool myColliderIsBox;
         //We create a new collider mesh, so as not to interfere with primitives, and reuse it
         private Mesh trnsfrmdMesh;
         //If we have a Rigidbody, we cache it here
@@ -164,7 +167,7 @@ namespace OpenRelativity.Objects
         //We need to freeze any attached rigidbody if the world states is frozen 
         private bool wasKinematic = false;
         private bool wasFrozen = false;
-        private void UpdateCollider()
+        private void UpdateMeshCollider()
         {
 
             //Freeze the physics if the global state is frozen.
@@ -230,7 +233,7 @@ namespace OpenRelativity.Objects
 
             //Change mesh:
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
-            myCollider.sharedMesh = trnsfrmdMesh;
+            ((MeshCollider)myCollider).sharedMesh = trnsfrmdMesh;
             //Cache actual and reset local center of mass:
             myRigidbody.ResetCenterOfMass();
             opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
@@ -250,7 +253,7 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer = (float)(timeDelayToPlayer * (GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared));
+            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
@@ -258,7 +261,9 @@ namespace OpenRelativity.Objects
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
-            deathTime = (float)state.TotalTimeWorld;
+            float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
+            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            deathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
         {
@@ -408,12 +413,10 @@ namespace OpenRelativity.Objects
             sleepingOnColliders = new List<Collider>();
             didCollide = false;
             sleepFrameCounter = 0;
-            myCollider = GetComponent<MeshCollider>();
             myRigidbody = GetComponent<Rigidbody>();
-            if (myCollider != null)
-            {
-                trnsfrmdMesh = Instantiate(myCollider.sharedMesh);
-            }
+
+            UpdateCollider();
+
             if (myRigidbody != null)
             {
                 myRigidbody.angularVelocity = aviw;
@@ -435,7 +438,7 @@ namespace OpenRelativity.Objects
                 rawVerts = null;
 
             //Once we have the mesh vertices, allocate and immediately transform the collider:
-            if (myCollider != null)
+            if (myColliderIsMesh && myCollider != null)
             {
                 trnsfrmdMeshVerts = new Vector3[rawVerts.Length];
                 //UpdateCollider();
@@ -489,6 +492,31 @@ namespace OpenRelativity.Objects
             }
         }
 
+        private void UpdateCollider()
+        {
+            myCollider = GetComponent<MeshCollider>();
+            if (myCollider != null)
+            {
+                trnsfrmdMesh = Instantiate(((MeshCollider)myCollider).sharedMesh);
+                myColliderIsMesh = true;
+                myColliderIsBox = false;
+            }
+            else
+            {
+                myCollider = GetComponent<BoxCollider>();
+                if (myCollider != null)
+                {
+                    myColliderIsBox = true;
+                }
+                else
+                {
+                    myColliderIsBox = false;
+                    myCollider = GetComponent<Collider>();
+                }
+
+            }
+        }
+
         private void EnforceCollision()
         {
             oldCollisionResultVel3 = collisionResultVel3;
@@ -538,7 +566,7 @@ namespace OpenRelativity.Objects
             //Update the rigidbody reference.
             myRigidbody = GetComponent<Rigidbody>();
             //Update the collider reference.
-            myCollider = GetComponent<MeshCollider>();
+            UpdateCollider();
 
             if (meshFilter != null && !state.MovementFrozen)
             {
@@ -699,10 +727,20 @@ namespace OpenRelativity.Objects
                 myRigidbody.velocity = Vector3.zero;
             }
 
-            //If we have a collider and a compute shader, transform the collider verts relativistically:
-            if (colliderShader != null && myCollider != null)
+            //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
+            if (myCollider != null)
             {
-                UpdateCollider();
+                if (myColliderIsMesh && colliderShader != null)
+                {
+                    UpdateMeshCollider();
+                }
+                //If we have a BoxCollider, transform its center to its optical position
+                else if (myColliderIsBox)
+                {
+                    Vector3 playerPos = state.playerTransform.position;
+                    Vector3 playerVel = state.PlayerVelocityVector;
+                    ((BoxCollider)myCollider).center = transform.InverseTransformPoint(transform.position.WorldToOptical(viw, playerPos, playerVel));
+                }
             }
         }
 
@@ -1152,7 +1190,7 @@ namespace OpenRelativity.Objects
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
             rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld);
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld * GetGtt());
 
             //The change in rapidity on the line of action:
             Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;

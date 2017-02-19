@@ -37,9 +37,7 @@ namespace OpenRelativity.PrefabScripts
             {
                 this.transform.LookAt(receiverTransform);
             }
-            //Get the rest frame launch direction:
-            //Vector3 myPRelVel = -state.PlayerVelocityVector;
-            //launchDirection = this.transform.forward.InverseContractLengthBy(myPRelVel).normalized;
+
             //Take the minimum of the chosen viwMax, and the Game State's chosen Max Speed
             viwMax = Mathf.Min(viwMax, (float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
         }
@@ -49,7 +47,7 @@ namespace OpenRelativity.PrefabScripts
         {   //If we're not paused, increment the timer
             if (!state.MovementFrozen)
             {
-                launchCounter += (float)(state.DeltaTimeWorld * myRO.GetGtt());
+                launchCounter += Time.deltaTime;
             }
             //If it has been at least LaunchTimer seconds since we last fired an object
             if (launchCounter >= launchTimer)
@@ -72,12 +70,9 @@ namespace OpenRelativity.PrefabScripts
             RelativisticObject ro = launchedObject.GetComponent<RelativisticObject>();
             RelativisticObject[] ros = launchedObject.GetComponentsInChildren<RelativisticObject>();
 
-            //Vector3 myPRelVel = -state.PlayerVelocityVector;
-            //Vector3 launchDir = launchDirection.ContractLengthBy(myPRelVel).normalized;
-
             if (ro != null)
             {    
-                ro.viw = viwMax * this.transform.forward;
+                ro.viw = viwMax * transform.forward;
                 //And let the object know when it was created, so that it knows when not to be seen by the player
                 ro.SetStartTime();
             }
@@ -85,7 +80,7 @@ namespace OpenRelativity.PrefabScripts
             {
                 for (int i = 0; i < ros.Length; i++)
                 {
-                    ros[i].viw = viwMax * this.transform.forward;
+                    ros[i].viw = viwMax * transform.forward;
                     //And let the object know when it was created, so that it knows when not to be seen by the player
                     ros[i].SetStartTime();
                 }
