@@ -47,7 +47,7 @@ namespace OpenRelativity
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
         //We use this to update the player acceleration vector:
-        private Vector3 oldPlayerVelocityVector;
+        //private Vector3 oldPlayerVelocityVector;
 
         //grab the player's transform so that we can use it
         public Transform playerTransform;
@@ -144,7 +144,7 @@ namespace OpenRelativity
             //If the player starts out resting on a surface, then their initial acceleration is due to gravity.
             // If the player is in free fall (i.e. "not affected by gravity" in the sense of Einstein equivalance principle,)
             // then their acceleration is zero.
-            oldPlayerVelocityVector = Vector3.zero;
+            //oldPlayerVelocityVector = Vector3.zero;
             playerAccelerationVector = Vector3.zero;
             
             //Set our constants
@@ -232,10 +232,10 @@ namespace OpenRelativity
                 playerVelocity = playerVelocityVector.magnitude;
 
                 //update our acceleration (which relates rapidities rather than velocities)
-                float invGamma = oldPlayerVelocityVector.InverseGamma();
-                playerAccelerationVector = (playerVelocityVector.Gamma() * playerVelocityVector - oldPlayerVelocityVector.Gamma() * oldPlayerVelocityVector) / Time.deltaTime;
-                //and then update the old velocity for the calculation of the acceleration on the next frame
-                oldPlayerVelocityVector = playerVelocityVector;
+                //float invGamma = oldPlayerVelocityVector.InverseGamma();
+                //playerAccelerationVector = (playerVelocityVector.Gamma() * playerVelocityVector - oldPlayerVelocityVector.Gamma() * oldPlayerVelocityVector) / Time.deltaTime;
+                ////and then update the old velocity for the calculation of the acceleration on the next frame
+                //oldPlayerVelocityVector = playerVelocityVector;
 
 
                 //During colorshift on/off, during the last level we don't want to have the funky

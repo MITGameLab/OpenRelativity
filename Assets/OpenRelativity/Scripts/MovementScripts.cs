@@ -8,8 +8,8 @@ namespace OpenRelativity
     public class MovementScripts : MonoBehaviour
     {
         //Consts 
-        private const float SLOW_DOWN_RATE = 0.25f;
-        private const float ACCEL_RATE = 5f;
+        private const float SLOW_DOWN_RATE = 0.3f;
+        private const float ACCEL_RATE = 6f;
         private const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
         public bool useGravity = false;
@@ -180,10 +180,9 @@ namespace OpenRelativity
                     {
                         acceleration = -Physics.gravity * Time.deltaTime;
                         addedVelocity += -Physics.gravity * Time.deltaTime;
-                        
                     }
 
-                    //state.PlayerAccelerationVector = totalAccel;
+                    state.PlayerAccelerationVector = totalAccel;
                     /*
                      * IF you turn on this bit of code, you'll get head bob. It's a fun little effect, but if you make the magnitude of the cosine too large it gets sickening.
                     if (!double.IsNaN((float)(0.2 * Mathf.Cos((float)GetComponent<GameState>().TotalTimePlayer) * Time.deltaTime)) && frames > 2)
