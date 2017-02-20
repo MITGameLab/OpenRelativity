@@ -10,6 +10,7 @@ namespace OpenRelativity
         //Consts 
         private const float SLOW_DOWN_RATE = 1.0f;
         private const float ACCEL_RATE = 7.5f;
+        private const float WORLD_GRAVITY = 2.0f; 
         private const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
         public bool useGravity = false;
@@ -43,6 +44,7 @@ namespace OpenRelativity
             //Assume we are in free fall
             isFalling = true;
             collidersBelow = new List<Collider>();
+            Physics.gravity = WORLD_GRAVITY * Physics.gravity.normalized;
 
             //grab Game State, we need it for many actions
             state = GetComponent<GameState>();
@@ -176,12 +178,6 @@ namespace OpenRelativity
                         addedVelocity += acceleration * Time.deltaTime;
                     }
 
-                    if (useGravity)
-                    {
-                        acceleration = -Physics.gravity * Time.deltaTime;
-                        addedVelocity += -Physics.gravity * Time.deltaTime;
-                    }
-
                     state.PlayerAccelerationVector = totalAccel;
                     /*
                      * IF you turn on this bit of code, you'll get head bob. It's a fun little effect, but if you make the magnitude of the cosine too large it gets sickening.
@@ -208,10 +204,31 @@ namespace OpenRelativity
 
                         //Unrotate our new total velocity
                         rotatedVelocity = unRotateX * rotatedVelocity;
-                        //Set it
-                        state.PlayerVelocityVector = rotatedVelocity;
-
+                        //Set it, depending on gravity
+                        if (!useGravity)
+                        {
+                            state.PlayerVelocityVector = rotatedVelocity;
+                        }
+                        else
+                        {
+                            if (!isFalling || rotatedVelocity.y > 0.0)
+                            {
+                                rotatedVelocity.y = 0;
+                                state.PlayerVelocityVector = rotatedVelocity;
+                                if (useGravity)
+                                {
+                                    totalAccel += Physics.gravity;
+                                }
+                            }
+                            else if (useGravity)
+                            {
+                                state.PlayerVelocityVector = rotatedVelocity.AddVelocity(-Physics.gravity * Time.deltaTime);
+                            }
+                        }
                     }
+
+                    state.PlayerAccelerationVector = totalAccel;
+
                     //CHANGE the speed of light
 
                     //Get our input axis (DEFAULT N, M) value to determine how much to change the speed of light
@@ -314,33 +331,33 @@ namespace OpenRelativity
             }
         }
 
-        private void OnCollisionEnter(Collision collision)
+        private void OnTriggerEnter(Collider collider)
         {
-            OnCollision(collision);
+            OnTrigger(collider);
         }
 
-        private void OnCollisionStay(Collision collision)
+        private void OnTriggerStay(Collider collider)
         {
-            OnCollision(collision);
+            OnTrigger(collider);
         }
 
-        private void OnCollision(Collision collision)
+        private void OnTrigger(Collider collider)
         {
-            Rigidbody otherRB = collision.rigidbody;
-            RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
+            state.PlayerVelocityVector = new Vector3(state.PlayerVelocityVector.x, 0.0f, state.PlayerVelocityVector.z);
+            Rigidbody otherRB = collider.GetComponent<Rigidbody>();
+            RelativisticObject otherRO = collider.GetComponent<RelativisticObject>();
             if (otherRO != null && otherRB != null && otherRB.isKinematic)
             {
                 float myHeight = GetComponent<MeshFilter>().mesh.bounds.extents.y;
                 Ray downRay = new Ray(transform.position, -Physics.gravity.normalized);
-                Collider otherCollider = otherRO.gameObject.GetComponent<Collider>();
                 RaycastHit hitInfo;
-                if (otherCollider.Raycast(downRay, out hitInfo, 4.0f * myHeight))
+                if (collider.Raycast(downRay, out hitInfo, 4.0f * myHeight))
                 {
                     isFalling = false;
                     bool foundCollider = false;
                     for (int i = 0; i < collidersBelow.Count; i++)
                     {
-                        if (collidersBelow[i].Equals(otherCollider))
+                        if (collidersBelow[i].Equals(collider))
                         {
                             foundCollider = true;
                         }
@@ -348,16 +365,15 @@ namespace OpenRelativity
 
                     if (!foundCollider)
                     {
-                        collidersBelow.Add(otherCollider);
+                        collidersBelow.Add(collider);
                     }
                 }
             }
         }
 
-        private void OnCollisionExit(Collision collision)
+        private void OnTriggerExit(Collider collider)
         {
-            Collider otherCollider = collision.gameObject.GetComponent<Collider>();
-            collidersBelow.Remove(otherCollider);
+            collidersBelow.Remove(collider);
             if (collidersBelow.Count == 0)
             {
                 isFalling = true;
