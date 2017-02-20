@@ -8,7 +8,7 @@ namespace OpenRelativity
     public class MovementScripts : MonoBehaviour
     {
         //Consts 
-        private const float SLOW_DOWN_RATE = 1.0f;
+        private const float SLOW_DOWN_RATE = 0.75f;
         private const float ACCEL_RATE = 7.5f;
         private const float WORLD_GRAVITY = 2.0f; 
         private const int INIT_FRAME_WAIT = 5;
