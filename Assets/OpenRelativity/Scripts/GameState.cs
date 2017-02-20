@@ -232,10 +232,10 @@ namespace OpenRelativity
                 playerVelocity = playerVelocityVector.magnitude;
 
                 //update our acceleration (which relates rapidities rather than velocities)
-                //float invGamma = oldPlayerVelocityVector.InverseGamma();
-                //playerAccelerationVector = invGamma * (playerVelocityVector - oldPlayerVelocityVector) / Time.deltaTime;
-                // and then update the old velocity for the calculation of the acceleration on the next frame
-                //oldPlayerVelocityVector = playerVelocityVector;
+                float invGamma = oldPlayerVelocityVector.InverseGamma();
+                playerAccelerationVector = (playerVelocityVector.Gamma() * playerVelocityVector - oldPlayerVelocityVector.Gamma() * oldPlayerVelocityVector) / Time.deltaTime;
+                //and then update the old velocity for the calculation of the acceleration on the next frame
+                oldPlayerVelocityVector = playerVelocityVector;
 
 
                 //During colorshift on/off, during the last level we don't want to have the funky

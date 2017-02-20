@@ -253,7 +253,7 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            timeDelayToPlayer /= (float)(GetGtt() * state.SqrtOneMinusVSquaredCWDividedByCSquared);
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
@@ -262,7 +262,7 @@ namespace OpenRelativity.Objects
         public virtual void SetDeathTime()
         {
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            timeDelayToPlayer /= (float)(GetGtt() * state.SqrtOneMinusVSquaredCWDividedByCSquared);
             deathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -710,7 +710,7 @@ namespace OpenRelativity.Objects
                         {
                             //Attempt to correct for acceleration:
                             float gtt = GetGtt();
-                            tempViw *= gtt;
+                            tempViw /= gtt;
                             //colliderShaderParams.gtt = gtt;
                         }
                         myRigidbody.velocity = tempViw;
@@ -1190,7 +1190,7 @@ namespace OpenRelativity.Objects
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
             rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld * GetGtt());
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld / GetGtt());
 
             //The change in rapidity on the line of action:
             Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;
@@ -1299,7 +1299,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
-            return (float)Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel) - playerPos), 2);
+            return (float)Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel)), 2);
         }
     }
 }

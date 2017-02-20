@@ -1,15 +1,21 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using OpenRelativity.Objects;
 
 namespace OpenRelativity
 {
     public class MovementScripts : MonoBehaviour
     {
         //Consts 
-        private const float SLOW_DOWN_RATE = 2f;
-        private const float ACCEL_RATE = 20f;
+        private const float SLOW_DOWN_RATE = 0.25f;
+        private const float ACCEL_RATE = 5f;
         private const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
+        public bool useGravity = false;
+        //Needed to tell whether we are in free fall
+        private bool isFalling;
+        private List<Collider> collidersBelow;
         public float controllerBoost = 6000;
         //Affect our rotation speed
         public float rotSpeed;
@@ -34,6 +40,10 @@ namespace OpenRelativity
 
         void Start()
         {
+            //Assume we are in free fall
+            isFalling = true;
+            collidersBelow = new List<Collider>();
+
             //grab Game State, we need it for many actions
             state = GetComponent<GameState>();
             //Lock and hide cursor
@@ -43,7 +53,6 @@ namespace OpenRelativity
             speedOfLightTarget = (int)state.SpeedOfLight;
             //Inverted, at first
             inverted = -1;
-
 
             viwMax = Mathf.Min(viwMax, (float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
 
@@ -122,17 +131,17 @@ namespace OpenRelativity
 
                     float temp;
                     //Movement due to left/right input
-                    Vector3 acceleration = new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE * (float)Time.deltaTime);
+                    Vector3 acceleration = new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE);
                     Vector3 totalAccel = acceleration;
-                    addedVelocity += acceleration;
+                    addedVelocity += acceleration * Time.deltaTime;
                     if (temp != 0)
                     {
 
                         state.keyHit = true;
                     }
-                    acceleration = new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE * (float)Time.deltaTime, 0, 0);
+                    acceleration = new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE, 0, 0);
                     totalAccel += acceleration;
-                    addedVelocity += acceleration;
+                    addedVelocity += acceleration * Time.deltaTime;
                     if (temp != 0)
                     {
                         state.keyHit = true;
@@ -148,26 +157,33 @@ namespace OpenRelativity
                     if (addedVelocity.x == 0)
                     {
                         //find our current direction of movement and oppose it
-                        acceleration = new Vector3(-1 * SLOW_DOWN_RATE * playerVelocityVector.x * (float)Time.deltaTime, 0, 0);
+                        acceleration = new Vector3(-1 * SLOW_DOWN_RATE * playerVelocityVector.x, 0, 0);
                         totalAccel += acceleration;
-                        addedVelocity += acceleration;
+                        addedVelocity += acceleration * Time.deltaTime;
                     }
                     //If we are not adding velocity this round to our z direction, slow down
                     if (addedVelocity.z == 0)
                     {
-                        acceleration = new Vector3(0, 0, -1 * SLOW_DOWN_RATE * playerVelocityVector.z * (float)Time.deltaTime);
+                        acceleration = new Vector3(0, 0, -1 * SLOW_DOWN_RATE * playerVelocityVector.z);
                         totalAccel += acceleration;
-                        addedVelocity += acceleration;
+                        addedVelocity += acceleration * Time.deltaTime;
                     }
                     //If we are not adding velocity this round to our y direction, slow down
                     if (addedVelocity.y == 0)
                     {
-                        acceleration = new Vector3(0, -1 * SLOW_DOWN_RATE * playerVelocityVector.y * (float)Time.deltaTime, 0);
+                        acceleration = new Vector3(0, -1 * SLOW_DOWN_RATE * playerVelocityVector.y, 0);
                         totalAccel += acceleration;
-                        addedVelocity += acceleration;
+                        addedVelocity += acceleration * Time.deltaTime;
                     }
 
-                    state.PlayerAccelerationVector = totalAccel;
+                    if (useGravity)
+                    {
+                        acceleration = -Physics.gravity * Time.deltaTime;
+                        addedVelocity += -Physics.gravity * Time.deltaTime;
+                        
+                    }
+
+                    //state.PlayerAccelerationVector = totalAccel;
                     /*
                      * IF you turn on this bit of code, you'll get head bob. It's a fun little effect, but if you make the magnitude of the cosine too large it gets sickening.
                     if (!double.IsNaN((float)(0.2 * Mathf.Cos((float)GetComponent<GameState>().TotalTimePlayer) * Time.deltaTime)) && frames > 2)
@@ -297,9 +313,56 @@ namespace OpenRelativity
 
                 }
             }
+        }
 
+        private void OnCollisionEnter(Collision collision)
+        {
+            OnCollision(collision);
+        }
 
+        private void OnCollisionStay(Collision collision)
+        {
+            OnCollision(collision);
+        }
 
+        private void OnCollision(Collision collision)
+        {
+            Rigidbody otherRB = collision.rigidbody;
+            RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
+            if (otherRO != null && otherRB != null && otherRB.isKinematic)
+            {
+                float myHeight = GetComponent<MeshFilter>().mesh.bounds.extents.y;
+                Ray downRay = new Ray(transform.position, -Physics.gravity.normalized);
+                Collider otherCollider = otherRO.gameObject.GetComponent<Collider>();
+                RaycastHit hitInfo;
+                if (otherCollider.Raycast(downRay, out hitInfo, 4.0f * myHeight))
+                {
+                    isFalling = false;
+                    bool foundCollider = false;
+                    for (int i = 0; i < collidersBelow.Count; i++)
+                    {
+                        if (collidersBelow[i].Equals(otherCollider))
+                        {
+                            foundCollider = true;
+                        }
+                    }
+
+                    if (!foundCollider)
+                    {
+                        collidersBelow.Add(otherCollider);
+                    }
+                }
+            }
+        }
+
+        private void OnCollisionExit(Collision collision)
+        {
+            Collider otherCollider = collision.gameObject.GetComponent<Collider>();
+            collidersBelow.Remove(otherCollider);
+            if (collidersBelow.Count == 0)
+            {
+                isFalling = true;
+            }
         }
     }
 }
