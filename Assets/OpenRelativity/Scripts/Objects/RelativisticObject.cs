@@ -1297,7 +1297,9 @@ namespace OpenRelativity.Objects
 
         public float GetGtt()
         {
-            return (float)Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position), 2);
+            Vector3 playerPos = state.playerTransform.position;
+            Vector3 playerVel = state.PlayerVelocityVector;
+            return (float)Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel)), 2);
         }
     }
 }
