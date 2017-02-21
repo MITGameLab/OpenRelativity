@@ -725,19 +725,21 @@ namespace OpenRelativity.Objects
                         //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
 
                         Vector3 tempViw = viw;
+                        Vector3 tempAviw = aviw;
                         //ASK RYAN WHY THIS WAS DIVIDED BY THIS
                         tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        tempAviw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
                         //Attempt to correct for acceleration:
                         if (state.SpeedOfLightSqrd != 0)
                         {
                             //Attempt to correct for acceleration:
                             float gtt = GetGtt();
                             tempViw /= gtt;
+                            tempAviw /= gtt;
                             //colliderShaderParams.gtt = gtt;
                         }
                         myRigidbody.velocity = tempViw;
-                        //Store the angular velocity for collision resolution:
-                        aviw = myRigidbody.angularVelocity;
+                        myRigidbody.angularVelocity = tempAviw;
                     }
 
 
