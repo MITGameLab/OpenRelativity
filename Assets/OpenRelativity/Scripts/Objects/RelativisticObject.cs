@@ -84,6 +84,8 @@ namespace OpenRelativity.Objects
             }
         }
 
+        public bool useGravity;
+
         //Not sure why, but the physics values in our collider materials and rigid bodies become "corrupt"
         // before we can use them. We instantiate duplicates and keep them around:
         // (TODO: Identify why and fix this.)
@@ -419,7 +421,8 @@ namespace OpenRelativity.Objects
 
             if (myRigidbody != null)
             {
-                myRigidbody.angularVelocity = aviw;
+                //Native rigidbody gravity should never be used:
+                myRigidbody.useGravity = false;
             }
 
             //Get the meshfilter
@@ -542,6 +545,20 @@ namespace OpenRelativity.Objects
             }
         }
 
+        public void UpdateGravity()
+        {
+            Vector3 tempViw = viw;
+            tempViw += Physics.gravity * Time.deltaTime;
+            tempViw = tempViw.RapidityToVelocity();
+            float test = tempViw.x + tempViw.y + tempViw.z;
+            if (!float.IsNaN(test) && !float.IsInfinity(test))
+            {
+                viw = tempViw;
+                //Don't exceed max speed:
+                checkSpeed();
+            }
+        }
+
         public void Update()
         {
             EnforceCollision();
@@ -558,6 +575,11 @@ namespace OpenRelativity.Objects
             else
             {
                 sleepFrameCounter = 0;
+            }
+
+            if (myRigidbody != null && useGravity && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0 )
+            {
+                UpdateGravity();
             }
 
             //Grab our renderer.
@@ -699,7 +721,7 @@ namespace OpenRelativity.Objects
                         // due to tripping the velocity setter every frame.)
                         // TODO: Replace with drag force
                         //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
-                        //viw = rapidity.InverseGamma() * rapidity;
+                        //viw = rapidity.RapidityToVelocity();
                         //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
 
                         Vector3 tempViw = viw;
@@ -895,7 +917,7 @@ namespace OpenRelativity.Objects
 
         public void OnCollisionEnter(Collision collision)
         {
-            if (didCollide || myRigidbody == null || myCollider == null || myRigidbody.isKinematic)
+            if (myRigidbody == null || myCollider == null || myRigidbody.isKinematic)
             {
                 return;
             }
@@ -1101,9 +1123,10 @@ namespace OpenRelativity.Objects
             Vector3 finalPerpRapidity = myVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
             //Velocities aren't linearly additive in relativity, but rapidities are:
             Vector3 finalTotalRapidity = finalParraRapidity + finalPerpRapidity;
-            Vector3 tanVelFinal = finalTotalRapidity.InverseGamma() * finalPerpRapidity;
+            double spdOfLight = state.SpeedOfLight;
+            Vector3 tanVelFinal = finalPerpRapidity.RapidityToVelocity();
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalTotalRapidity.InverseGamma() * finalParraRapidity;
+            collisionResultVel3 = finalParraRapidity.RapidityToVelocity();
             //If the angle of the torque is close to 0 or 180, we have rounding problems:
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)
@@ -1198,9 +1221,9 @@ namespace OpenRelativity.Objects
             Vector3 finalPerpRapidity = myVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
             //Velocities aren't linearly additive in relativity, but rapidities are:
             Vector3 finalTotalRapidity = finalParraRapidity + finalPerpRapidity;
-            Vector3 tanVelFinal = finalTotalRapidity.InverseGamma() * finalPerpRapidity;
+            Vector3 tanVelFinal = finalPerpRapidity.RapidityToVelocity();
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalTotalRapidity.InverseGamma() * finalParraRapidity;
+            collisionResultVel3 = finalTotalRapidity.RapidityToVelocity();
             //If the angle of the torque is close to 0 or 180, we have rounding problems:
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)

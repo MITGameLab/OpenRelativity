@@ -406,6 +406,12 @@ namespace OpenRelativity
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / SRelativityUtil.cSqrd);
         }
 
+        public static Vector3 RapidityToVelocity(this Vector3 rapidity)
+        {
+            float mag = rapidity.magnitude;
+            return (float)(SRelativityUtil.c * Math.Tanh(mag / SRelativityUtil.c) / mag) * rapidity;
+        }
+
         //public static double InverseAcceleratedGamma(Vector3 accel, Vector3 vel, double deltaT)
         //{
         //    //This formula assumes that the deltaT is small enough that an integral over it can replaced by deltaT times an endpoint.
