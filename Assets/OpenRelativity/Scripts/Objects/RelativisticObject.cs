@@ -1083,16 +1083,16 @@ namespace OpenRelativity.Objects
             //To conserve energy, we subtract the energy of "spring" deformation at the initial time of collision,
             // and then we immediately start applying Hooke's law to make up the difference.
             //The impulse has units of momentum. By the definition of the kinetic energy as K=p^2/2, what is the loss of momentum?
-            PointAndNorm dupePointAndNorm = new PointAndNorm()
-            {
-                normal = contactPoint.normal,
-                point = contactPoint.point
-            };
-            Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel/*, GetGtt()*/);
-            float penDepth = GetPenetrationDepth(collision, myPRelVel, oPos, ref dupePointAndNorm);
-            //Treat the Young's modulus rather as just a 1 dimensional spring constant:
-            float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
-            impulse -= momentumLoss;
+            //PointAndNorm dupePointAndNorm = new PointAndNorm()
+            //{
+            //    normal = contactPoint.normal,
+            //    point = contactPoint.point
+            //};
+            //Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel/*, GetGtt()*/);
+            //float penDepth = GetPenetrationDepth(collision, myPRelVel, oPos, ref dupePointAndNorm);
+            ////Treat the Young's modulus rather as just a 1 dimensional spring constant:
+            //float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
+            //impulse -= momentumLoss;
             //We still need to apply a spring constant at the end.
 
             //The change in rapidity on the line of action:
@@ -1126,7 +1126,7 @@ namespace OpenRelativity.Objects
             //collideTimeStart = (float)state.TotalTimeWorld;
 
             //Now, we start applying penalty methods:
-            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
         }
 
         //EXPERIMENTAL PENALTY METHOD CODE BELOW
