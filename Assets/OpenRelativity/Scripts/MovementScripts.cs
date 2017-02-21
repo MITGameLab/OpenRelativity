@@ -211,16 +211,16 @@ namespace OpenRelativity
                         }
                         else
                         {
-                            if (!isFalling || rotatedVelocity.y > 0.0)
+                            if (!isFalling)
                             {
-                                rotatedVelocity.y = 0;
-                                state.PlayerVelocityVector = rotatedVelocity;
-                                if (useGravity)
+                                if (rotatedVelocity.y > 0.0f)
                                 {
-                                    totalAccel += Physics.gravity;
+                                    rotatedVelocity.y = 0.0f;
                                 }
+                                state.PlayerVelocityVector = rotatedVelocity;
+                                totalAccel += Physics.gravity;
                             }
-                            else if (useGravity)
+                            else
                             {
                                 state.PlayerVelocityVector = rotatedVelocity.AddVelocity(-Physics.gravity * Time.deltaTime);
                             }
@@ -331,25 +331,24 @@ namespace OpenRelativity
             }
         }
 
-        private void OnTriggerEnter(Collider collider)
+        void OnTriggerEnter(Collider collider)
         {
             OnTrigger(collider);
         }
 
-        private void OnTriggerStay(Collider collider)
+        void OnTriggerStay(Collider collider)
         {
             OnTrigger(collider);
         }
 
         private void OnTrigger(Collider collider)
         {
-            state.PlayerVelocityVector = new Vector3(state.PlayerVelocityVector.x, 0.0f, state.PlayerVelocityVector.z);
             Rigidbody otherRB = collider.GetComponent<Rigidbody>();
             RelativisticObject otherRO = collider.GetComponent<RelativisticObject>();
             if (otherRO != null && otherRB != null && otherRB.isKinematic)
             {
-                float myHeight = GetComponent<MeshFilter>().mesh.bounds.extents.y;
-                Ray downRay = new Ray(transform.position, -Physics.gravity.normalized);
+                float myHeight = transform.parent.GetComponent<MeshFilter>().mesh.bounds.extents.y;
+                Ray downRay = new Ray(transform.position, Physics.gravity.normalized);
                 RaycastHit hitInfo;
                 if (collider.Raycast(downRay, out hitInfo, 4.0f * myHeight))
                 {

@@ -36,11 +36,11 @@ namespace OpenRelativity
         //    }
         //    set
         //    {
-        //        Vector3 estimate = Vector3.zero.WorldToOptical(-_playerVelocityVector, playerTransform.position)
-        //            .WorldToOptical(value, playerTransform.position);
-        //        Vector3 newOrigin = Vector3.zero.WorldToOptical(-playerVelocityVector, playerTransform.position, Vector3.zero)
-        //            .OpticalToWorldSearch(-value, playerTransform.position, Vector3.zero, estimate);
-        //        playerTransform.Translate(newOrigin);
+        //        Vector3 newOrigin = (Vector3.zero - playerTransform.position)
+        //            .ContractLengthBy(-playerVelocityVector)
+        //            .InverseContractLengthBy(-value)
+        //            + playerTransform.position;
+        //        playerTransform.Translate(-newOrigin);
         //        _playerVelocityVector = value;
         //    }
         //}
