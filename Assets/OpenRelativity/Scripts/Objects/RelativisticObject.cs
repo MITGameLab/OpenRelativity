@@ -252,8 +252,8 @@ namespace OpenRelativity.Objects
 
         void OnDestroy()
         {
-            paramsBuffer.Release();
-            vertBuffer.Release();
+            if (paramsBuffer != null) paramsBuffer.Release();
+            if (vertBuffer != null) vertBuffer.Release();
         }
 
         void Awake()
