@@ -9,13 +9,7 @@ namespace OpenRelativity.Objects
     {
         #region Rigid body physics
         //Since we don't have direct access to the level of rigid bodies or PhysX in Unity,
-        // we need to "hack" in relativistic rigid body mechanics, for the time-being.
-        // Any non-static or non-stationary relativistic object needs to follow a
-        // (rigid body) optical clock that depends on its distance from the player.
-
-        //We will use a base 3D rigid body and create a 4D rigid body on top of it.
-        // The base 3D rigid body will generally track quantities in "real space,"
-        // while the 4D rigid body tracks quantities in Minkowski space.
+        // we need to manually update some relativistic rigid body mechanics, for the time-being.
 
         public Vector3 initialViw;
         private Vector3 _viw = Vector3.zero;
@@ -36,17 +30,12 @@ namespace OpenRelativity.Objects
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 Vector3 playerPos = state.transform.position;
                 Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
-                //float gtt = GetGtt();
-                //transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector, gtt).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst, gtt);
                 transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null)
                 {
-                    myRigidbody.velocity = value / (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                    //Attempt to correct for acceleration:
-                    Vector3 playerVel = state.PlayerVelocityVector;
-                    myRigidbody.velocity /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos));
+                    myRigidbody.velocity = value / (float)(state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt());
                 }
             }
         }
@@ -67,7 +56,7 @@ namespace OpenRelativity.Objects
                 {
                     //Changes in angular velocity do not change the object's position in real space relative to Minkowski space,
                     // so just update the base rigid body angular velocity without updating the position.
-                    myRigidbody.angularVelocity = value;
+                    myRigidbody.angularVelocity = value / (float)(state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt());
                 }
             }
         }
@@ -86,7 +75,7 @@ namespace OpenRelativity.Objects
 
         public bool useGravity;
 
-        //Not sure why, but the physics values in our collider materials and rigid bodies become "corrupt"
+        //Not sure why, but the physics values in our collider materials and rigid bodies "go bad"
         // before we can use them. We instantiate duplicates and keep them around:
         // (TODO: Identify why and fix this.)
         public float drag = 0.0f;
@@ -107,11 +96,12 @@ namespace OpenRelativity.Objects
         // Save the original orientation on sleep, and force it back while sleeping.
         private Quaternion sleepRotation;
         //This is a cap on penalty method collision.
-        //(It is the approximate Young's Modulus of diamond.)
+        //(It's roughly the Unity units equivalent of Young's Modulus of diamond.)
         private const float maxYoungsModulus = 1220.0e9f;
         #endregion
 
-        public const float RAD_2_DEG = 57.2957795f;
+        //Radians to degrees
+        private const float RAD_2_DEG = 57.2957795f;
         //Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
         //Store our raw vertices in this variable, so that we can refer to them later
@@ -229,19 +219,16 @@ namespace OpenRelativity.Objects
                 vertBuffer = new ComputeBuffer(rawVerts.Length, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
             }
             vertBuffer.SetData(rawVerts);
-            //ComputeBuffer drawBuffer = new ComputeBuffer(rawVerts.Length, sizeof(float));
             int kernel = colliderShader.FindKernel("CSMain");
             colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
             colliderShader.SetBuffer(kernel, "verts", vertBuffer);
-            //colliderShader.SetBuffer(kernel, "drawBools", drawBuffer);
             colliderShader.Dispatch(kernel, rawVerts.Length, 1, 1);
-            //float[] drawBools = new float[rawVerts.Length];
             vertBuffer.GetData(trnsfrmdMeshVerts);
 
             //Change mesh:
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
             ((MeshCollider)myCollider).sharedMesh = trnsfrmdMesh;
-            //Cache actual and reset local center of mass:
+            //Cache actual world center of mass, and then reset local (rest frame) center of mass:
             myRigidbody.ResetCenterOfMass();
             opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
             myRigidbody.centerOfMass = initCOM;
@@ -812,21 +799,21 @@ namespace OpenRelativity.Objects
 
             //The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
-            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
-            if (trnsfrmdMeshVerts != null)
-            {
-                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
-                {
-                    float radius = trnsfrmdMeshVerts[i].magnitude;
-                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * trnsfrmdMeshVerts[i]).InverseContractLengthBy(viw).magnitude * aviw);
-                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
-                    if (tanVelMagSqr > maxSpeedSqr)
-                    {
-                        tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
-                        aviw = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
-                    }
-                }
-            }
+            //float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+            //if (trnsfrmdMeshVerts != null)
+            //{
+            //    for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+            //    {
+            //        float radius = trnsfrmdMeshVerts[i].magnitude;
+            //        Vector3 tangentialVel = viw.AddVelocity((transform.rotation * trnsfrmdMeshVerts[i]).InverseContractLengthBy(viw).magnitude * aviw);
+            //        float tanVelMagSqr = tangentialVel.sqrMagnitude;
+            //        if (tanVelMagSqr > maxSpeedSqr)
+            //        {
+            //            tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
+            //            aviw = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+            //        }
+            //    }
+            //}
         }
 
         private void checkCollisionSpeed()
@@ -839,22 +826,22 @@ namespace OpenRelativity.Objects
 
             //The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
-            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
-            if (rawVerts != null)
-            {
-                for (int i = 0; i < rawVerts.Length; i++)
-                {
-                    float radius = trnsfrmdMeshVerts[i].magnitude;
-                    Vector3 tangentialVel = viw.AddVelocity((transform.rotation * rawVerts[i]).magnitude * oldCollisionResultAngVel3);
-                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
-                    if (tanVelMagSqr > maxSpeedSqr)
-                    {
-                        tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
-                        oldCollisionResultAngVel3 = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
-                        collisionResultVel3 = oldCollisionResultVel3;
-                    }
-                }
-            }
+            //float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+            //if (rawVerts != null)
+            //{
+            //    for (int i = 0; i < rawVerts.Length; i++)
+            //    {
+            //        float radius = trnsfrmdMeshVerts[i].magnitude;
+            //        Vector3 tangentialVel = viw.AddVelocity((transform.rotation * rawVerts[i]).magnitude * oldCollisionResultAngVel3);
+            //        float tanVelMagSqr = tangentialVel.sqrMagnitude;
+            //        if (tanVelMagSqr > maxSpeedSqr)
+            //        {
+            //            tangentialVel = tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f);
+            //            oldCollisionResultAngVel3 = (-viw).AddVelocity(tangentialVel.normalized * (float)(state.MaxSpeed - 0.01f) / radius);
+            //            collisionResultVel3 = oldCollisionResultVel3;
+            //        }
+            //    }
+            //}
         }
 
         void OnEnable()
@@ -976,26 +963,11 @@ namespace OpenRelativity.Objects
             float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
             float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, this.bounciness, otherRO.bounciness);
 
-            //Tangental relationship scales normalized "bounciness" to a Young's modulus
-            float combYoungsModulus;
-            if (combRestCoeff < 1.0f)
-            {
-                combYoungsModulus = Mathf.Tan(combRestCoeff);
-                //If the Young's modulus is higher than a realistic material, cap it.
-                if (combYoungsModulus > maxYoungsModulus) combYoungsModulus = maxYoungsModulus;
-            }
-            else
-            {
-                //If the coeffecient of restitution is one, set the Young's modulus to max:
-                combYoungsModulus = maxYoungsModulus;
-            }
             oldCollisionResultVel3 = viw;
             oldCollisionResultAngVel3 = aviw;
             otherRO.oldCollisionResultVel3 = otherRO.viw;
             otherRO.oldCollisionResultAngVel3 = otherRO.aviw;
-            Collide(collision, otherRO, contactPoint, combRestCoeff, combFriction, combYoungsModulus, (collision.rigidbody == null) || (collision.rigidbody.isKinematic));
-            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
-            //didCollide = true;
+            Collide(collision, otherRO, contactPoint, combRestCoeff, combFriction, (collision.rigidbody == null) || (collision.rigidbody.isKinematic));
         }
 
         private float CombinePhysics(PhysicMaterialCombine physMatCombine, float mine, float theirs)
@@ -1052,7 +1024,7 @@ namespace OpenRelativity.Objects
             return contactPoint;
         }
 
-        private void Collide(Collision collision, RelativisticObject otherRO, PointAndNorm contactPoint, float combRestCoeff, float combFriction, float combYoungsModulus, bool isReflected)
+        private void Collide(Collision collision, RelativisticObject otherRO, PointAndNorm contactPoint, float combRestCoeff, float combFriction, bool isReflected)
         {
             //We grab the velocities from the RelativisticObject rather than the Rigidbody,
             // since the Rigidbody velocity is not directly physical.
@@ -1223,6 +1195,8 @@ namespace OpenRelativity.Objects
 
         private float GetPenetrationDepth(Collision collision, Vector3 myPRelVel, Vector3 oPos, ref PointAndNorm contactPoint)
         {
+            //Raycast with other collider in a collision
+
             float gamma = myPRelVel.Gamma();
 
             Vector3 testNormal;
@@ -1276,14 +1250,10 @@ namespace OpenRelativity.Objects
             {
                 if (!isSleeping)
                 {
-                    //Dan says, I think the compute shader is already effectively correcting for length contraction:
-                    //Vector3 relVel = viw.AddVelocity(-state.PlayerVelocityVector);
-                    //sleepForwardOrientation = transform.forward.InverseContractLengthBy(relVel).normalized;
-
+                    //The sleep rotation has to be held fixed to keep sleeping objects
+                    // resting flush on stationary surfaces below them.
                     sleepRotation = transform.rotation;
                 }
-                //Vector3 myPRelVel = viw.AddVelocity(-state.PlayerVelocityVector);
-                //transform.forward = sleepRotation.ContractLengthBy(myPRelVel).normalized;
                 transform.rotation = sleepRotation;
                 viw = Vector3.zero;
                 collisionResultVel3 = Vector3.zero;
@@ -1299,6 +1269,9 @@ namespace OpenRelativity.Objects
         }
         #endregion
 
+        //This is the "t-t" or "0-0" component of the metric tensor in an accelerated frame in special relativity.
+        // It appears to change due to proper acceleration from the player's/camera's point of view, since acceleration is not relative.
+        // It also depends on an object's distance from the player, so it is calculated by and for the object itself.
         public float GetGtt()
         {
             Vector3 playerPos = state.playerTransform.position;

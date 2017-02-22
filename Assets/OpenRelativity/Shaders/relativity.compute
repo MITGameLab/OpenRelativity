@@ -150,20 +150,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 		float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
 
-		//if (gtt != 0) {
-		//	tisw *= gtt;
-		//}
-
-		//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
-		/*if (wrldTime + tisw > strtTime || strtTime == 0)
-		{
-			o.draw = 1;
-		}
-		else
-		{
-			o.draw = 0;
-		}*/
-
 		//get the new position offset, based on the new time we just found
 		//Should only be in the Z direction
 
@@ -181,10 +167,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 		//Rotate back to our original orientation
 		riw = rot3(inverse(vpcToZRot), riw);
 	}
-	/*else
-	{
-		o.draw = 1;
-	}*/
 
 	riw += playerOffset;
 

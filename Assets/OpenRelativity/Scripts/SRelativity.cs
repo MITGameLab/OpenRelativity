@@ -145,17 +145,17 @@ namespace OpenRelativity
 
 
         //This method converts the position of an object in the world to its position after the shader is applied.
-        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity/*, float gtt = 1.0f*/)
+        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity)
         {
-            return WorldToOptical(realPos, velocity, Vector3.zero, Vector3.zero/*, gtt*/);
+            return WorldToOptical(realPos, velocity, Vector3.zero, Vector3.zero);
         }
 
-        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity, Vector3 origin/*, float gtt = 1.0f*/)
+        public static Vector3 WorldToOptical(this Vector3 realPos, Vector3 velocity, Vector3 origin)
         {
-            return WorldToOptical(realPos, velocity, origin, Vector3.zero/*, gtt*/);
+            return WorldToOptical(realPos, velocity, origin, Vector3.zero);
         }
 
-        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel/*, float gtt = 1.0f*/)
+        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -213,11 +213,6 @@ namespace OpenRelativity
 
                 float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
 
-                //if (gtt != 0)
-                //{
-                //    tisw *= gtt;
-                //}
-
                 //get the new position offset, based on the new time we just found
                 //Should only be in the Z direction
 
@@ -242,7 +237,7 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector3 OpticalToWorldSearch(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, /*float gtt = 1.0f,*/ float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
+        public static Vector3 OpticalToWorldSearch(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
         {
             //The exact inverse of WorldToOptical is either really complicated or transcendental (i.e., can't be solved for).
             // However, we can approximate the inverse numerically.
@@ -350,11 +345,6 @@ namespace OpenRelativity
 
                     tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
 
-                    //if (gtt != 0)
-                    //{
-                    //    tisw *= gtt;
-                    //}
-
                     //get the new position offset, based on the new time we just found
                     //Should only be in the Z direction
 
@@ -402,33 +392,5 @@ namespace OpenRelativity
             return (float)(SRelativityUtil.c * Math.Tanh(mag / SRelativityUtil.c) / mag) * rapidity;
         }
 
-        //public static double InverseAcceleratedGamma(Vector3 accel, Vector3 vel, double deltaT)
-        //{
-        //    //This formula assumes that the deltaT is small enough that an integral over it can replaced by deltaT times an endpoint.
-        //    // (The approximation could be improved by including more points in the Riemann sum.)
-        //    double cSqrd = SRelativityUtil.cSqrd;
-        //    double invGamma = Math.Sqrt(1.0 - vel.sqrMagnitude / cSqrd);
-        //    return Math.Sqrt(1.0 - 1.0 / cSqrd * (vel.sqrMagnitude + 2 * Vector3.Dot(vel, accel) * deltaT * invGamma + deltaT * deltaT * invGamma * invGamma));
-        //}
-
-        //public static double LightDelayWithGravity(Vector3 location1, Vector3 location2)
-        //{
-        //    return LightDelayWithGravity(location1, location2, Vector3.zero);
-        //}
-
-        //public static double LightDelayWithGravity(Vector3 location1, Vector3 location2, Vector3 relativeVelocity)
-        //{
-        //    return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, (location1 - location2).magnitude / c);
-        //}
-
-        //public static double LightDelayWithGravity(double deltaT, Vector3 relativeVelocity)
-        //{
-        //    return AccelerateTime(srCamera.PlayerAccelerationVector, relativeVelocity, deltaT);
-        //}
-
-        //public static double LightDelayWithGravity(float deltaT)
-        //{
-        //    return AccelerateTime(srCamera.PlayerAccelerationVector, Vector3.zero, deltaT);
-        //}
     }
 }
