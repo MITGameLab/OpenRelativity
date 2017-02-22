@@ -142,7 +142,7 @@ Shader "Relativity/ColorShift"
 		//vw + vp/(1+vw*vp/c^2)
 	
 	
-		float vuDot = dot(_vpc.x, viw.x); //Get player velocity dotted with velocity of the object.
+		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
 		float4 uparra;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 		if (speed > divByZeroCutoff)
