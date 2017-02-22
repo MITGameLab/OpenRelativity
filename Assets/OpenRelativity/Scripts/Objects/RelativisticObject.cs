@@ -761,7 +761,8 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 playerPos = state.playerTransform.position;
                     Vector3 playerVel = state.PlayerVelocityVector;
-                    ((BoxCollider)myCollider).center = transform.InverseTransformPoint(transform.position.WorldToOptical(viw, playerPos, playerVel));
+                    opticalWorldCenterOfMass = transform.position.WorldToOptical(viw, playerPos, playerVel);
+                    ((BoxCollider)myCollider).center = transform.InverseTransformPoint(opticalWorldCenterOfMass);
                 }
             }
         }
@@ -1041,8 +1042,17 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass).InverseContractLengthBy(-myPRelVel);
-            Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass).InverseContractLengthBy(-otherPRelVel);
+            Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);
+            Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass);
+            if (myColliderIsMesh)
+            {
+                //If I have a mesh collider, my collider is affected by length contraction:
+                myLocPoint = myLocPoint.InverseContractLengthBy(-myPRelVel);
+            }
+            if (otherRO.myColliderIsMesh)
+            {
+                otLocPoint = otLocPoint.InverseContractLengthBy(-otherPRelVel);
+            }
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
@@ -1140,8 +1150,17 @@ namespace OpenRelativity.Objects
             }
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass).InverseContractLengthBy(myPRelVel);
-            Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass).InverseContractLengthBy(-otherPRelVel);
+            Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);
+            Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass);
+            if (myColliderIsMesh)
+            {
+                //If I have a mesh collider, my collider is affected by length contraction:
+                myLocPoint = myLocPoint.InverseContractLengthBy(-myPRelVel);
+            }
+            if (otherRO.myColliderIsMesh)
+            {
+                otLocPoint = otLocPoint.InverseContractLengthBy(-otherPRelVel);
+            }
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
