@@ -37,7 +37,8 @@ Shader "Relativity/SkyboxShift" {
 	#define UV_RANGE 380
 	#define UV_START 0
 
-	 
+	//Prevent infinite and NaN values
+	#define divByZeroCutoff 0.0001f
 	
 	struct v2f {
 		float4 pos : POSITION;
@@ -84,8 +85,9 @@ Shader "Relativity/SkyboxShift" {
 		o.uv1.xy = v.texcoord;
 
 	    float4 vr = _vpc - _viw;
+		if (isnan(dot(vr, vr))) vr = float4(0, 0, 0, 0);
 		o.vr = vr;
-		float s = sqrt( pow((vr.x),2) + pow((vr.y),2) + pow((vr.z),2));
+		float s = sqrt(dot(vr, vr));
 		o.svc = sqrt( 1 - s * s); // To decrease number of operations in fragment shader 
 		
 		//You need this otherwise the screen flips and weird stuff happens
@@ -191,45 +193,42 @@ Shader "Relativity/SkyboxShift" {
 	//Per pixel or something like that
 	float4 frag(v2f i) : COLOR 
 	{
-	
-		float x1 = i.pos2.x * 2*xs;
-		float y1 = i.pos2.y * 2*xs/xyr; 
+		float x1 = i.pos2.x * 2 * xs;
+		float y1 = i.pos2.y * 2 * xs / xyr;
 		float z1 = i.pos2.z;
-		
-		float svc = (1-((x1*i.vr.x + y1*i.vr.y + z1*i.vr.z)/sqrt( x1 * x1 + y1 * y1 + z1 * z1)))/i.svc; 
-	
-		if(_colorShift == 0)
+
+		float shift = (1 - ((x1*i.vr.x + y1*i.vr.y + z1*i.vr.z) / sqrt(x1 * x1 + y1 * y1 + z1 * z1))) / i.svc;
+		if (_colorShift == 0 || isinf(shift) || isnan(shift))
 		{
-			svc = 1.0f;
+			shift = 1.0f;
 		}
 		//Get initial color
-		float3 rgb = tex2D (_MainTex, i.uv1).rgb;  
-		float UV = tex2D( _UVTex, i.uv1).r;
-		float IR = tex2D( _IRTex, i.uv1).r;
-		
+		float3 rgb = tex2D(_MainTex, i.uv1).rgb;
+		float UV = tex2D(_UVTex, i.uv1).r;
+		float IR = tex2D(_IRTex, i.uv1).r;
+
 		float3 xyz = RGBToXYZC(float(rgb.x),float(rgb.y),float(rgb.z));
 		float3 weights = weightFromXYZCurves(xyz);
 		float3 rParam,gParam,bParam,UVParam,IRParam;
-		rParam.x = weights.x; rParam.y = ( float) 615; rParam.z = ( float)8;
-		gParam.x = weights.y; gParam.y = ( float) 550; gParam.z = ( float)4;
-		bParam.x = weights.z; bParam.y = ( float) 463; bParam.z = ( float)5; 
+		rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+		gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+		bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
 		UVParam.x = 0.1; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)1;
 		IRParam.x = 0.1; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)1;
-		
-		float xf = pow((1/svc),3)*(getXFromCurve(rParam, svc) + getXFromCurve(gParam,svc) + getXFromCurve(bParam,svc) + getXFromCurve(IRParam,svc) + getXFromCurve(UVParam,svc));
-		float yf = pow((1/svc),3)*(getYFromCurve(rParam, svc) + getYFromCurve(gParam,svc) + getYFromCurve(bParam,svc) + getYFromCurve(IRParam,svc) + getYFromCurve(UVParam,svc));
-		float zf = pow((1/svc),3)*(getZFromCurve(rParam, svc) + getZFromCurve(gParam,svc) + getZFromCurve(bParam,svc) + getZFromCurve(IRParam,svc) + getZFromCurve(UVParam,svc));
-		
+
+		float xf = pow((1 / shift),3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+		float yf = pow((1 / shift),3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+		float zf = pow((1 / shift),3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+
 		float3 rgbFinal = XYZToRGBC(xf,yf,zf);
 		//rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z);
 
-  		float4x4 temp  = mul(1.0*unity_ObjectToWorld, unity_WorldToObject);
-		float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1));
+		float4x4 temp = mul(1.0*unity_ObjectToWorld, unity_WorldToObject);
+		float4 temp2 = mul(temp,float4((float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1));
 		//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1);
-		return temp2; 
+		return temp2;
 		//float a = sizeof(float);
 		//return float4( yf - 0.1,0,0,1);
-
 		
 	}
 
