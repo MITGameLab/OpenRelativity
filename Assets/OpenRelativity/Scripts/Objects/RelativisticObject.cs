@@ -759,10 +759,18 @@ namespace OpenRelativity.Objects
                 //If we have a BoxCollider, transform its center to its optical position
                 else if (myColliderIsBox)
                 {
+                    Vector3 initCOM = Vector3.zero;
+                    if (myRigidbody != null)
+                    {
+                        initCOM = myRigidbody.centerOfMass;
+                    }
                     Vector3 playerPos = state.playerTransform.position;
                     Vector3 playerVel = state.PlayerVelocityVector;
                     opticalWorldCenterOfMass = transform.position.WorldToOptical(viw, playerPos, playerVel);
                     ((BoxCollider)myCollider).center = transform.InverseTransformPoint(opticalWorldCenterOfMass);
+                    if (myRigidbody != null) {
+                        myRigidbody.centerOfMass = initCOM;
+                    }
                 }
             }
         }
