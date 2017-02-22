@@ -19,12 +19,10 @@ namespace OpenRelativity.PrefabScripts
         public float viwMax = 3;
 
         GameState state;
-        RelativisticObject myRO;
 
         void Start()
         {
             state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-            myRO = GetComponent<RelativisticObject>();
 
             //We let you set a public variable to determine the number of seconds between each launch of an object.
             //If that variable is unset, we make sure to put it at 3 here.

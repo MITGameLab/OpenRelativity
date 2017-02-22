@@ -180,12 +180,7 @@ namespace OpenRelativity
             Vector3 uperp = viw - uparra;
             //relative velocity calculation
             Vector3 vr = -1 * (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
-            //float3 vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
-            //set our relative velocity
-            //o.vr = vr;
-            //vr *= -1;
             float speedr = vr.magnitude;
-            float svc = Mathf.Sqrt(1 - speedr * speedr);
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
@@ -312,12 +307,7 @@ namespace OpenRelativity
             Vector3 uperp = viw - uparra;
             //relative velocity calculation
             Vector3 vr = -1 * (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
-            //float3 vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
-            //set our relative velocity
-            //o.vr = vr;
-            //vr *= -1;
             float speedr = vr.magnitude;
-            float svc = Mathf.Sqrt(1 - speedr * speedr);
 
             Quaternion rotFromVPCtoZ = Quaternion.identity;
             if (speedr == 0) // If the relative speed is zero, the optical position is equal to the world position.

@@ -154,10 +154,6 @@ namespace OpenRelativity.Objects
         private Vector3 collisionResultVel3;
         //What was the angular velocity result?
         private Vector3 collisionResultAngVel3;
-        //What was the original translational velocity?
-        private Vector3 preCollisionVel3;
-        //What was the original angular velocity?
-        private Vector3 preCollisionAngVel3;
         //Time when the collision started
         private double collideTimeStart;
         //Collision-softening time
@@ -165,6 +161,9 @@ namespace OpenRelativity.Objects
         //For penalty methods, we need an intermediate collision velocity result
         private Vector3 oldCollisionResultVel3;
         private Vector3 oldCollisionResultAngVel3;
+
+        ComputeBuffer paramsBuffer;
+        ComputeBuffer vertBuffer;
 
         //We need to freeze any attached rigidbody if the world states is frozen 
         private bool wasKinematic = false;
@@ -220,9 +219,15 @@ namespace OpenRelativity.Objects
             spa[0] = colliderShaderParams;
 
             //Put verts in R/W buffer and dispatch:
-            ComputeBuffer paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
+            if (paramsBuffer == null)
+            {
+                paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
+            }
             paramsBuffer.SetData(spa);
-            ComputeBuffer vertBuffer = new ComputeBuffer(rawVerts.Length, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+            if (vertBuffer == null)
+            {
+                vertBuffer = new ComputeBuffer(rawVerts.Length, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+            }
             vertBuffer.SetData(rawVerts);
             //ComputeBuffer drawBuffer = new ComputeBuffer(rawVerts.Length, sizeof(float));
             int kernel = colliderShader.FindKernel("CSMain");
@@ -243,6 +248,12 @@ namespace OpenRelativity.Objects
 
             meshFilter.mesh.RecalculateBounds();
             meshFilter.mesh.RecalculateNormals();
+        }
+
+        void OnDestroy()
+        {
+            paramsBuffer.Release();
+            vertBuffer.Release();
         }
 
         void Awake()
@@ -1047,9 +1058,7 @@ namespace OpenRelativity.Objects
             // since the Rigidbody velocity is not directly physical.
             float mass = myRigidbody.mass;
             Vector3 myVel = oldCollisionResultVel3;
-            preCollisionVel3 = myVel;
             Vector3 myAngVel = oldCollisionResultAngVel3;
-            preCollisionAngVel3 = myAngVel;
             Rigidbody otherRB = collision.rigidbody;
             Vector3 otherVel = otherRO.viw;
             Vector3 otherAngVel = otherRO.aviw;
@@ -1075,10 +1084,6 @@ namespace OpenRelativity.Objects
             //Find the relative velocity:
             Vector3 relVel = otherContactVel.AddVelocity(myParraVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
-            //Rotate so our parrallel velocity is on the forward vector:
-            Quaternion rotRVtoForward = Quaternion.FromToRotation(lineOfAction, Vector3.forward);
-            Vector3 myContactVel = rotRVtoForward * myParraVel;
-            otherContactVel = rotRVtoForward * otherContactVel;
             //Find the relative rapidity on the line of action, where my contact velocity is 0:
             Vector3 rapidityOnLoA = relVel.Gamma() * relVel;
             myLocPoint = myLocPoint.ContractLengthBy(relVel);
@@ -1103,28 +1108,12 @@ namespace OpenRelativity.Objects
 
             impulse *= (1.0f + combFriction);
 
-            //We will be applying penalty methods next.
-            //To conserve energy, we subtract the energy of "spring" deformation at the initial time of collision,
-            // and then we immediately start applying Hooke's law to make up the difference.
-            //The impulse has units of momentum. By the definition of the kinetic energy as K=p^2/2, what is the loss of momentum?
-            //PointAndNorm dupePointAndNorm = new PointAndNorm()
-            //{
-            //    normal = contactPoint.normal,
-            //    point = contactPoint.point
-            //};
-            //Vector3 oPos = transform.position.WorldToOptical(myVel, playerPos, playerVel/*, GetGtt()*/);
-            //float penDepth = GetPenetrationDepth(collision, myPRelVel, oPos, ref dupePointAndNorm);
-            ////Treat the Young's modulus rather as just a 1 dimensional spring constant:
-            //float momentumLoss = Mathf.Sqrt(combYoungsModulus) * penDepth;
-            //impulse -= momentumLoss;
-            //We still need to apply a spring constant at the end.
-
             //The change in rapidity on the line of action:
             Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;
             //The change in rapidity perpendincular to the line of action:
             Vector3 finalPerpRapidity = myVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
             //Velocities aren't linearly additive in relativity, but rapidities are:
-            Vector3 finalTotalRapidity = finalParraRapidity + finalPerpRapidity;
+
             double spdOfLight = state.SpeedOfLight;
             Vector3 tanVelFinal = finalPerpRapidity.RapidityToVelocity();
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
@@ -1149,9 +1138,6 @@ namespace OpenRelativity.Objects
             oldCollisionResultAngVel3 = collisionResultAngVel3;
             didCollide = true;
             //collideTimeStart = (float)state.TotalTimeWorld;
-
-            //Now, we start applying penalty methods:
-            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
         }
 
         //EXPERIMENTAL PENALTY METHOD CODE BELOW
@@ -1162,9 +1148,7 @@ namespace OpenRelativity.Objects
             // since the Rigidbody velocity is not directly physical.
             float mass = myRigidbody.mass;
             Vector3 myVel = oldCollisionResultVel3;
-            preCollisionVel3 = myVel;
             Vector3 myAngVel = oldCollisionResultAngVel3;
-            preCollisionAngVel3 = myAngVel;
             Rigidbody otherRB = collision.rigidbody;
             Vector3 otherVel = otherRO.oldCollisionResultVel3;
             Vector3 otherAngVel = otherRO.oldCollisionResultAngVel3;
@@ -1199,12 +1183,7 @@ namespace OpenRelativity.Objects
             //Find the relative velocity:
             Vector3 relVel = otherContactVel.AddVelocity(myParraVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
-            //Rotate so our parrallel velocity is on the forward vector:
-            Quaternion rotRVtoForward = Quaternion.FromToRotation(lineOfAction, Vector3.forward);
-            Vector3 myContactVel = rotRVtoForward * myParraVel;
-            otherContactVel = rotRVtoForward * otherContactVel;
-            //Find the relative rapidity on the line of action, where my contact velocity is 0:
-            Vector3 rapidityOnLoA = relVel.Gamma() * relVel;
+
             myLocPoint = myLocPoint.ContractLengthBy(relVel);
             otLocPoint = otLocPoint.ContractLengthBy(relVel);
 
