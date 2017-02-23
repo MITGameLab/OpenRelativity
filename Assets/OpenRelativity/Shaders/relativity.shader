@@ -46,7 +46,7 @@ Shader "Relativity/ColorShift"
 	#define UV_START 0
 
 	//Prevent infinite and NaN values
-	#define divByZeroCutoff 0.001f
+	#define divByZeroCutoff 0.0001f
 
 	//Quaternion math
 	#define quaternion float4
@@ -143,23 +143,26 @@ Shader "Relativity/ColorShift"
 	
 	
 		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
+		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 		float4 vr = float4(0, 0, 0, 0);
-		float4 uparra = float4(0, 0, 0, 0);
-		//If our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 		if (speed > divByZeroCutoff)
 		{
-			uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity	
+			float4 uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
+			//Get the perpendicular component of our velocity, just by subtraction
+			float4 uperp = viw - uparra;
+			//relative velocity calculation
+			vr = (_vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+
+			//set our relative velocity
+			o.vr = vr;
+			vr *= -1;
 		}
-
-		//Get the perpendicular component of our velocity, just by subtraction
-		float4 uperp = viw - uparra;
-		//relative velocity calculation
-
-		vr = (_vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
-
-		//set our relative velocity
-		o.vr = vr;
-		vr *= -1;
+		//If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
+		else
+		{
+			speed = 0;
+			o.vr = float4(0, 0, 0, 0);
+		}
 		
 		//relative speed
 		float speedr = sqrt(dot(vr, vr));
@@ -176,7 +179,7 @@ Shader "Relativity/ColorShift"
         if (speedr > divByZeroCutoff) // If speed is zero, rotation fails
         {
 			quaternion vpcToZRot = quaternion(0.0f, 0.0f, 0.0f, 1.0f);
-			if ( speed > divByZeroCutoff )
+			if ( speed != 0 )
 			{
 				//We're getting the angle between our z direction of movement and the world's Z axis
 				float4 direction = normalize(_vpc);

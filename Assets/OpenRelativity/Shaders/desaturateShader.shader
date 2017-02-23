@@ -11,7 +11,7 @@ Shader "Colors/Desaturate" {
 	
 	struct v2f {
 		float4 pos : POSITION;
-		float2 uv1 : TEXCOORD0;
+		float2 uv1;
 	};
 		
 	sampler2D _MainTex;
