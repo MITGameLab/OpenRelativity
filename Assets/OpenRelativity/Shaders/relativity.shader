@@ -46,7 +46,7 @@ Shader "Relativity/ColorShift"
 	#define UV_START 0
 
 	//Prevent infinite and NaN values
-	#define divByZeroCutoff 1e-8f
+	#define divByZeroCutoff 1e-5f
 
 	//Quaternion math
 	#define quaternion float4
@@ -149,11 +149,11 @@ Shader "Relativity/ColorShift"
 		{
 			uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 		}
-		//If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
+		//If our speed is nearly zero, it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
 		else
 		{
 			speed = 0;
-			uparra = _vpc;
+			uparra = viw;
 		}
 		//Get the perpendicular component of our velocity, just by subtraction
 		float4 uperp = viw - uparra;

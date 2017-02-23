@@ -155,7 +155,7 @@ namespace OpenRelativity
             return WorldToOptical(realPos, velocity, origin, Vector3.zero);
         }
 
-        private const float divByZeroCutoff = 1e-8f;
+        private const float divByZeroCutoff = 1e-5f;
 
         public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {
@@ -177,7 +177,7 @@ namespace OpenRelativity
             else
             {
                 speed = 0;
-                uparra = vpc;
+                uparra = viw;
             }
             //Get the perpendicular component of our velocity, just by subtraction
             Vector3 uperp = viw - uparra;
@@ -188,10 +188,10 @@ namespace OpenRelativity
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
 
-            if (speedr != 0) // If speed is zero, rotation fails
+            if (speedr > divByZeroCutoff) // If speed is zero, rotation fails
             {
                 Quaternion rotFromVPCtoZ = Quaternion.identity;
-                if (speed != 0)
+                if (speed > divByZeroCutoff)
                 {
                     //we're getting the angle between our z direction of movement and the world's Z axis
                     rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));
@@ -300,7 +300,7 @@ namespace OpenRelativity
             else
             {
                 speed = 0;
-                uparra = vpc;
+                uparra = viw;
             }
             //Get the perpendicular component of our velocity, just by subtraction
             Vector3 uperp = viw - uparra;
@@ -315,7 +315,7 @@ namespace OpenRelativity
             }
             else
             {
-                if (speed != 0)
+                if (speed > divByZeroCutoff)
                 {
                     //we're getting the angle between our z direction of movement and the world's Z axis
                     rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));

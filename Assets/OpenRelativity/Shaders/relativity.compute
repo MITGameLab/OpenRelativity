@@ -104,7 +104,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	else
 	{
 		speed = 0;
-		uparra = vpc;
+		uparra = viw;
 	}
 	//Get the perpendicular component of our velocity, just by subtraction
 	float3 uperp = viw - uparra;
