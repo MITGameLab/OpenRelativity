@@ -75,14 +75,6 @@ namespace OpenRelativity.Objects
 
         public bool useGravity;
 
-        //Not sure why, but the physics values in our collider materials and rigid bodies "go bad"
-        // before we can use them. We instantiate duplicates and keep them around:
-        // (TODO: Identify why and fix this.)
-        public float drag = 0.0f;
-        public float angularDrag = 0.0f;
-        public float bounciness = 0.8f;
-        public Vector3 inertiaTensor;
-
         //This is a velocity we "sleep" the rigid body at:
         private const float sleepVelocity = 0.05f;
         //Once we're below the sleep velocity threshold, this is how many frames we wait for
@@ -136,7 +128,7 @@ namespace OpenRelativity.Objects
         //If we have a Rigidbody, we cache it here
         private Rigidbody myRigidbody;
         //The center of mass calculation in the rigidbody becomes non-physical when we transform the collider
-        public Vector3 opticalWorldCenterOfMass;
+        public Vector3 opticalWorldCenterOfMass { get; set; }
 
         //Did we collide last frame?
         private bool didCollide;
@@ -903,7 +895,7 @@ namespace OpenRelativity.Objects
             PhysicMaterial otherMaterial = collision.collider.material;
             PhysicMaterial myMaterial = myCollider.material;
             float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
-            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, this.bounciness, otherRO.bounciness);
+            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, myMaterial.bounciness, otherMaterial.bounciness);
 
             //Tangental relationship scales normalized "bounciness" to a Young's modulus
             float combYoungsModulus;
@@ -970,7 +962,7 @@ namespace OpenRelativity.Objects
             PhysicMaterial otherMaterial = collision.collider.material;
             PhysicMaterial myMaterial = myCollider.material;
             float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
-            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, this.bounciness, otherRO.bounciness);
+            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, myMaterial.bounciness, otherMaterial.bounciness);
 
             oldCollisionResultVel3 = viw;
             oldCollisionResultAngVel3 = aviw;
