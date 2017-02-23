@@ -85,7 +85,7 @@ Shader "Relativity/SkyboxShift" {
 
 	    float4 vr = _vpc - _viw;
 		o.vr = vr;
-		float s = sqrt( pow((vr.x),2) + pow((vr.y),2) + pow((vr.z),2));
+		float s = sqrt(dot(vr, vr));
 		o.svc = sqrt( 1 - s * s); // To decrease number of operations in fragment shader 
 		
 		//You need this otherwise the screen flips and weird stuff happens

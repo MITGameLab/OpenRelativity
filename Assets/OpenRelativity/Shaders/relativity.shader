@@ -46,7 +46,7 @@ Shader "Relativity/ColorShift"
 	#define UV_START 0
 
 	//Prevent infinite and NaN values
-	#define divByZeroCutoff 0.00001f
+	#define divByZeroCutoff 1e-8f
 
 	//Quaternion math
 	#define quaternion float4
@@ -153,7 +153,7 @@ Shader "Relativity/ColorShift"
 		else
 		{
 			speed = 0;
-			uparra = 0;
+			uparra = _vpc;
 		}
 		//Get the perpendicular component of our velocity, just by subtraction
 		float4 uperp = viw - uparra;
