@@ -46,7 +46,7 @@ Shader "Relativity/ColorShift"
 	#define UV_START 0
 
 	//Prevent infinite and NaN values
-	#define divByZeroCutoff 0.0001f
+	#define divByZeroCutoff 0.00001f
 
 	//Quaternion math
 	#define quaternion float4
@@ -143,27 +143,26 @@ Shader "Relativity/ColorShift"
 	
 	
 		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
+		float4 uparra;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		float4 vr = float4(0, 0, 0, 0);
 		if (speed > divByZeroCutoff)
 		{
-			float4 uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
-			//Get the perpendicular component of our velocity, just by subtraction
-			float4 uperp = viw - uparra;
-			//relative velocity calculation
-			vr = (_vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
-
-			//set our relative velocity
-			o.vr = vr;
-			vr *= -1;
+			uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 		}
 		//If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
 		else
 		{
 			speed = 0;
-			o.vr = float4(0, 0, 0, 0);
+			uparra = 0;
 		}
-		
+		//Get the perpendicular component of our velocity, just by subtraction
+		float4 uperp = viw - uparra;
+		//relative velocity calculation
+		float4 vr =( _vpc - uparra - (sqrt(1-speed*speed))*uperp)/(1+vuDot);
+	 
+		//set our relative velocity
+		o.vr = vr;
+		vr *= -1;
 		//relative speed
 		float speedr = sqrt(dot(vr, vr));
 		o.svc = sqrt( 1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
@@ -176,7 +175,7 @@ Shader "Relativity/ColorShift"
 		//riw = location in world, for reference
         float4 riw = o.pos; //Position that will be used in the output
 		
-        if (speedr > divByZeroCutoff) // If speed is zero, rotation fails
+        if (speedr != 0) // If speed is zero, rotation fails
         {
 			quaternion vpcToZRot = quaternion(0.0f, 0.0f, 0.0f, 1.0f);
 			if ( speed != 0 )
@@ -349,45 +348,48 @@ Shader "Relativity/ColorShift"
 	float4 frag(v2f i) : COLOR 
 	{
 		//Used to maintian a square scale ( adjust for screen aspect ratio )
-		float x1 = i.pos2.x * 2 * xs;
-		float y1 = i.pos2.y * 2 * xs / xyr;
+		float x1 = i.pos2.x * 2*xs;
+		float y1 = i.pos2.y * 2*xs/xyr; 
 		float z1 = i.pos2.z;
-
+		
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-		float shift = (1 - ((x1*i.vr.x + y1*i.vr.y + z1*i.vr.z) / sqrt(x1 * x1 + y1 * y1 + z1 * z1))) / i.svc;
-		if (_colorShift == 0 || isinf(shift) || isnan(shift))
+		float shift = (1-((x1*i.vr.x + y1*i.vr.y + z1*i.vr.z)/sqrt( x1 * x1 + y1 * y1 + z1 * z1)))/i.svc; 
+		if ( _colorShift == 0) 
 		{
 			shift = 1.0f;
 		}
 		//Get initial color 
-		float4 data = tex2D(_MainTex, i.uv1).rgba;
-		float UV = tex2D(_UVTex, i.uv1).r;
-		float IR = tex2D(_IRTex, i.uv1).r;
-
+		float4 data = tex2D (_MainTex, i.uv1).rgba;   
+		float UV = tex2D( _UVTex, i.uv1).r;
+		float IR = tex2D( _IRTex, i.uv1).r;
+	
 		//Set alpha of drawing pixel to 0 if vertex shader has determined it should not be drawn.
-		data.a = i.draw ? data.a : 0;
+  	    data.a = i.draw ? data.a : 0;
 
 		float3 rgb = data.xyz;
 
+		
+
+			
 		//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 		float3 xyz = RGBToXYZC(float(rgb.x),float(rgb.y),float(rgb.z));
 		float3 weights = weightFromXYZCurves(xyz);
 		float3 rParam,gParam,bParam,UVParam,IRParam;
-		rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
-		gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
-		bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+		rParam.x = weights.x; rParam.y = ( float) 615; rParam.z = ( float)8;
+		gParam.x = weights.y; gParam.y = ( float) 550; gParam.z = ( float)4;
+		bParam.x = weights.z; bParam.y = ( float) 463; bParam.z = ( float)5; 
 		UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
 		IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
-
-		float xf = pow((1 / shift),3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
-		float yf = pow((1 / shift),3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
-		float zf = pow((1 / shift),3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
-
+		
+		float xf = pow((1/shift),3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
+		float yf = pow((1/shift),3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
+		float zf = pow((1/shift),3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
+		
 		float3 rgbFinal = XYZToRGBC(xf,yf,zf);
 		rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
 		//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
-		//float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
+  		//float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
 		//float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a));
 		//return temp2;	
 		//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a );
