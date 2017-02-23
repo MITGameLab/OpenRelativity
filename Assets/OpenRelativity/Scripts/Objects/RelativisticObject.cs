@@ -222,11 +222,15 @@ namespace OpenRelativity.Objects
             ((MeshCollider)myCollider).sharedMesh = trnsfrmdMesh;
             //Cache actual world center of mass, and then reset local (rest frame) center of mass:
             myRigidbody.ResetCenterOfMass();
+            meshFilter.mesh.RecalculateBounds();
+            meshFilter.mesh.RecalculateNormals();
+            //Mobile only:
+            //meshFilter.mesh.RecalculateTangents();
             opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
             myRigidbody.centerOfMass = initCOM;
 
-            meshFilter.mesh.RecalculateBounds();
-            meshFilter.mesh.RecalculateNormals();
+            
+            
         }
 
         void OnDestroy()
@@ -426,6 +430,7 @@ namespace OpenRelativity.Objects
             if (meshFilter != null)
             {
                 rawVerts = meshFilter.mesh.vertices;
+                meshFilter.mesh.MarkDynamic();
             }
             else
                 rawVerts = null;
@@ -434,7 +439,6 @@ namespace OpenRelativity.Objects
             if (myColliderIsMesh && myCollider != null)
             {
                 trnsfrmdMeshVerts = new Vector3[rawVerts.Length];
-                //UpdateCollider();
             }
 
             checkSpeed();
@@ -760,7 +764,8 @@ namespace OpenRelativity.Objects
                     Vector3 playerVel = state.PlayerVelocityVector;
                     opticalWorldCenterOfMass = transform.position.WorldToOptical(viw, playerPos, playerVel);
                     ((BoxCollider)myCollider).center = transform.InverseTransformPoint(opticalWorldCenterOfMass);
-                    if (myRigidbody != null) {
+                    if (myRigidbody != null)
+                    {
                         myRigidbody.centerOfMass = initCOM;
                     }
                 }

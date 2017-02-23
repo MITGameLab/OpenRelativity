@@ -155,6 +155,8 @@ namespace OpenRelativity
             return WorldToOptical(realPos, velocity, origin, Vector3.zero);
         }
 
+        private const float divByZeroCutoff = 1e-8f;
+
         public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {
             float spdOfLight = SRelativityUtil.c;
@@ -164,22 +166,23 @@ namespace OpenRelativity
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
 
-            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object
+            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 uparra;
-
-            ////IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed != 0)
+            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+            if (speed > divByZeroCutoff)
             {
                 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
             }
-            //If our speed is zero, set parallel velocity to zero
+            //If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
             else
             {
-                uparra = Vector3.zero;
+                speed = 0;
+                uparra = vpc;
             }
+            //Get the perpendicular component of our velocity, just by subtraction
             Vector3 uperp = viw - uparra;
             //relative velocity calculation
-            Vector3 vr = -1 * (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
+            Vector3 vr = -(vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
             float speedr = vr.magnitude;
 
             //riw = location in world, for reference
@@ -286,22 +289,23 @@ namespace OpenRelativity
             float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
             Vector3 viw = velocity / spdOfLight;
 
-            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object
+            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 uparra;
-
-            ////IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed != 0)
+            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+            if (speed > divByZeroCutoff)
             {
                 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
             }
-            //If our speed is zero, set parallel velocity to zero
+            //If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
             else
             {
-                uparra = Vector3.zero;
+                speed = 0;
+                uparra = vpc;
             }
+            //Get the perpendicular component of our velocity, just by subtraction
             Vector3 uperp = viw - uparra;
             //relative velocity calculation
-            Vector3 vr = -1 * (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
+            Vector3 vr = -(vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
             float speedr = vr.magnitude;
 
             Quaternion rotFromVPCtoZ = Quaternion.identity;
