@@ -54,7 +54,7 @@ namespace OpenRelativity
         //If we've paused the game
         private bool movementFrozen = false;
         //player Velocity as a scalar magnitude
-        public double playerVelocity;
+        public double playerVelocity { get; set; }
         //time passed since last frame in the world frame
         private double deltaTimeWorld;
         //time passed since last frame in the player frame
@@ -78,9 +78,9 @@ namespace OpenRelativity
         private bool shaderOff = false;
 
         //Did we hit the menu key?
-        public bool menuKeyDown = false;
+        public bool menuKeyDown { get; set; }
         //Did we hit the shader key?
-        public bool shaderKeyDown = false;
+        public bool shaderKeyDown { get; set; }
 
 
         //This is a value that gets used in many calculations, so we calculate it each frame
@@ -89,9 +89,9 @@ namespace OpenRelativity
         //private double inverseAcceleratedGamma;
 
         //Player rotation and change in rotation since last frame
-        public Vector3 playerRotation = new Vector3(0, 0, 0);
-        public Vector3 deltaRotation = new Vector3(0, 0, 0);
-        public double pctOfSpdUsing = 0; // Percent of velocity you are using
+        public Vector3 playerRotation { get; set; }
+        public Vector3 deltaRotation { get; set; }
+        public double pctOfSpdUsing { get; set; } // Percent of velocity you are using
 
 
 
@@ -99,7 +99,6 @@ namespace OpenRelativity
 
         #region Properties
 
-        public float finalMaxSpeed = .99f;
         public bool MovementFrozen { get { return movementFrozen; } set { movementFrozen = value; } }
 
         public Matrix4x4 WorldRotation { get { return worldRotation; } }
@@ -121,7 +120,7 @@ namespace OpenRelativity
         public double SpeedOfLight { get { return c; } set { c = value; cSqrd = value * value; } }
         public double SpeedOfLightSqrd { get { return cSqrd; } }
 
-        public bool keyHit = false;
+        public bool keyHit { get; set; }
         public double MaxSpeed { get { return maxSpeed; } set { maxSpeed = value; } }
 
         #endregion
@@ -155,13 +154,17 @@ namespace OpenRelativity
             cSqrd = c * c;
             //And ensure that the game starts/
             movementFrozen = false;
+            menuKeyDown = false;
+            shaderKeyDown = false;
+            keyHit = false;
+
+            playerRotation = Vector3.zero;
+            deltaRotation = Vector3.zero;
         }
         public void reset()
         {
             //Reset everything not level-based
-            playerRotation.x = 0;
-            playerRotation.y = 0;
-            playerRotation.z = 0;
+            playerRotation = Vector3.zero;
             pctOfSpdUsing = 0;
         }
         //Call this function to pause and unpause the game

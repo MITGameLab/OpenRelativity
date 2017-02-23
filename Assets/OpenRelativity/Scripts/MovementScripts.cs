@@ -25,13 +25,13 @@ namespace OpenRelativity
         //Just turn this negative when they press the Y button for inversion.
         private int inverted;
         //What is our current target for the speed of light?
-        public int speedOfLightTarget;
+        public int speedOfLightTarget { get; set; }
         //What is each step we take to reach that target?
         private float speedOfLightStep;
         //For now, you can change this how you like.
         public float mouseSensitivity;
         //So we can use getAxis as keyHit function
-        public bool invertKeyDown = false;
+        public bool invertKeyDown { get; set; }
         //Keep track of total frames passed
         int frames;
         //How fast are we going to shoot the bullets?
@@ -55,6 +55,7 @@ namespace OpenRelativity
             speedOfLightTarget = (int)state.SpeedOfLight;
             //Inverted, at first
             inverted = -1;
+            invertKeyDown = false;
 
             viwMax = Mathf.Min(viwMax, (float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
 
