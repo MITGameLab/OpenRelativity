@@ -97,6 +97,10 @@ namespace OpenRelativity
         public static Vector4 ContractLengthBy(this Vector4 interval, Vector4 velocity)
         {
             float sqrMag = velocity.sqrMagnitude;
+            if (sqrMag == 0.0f)
+            {
+                return interval;
+            }
             float invGamma = Mathf.Sqrt(1.0f + sqrMag / cSqrd);
             Quaternion rot = Quaternion.FromToRotation(1.0f / sqrMag * velocity, Vector3.right);
             Vector3 rotInt = rot * new Vector3(interval.x, interval.y, interval.z);
@@ -107,6 +111,10 @@ namespace OpenRelativity
         public static Vector4 InverseContractLengthBy(this Vector4 interval, Vector4 velocity)
         {
             float sqrMag = velocity.sqrMagnitude;
+            if (sqrMag == 0.0f)
+            {
+                return interval;
+            }
             float invGamma = Mathf.Sqrt(1.0f + sqrMag / cSqrd);
             Quaternion rot = Quaternion.FromToRotation(1.0f / sqrMag * velocity, Vector3.right);
             Vector3 rotInt = rot * new Vector3(interval.x, interval.y, interval.z);
@@ -123,7 +131,7 @@ namespace OpenRelativity
                 return interval;
             }
             float invGamma = Mathf.Sqrt(1.0f - speedSqr / cSqrd);
-            Quaternion rot = Quaternion.FromToRotation(velocity.normalized, Vector3.forward);
+            Quaternion rot = Quaternion.FromToRotation(velocity / Mathf.Sqrt(speedSqr), Vector3.forward);
             Vector3 rotInt = rot * interval;
             rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z * invGamma);
             return Quaternion.Inverse(rot) * rotInt;
@@ -137,7 +145,7 @@ namespace OpenRelativity
                 return interval;
             }
             float invGamma = Mathf.Sqrt(1.0f - speedSqr / cSqrd);
-            Quaternion rot = Quaternion.FromToRotation(velocity.normalized, Vector3.forward);
+            Quaternion rot = Quaternion.FromToRotation(velocity / Mathf.Sqrt(speedSqr), Vector3.forward);
             Vector3 rotInt = rot * interval;
             rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z / invGamma);
             return Quaternion.Inverse(rot) * rotInt;
@@ -393,6 +401,10 @@ namespace OpenRelativity
         public static Vector3 RapidityToVelocity(this Vector3 rapidity)
         {
             float mag = rapidity.magnitude;
+            if (mag == 0.0f)
+            {
+                return Vector3.zero;
+            }
             return (float)(SRelativityUtil.c * Math.Tanh(mag / SRelativityUtil.c) / mag) * rapidity;
         }
 
