@@ -33,7 +33,7 @@ namespace OpenRelativity.Objects
                 transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
                 _viw = value;
                 //Also update the Rigidbody, if any
-                if (myRigidbody != null)
+                if (myRigidbody != null && !state.MovementFrozen)
                 {
                     myRigidbody.velocity = value / (float)(state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt());
                 }
@@ -52,7 +52,7 @@ namespace OpenRelativity.Objects
             {
                 initialAviw = value;
                 _aviw = value;
-                if (myRigidbody != null)
+                if (myRigidbody != null && !state.MovementFrozen)
                 {
                     //Changes in angular velocity do not change the object's position in real space relative to Minkowski space,
                     // so just update the base rigid body angular velocity without updating the position.
@@ -743,6 +743,7 @@ namespace OpenRelativity.Objects
             else if (meshFilter != null && tempRenderer != null && myRigidbody != null)
             {
                 myRigidbody.velocity = Vector3.zero;
+                myRigidbody.angularVelocity = Vector3.zero;
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
