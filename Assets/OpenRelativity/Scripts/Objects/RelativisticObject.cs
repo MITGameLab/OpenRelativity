@@ -20,8 +20,9 @@ namespace OpenRelativity.Objects
                 return _viw;
             }
             //Changing velocities lose continuity of position,
-            // unless we inverse boost the global position by the original velocity
-            // and then boost by the new velocity.
+            // unless we transform the world position to optical position with the old velocity,
+            // and inverse transform the optical position with the new the velocity.
+            // (This keeps the optical and Minkowski position fixed.)
             set
             {
                 //This makes instantiation cleaner:
@@ -54,8 +55,7 @@ namespace OpenRelativity.Objects
                 _aviw = value;
                 if (myRigidbody != null && !state.MovementFrozen)
                 {
-                    //Changes in angular velocity do not change the object's position in real space relative to Minkowski space,
-                    // so just update the base rigid body angular velocity without updating the position.
+                    //Changes in angular velocity do not change the shader mapping to optical space.
                     myRigidbody.angularVelocity = value / (float)(state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt());
                 }
             }
