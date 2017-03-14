@@ -439,6 +439,10 @@ namespace OpenRelativity.Objects
             if (myColliderIsMesh && myCollider != null)
             {
                 trnsfrmdMeshVerts = new Vector3[rawVerts.Length];
+                colliderShaderParams.viw = Vector3.zero;
+                colliderShaderParams.aviw = Vector3.zero;
+                colliderShaderParams.piw = Vector3.zero;
+                colliderShaderParams.strtTime = (float)startTime;
             }
 
             checkSpeed();
@@ -460,16 +464,13 @@ namespace OpenRelativity.Objects
                     quickSwapMaterial.SetFloat("_viw", 0);
                     quickSwapMaterial.SetFloat("_aviw", 0);
                     quickSwapMaterial.SetFloat("_piw", 0);
-                    colliderShaderParams.viw = Vector3.zero;
-                    colliderShaderParams.aviw = Vector3.zero;
-                    colliderShaderParams.piw = Vector3.zero;
+                    
 
                     //And stick it back into our renderer. We'll do the SetVector thing every frame.
                     tempRenderer.materials[i] = quickSwapMaterial;
 
                     //set our start time and start position in the shader.
                     tempRenderer.materials[i].SetFloat("_strtTime", (float)startTime);
-                    colliderShaderParams.strtTime = (float)startTime;
                     tempRenderer.materials[i].SetVector("_strtPos", new Vector4(transform.position.x, transform.position.y, transform.position.z, 0));
                     //}
                 }
@@ -633,14 +634,14 @@ namespace OpenRelativity.Objects
                     Vector3 tempViw = viw / (float)state.SpeedOfLight;
                     Vector3 tempAviw = aviw;
                     Vector3 tempPiw = transform.position;
+                    colliderShaderParams.viw = tempViw;
+                    colliderShaderParams.aviw = tempAviw;
+                    colliderShaderParams.piw = tempPiw;
                     for (int i = 0; i < tempRenderer.materials.Length; i++)
                     {
                         tempRenderer.materials[i].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
                         tempRenderer.materials[i].SetVector("_sav", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
                         tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
-                        colliderShaderParams.viw = tempViw;
-                        colliderShaderParams.aviw = tempAviw;
-                        colliderShaderParams.piw = tempPiw;
                     }
                 }
 
