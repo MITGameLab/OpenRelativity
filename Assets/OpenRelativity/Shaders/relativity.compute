@@ -50,7 +50,7 @@ inline quaternion makeRotQ(float angle, float3 direction) {
 }
 
 inline quaternion inverse(quaternion q) {
-	return quaternion(-q.xyz, q.w);
+	return q / dot(q, q);
 }
 
 [numthreads(64,1,1)]

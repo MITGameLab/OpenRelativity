@@ -72,7 +72,7 @@ Shader "Relativity/ColorShift"
 	}
 
 	inline quaternion inverse(quaternion q) {
-		return quaternion(-q.xyz, q.w);
+		return q / dot(q, q);
 	}
 
 	 
