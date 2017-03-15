@@ -29,7 +29,7 @@ namespace OpenRelativity.Objects
                 initialViw = value;
 
                 //Under instantaneous changes in velocity, the optical position should be invariant:
-                Vector3 playerPos = state.transform.position;
+                Vector3 playerPos = state.playerTransform.position;
                 Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
                 transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
                 _viw = value;
