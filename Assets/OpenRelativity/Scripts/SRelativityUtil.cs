@@ -163,7 +163,8 @@ namespace OpenRelativity
             return WorldToOptical(realPos, velocity, origin, Vector3.zero);
         }
 
-        private const float divByZeroCutoff = 1e-5f;
+        private const float divByZeroCutoff = 1e-8f;
+        private const float radianCutoff = 0.1f;
 
         public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {
@@ -204,7 +205,9 @@ namespace OpenRelativity
                     //We're getting the angle between our z direction of movement and the world's Z axis
                     Vector3 direction = vpc.normalized;
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-                    if (Mathf.Abs(direction.z) - 1.0f > divByZeroCutoff)
+                    float a = (-direction.z / speed);
+                    a = -Mathf.Acos(-a);
+                    if (a > radianCutoff)
                     {
                         //we're getting the angle between our z direction of movement and the world's Z axis
                         rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
@@ -334,7 +337,9 @@ namespace OpenRelativity
                     //We're getting the angle between our z direction of movement and the world's Z axis
                     Vector3 direction = vpc.normalized;
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-                    if (Mathf.Abs(direction.z) - 1.0f > divByZeroCutoff)
+                    float a = (-direction.z / speed);
+                    a = -Mathf.Acos(-a);
+                    if (a > radianCutoff)
                     {
                         rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
                     }
@@ -418,5 +423,9 @@ namespace OpenRelativity
             return (float)(SRelativityUtil.c * Math.Tanh(mag / SRelativityUtil.c) / mag) * rapidity;
         }
 
+        public static Vector3 GetGravity(Vector3 origin)
+        {
+            return Physics.gravity;
+        }
     }
 }

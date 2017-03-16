@@ -56,9 +56,6 @@ inline quaternion inverse(quaternion q) {
 [numthreads(64,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-	//Float values very close to zero might lead to infinite values:
-	const float divByZeroCutoff = 0.00001f;
-
 	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
 	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
 	float3 piw = glblPrms[0].piw;
@@ -96,7 +93,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
 	float3 uparra;
 	//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-	if (speed > divByZeroCutoff)
+	if (speed > 1e-8f)
 	{
 		uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
 	}
@@ -125,9 +122,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 			//We're getting the angle between our z direction of movement and the world's Z axis
 			float3 direction = normalize(vpc);
 			// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-			if (abs(direction.z) - 1.0f > divByZeroCutoff) {
-				float a = -acos(-direction.z / speed);
-				vpcToZRot = makeRotQ(a, direction);
+			float a = (-direction.z / speed);
+			a = -acos(-a);
+			if (a > 0.1) {
+				vpcToZRot = makeRotQ(a, cross(direction.xyz, float3(0, 0, 1)));
 				riw = rot3(vpcToZRot, pos);
 
 				//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
@@ -148,7 +146,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 		float d = (spdOfLight*spdOfLight) - dot(rotateViw, rotateViw);
 
-		float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
+		float tisw = ((-b - (sqrt((b * b) - 4.0f * d * c))) / (2.0f * d));
 
 		//get the new position offset, based on the new time we just found
 		//Should only be in the Z direction

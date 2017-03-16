@@ -45,9 +45,6 @@ Shader "Relativity/ColorShift"
 	#define UV_RANGE 380
 	#define UV_START 0
 
-	//Prevent infinite and NaN values
-	#define divByZeroCutoff 1e-5f
-
 	//Quaternion math
 	#define quaternion float4
 	#define PI_F 3.14159265f;
@@ -145,7 +142,7 @@ Shader "Relativity/ColorShift"
 		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
 		float4 uparra;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if (speed > divByZeroCutoff)
+		if (speed > 1e-8f)
 		{
 			uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 		}
@@ -183,9 +180,10 @@ Shader "Relativity/ColorShift"
 				//We're getting the angle between our z direction of movement and the world's Z axis
 				float4 direction = normalize(_vpc);
 				// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-				if (abs(direction.z) - 1.0f > divByZeroCutoff) {
-					float a = -acos(-direction.z / speed);
-					vpcToZRot = makeRotQ(a, direction);
+				float a = (-direction.z / speed);
+				a = -acos(-a);
+				if (a > 0.1) {
+					vpcToZRot = makeRotQ(a, cross(direction.xyz, float3(0,0,1)));
 					riw = rot4(vpcToZRot, o.pos);
 
 					//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
@@ -206,7 +204,7 @@ Shader "Relativity/ColorShift"
 
 			float d = (_spdOfLight*_spdOfLight) - dot(rotateViw, rotateViw);
 
-			float tisw = (float)(((-b - (sqrt((b * b) - ((float)float(4)) * d * c))) / (((float)float(2)) * d)));
+			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
 			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
   			if (_wrldTime + tisw > _strtTime || _strtTime==0)
