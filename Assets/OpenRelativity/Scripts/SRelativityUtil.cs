@@ -164,7 +164,6 @@ namespace OpenRelativity
         }
 
         private const float divByZeroCutoff = 1e-8f;
-        private const float radianCutoff = 0.1f;
 
         public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {
@@ -207,7 +206,7 @@ namespace OpenRelativity
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
                     float a = (-direction.z / speed);
                     a = -Mathf.Acos(-a);
-                    if (a > radianCutoff)
+                    if (Mathf.Abs(a) > divByZeroCutoff && !float.IsInfinity(a))
                     {
                         //we're getting the angle between our z direction of movement and the world's Z axis
                         rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
@@ -339,7 +338,7 @@ namespace OpenRelativity
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
                     float a = (-direction.z / speed);
                     a = -Mathf.Acos(-a);
-                    if (a > radianCutoff)
+                    if (Mathf.Abs(a) > divByZeroCutoff && !float.IsInfinity(a))
                     {
                         rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
                     }

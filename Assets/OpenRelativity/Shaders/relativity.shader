@@ -49,6 +49,9 @@ Shader "Relativity/ColorShift"
 	#define quaternion float4
 	#define PI_F 3.14159265f;
 
+	//Prevent NaN and Inf
+    #define divByZeroCutoff 1e-8f
+
 	//Quaternion rotation
 	//https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
 	inline float3 rot3(quaternion q, float3 v) {
@@ -142,7 +145,7 @@ Shader "Relativity/ColorShift"
 		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
 		float4 uparra;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if (speed > 1e-8f)
+		if (speed > divByZeroCutoff)
 		{
 			uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 		}
@@ -182,7 +185,7 @@ Shader "Relativity/ColorShift"
 				// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
 				float a = (-direction.z / speed);
 				a = -acos(-a);
-				if (a > 0.1) {
+				if (abs(a) > divByZeroCutoff && !isinf(a)) {
 					vpcToZRot = makeRotQ(a, cross(direction.xyz, float3(0,0,1)));
 					riw = rot4(vpcToZRot, o.pos);
 
