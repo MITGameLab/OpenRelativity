@@ -170,7 +170,7 @@ namespace OpenRelativity
             float spdOfLight = SRelativityUtil.c;
 
             Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
-            float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
+            float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
 
@@ -181,7 +181,7 @@ namespace OpenRelativity
             {
                 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
             }
-            //If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
+            //If our speed is nearly zero, it could lead to infinities. We insert the limit point.
             else
             {
                 speed = 0;
@@ -196,19 +196,25 @@ namespace OpenRelativity
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
 
-            if (speedr > divByZeroCutoff) // If speed is zero, rotation fails
+            if (speedr != 0) // If speed is zero, rotation fails
             {
                 Quaternion rotFromVPCtoZ = Quaternion.identity;
-                if (speed > divByZeroCutoff)
+                if (speed != 0)
                 {
-                    //we're getting the angle between our z direction of movement and the world's Z axis
-                    rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));
+                    //We're getting the angle between our z direction of movement and the world's Z axis
+                    Vector3 direction = vpc.normalized;
+                    // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
+                    if (Mathf.Abs(direction.z) - 1.0f > divByZeroCutoff)
+                    {
+                        //we're getting the angle between our z direction of movement and the world's Z axis
+                        rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
 
-                    //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-                    //This is because all of our equations are based off of movement in one direction.
+                        //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+                        //This is because all of our equations are based off of movement in one direction.
 
-                    //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
-                    riw = rotFromVPCtoZ * riw;
+                        //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
+                        riw = rotFromVPCtoZ * riw;
+                    }
                 }
 
                 //Here begins the original code, made by the guys behind the Relativity game
@@ -323,11 +329,15 @@ namespace OpenRelativity
             }
             else
             {
-                if (speed > divByZeroCutoff)
+                if (speed != 0)
                 {
-                    //we're getting the angle between our z direction of movement and the world's Z axis
-                    rotFromVPCtoZ = Quaternion.FromToRotation(vpc.normalized, new Vector3(0.0f, 0.0f, 1.0f));
-
+                    //We're getting the angle between our z direction of movement and the world's Z axis
+                    Vector3 direction = vpc.normalized;
+                    // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
+                    if (Mathf.Abs(direction.z) - 1.0f > divByZeroCutoff)
+                    {
+                        rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
+                    }
                     //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
                     //This is because all of our equations are based off of movement in one direction.
                 }
