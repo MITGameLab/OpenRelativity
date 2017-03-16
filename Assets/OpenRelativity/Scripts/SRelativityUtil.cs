@@ -163,7 +163,7 @@ namespace OpenRelativity
             return WorldToOptical(realPos, velocity, origin, Vector3.zero);
         }
 
-        private const float divByZeroCutoff = 1e-8f;
+        private const float divByZeroCutoff = 1e-16f;
 
         public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {
@@ -206,10 +206,10 @@ namespace OpenRelativity
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
                     float a = (-direction.z / speed);
                     a = -Mathf.Acos(-a);
-                    if (Mathf.Abs(a) > divByZeroCutoff && !float.IsInfinity(a))
-                    {
-                        //we're getting the angle between our z direction of movement and the world's Z axis
-                        rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
+                    //This evaluates to false for infinite, NaN, and uselessly large and small angles:
+                    if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff) {
+                            //we're getting the angle between our z direction of movement and the world's Z axis
+                            rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
 
                         //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
                         //This is because all of our equations are based off of movement in one direction.
@@ -338,7 +338,8 @@ namespace OpenRelativity
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
                     float a = (-direction.z / speed);
                     a = -Mathf.Acos(-a);
-                    if (Mathf.Abs(a) > divByZeroCutoff && !float.IsInfinity(a))
+                    //This evaluates to false for infinite, NaN, and uselessly large and small angles:
+                    if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
                     {
                         rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
                     }
