@@ -163,7 +163,7 @@ namespace OpenRelativity
             return WorldToOptical(realPos, velocity, origin, Vector3.zero);
         }
 
-        private const float divByZeroCutoff = 1e-16f;
+        private const float divByZeroCutoff = 1e-8f;
 
         public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {
@@ -205,17 +205,21 @@ namespace OpenRelativity
                     Vector3 direction = vpc.normalized;
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
                     float a = (-direction.z / speed);
-                    a = -Mathf.Acos(-a);
-                    //This evaluates to false for infinite, NaN, and uselessly large and small angles:
-                    if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff) {
+                    if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
+                    {
+                        a = -Mathf.Acos(-a);
+                        //This evaluates to false for infinite, NaN, and uselessly large and small angles:
+                        if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
+                        {
                             //we're getting the angle between our z direction of movement and the world's Z axis
                             rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
 
-                        //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-                        //This is because all of our equations are based off of movement in one direction.
+                            //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+                            //This is because all of our equations are based off of movement in one direction.
 
-                        //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
-                        riw = rotFromVPCtoZ * riw;
+                            //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
+                            riw = rotFromVPCtoZ * riw;
+                        }
                     }
                 }
 
@@ -337,14 +341,17 @@ namespace OpenRelativity
                     Vector3 direction = vpc.normalized;
                     // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
                     float a = (-direction.z / speed);
-                    a = -Mathf.Acos(-a);
-                    //This evaluates to false for infinite, NaN, and uselessly large and small angles:
                     if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
                     {
-                        rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
+                        a = -Mathf.Acos(-a);
+                        //This evaluates to false for infinite, NaN, and uselessly large and small angles:
+                        if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
+                        {
+                            rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
+                        }
+                        //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+                        //This is because all of our equations are based off of movement in one direction.
                     }
-                    //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-                    //This is because all of our equations are based off of movement in one direction.
                 }
 
                 Vector3 riw; //Position that will be used in the output

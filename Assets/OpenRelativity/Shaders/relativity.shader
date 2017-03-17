@@ -50,7 +50,7 @@ Shader "Relativity/ColorShift"
 	#define PI_F 3.14159265f;
 
 	//Prevent NaN and Inf
-    #define divByZeroCutoff 1e-16f
+    #define divByZeroCutoff 1e-8f
 
 	//Quaternion rotation
 	//https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
@@ -184,14 +184,16 @@ Shader "Relativity/ColorShift"
 				float4 direction = normalize(_vpc);
 				// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
 				float a = (-direction.z / speed);
-				a = -acos(-a);
-				//This evaluates to false for infinite, NaN, and uselessly large and small angles:
 				if (abs(a) > divByZeroCutoff && abs(a) > 1.0f / divByZeroCutoff) {
-					vpcToZRot = makeRotQ(a, cross(direction.xyz, float3(0,0,1)));
-					riw = rot4(vpcToZRot, o.pos);
+					a = -acos(-a);
+					//This evaluates to false for infinite, NaN, and uselessly large and small angles:
+					if (abs(a) > divByZeroCutoff && abs(a) > 1.0f / divByZeroCutoff) {
+						vpcToZRot = makeRotQ(a, cross(direction.xyz, float3(0, 0, 1)));
+						riw = rot4(vpcToZRot, o.pos);
 
-					//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-					//This is because all of our equations are based off of movement in one direction.
+						//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
+						//This is because all of our equations are based off of movement in one direction.
+					}
 				}
 			}
 			
