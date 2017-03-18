@@ -45,7 +45,7 @@ namespace OpenRelativity.Objects
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null && !state.MovementFrozen)
                 {
-                    myRigidbody.velocity = value / (float)(state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt());
+                    myRigidbody.velocity = value * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
                 }
             }
         }
@@ -65,7 +65,7 @@ namespace OpenRelativity.Objects
                 if (myRigidbody != null && !state.MovementFrozen)
                 {
                     //Changes in angular velocity do not change the shader mapping to optical space.
-                    myRigidbody.angularVelocity = value / (float)(state.SqrtOneMinusVSquaredCWDividedByCSquared * GetGtt());
+                    myRigidbody.angularVelocity = value * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
                 }
             }
         }
@@ -274,7 +274,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer /= (float)(GetGtt() * state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
@@ -284,7 +284,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer /= (float)(GetGtt() * state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -774,8 +774,8 @@ namespace OpenRelativity.Objects
                         {
                             //Attempt to correct for acceleration:
                             float gtt = GetGtt();
-                            tempViw /= gtt;
-                            tempAviw /= gtt;
+                            tempViw *= gtt;
+                            tempAviw *= gtt;
                             //colliderShaderParams.gtt = gtt;
                         }
                         myRigidbody.velocity = tempViw;
@@ -1254,7 +1254,7 @@ namespace OpenRelativity.Objects
             //The relative contact point is the lever arm of the torque:
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld / GetGtt());
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld * GetGtt());
 
             //The change in rapidity on the line of action:
             Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;
