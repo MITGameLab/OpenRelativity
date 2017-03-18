@@ -31,6 +31,7 @@ namespace OpenRelativity.Objects
                 if (nonrelativisticShader)
                 {
                     oldShaderTransform.oldViw = value;
+                    ContractLength();
                 }
                 else
                 {
@@ -122,6 +123,8 @@ namespace OpenRelativity.Objects
         public bool isParent = false;
         //Use this if not using an explicitly relativistic shader
         public bool nonrelativisticShader = false;
+        //If the shader is not relativistic, we need to handle length contraction with a "contractor" transform.
+        private Transform contractor;
         //Store transform info only for a nonrelativistic shader;
         private class NonRelShaderHistoryPoint
         {
@@ -257,6 +260,7 @@ namespace OpenRelativity.Objects
         {
             if (paramsBuffer != null) paramsBuffer.Release();
             if (vertBuffer != null) vertBuffer.Release();
+            if (contractor != null) Destroy(contractor.gameObject);
         }
 
         void Awake()
@@ -522,6 +526,8 @@ namespace OpenRelativity.Objects
                     oldPlayerVel = state.PlayerVelocityVector
                 };
                 transform.position = transform.position.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
+                //Handle length contraction:
+                ContractLength();
                 if (myRigidbody != null)
                 {
                     opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
@@ -823,6 +829,7 @@ namespace OpenRelativity.Objects
                 oldShaderTransform.oldPlayerPos = playerPos;
                 oldShaderTransform.oldPlayerVel = playerVel;
 
+                ContractLength();
                 if (myRigidbody != null)
                 {
                     opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
@@ -1107,12 +1114,12 @@ namespace OpenRelativity.Objects
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);
             Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass);
-            if (myColliderIsMesh)
+            if (myColliderIsMesh || nonrelativisticShader)
             {
                 //If I have a mesh collider, my collider is affected by length contraction:
                 myLocPoint = myLocPoint.InverseContractLengthBy(-myPRelVel);
             }
-            if (otherRO.myColliderIsMesh)
+            if (otherRO.myColliderIsMesh || otherRO.nonrelativisticShader)
             {
                 otLocPoint = otLocPoint.InverseContractLengthBy(-otherPRelVel);
             }
@@ -1215,12 +1222,12 @@ namespace OpenRelativity.Objects
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);
             Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass);
-            if (myColliderIsMesh)
+            if (myColliderIsMesh || nonrelativisticShader)
             {
                 //If I have a mesh collider, my collider is affected by length contraction:
                 myLocPoint = myLocPoint.InverseContractLengthBy(-myPRelVel);
             }
-            if (otherRO.myColliderIsMesh)
+            if (otherRO.myColliderIsMesh || otherRO.nonrelativisticShader)
             {
                 otLocPoint = otLocPoint.InverseContractLengthBy(-otherPRelVel);
             }
@@ -1349,6 +1356,59 @@ namespace OpenRelativity.Objects
             }
         }
         #endregion
+
+        private void SetUpContractor()
+        {
+            if (contractor == null)
+            {
+                GameObject contractorGO = new GameObject();
+                contractorGO.name = gameObject.name + " Contractor";
+                contractor = contractorGO.transform;
+                contractor.position = transform.position;
+                contractor.parent = transform.parent;
+                transform.parent = contractor;
+            }
+            else
+            {
+                transform.parent = null;
+                contractor.position = transform.position;
+                transform.parent = contractor;
+            }        
+        }
+
+        public void ContractLength()
+        {
+            //WARNING: Doppler shift is inaccurate due to order of player and object frame updates
+
+            if (contractor == null) SetUpContractor();
+            Vector3 playerVel = state.PlayerVelocityVector;
+            Vector3 relVel = viw.AddVelocity(-playerVel);
+            float relVelMag = relVel.magnitude;
+
+            //Undo length contraction from previous state, and apply updated contraction:
+            // - First, return to world frame:
+            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+
+            // - Reset the contractor, in any case:
+            transform.parent = contractor.parent;
+            contractor.position = transform.position;
+            transform.parent = contractor;
+
+            if (relVelMag > 0.0f)
+            {
+                // - If we need to contract the object, unparent it from the contractor before rotation:
+                transform.parent = contractor.parent;
+
+                // - Rotate contractor to point parallel to velocity relative player:
+                contractor.rotation = Quaternion.FromToRotation(Vector3.forward, relVel / relVelMag);
+
+                // - Re-parent the object to the contractor before length contraction:
+                transform.parent = contractor;
+
+                // - Set the scale based only on the velocity relative to the player:
+                contractor.localScale = (new Vector3(1.0f, 1.0f, 1.0f)).ContractLengthBy(relVelMag * Vector3.forward);
+            }
+        }
 
         //This is the "t-t" or "0-0" component of the metric tensor in an accelerated frame in special relativity.
         // It appears to change due to proper acceleration from the player's/camera's point of view, since acceleration is not relative.
