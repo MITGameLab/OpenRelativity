@@ -28,10 +28,18 @@ namespace OpenRelativity.Objects
                 //This makes instantiation cleaner:
                 initialViw = value;
 
-                //Under instantaneous changes in velocity, the optical position should be invariant:
-                Vector3 playerPos = state.playerTransform.position;
-                Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
-                transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
+                if (nonrelativisticShader)
+                {
+                    oldShaderTransform.oldViw = value;
+                }
+                else
+                {
+                    //Under instantaneous changes in velocity, the optical position should be invariant:
+                    Vector3 playerPos = state.playerTransform.position;
+                    Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
+                    transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
+                }
+                
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null && !state.MovementFrozen)
@@ -107,10 +115,22 @@ namespace OpenRelativity.Objects
         //When was this object created? use for moving objects
         private float startTime = 0;
         //When should we die? again, for moving objects
-        private float deathTime = 0;
+        private float _DeathTime = float.PositiveInfinity;
+        public float DeathTime { get { return _DeathTime; } private set { _DeathTime = value; } }
 
         //Use this instead of relativistic parent
         public bool isParent = false;
+        //Use this if not using an explicitly relativistic shader
+        public bool nonrelativisticShader = false;
+        //Store transform info only for a nonrelativistic shader;
+        private class NonRelShaderHistoryPoint
+        {
+            public Vector3 oldPiw { get; set; }
+            public Vector3 oldViw { get; set; }
+            public Vector3 oldPlayerPos { get; set; }
+            public Vector3 oldPlayerVel { get; set; }
+        }
+        private NonRelShaderHistoryPoint oldShaderTransform;
 
         //We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
@@ -248,7 +268,8 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
+            Vector3 playerPos = state.playerTransform.position;
+            float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer /= (float)(GetGtt() * state.SqrtOneMinusVSquaredCWDividedByCSquared);
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
@@ -257,9 +278,10 @@ namespace OpenRelativity.Objects
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
-            float timeDelayToPlayer = (float)Math.Sqrt((transform.position - state.playerTransform.position).sqrMagnitude / state.SpeedOfLightSqrd);
+            Vector3 playerPos = state.playerTransform.position;
+            float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer /= (float)(GetGtt() * state.SqrtOneMinusVSquaredCWDividedByCSquared);
-            deathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
+            DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
         {
@@ -488,6 +510,23 @@ namespace OpenRelativity.Objects
                 float extremeBound = 500000.0f;
                 meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
             }
+
+            //If the shader is nonrelativistic, map the object from world space to optical space.
+            if (nonrelativisticShader)
+            {
+                oldShaderTransform = new NonRelShaderHistoryPoint()
+                {
+                    oldPiw = transform.position,
+                    oldViw = viw,
+                    oldPlayerPos = state.playerTransform.position,
+                    oldPlayerVel = state.PlayerVelocityVector
+                };
+                transform.position = transform.position.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
+                if (myRigidbody != null)
+                {
+                    opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
+                }
+            }
         }
 
         private void UpdateCollider()
@@ -558,7 +597,7 @@ namespace OpenRelativity.Objects
         {
             EnforceCollision();
 
-            if (myRigidbody != null && viw.sqrMagnitude <= sleepVelocity * sleepVelocity && aviw.sqrMagnitude < sleepVelocity * sleepVelocity)
+            if (!nonrelativisticShader && myRigidbody != null && viw.sqrMagnitude <= sleepVelocity * sleepVelocity && aviw.sqrMagnitude < sleepVelocity * sleepVelocity)
             {
                 sleepFrameCounter++;
                 if (sleepFrameCounter >= sleepFrameDelay)
@@ -691,7 +730,7 @@ namespace OpenRelativity.Objects
 
                     float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
                     //If we're past our death time (in the player's view, as seen by tisw)
-                    if (state.TotalTimeWorld + tisw > deathTime && deathTime != 0)
+                    if (state.TotalTimeWorld + tisw > DeathTime)
                     {
                         KillObject();
                     }
@@ -748,7 +787,7 @@ namespace OpenRelativity.Objects
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (myCollider != null)
+            if (!nonrelativisticShader && myCollider != null)
             {
                 if (myColliderIsMesh && colliderShader != null)
                 {
@@ -770,6 +809,23 @@ namespace OpenRelativity.Objects
                     {
                         myRigidbody.centerOfMass = initCOM;
                     }
+                }
+            }
+            else if (nonrelativisticShader)
+            {
+                Vector3 playerPos = state.playerTransform.position;
+                Vector3 playerVel = state.PlayerVelocityVector;
+                Vector3 otwEst = transform.position.WorldToOptical(-viw, oldShaderTransform.oldPlayerPos);
+                oldShaderTransform.oldPiw = transform.position.OpticalToWorldSearch(oldShaderTransform.oldViw, oldShaderTransform.oldPlayerPos, oldShaderTransform.oldPlayerVel, otwEst);
+                transform.position = oldShaderTransform.oldPiw.WorldToOptical(viw, playerPos, playerVel);
+
+                oldShaderTransform.oldViw = viw;
+                oldShaderTransform.oldPlayerPos = playerPos;
+                oldShaderTransform.oldPlayerVel = playerVel;
+
+                if (myRigidbody != null)
+                {
+                    opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
                 }
             }
         }
@@ -854,11 +910,11 @@ namespace OpenRelativity.Objects
 
         void OnEnable()
         {
-            ResetDeathTime();
+            //ResetDeathTime();
         }
         void ResetDeathTime()
         {
-            deathTime = 0;
+            DeathTime = float.PositiveInfinity;
         }
 
         #region 4D Rigid body mechanics
@@ -871,7 +927,7 @@ namespace OpenRelativity.Objects
 
         public void OnCollisionStay(Collision collision)
         {
-            if (myRigidbody.isKinematic)
+            if (myRigidbody == null || myRigidbody.isKinematic)
             {
                 return;
             }
@@ -1082,7 +1138,6 @@ namespace OpenRelativity.Objects
             Vector3 rotatedLoc = Quaternion.Inverse(transform.rotation) * myLocPoint;
             //The relative contact point is the lever arm of the torque:
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
-            rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
             //In special relativity, the impulse relates the change in rapidities, rather than the change in velocities.
             float impulse;
             if (isReflected)
@@ -1091,6 +1146,7 @@ namespace OpenRelativity.Objects
             }
             else
             {
+                rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
                 float otherMOI = Vector3.Dot(otherRB.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
                 impulse = -rapidityOnLoA.magnitude * (combRestCoeff + 1.0f) / (1.0f / mass + 1.0f / otherRB.mass + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, lineOfAction), myLocPoint)) + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / otherMOI * Vector3.Cross(otLocPoint, lineOfAction), otLocPoint)));
             }
@@ -1190,7 +1246,6 @@ namespace OpenRelativity.Objects
             Vector3 rotatedLoc = Quaternion.Inverse(transform.rotation) * myLocPoint;
             //The relative contact point is the lever arm of the torque:
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
-            rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
 
             float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld / GetGtt());
 
