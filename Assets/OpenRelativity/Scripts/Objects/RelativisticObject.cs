@@ -30,8 +30,11 @@ namespace OpenRelativity.Objects
 
                 if (nonrelativisticShader)
                 {
-                    oldShaderTransform.oldViw = value;
-                    ContractLength();
+                    if (oldShaderTransform != null)
+                    {
+                        oldShaderTransform.oldViw = value;
+                        ContractLength();
+                    }
                 }
                 else
                 {
@@ -47,6 +50,9 @@ namespace OpenRelativity.Objects
                 {
                     myRigidbody.velocity = value * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
                 }
+
+                //Update the shader parameters if necessary
+                UpdateShaderParams();
             }
         }
         //Store this object's angular velocity here.
@@ -112,12 +118,28 @@ namespace OpenRelativity.Objects
         //Store this object's velocity here.
 
         //Keep track of Game State so that we can reference it quickly.
-        private GameState state;
+        private GameState _state;
+        private GameState state
+        {
+            get
+            {
+                if (_state == null)
+                {
+                    _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+                }
+
+                return _state;
+            }
+        }
+        private void FetchState()
+        {
+            _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+        }
         //When was this object created? use for moving objects
         private float startTime = 0;
         //When should we die? again, for moving objects
         private float _DeathTime = float.PositiveInfinity;
-        public float DeathTime { get { return _DeathTime; } private set { _DeathTime = value; } }
+        public float DeathTime { get { return _DeathTime; } set { _DeathTime = value; } }
 
         //Use this instead of relativistic parent
         public bool isParent = false;
@@ -266,7 +288,7 @@ namespace OpenRelativity.Objects
         void Awake()
         {
             //Get the player's GameState, use it later for general information
-            state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+            FetchState();
         }
 
         // Get the start time of our object, so that we know where not to draw it
@@ -672,23 +694,7 @@ namespace OpenRelativity.Objects
                 }
                 #endregion
 
-
-                //Send our object's v/c (Velocity over the Speed of Light) to the shader
-                if (tempRenderer != null)
-                {
-                    Vector3 tempViw = viw / (float)state.SpeedOfLight;
-                    Vector3 tempAviw = aviw;
-                    Vector3 tempPiw = transform.position;
-                    colliderShaderParams.viw = tempViw;
-                    colliderShaderParams.aviw = tempAviw;
-                    colliderShaderParams.piw = tempPiw;
-                    for (int i = 0; i < tempRenderer.materials.Length; i++)
-                    {
-                        tempRenderer.materials[i].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
-                        tempRenderer.materials[i].SetVector("_sav", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
-                        tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
-                    }
-                }
+                UpdateShaderParams();
 
                 //As long as our object is actually alive, perform these calculations
                 if (transform != null)
@@ -837,6 +843,27 @@ namespace OpenRelativity.Objects
             }
         }
 
+        private void UpdateShaderParams()
+        {
+            MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
+            //Send our object's v/c (Velocity over the Speed of Light) to the shader
+            if (tempRenderer != null)
+            {
+                Vector3 tempViw = viw / (float)state.SpeedOfLight;
+                Vector3 tempAviw = aviw;
+                Vector3 tempPiw = transform.position;
+                colliderShaderParams.viw = tempViw;
+                colliderShaderParams.aviw = tempAviw;
+                colliderShaderParams.piw = tempPiw;
+                for (int i = 0; i < tempRenderer.materials.Length; i++)
+                {
+                    tempRenderer.materials[i].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
+                    tempRenderer.materials[i].SetVector("_aviw", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
+                    tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
+                }
+            }
+        }
+
         public void KillObject()
         {
             gameObject.SetActive(false);
@@ -919,7 +946,7 @@ namespace OpenRelativity.Objects
         {
             //ResetDeathTime();
         }
-        void ResetDeathTime()
+        public void ResetDeathTime()
         {
             DeathTime = float.PositiveInfinity;
         }
