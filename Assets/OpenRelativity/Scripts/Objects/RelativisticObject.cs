@@ -107,14 +107,13 @@ namespace OpenRelativity.Objects
         private const float maxYoungsModulus = 1220.0e9f;
         #endregion
 
-        //Radians to degrees
-        private const float RAD_2_DEG = 57.2957795f;
         //Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
-        //Store our raw vertices in this variable, so that we can refer to them later
-        private Vector3[] rawVerts;
-        //For a buffer of rawVerts plus other vectors to transform
-        private Vector3[] vertsToTransform;
+        //Store our raw vertices in this variable, so that we can refer to them later.
+        private Vector3[] rawVertsBuffer;
+        //To avoid garbage collection, we might over-allocate the buffer:
+        private int rawVertsBufferLength;
+
         //Store this object's velocity here.
 
         //Keep track of Game State so that we can reference it quickly.
@@ -253,13 +252,18 @@ namespace OpenRelativity.Objects
             paramsBuffer.SetData(spa);
             if (vertBuffer == null)
             {
-                vertBuffer = new ComputeBuffer(rawVerts.Length, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+                vertBuffer = new ComputeBuffer(rawVertsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
             }
-            vertBuffer.SetData(rawVerts);
+            else if (vertBuffer.count != rawVertsBufferLength)
+            {
+                vertBuffer.Dispose();
+                vertBuffer = new ComputeBuffer(rawVertsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+            }
+            vertBuffer.SetData(rawVertsBuffer);
             int kernel = colliderShader.FindKernel("CSMain");
             colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
             colliderShader.SetBuffer(kernel, "verts", vertBuffer);
-            colliderShader.Dispatch(kernel, rawVerts.Length, 1, 1);
+            colliderShader.Dispatch(kernel, rawVertsBufferLength, 1, 1);
             vertBuffer.GetData(trnsfrmdMeshVerts);
 
             //Change mesh:
@@ -436,19 +440,6 @@ namespace OpenRelativity.Objects
             transform.gameObject.SetActive(true);
         }
 
-        private void SetVertsToTransform()
-        {
-            if (myRigidbody != null)
-            {
-                vertsToTransform = new Vector3[rawVerts.Length];
-                System.Array.Copy(rawVerts, vertsToTransform, rawVerts.Length);
-            }
-            else
-            {
-                vertsToTransform = rawVerts;
-            }
-        }
-
         void Start()
         {
             _viw = initialViw;
@@ -477,16 +468,21 @@ namespace OpenRelativity.Objects
             //Get the vertices of our mesh
             if (meshFilter != null)
             {
-                rawVerts = meshFilter.mesh.vertices;
+                rawVertsBufferLength = meshFilter.mesh.vertices.Length;
+                rawVertsBuffer = meshFilter.mesh.vertices;
                 meshFilter.mesh.MarkDynamic();
             }
             else
-                rawVerts = null;
+            {
+                rawVertsBuffer = null;
+                rawVertsBufferLength = 0;
+            }
+            
 
             //Once we have the mesh vertices, allocate and immediately transform the collider:
             if (myColliderIsMesh && myCollider != null)
             {
-                trnsfrmdMeshVerts = new Vector3[rawVerts.Length];
+                trnsfrmdMeshVerts = new Vector3[rawVertsBufferLength];
                 colliderShaderParams.viw = Vector3.zero;
                 colliderShaderParams.aviw = Vector3.zero;
                 colliderShaderParams.piw = Vector3.zero;
@@ -559,8 +555,9 @@ namespace OpenRelativity.Objects
 
         private void UpdateCollider()
         {
+            Collider oldCollider = myCollider;
             myCollider = GetComponent<MeshCollider>();
-            if (myCollider != null)
+            if (myCollider != null && oldCollider != myCollider)
             {
                 trnsfrmdMesh = Instantiate(((MeshCollider)myCollider).sharedMesh);
                 myColliderIsMesh = true;
@@ -625,7 +622,8 @@ namespace OpenRelativity.Objects
         {
             EnforceCollision();
 
-            if (!nonrelativisticShader && myRigidbody != null && viw.sqrMagnitude <= sleepVelocity * sleepVelocity && aviw.sqrMagnitude < sleepVelocity * sleepVelocity)
+            if (!nonrelativisticShader && !isSleeping && myRigidbody != null
+                && viw.sqrMagnitude <= sleepVelocity * sleepVelocity && aviw.sqrMagnitude < sleepVelocity * sleepVelocity)
             {
                 sleepFrameCounter++;
                 if (sleepFrameCounter >= sleepFrameDelay)
@@ -639,13 +637,10 @@ namespace OpenRelativity.Objects
                 sleepFrameCounter = 0;
             }
 
-            if (myRigidbody != null && useGravity && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0 )
+            if (useGravity && myRigidbody != null && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
             {
                 UpdateGravity();
             }
-
-            //Grab our renderer.
-            MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
 
             //Update the rigidbody reference.
             myRigidbody = GetComponent<Rigidbody>();
@@ -665,28 +660,34 @@ namespace OpenRelativity.Objects
                 {
 
                     //Only run MeshDensity if the mesh needs to change, and if it's passed a threshold distance.
-                    if (rawVerts != null && density.change != null)
+                    if (rawVertsBuffer != null && density.change != null)
                     {
                         //This checks if we're within our large range, first mesh density circle
                         //If we're within a distance of 40, split this mesh
-                        if (density.state == false && RecursiveTransform(rawVerts[0], meshFilter.transform).magnitude < 21000)
+                        if (density.state == false && RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).magnitude < 21000)
                         {
                             if (density.ReturnVerts(meshFilter.mesh, true))
                             {
-                                rawVerts = new Vector3[meshFilter.mesh.vertices.Length];
-                                System.Array.Copy(meshFilter.mesh.vertices, rawVerts, meshFilter.mesh.vertices.Length);
-                                //SetVertsToTransform();
+                                rawVertsBufferLength = meshFilter.mesh.vertices.Length;
+                                if (rawVertsBuffer.Length < rawVertsBufferLength)
+                                {
+                                    rawVertsBuffer = new Vector3[rawVertsBufferLength];
+                                }
+                                System.Array.Copy(meshFilter.mesh.vertices, rawVertsBuffer, rawVertsBufferLength);
                             }
                         }
 
                         //If the object leaves our wide range, revert mesh to original state
-                        else if (density.state == true && RecursiveTransform(rawVerts[0], meshFilter.transform).magnitude > 21000)
+                        else if (density.state == true && RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).magnitude > 21000)
                         {
                             if (density.ReturnVerts(meshFilter.mesh, false))
                             {
-                                rawVerts = new Vector3[meshFilter.mesh.vertices.Length];
-                                System.Array.Copy(meshFilter.mesh.vertices, rawVerts, meshFilter.mesh.vertices.Length);
-                                //SetVertsToTransform();
+                                rawVertsBufferLength = meshFilter.mesh.vertices.Length;
+                                if (rawVertsBuffer.Length < rawVertsBufferLength)
+                                {
+                                    rawVertsBuffer = new Vector3[rawVertsBufferLength];
+                                }
+                                System.Array.Copy(meshFilter.mesh.vertices, rawVertsBuffer, rawVertsBufferLength);
                             }
                         }
 
@@ -696,15 +697,23 @@ namespace OpenRelativity.Objects
 
                 UpdateShaderParams();
 
+            }
+        }
+
+        void FixedUpdate() {
+            //Grab our renderer.
+            MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
+
+            if (meshFilter != null && !state.MovementFrozen)
+            {
                 //As long as our object is actually alive, perform these calculations
                 if (transform != null)
                 {
                     //Here I take the angle that the player's velocity vector makes with the z axis
-                    float rotationAroundZ = RAD_2_DEG * Mathf.Acos(Vector3.Dot(state.PlayerVelocityVector, Vector3.forward) / state.PlayerVelocityVector.magnitude);
-
-                    if (state.PlayerVelocityVector.sqrMagnitude == 0)
+                    float rotationAroundZ = 0f;
+                    if (state.PlayerVelocityVector.sqrMagnitude != 0f)
                     {
-                        rotationAroundZ = 0;
+                        rotationAroundZ = Mathf.Rad2Deg * Mathf.Acos(Vector3.Dot(state.PlayerVelocityVector, Vector3.forward) / state.PlayerVelocityVector.magnitude);
                     }
 
                     //Now we turn that rotation into a quaternion
@@ -734,61 +743,50 @@ namespace OpenRelativity.Objects
 
                     float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
 
-                    float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
+                    float a = (float)state.SpeedOfLightSqrd - storedViw.sqrMagnitude;
 
                     /****************************
                      * Start Part 6 Bullet 2
                      * **************************/
 
-                    float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
+                    float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4 * a * c))) / (2 * a)));
                     //If we're past our death time (in the player's view, as seen by tisw)
                     if (state.TotalTimeWorld + tisw > DeathTime)
                     {
                         KillObject();
                     }
-                    if (state.TotalTimeWorld + tisw > startTime && !tempRenderer.enabled)
+                    else if (state.TotalTimeWorld + tisw > startTime && !tempRenderer.enabled)
                     {
                         tempRenderer.enabled = true;
-                        if (GetComponent<AudioSource>() != null)
+                        AudioSource[] audioSources = GetComponents<AudioSource>();
+                        if (audioSources.Length > 0)
                         {
-                            GetComponent<AudioSource>().enabled = true;
+                            for (int i = 0; i < audioSources.Length; i++)
+                            {
+                                audioSources[i].enabled = true;
+                            }
                         }
                     }
                 }
 
                 //update our viw and set the rigid body proportionally
-                if (myRigidbody != null)
+                if (myRigidbody != null
+                    && !double.IsNaN(state.SqrtOneMinusVSquaredCWDividedByCSquared)
+                    && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0.0
+                    && state.SpeedOfLightSqrd != 0.0)
                 {
-                    if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
-                    //if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
-                    {
-                        //Dragging probably happens intrinsically in the rest frame,
-                        // so it acts on the rapidity. (Drag is computationally expensive
-                        // due to tripping the velocity setter every frame.)
-                        // TODO: Replace with drag force
-                        //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
-                        //viw = rapidity.RapidityToVelocity();
-                        //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
+                    //Dragging probably happens intrinsically in the rest frame,
+                    // so it acts on the rapidity. (Drag is computationally expensive
+                    // due to tripping the velocity setter every frame.)
+                    // TODO: Replace with drag force
+                    //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
+                    //viw = rapidity.RapidityToVelocity();
+                    //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
 
-                        Vector3 tempViw = viw;
-                        Vector3 tempAviw = aviw;
-                        //ASK RYAN WHY THIS WAS DIVIDED BY THIS
-                        tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        tempAviw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        //Attempt to correct for acceleration:
-                        if (state.SpeedOfLightSqrd != 0)
-                        {
-                            //Attempt to correct for acceleration:
-                            float gtt = GetGtt();
-                            tempViw *= gtt;
-                            tempAviw *= gtt;
-                            //colliderShaderParams.gtt = gtt;
-                        }
-                        myRigidbody.velocity = tempViw;
-                        myRigidbody.angularVelocity = tempAviw;
-                    }
-
-
+                    //Correct for both time dilation and change in metric due to player acceleration:
+                    float timeFactor = GetGtt() / (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                    myRigidbody.velocity = viw * timeFactor;
+                    myRigidbody.angularVelocity = aviw * timeFactor;
                 }
             }
             //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
@@ -798,6 +796,11 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularVelocity = Vector3.zero;
             }
 
+            UpdateColliderPosition();
+        }
+
+        public void UpdateColliderPosition()
+        {
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
             if (!nonrelativisticShader && myCollider != null)
             {
@@ -823,7 +826,7 @@ namespace OpenRelativity.Objects
                     }
                 }
             }
-            else if (nonrelativisticShader)
+            else if (nonrelativisticShader && oldShaderTransform != null)
             {
                 Vector3 playerPos = state.playerTransform.position;
                 Vector3 playerVel = state.PlayerVelocityVector;
