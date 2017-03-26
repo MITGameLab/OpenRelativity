@@ -654,43 +654,46 @@ namespace OpenRelativity.Objects
                 //I'll take the model, and pass MeshDensity the mesh and unchanged vertices
                 //If it comes back as having changed something, I'll edit the mesh.
 
-                ObjectMeshDensity density = GetComponent<ObjectMeshDensity>();
+                //If the shader is nonrelativistic, there's no reason to change the mesh density.
+                if (!nonrelativisticShader) {
+                    ObjectMeshDensity density = GetComponent<ObjectMeshDensity>();
 
-                if (density != null)
-                {
-
-                    //Only run MeshDensity if the mesh needs to change, and if it's passed a threshold distance.
-                    if (rawVertsBuffer != null && density.change != null)
+                    if (density != null)
                     {
-                        //This checks if we're within our large range, first mesh density circle
-                        //If we're within a distance of 40, split this mesh
-                        if (density.state == false && RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).magnitude < 21000)
-                        {
-                            if (density.ReturnVerts(meshFilter.mesh, true))
-                            {
-                                rawVertsBufferLength = meshFilter.mesh.vertices.Length;
-                                if (rawVertsBuffer.Length < rawVertsBufferLength)
-                                {
-                                    rawVertsBuffer = new Vector3[rawVertsBufferLength];
-                                }
-                                System.Array.Copy(meshFilter.mesh.vertices, rawVertsBuffer, rawVertsBufferLength);
-                            }
-                        }
 
-                        //If the object leaves our wide range, revert mesh to original state
-                        else if (density.state == true && RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).magnitude > 21000)
+                        //Only run MeshDensity if the mesh needs to change, and if it's passed a threshold distance.
+                        if (rawVertsBuffer != null && density.change != null)
                         {
-                            if (density.ReturnVerts(meshFilter.mesh, false))
+                            //This checks if we're within our large range, first mesh density circle
+                            //If we're within a distance of 40, split this mesh
+                            if (density.state == false && RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).magnitude < 21000)
                             {
-                                rawVertsBufferLength = meshFilter.mesh.vertices.Length;
-                                if (rawVertsBuffer.Length < rawVertsBufferLength)
+                                if (density.ReturnVerts(meshFilter.mesh, true))
                                 {
-                                    rawVertsBuffer = new Vector3[rawVertsBufferLength];
+                                    rawVertsBufferLength = meshFilter.mesh.vertices.Length;
+                                    if (rawVertsBuffer.Length < rawVertsBufferLength)
+                                    {
+                                        rawVertsBuffer = new Vector3[rawVertsBufferLength];
+                                    }
+                                    System.Array.Copy(meshFilter.mesh.vertices, rawVertsBuffer, rawVertsBufferLength);
                                 }
-                                System.Array.Copy(meshFilter.mesh.vertices, rawVertsBuffer, rawVertsBufferLength);
                             }
-                        }
 
+                            //If the object leaves our wide range, revert mesh to original state
+                            else if (density.state == true && RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).magnitude > 21000)
+                            {
+                                if (density.ReturnVerts(meshFilter.mesh, false))
+                                {
+                                    rawVertsBufferLength = meshFilter.mesh.vertices.Length;
+                                    if (rawVertsBuffer.Length < rawVertsBufferLength)
+                                    {
+                                        rawVertsBuffer = new Vector3[rawVertsBufferLength];
+                                    }
+                                    System.Array.Copy(meshFilter.mesh.vertices, rawVertsBuffer, rawVertsBufferLength);
+                                }
+                            }
+
+                        }
                     }
                 }
                 #endregion
