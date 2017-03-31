@@ -55,6 +55,26 @@ namespace OpenRelativity.Objects
                 UpdateShaderParams();
             }
         }
+
+        public void SetViwAndPosition(Vector3 newViw, Vector3 newPiw)
+        {
+            
+            _viw = newViw;
+            transform.position = newPiw;
+
+            if (nonrelativisticShader && oldShaderTransform != null)
+            {
+                oldShaderTransform.oldViw = newViw;
+                ContractLength();
+            }
+            //Also update the Rigidbody, if any
+            if (myRigidbody != null && !state.MovementFrozen)
+            {
+                myRigidbody.velocity = newViw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            }
+            UpdateShaderParams();
+        }
+
         //Store this object's angular velocity here.
         public Vector3 initialAviw;
         private Vector3 _aviw;
@@ -492,7 +512,7 @@ namespace OpenRelativity.Objects
             checkSpeed();
 
             //Also get the meshrenderer so that we can give it a unique material
-            MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
+            Renderer tempRenderer = GetComponent<Renderer>();
             //If we have a MeshRenderer on our object
             if (tempRenderer != null)
             {
@@ -503,7 +523,7 @@ namespace OpenRelativity.Objects
                     //{
                     //So that we can set unique values to every moving object, we have to instantiate a material
                     //It's the same as our old one, but now it's not connected to every other object with the same material
-                    Material quickSwapMaterial = Instantiate((tempRenderer as Renderer).materials[i]) as Material;
+                    Material quickSwapMaterial = Instantiate(tempRenderer.materials[i]) as Material;
                     //Then, set the value that we want
                     quickSwapMaterial.SetFloat("_viw", 0);
                     quickSwapMaterial.SetFloat("_aviw", 0);
@@ -557,11 +577,14 @@ namespace OpenRelativity.Objects
         {
             Collider oldCollider = myCollider;
             myCollider = GetComponent<MeshCollider>();
-            if (myCollider != null && oldCollider != myCollider)
+            if (myCollider != null)
             {
-                trnsfrmdMesh = Instantiate(((MeshCollider)myCollider).sharedMesh);
-                myColliderIsMesh = true;
-                myColliderIsBox = false;
+                if (oldCollider != myCollider)
+                {
+                    trnsfrmdMesh = Instantiate(((MeshCollider)myCollider).sharedMesh);
+                    myColliderIsMesh = true;
+                    myColliderIsBox = false;
+                }
             }
             else
             {
@@ -622,28 +645,34 @@ namespace OpenRelativity.Objects
         {
             EnforceCollision();
 
-            if (!nonrelativisticShader && !isSleeping && myRigidbody != null
-                && viw.sqrMagnitude <= sleepVelocity * sleepVelocity && aviw.sqrMagnitude < sleepVelocity * sleepVelocity)
-            {
-                sleepFrameCounter++;
-                if (sleepFrameCounter >= sleepFrameDelay)
-                {
-                    sleepFrameCounter = sleepFrameDelay;
-                    Sleep();
-                }
-            }
-            else
-            {
-                sleepFrameCounter = 0;
-            }
-
-            if (useGravity && myRigidbody != null && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
-            {
-                UpdateGravity();
-            }
-
             //Update the rigidbody reference.
             myRigidbody = GetComponent<Rigidbody>();
+
+            if (myRigidbody != null)
+            {
+
+                if (!nonrelativisticShader && !isSleeping
+                    && viw.sqrMagnitude <= sleepVelocity * sleepVelocity && aviw.sqrMagnitude < sleepVelocity * sleepVelocity)
+                {
+                    sleepFrameCounter++;
+                    if (sleepFrameCounter >= sleepFrameDelay)
+                    {
+                        sleepFrameCounter = sleepFrameDelay;
+                        Sleep();
+                    }
+                }
+                else
+                {
+                    sleepFrameCounter = 0;
+                }
+
+                if (useGravity&& state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                {
+                    UpdateGravity();
+                }
+            }
+
+            
             //Update the collider reference.
             UpdateCollider();
 
@@ -697,10 +726,9 @@ namespace OpenRelativity.Objects
                     }
                 }
                 #endregion
-
-                UpdateShaderParams();
-
             }
+
+            UpdateShaderParams();
         }
 
         void FixedUpdate() {
@@ -714,18 +742,17 @@ namespace OpenRelativity.Objects
                 {
                     //Here I take the angle that the player's velocity vector makes with the z axis
                     float rotationAroundZ = 0f;
+                    Quaternion rotateZ = Quaternion.identity;
                     if (state.PlayerVelocityVector.sqrMagnitude != 0f)
                     {
                         rotationAroundZ = Mathf.Rad2Deg * Mathf.Acos(Vector3.Dot(state.PlayerVelocityVector, Vector3.forward) / state.PlayerVelocityVector.magnitude);
+                        //Now we turn that rotation into a quaternion
+                        rotateZ = Quaternion.AngleAxis(-rotationAroundZ, Vector3.Cross(state.PlayerVelocityVector, Vector3.forward));
                     }
-
-                    //Now we turn that rotation into a quaternion
-
-                    Quaternion rotateZ = Quaternion.AngleAxis(-rotationAroundZ, Vector3.Cross(state.PlayerVelocityVector, Vector3.forward));
                     //******************************************************************
 
                     //Place the vertex to be changed in a new Vector3
-                    Vector3 riw = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+                    Vector3 riw = transform.position;
                     riw -= state.playerTransform.position;
 
 
@@ -851,7 +878,7 @@ namespace OpenRelativity.Objects
 
         private void UpdateShaderParams()
         {
-            MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
+            Renderer tempRenderer = GetComponent<Renderer>();
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (tempRenderer != null)
             {
