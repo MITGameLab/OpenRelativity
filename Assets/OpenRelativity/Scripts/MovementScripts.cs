@@ -223,7 +223,7 @@ namespace OpenRelativity
                             }
                             else
                             {
-                                state.PlayerVelocityVector = rotatedVelocity.AddVelocity(-Physics.gravity * Time.deltaTime);
+                                state.PlayerVelocityVector = rotatedVelocity.AddVelocity((-Physics.gravity * Time.deltaTime).RapidityToVelocity());
                             }
                         }
                     }
