@@ -189,22 +189,27 @@ namespace OpenRelativity
                     */
                     //Add the velocities here. remember, this is the equation:
                     //vNew = (1/(1+vOld*vAddx/cSqrd))*(Vector3(vAdd.x+vOld.x,vAdd.y/Gamma,vAdd.z/Gamma))
-                    if (addedVelocity.sqrMagnitude != 0)
+                    if (addedVelocity.sqrMagnitude != 0 || useGravity)
                     {
                         //Rotate our velocity Vector    
                         Vector3 rotatedVelocity = rotateX * playerVelocityVector;
-                        //Rotate our added Velocity
-                        addedVelocity = rotateX * addedVelocity;
 
-                        //get gamma so we don't have to bother getting it every time
-                        float gamma = (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        //float gamma = (float)state.InverseAcceleratedGamma;
-                        //Do relativistic velocity addition as described by the above equation.
-                        rotatedVelocity = (1 / (1 + (rotatedVelocity.x * addedVelocity.x) / (float)state.SpeedOfLightSqrd)) *
-                            (new Vector3(addedVelocity.x + rotatedVelocity.x, addedVelocity.y * gamma, gamma * addedVelocity.z));
+                        if (addedVelocity.sqrMagnitude != 0)
+                        {
+                            //Rotate our added Velocity
+                            addedVelocity = rotateX * addedVelocity;
+
+                            //get gamma so we don't have to bother getting it every time
+                            float gamma = (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+
+                            //Do relativistic velocity addition as described by the above equation.
+                            rotatedVelocity = (1 / (1 + (rotatedVelocity.x * addedVelocity.x) / (float)state.SpeedOfLightSqrd)) *
+                                (new Vector3(addedVelocity.x + rotatedVelocity.x, addedVelocity.y * gamma, gamma * addedVelocity.z));
+                        }
 
                         //Unrotate our new total velocity
                         rotatedVelocity = unRotateX * rotatedVelocity;
+
                         //Set it, depending on gravity
                         if (!useGravity)
                         {
