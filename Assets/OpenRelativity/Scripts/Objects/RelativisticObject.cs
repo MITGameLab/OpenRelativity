@@ -458,6 +458,13 @@ namespace OpenRelativity.Objects
             meshy.GetComponent<Renderer>().materials = tempMaterials;
 
             transform.gameObject.SetActive(true);
+
+            //(We might want to wait for the top-level renderer to "kick-in" first, then...)
+            //Disable all the combined child renderers:
+            for (int i = 0; i < meshRenderers.Length; i++)
+            {
+                meshRenderers[i].enabled = false;
+            }
         }
 
         void Start()
@@ -497,7 +504,6 @@ namespace OpenRelativity.Objects
                 rawVertsBuffer = null;
                 rawVertsBufferLength = 0;
             }
-            
 
             //Once we have the mesh vertices, allocate and immediately transform the collider:
             if (myColliderIsMesh && myCollider != null)

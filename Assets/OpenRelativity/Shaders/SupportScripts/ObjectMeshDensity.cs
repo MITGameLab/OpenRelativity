@@ -22,10 +22,10 @@ namespace OpenRelativity
 
 
         //This constant determines triangle size. We subdivide meshes until all their triangles have less than this area.
-        public double constant = 2;
+        private double constant = 20;
 
-        // Use this for initialization
-        void Start()
+        // Use this for initialization, before relativistic object CombineParent() starts.
+        void Awake()
         {
             //Grab the meshfilter, and if it's not null, keep going
             MeshFilter meshFilter = GetComponent<MeshFilter>();
@@ -197,8 +197,8 @@ namespace OpenRelativity
             for (int i = 0; i < mesh.triangles.Length / 3; i++)
             {
                 //Get two edges, take their cross product, and divide the magnitude in half. That should give us the triangle's area.
-                Vector3 dist1 = (RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded]], transform) - RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded + 1]], transform));
-                Vector3 dist2 = (RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded + 2]], transform) - RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded + 1]], transform));
+                Vector3 dist1 = (transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded]]) - transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 1]]));
+                Vector3 dist2 = (transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 2]]) - transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 1]]));
                 float area = Vector3.Cross(dist2, dist1).magnitude / 2;
                 //If that area is larger than our desired triangle size:
                 if (area > constant)
@@ -304,8 +304,8 @@ namespace OpenRelativity
                 oldTriangles[q] = mesh.GetTriangles(q);
                 for (int i = 0; i < oldTriangles[q].Length / 3; i++)
                 {
-                    Vector3 dist1 = (RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded]], transform) - RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded + 1]], transform));
-                    Vector3 dist2 = (RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded + 2]], transform) - RecursiveTransform(mesh.vertices[mesh.triangles[lastIndexAdded + 1]], transform));
+                    Vector3 dist1 = (transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded]]) - transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 1]]));
+                    Vector3 dist2 = (transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 2]]) - transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 1]]));
                     float area = Vector3.Cross(dist2, dist1).magnitude / 2;
                     if (i == 0)
                         print(area);
@@ -399,23 +399,6 @@ namespace OpenRelativity
             newVerts.Clear();
             newUV.Clear();
             return change;
-        }
-        public Vector3 RecursiveTransform(Vector3 pt, Transform trans)
-        {
-            //Basically, this will transform the point until it has no more parent transforms.
-            Vector3 pt1 = Vector3.zero;
-            //If we have a parent transform, run this function again
-            if (trans.parent != null)
-            {
-                pt = RecursiveTransform(pt1, trans.parent);
-
-                return pt;
-            }
-            else
-            {
-                pt1 = trans.TransformPoint(pt);
-                return pt1;
-            }
         }
 
         private void RunShader()
