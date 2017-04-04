@@ -155,13 +155,15 @@ namespace OpenRelativity.Objects
             _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
         }
         //When was this object created? use for moving objects
-        private float startTime = 0;
+        private float startTime = float.NegativeInfinity;
         //When should we die? again, for moving objects
         private float _DeathTime = float.PositiveInfinity;
         public float DeathTime { get { return _DeathTime; } set { _DeathTime = value; } }
 
         //Use this instead of relativistic parent
         public bool isParent = false;
+        //Don't render if object has relativistic parent
+        private bool hasParent = false;
         //Use this if not using an explicitly relativistic shader
         public bool nonrelativisticShader = false;
         //If the shader is not relativistic, we need to handle length contraction with a "contractor" transform.
@@ -297,9 +299,6 @@ namespace OpenRelativity.Objects
             //meshFilter.mesh.RecalculateTangents();
             opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
             myRigidbody.centerOfMass = initCOM;
-
-            
-            
         }
 
         void OnDestroy()
@@ -398,6 +397,13 @@ namespace OpenRelativity.Objects
                 //Otherwise, for all submeshes in the current mesh
                 for (int q = 0; q < subMeshCount[i]; q++)
                 {
+                    //turn off the original renderer
+                    meshRenderers[i].enabled = false;
+                    RelativisticObject ro = meshRenderers[i].GetComponent<RelativisticObject>();
+                    if (ro != null)
+                    {
+                        ro.hasParent = true;
+                    }
                     //grab its material
                     tempMaterials[subMeshIndex] = meshRenderers[i].materials[q];
                     //Grab its triangles
@@ -420,8 +426,15 @@ namespace OpenRelativity.Objects
                     vertIndex++;
                 }
                 //And delete that gameobject.
-                meshFilters[i].gameObject.SetActive(false);
+                //meshFilters[i].gameObject.SetActive(false);
             }
+
+            //"Delete" all children.
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                transform.GetChild(i).gameObject.SetActive(false);
+            }
+
             //Put it all together now.
             Mesh myMesh = new Mesh();
             //Make the mesh have as many submeshes as you need
@@ -452,19 +465,23 @@ namespace OpenRelativity.Objects
                 meshy = gameObject.AddComponent<MeshFilter>();
             }
             meshy.mesh = myMesh;
+            MeshCollider myMeshCollider = GetComponent<MeshCollider>();
+            if (myMeshCollider != null)
+            {
+                myMeshCollider.sharedMesh = myMesh;
+            }
             GetComponent<MeshRenderer>().enabled = false;
 
             meshy.mesh.RecalculateNormals();
             meshy.GetComponent<Renderer>().materials = tempMaterials;
 
-            transform.gameObject.SetActive(true);
-
-            //(We might want to wait for the top-level renderer to "kick-in" first, then...)
-            //Disable all the combined child renderers:
-            for (int i = 0; i < meshRenderers.Length; i++)
+            MeshCollider mCollider = GetComponent<MeshCollider>();
+            if (mCollider != null)
             {
-                meshRenderers[i].enabled = false;
+                mCollider.sharedMesh = myMesh;
             }
+
+            transform.gameObject.SetActive(true);
         }
 
         void Start()
@@ -582,14 +599,22 @@ namespace OpenRelativity.Objects
         private void UpdateCollider()
         {
             Collider oldCollider = myCollider;
-            myCollider = GetComponent<MeshCollider>();
+            MeshCollider myMeshCollider = GetComponent<MeshCollider>();
+            myCollider = myMeshCollider;
             if (myCollider != null)
             {
                 if (oldCollider != myCollider)
                 {
-                    trnsfrmdMesh = Instantiate(((MeshCollider)myCollider).sharedMesh);
-                    myColliderIsMesh = true;
-                    myColliderIsBox = false;
+                    if (myMeshCollider.sharedMesh == null)
+                    {
+                        myCollider = null;
+                    }
+                    else
+                    {
+                        trnsfrmdMesh = Instantiate(myMeshCollider.sharedMesh);
+                        myColliderIsMesh = true;
+                        myColliderIsBox = false;
+                    }
                 }
             }
             else
@@ -739,7 +764,7 @@ namespace OpenRelativity.Objects
 
         void FixedUpdate() {
             //Grab our renderer.
-            MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
+            Renderer tempRenderer = GetComponent<Renderer>();
 
             if (meshFilter != null && !state.MovementFrozen)
             {
@@ -793,7 +818,7 @@ namespace OpenRelativity.Objects
                     }
                     else if (state.TotalTimeWorld + tisw > startTime && !tempRenderer.enabled)
                     {
-                        tempRenderer.enabled = true;
+                        tempRenderer.enabled = !hasParent;
                         AudioSource[] audioSources = GetComponents<AudioSource>();
                         if (audioSources.Length > 0)
                         {
