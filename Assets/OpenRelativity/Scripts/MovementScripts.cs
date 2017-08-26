@@ -358,28 +358,29 @@ namespace OpenRelativity
                 Vector3 extents = myColl.bounds.extents;
                 //We assume that the world "down" direction is the direction of gravity.
                 Vector3 playerPos = state.playerTransform.position;
-                Ray rayDown = new Ray(playerPos, Vector3.down);
-                Ray rayUp = new Ray(playerPos, Vector3.up);
-                Ray rayLeft = new Ray(playerPos, Vector3.left);
-                Ray rayRight = new Ray(playerPos, Vector3.right);
-                Ray rayForward = new Ray(playerPos, Vector3.forward);
-                Ray rayBack = new Ray(playerPos, Vector3.back);
+                Ray rayDown = new Ray(playerPos + extents.y * Vector3.up, Vector3.down);
+                Ray rayUp = new Ray(playerPos + extents.y * Vector3.down, Vector3.up);
+                Ray rayLeft = new Ray(playerPos + extents.x * Vector3.right, Vector3.left);
+                Ray rayRight = new Ray(playerPos + extents.x * Vector3.left, Vector3.right);
+                Ray rayForward = new Ray(playerPos + extents.z * Vector3.back, Vector3.forward);
+                Ray rayBack = new Ray(playerPos + extents.z * Vector3.forward, Vector3.back);
                 RaycastHit hitInfo;
                 float dist;
-                if (collider.Raycast(rayDown, out hitInfo, extents.y))
+                if (collider.Raycast(rayDown, out hitInfo, 2.0f * extents.y))
                 {
-                    dist = extents.y - hitInfo.distance;
-                    if (dist > 0.2f)
-                    {
-                        state.playerTransform.position -= dist * Vector3.down;
-                    }
-
                     isFalling = false;
                     Vector3 pVel = state.PlayerVelocityVector;
                     if (pVel.y > 0.0f)
                     {
                         state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y, 0.0f));
                     }
+
+                    dist = 2.0f * extents.y - hitInfo.distance;
+                    if (dist > 0.2f)
+                    {
+                        state.playerTransform.position -= (dist * Vector3.down).InverseContractLengthBy(pVel).ContractLengthBy(state.PlayerVelocityVector);
+                    }
+
                     bool foundCollider = false;
                     for (int i = 0; i < collidersBelow.Count; i++)
                     {
@@ -394,49 +395,47 @@ namespace OpenRelativity
                         collidersBelow.Add(collider);
                     }
                 }
-                else
-                {
-                    Vector3 direction = Vector3.zero;
-                    dist = 0.0f;
-                    if (collider.Raycast(rayForward, out hitInfo, extents.z))
-                    {
-                        dist = extents.z - hitInfo.distance;
-                        direction = Vector3.forward;
-                    }
-                    else if (collider.Raycast(rayBack, out hitInfo, extents.z))
-                    {
-                        dist = extents.z - hitInfo.distance;
-                        direction = Vector3.back;
-                    }
-                    else if (collider.Raycast(rayLeft, out hitInfo, extents.x))
-                    {
-                        dist = extents.x - hitInfo.distance;
-                        direction = Vector3.left;
-                    }
-                    else if (collider.Raycast(rayRight, out hitInfo, extents.x))
-                    {
-                        dist = extents.x - hitInfo.distance;
-                        direction = Vector3.right;
-                    }
-                    else if (collider.Raycast(rayUp, out hitInfo, extents.y))
-                    {
-                        dist = extents.y - hitInfo.distance;
-                        direction = Vector3.up;
-                    }
 
-                    if (dist > 0.0f)
+                Vector3 direction = Vector3.zero;
+                dist = 0.0f;
+                if (collider.Raycast(rayForward, out hitInfo, 2.0f * extents.z))
+                {
+                    dist = 2.0f * extents.z - hitInfo.distance;
+                    direction = Vector3.forward;
+                }
+                else if (collider.Raycast(rayBack, out hitInfo, 2.0f * extents.z))
+                {
+                    dist = 2.0f * extents.z - hitInfo.distance;
+                    direction = Vector3.back;
+                }
+                else if (collider.Raycast(rayLeft, out hitInfo, 2.0f * extents.x))
+                {
+                    dist = 2.0f * extents.x - hitInfo.distance;
+                    direction = Vector3.left;
+                }
+                else if (collider.Raycast(rayRight, out hitInfo, 2.0f * extents.x))
+                {
+                    dist = 2.0f * extents.x - hitInfo.distance;
+                    direction = Vector3.right;
+                }
+                else if (collider.Raycast(rayUp, out hitInfo, 2.0f * extents.y))
+                {
+                    dist = 2.0f * extents.y - hitInfo.distance;
+                    direction = Vector3.up;
+                }
+
+                if (dist > 0.0f)
+                {
+                    Vector3 pVel = state.PlayerVelocityVector;
+                    if (Vector3.Dot(pVel, direction) < 0.0f)
                     {
-                        Vector3 pVel = state.PlayerVelocityVector;
-                        if (Vector3.Dot(pVel, direction) < 0.0f)
-                        {
-                            //Decompose velocity in parallel and perpendicular components:
-                            Vector3 myParraVel = Vector3.Project(pVel, direction);
-                            //Vector3 myPerpVel = Vector3.Cross(direction, Vector3.Cross(direction, pVel));
-                            //Relativistically cancel the downward velocity:
-                            state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(-myParraVel);
-                        }
-                        state.playerTransform.position -= dist * direction;
+                        //Decompose velocity in parallel and perpendicular components:
+                        Vector3 myParraVel = Vector3.Project(pVel, direction) * 2.0f;
+                        //Vector3 myPerpVel = Vector3.Cross(direction, Vector3.Cross(direction, pVel));
+                        //Relativistically cancel the downward velocity:
+                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(-myParraVel);
                     }
+                    state.playerTransform.position -= dist * direction;
                 }
             }
         }
