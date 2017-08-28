@@ -338,6 +338,8 @@ namespace OpenRelativity.Objects
             {
                 GetComponent<ObjectMeshDensity>().enabled = false;
             }
+            bool wasStatic = gameObject.isStatic;
+            gameObject.isStatic = false;
             int vertCount = 0, triangleCount = 0;
             Matrix4x4 worldLocalMatrix = transform.worldToLocalMatrix;
 
@@ -353,6 +355,9 @@ namespace OpenRelativity.Objects
             int meshFilterLength = meshFilters.Length;
             //And a counter
             int subMeshCounts = 0;
+            //We can optimize further for duplicate materials:
+            Dictionary<string, Material> uniqueMaterials = new Dictionary<string, Material>();
+            List<string> uniqueMaterialNames = new List<string>();
 
             //For every meshfilter,
             for (int y = 0; y < meshFilterLength; y++)
@@ -406,6 +411,13 @@ namespace OpenRelativity.Objects
                     }
                     //grab its material
                     tempMaterials[subMeshIndex] = meshRenderers[i].materials[q];
+                    //Check if material is unique
+                    string name = meshRenderers[i].materials[q].name.Replace(" (Instance)", "");
+                    if (!uniqueMaterials.ContainsKey(name))
+                    {
+                        uniqueMaterials.Add(name, meshRenderers[i].materials[q]);
+                        uniqueMaterialNames.Add(name);
+                    }
                     //Grab its triangles
                     int[] tempSubTriangles = MFs.GetTriangles(q);
                     //And put them into the submesh's triangle array
@@ -432,27 +444,30 @@ namespace OpenRelativity.Objects
             //"Delete" all children.
             for (int i = 0; i < transform.childCount; i++)
             {
-                transform.GetChild(i).gameObject.SetActive(false);
+                //transform.GetChild(i).gameObject.SetActive(false);
+                Destroy(transform.GetChild(i).gameObject);
             }
 
             //Put it all together now.
             Mesh myMesh = new Mesh();
-            //Make the mesh have as many submeshes as you need
-            myMesh.subMeshCount = subMeshCounts;
-            //Set its vertices to tempverts
+            //If any materials are the same, we can combine triangles and give them the same material.
+            myMesh.subMeshCount = uniqueMaterials.Count;
             myMesh.vertices = tempVerts;
-            //start at the first submesh
-            subMeshIndex = 0;
-            //For every submesh in each meshfilter
-            for (int l = 0; l < meshFilterLength; l++)
+            Material[] finalMaterials = new Material[uniqueMaterials.Count];
+            for (int i = 0; i < uniqueMaterialNames.Count; i++)
             {
-                for (int g = 0; g < subMeshCount[l]; g++)
+                string uniqueName = uniqueMaterialNames[i];
+                List<int> combineTriangles = new List<int>();
+                for (int j = 0; j < tempMaterials.Length; j++)
                 {
-                    //Set a new submesh, using the triangle array and its submesh index (built in unity function)
-                    myMesh.SetTriangles(tempTriangles[subMeshIndex], subMeshIndex);
-                    //increment the submesh index
-                    subMeshIndex++;
+                    string name = tempMaterials[j].name.Replace(" (Instance)", "");
+                    if (uniqueName.Equals(name))
+                    {
+                        combineTriangles.AddRange(tempTriangles[j]);
+                    }
                 }
+                myMesh.SetTriangles(combineTriangles.ToArray(), i);
+                finalMaterials[i] = uniqueMaterials[uniqueMaterialNames[i]];
             }
             //Just shunt in the UV coordinates, we don't need to change them
             myMesh.uv = tempUVs;
@@ -473,7 +488,14 @@ namespace OpenRelativity.Objects
             GetComponent<MeshRenderer>().enabled = false;
 
             meshy.mesh.RecalculateNormals();
-            meshy.GetComponent<Renderer>().materials = tempMaterials;
+            if (uniqueMaterials.Count == 1)
+            {
+                meshy.GetComponent<Renderer>().material = finalMaterials[0];
+            }
+            else
+            {
+                meshy.GetComponent<Renderer>().materials = finalMaterials;
+            }
 
             MeshCollider mCollider = GetComponent<MeshCollider>();
             if (mCollider != null)
@@ -482,6 +504,7 @@ namespace OpenRelativity.Objects
             }
 
             transform.gameObject.SetActive(true);
+            gameObject.isStatic = wasStatic;
         }
 
         void Start()

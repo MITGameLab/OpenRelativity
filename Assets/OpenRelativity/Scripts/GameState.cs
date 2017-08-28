@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -160,6 +161,35 @@ namespace OpenRelativity
 
             playerRotation = Vector3.zero;
             deltaRotation = Vector3.zero;
+        }
+        public void Start()
+        {
+            //Because we do a lot of manual renderer manipulation,
+            // our materials end up needlessly redundant.
+            // Most of this manipulation happens during "Awake()".
+            // We can optimize by combining redudant materials.
+            MeshRenderer[] renderers = FindObjectsOfType<MeshRenderer>();
+            Dictionary<string, Material> materialDictionary = new Dictionary<string, Material>();
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                MeshRenderer testRenderer = renderers[i];
+                for (int j = 0; j < testRenderer.materials.Length; j++)
+                {
+                    string name = testRenderer.materials[j].name.Replace(" (Instance)", "");
+                    if (materialDictionary.ContainsKey(name))
+                    {
+                        //if (!testRenderer.sharedMaterials[j].Equals(materialDictionary[name]))
+                        //{
+                        //    Destroy(testRenderer.materials[j]);
+                        //}
+                        testRenderer.materials[j] = materialDictionary[name];
+                    }
+                    else
+                    {
+                        materialDictionary.Add(name, testRenderer.materials[j]);
+                    }
+                }
+            }
         }
         public void reset()
         {
