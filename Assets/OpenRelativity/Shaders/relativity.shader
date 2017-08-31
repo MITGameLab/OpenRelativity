@@ -130,7 +130,9 @@ Shader "Relativity/ColorShift"
 		//If our speed is nearly zero, it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
 		else
 		{
-			uparra = viw;
+			uparra = 0;
+			speed = 0;
+			viw = 0;
 		}
 		//Get the perpendicular component of our velocity, just by subtraction
 		float4 uperp = viw - uparra;
@@ -151,6 +153,7 @@ Shader "Relativity/ColorShift"
 		#endif 
 		//riw = location in world, for reference
         float4 riw = o.pos; //Position that will be used in the output
+		float4 viwScaled = _spdOfLight * viw;
 		
 		//Transform fails and is unecessary if relative speed is zero:
 		if (speedr > divByZeroCutoff)
@@ -159,9 +162,9 @@ Shader "Relativity/ColorShift"
 
 			float c = -dot(riw, riw); //first get position squared (position doted with position)
 
-			float b = -(2 * dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
+			float b = -(2 * dot(viwScaled, viwScaled)); //next get position doted with velocity, should be only in the Z direction
 
-			float d = (_spdOfLight*_spdOfLight) - dot(viw, viw);
+			float d = (_spdOfLight*_spdOfLight) - dot(viwScaled, viwScaled);
 
 			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
@@ -178,16 +181,23 @@ Shader "Relativity/ColorShift"
 			//get the new position offset, based on the new time we just found
 			//Should only be in the Z direction
 
-			riw = riw + (tisw * viw);
+			riw = riw + (tisw * viwScaled);
 
 			//Apply Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
 			//I had to break it up into steps, unity was getting order of operations wrong.	
 			float newz = (((float)speed*_spdOfLight) * tisw);
 	       
-			float4 vpcNorm = normalize(_vpc);
-			newz = (dot(riw, vpcNorm) + newz) / (float)sqrt(1 - (speed*speed));
-			riw = riw + (newz - dot(riw, vpcNorm)) * vpcNorm;
+			float vpcNorm = sqrt(dot(_vpc, _vpc));
+			float4 vpcUnit;
+			if (vpcNorm > divByZeroCutoff) {
+				vpcUnit = _vpc / vpcNorm;
+			}
+			else {
+				vpcUnit = normalize(-_viw);
+			}
+			newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+			riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
 		}
 		else
 		{

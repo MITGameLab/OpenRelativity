@@ -194,6 +194,7 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
+            Vector3 viwScaled = spdOfLight * viw;
 
             //Transform fails and is unecessary if relative speed is zero:
             if (speedr != 0)
@@ -202,7 +203,7 @@ namespace OpenRelativity
 
                 float c = riw.sqrMagnitude; //first get position squared (position doted with position)
 
-                float b = -(2 * Vector3.Dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
+                float b = -(2 * Vector3.Dot(riw, viwScaled)); //next get position doted with velocity, should be only in the Z direction
 
                 float d = (spdOfLight * spdOfLight) - viw.sqrMagnitude;
 
@@ -213,16 +214,25 @@ namespace OpenRelativity
                 //get the new position offset, based on the new time we just found
                 //Should only be in the Z direction
 
-                riw = riw + (tisw * viw);
+                riw = riw + (tisw * viwScaled);
 
                 //Apply Lorentz transform
                 // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
                 //I had to break it up into steps, unity was getting order of operations wrong.	
                 float newz = (((float)speed * spdOfLight) * tisw);
 
-                Vector3 vpcNorm = vpc.normalized;
-                newz = (Vector3.Dot(riw, vpcNorm) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector3.Dot(riw, vpcNorm)) * vpcNorm;
+                float vpcNorm = Mathf.Sqrt(Vector3.Dot(vpc, vpc));
+                Vector3 vpcUnit;
+                if (vpcNorm > divByZeroCutoff)
+                {
+                    vpcUnit = vpc / vpcNorm;
+                }
+                else
+                {
+                    vpcUnit = -viw.normalized;
+                }
+                newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
             }
 
             riw += origin;
@@ -312,7 +322,18 @@ namespace OpenRelativity
                 float sqrError;
                 int iterationCount = 0;
                 float c, b, d, tisw, newz;
-                Vector3 vpcNorm = vpc.normalized;
+                Vector3 vpcUnit;
+                float vpcNorm = vpcNorm = Mathf.Sqrt(Vector3.Dot(vpc, vpc));
+                if (vpcNorm > divByZeroCutoff)
+                {
+                    vpcUnit = vpc / vpcNorm;
+                }
+                else
+                {
+                    vpcUnit = -viw.normalized;
+                }
+                Vector3 viwScaled = spdOfLight * viw;
+
                 do
                 {
                     estimate = newEst;
@@ -325,9 +346,9 @@ namespace OpenRelativity
 
                     c = riw.sqrMagnitude; //first get position squared (position doted with position)
 
-                    b = -(2 * Vector3.Dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
+                    b = -(2 * Vector3.Dot(riw, viwScaled)); //next get position doted with velocity, should be only in the Z direction
 
-                    d = (spdOfLight * spdOfLight) - viw.sqrMagnitude;
+                    d = (spdOfLight * spdOfLight) - viwScaled.sqrMagnitude;
 
                     tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
@@ -336,15 +357,16 @@ namespace OpenRelativity
                     //get the new position offset, based on the new time we just found
                     //Should only be in the Z direction
 
-                    riw = riw + (tisw * viw);
+                    riw = riw + (tisw * viwScaled);
 
                     //Apply Lorentz transform
                     // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
                     //I had to break it up into steps, unity was getting order of operations wrong.	
                     newz = (((float)speed * spdOfLight) * tisw);
 
-                    newz = (Vector3.Dot(riw, vpcNorm) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                    riw = riw + (newz - Vector3.Dot(riw, vpcNorm)) * vpcNorm;
+                    
+                    newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                    riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
 
                     riw += origin;
 
