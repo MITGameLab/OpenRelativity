@@ -175,21 +175,22 @@ namespace OpenRelativity
             Vector3 viw = velocity / spdOfLight;
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
-            Vector3 uparra;
+            Vector3 vr;
             //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed > divByZeroCutoff)
+            if (speed != 0)
             {
-                uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
+                Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
+                //Get the perpendicular component of our velocity, just by subtraction
+                Vector3 uperp = viw - uparra;
+                //relative velocity calculation
+                vr = (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
             }
-            //If our speed is nearly zero, it could lead to infinities. We insert the limit point.
+            //If our speed is nearly zero, it could lead to infinities.
             else
             {
-                uparra = Vector3.zero;
+                //relative velocity calculation
+                vr = -viw;
             }
-            //Get the perpendicular component of our velocity, just by subtraction
-            Vector3 uperp = viw - uparra;
-            //relative velocity calculation
-            Vector3 vr = -(vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
             float speedr = vr.magnitude;
 
             //riw = location in world, for reference
@@ -221,18 +222,12 @@ namespace OpenRelativity
                 //I had to break it up into steps, unity was getting order of operations wrong.	
                 float newz = (((float)speed * spdOfLight) * tisw);
 
-                float vpcNorm = Mathf.Sqrt(Vector3.Dot(vpc, vpc));
-                Vector3 vpcUnit;
-                if (vpcNorm > divByZeroCutoff)
+                if (speed != 0)
                 {
-                    vpcUnit = vpc / vpcNorm;
+                    Vector3 vpcUnit = vpc / speed;
+                    newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                    riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
                 }
-                else
-                {
-                    vpcUnit = -viw.normalized;
-                }
-                newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
             }
 
             riw += origin;
@@ -293,21 +288,22 @@ namespace OpenRelativity
             Vector3 viw = velocity / spdOfLight;
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
-            Vector3 uparra;
+            Vector3 vr;
             //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed > divByZeroCutoff)
+            if (speed != 0)
             {
-                uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
+                Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
+                //Get the perpendicular component of our velocity, just by subtraction
+                Vector3 uperp = viw - uparra;
+                //relative velocity calculation
+                vr = (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
             }
-            //If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
+            //If our speed is nearly zero, it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
             else
             {
-                uparra = viw;
+                //relative velocity calculation
+                vr = -viw;
             }
-            //Get the perpendicular component of our velocity, just by subtraction
-            Vector3 uperp = viw - uparra;
-            //relative velocity calculation
-            Vector3 vr = -(vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
             float speedr = vr.magnitude;
 
             if (speedr == 0) // If the relative speed is zero, the optical position is equal to the world position.
@@ -322,15 +318,11 @@ namespace OpenRelativity
                 float sqrError;
                 int iterationCount = 0;
                 float c, b, d, tisw, newz;
-                Vector3 vpcUnit;
+                Vector3 vpcUnit = Vector3.zero;
                 float vpcNorm = vpcNorm = Mathf.Sqrt(Vector3.Dot(vpc, vpc));
-                if (vpcNorm > divByZeroCutoff)
+                if (speed != 0)
                 {
-                    vpcUnit = vpc / vpcNorm;
-                }
-                else
-                {
-                    vpcUnit = -viw.normalized;
+                    vpcUnit = vpc / speed;
                 }
                 Vector3 viwScaled = spdOfLight * viw;
 
@@ -364,9 +356,11 @@ namespace OpenRelativity
                     //I had to break it up into steps, unity was getting order of operations wrong.	
                     newz = (((float)speed * spdOfLight) * tisw);
 
-                    
-                    newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                    riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
+                    if (speed != 0)
+                    {
+                        newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                        riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
+                    }
 
                     riw += origin;
 

@@ -121,23 +121,22 @@ Shader "Relativity/ColorShift"
 	
 	
 		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
-		float4 uparra;
+		float4 vr;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if (speed > divByZeroCutoff)
+		if (speed != 0)
 		{
-			uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
+			float4 uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
+			//Get the perpendicular component of our velocity, just by subtraction
+			float4 uperp = viw - uparra;
+			//relative velocity calculation
+			vr = (_vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
 		}
-		//If our speed is nearly zero, it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
+		//If our speed is nearly zero, it could lead to infinities.
 		else
 		{
-			uparra = 0;
-			speed = 0;
-			viw = 0;
+			//relative velocity calculation
+			vr = -viw;
 		}
-		//Get the perpendicular component of our velocity, just by subtraction
-		float4 uperp = viw - uparra;
-		//relative velocity calculation
-		float4 vr =( _vpc - uparra - (sqrt(1-speed*speed))*uperp)/(1+vuDot);
 	 
 		//set our relative velocity
 		o.vr = vr;
@@ -153,11 +152,11 @@ Shader "Relativity/ColorShift"
 		#endif 
 		//riw = location in world, for reference
         float4 riw = o.pos; //Position that will be used in the output
-		float4 viwScaled = _spdOfLight * viw;
-		
-		//Transform fails and is unecessary if relative speed is zero:
-		if (speedr > divByZeroCutoff)
+
+		if (speedr != 0)
 		{
+			float4 viwScaled = _spdOfLight * viw;
+
 			//Here begins a rotation-free modification of the original OpenRelativity shader:
 
 			float c = -dot(riw, riw); //first get position squared (position doted with position)
@@ -169,12 +168,12 @@ Shader "Relativity/ColorShift"
 			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
 			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
-  			if (_wrldTime + tisw > _strtTime || _strtTime==0)
+			if (_wrldTime + tisw > _strtTime || _strtTime == 0)
 			{
 				o.draw = 1;
 			}
 			else
-			{ 
+			{
 				o.draw = 0;
 			}
 
@@ -187,21 +186,12 @@ Shader "Relativity/ColorShift"
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
 			//I had to break it up into steps, unity was getting order of operations wrong.	
 			float newz = (((float)speed*_spdOfLight) * tisw);
-	       
-			float vpcNorm = sqrt(dot(_vpc, _vpc));
-			float4 vpcUnit;
-			if (vpcNorm > divByZeroCutoff) {
-				vpcUnit = _vpc / vpcNorm;
+
+			if (speed != 0) {
+				float4 vpcUnit = _vpc / speed;
+				newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+				riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
 			}
-			else {
-				vpcUnit = normalize(-_viw);
-			}
-			newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-			riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
-		}
-		else
-		{
-			o.draw = 1;
 		}
 		
 		riw += _playerOffset;

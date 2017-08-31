@@ -68,23 +68,22 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 
 	float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
-	float3 uparra;
+	float3 vr;
 	//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-	if (speed > divByZeroCutoff)
+	if (speed != 0)
 	{
-		uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
+		float3 uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
+		//Get the perpendicular component of our velocity, just by subtraction
+		float3 uperp = viw - uparra;
+		//relative velocity calculation
+		vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
 	}
-	//If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
+	//If our speed is nearly zero, it could lead to infinities.
 	else
 	{
-		uparra = 0;
-		speed = 0;
-		viw = 0;
+		//relative velocity calculation
+		vr = -viw;
 	}
-	//Get the perpendicular component of our velocity, just by subtraction
-	float3 uperp = viw - uparra;
-	//relative velocity calculation
-	float3 vr = -(vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
 
 	//relative speed
 	float speedr = sqrt(dot(vr, vr));
@@ -94,7 +93,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float3 viwScaled = spdOfLight * viw;
 
 	//Transform fails and is unecessary if relative speed is zero:
-	if (speedr > divByZeroCutoff)
+	if (speedr != 0)
 	{
 		//Here begins a rotation-free modification of the original OpenRelativity shader:
 
@@ -114,16 +113,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 		//I had to break it up into steps, unity was getting order of operations wrong.	
 		float newz = (((float)speed*spdOfLight) * tisw);
 
-		float vpcNorm = sqrt(dot(vpc, vpc));
-		float3 vpcUnit;
-		if (vpcNorm > divByZeroCutoff) {
-			vpcUnit = vpc / vpcNorm;
+		if (speed != 0) {
+			float3 vpcUnit = vpc / speed;
+			newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+			riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
 		}
-		else {
-			vpcUnit = normalize(-viw);
-		}
-		newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-		riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
 	}
 
 	riw += playerOffset;
