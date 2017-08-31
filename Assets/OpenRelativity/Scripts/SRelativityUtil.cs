@@ -184,7 +184,6 @@ namespace OpenRelativity
             //If our speed is nearly zero, it could lead to infinities. We insert the limit point.
             else
             {
-                speed = 0;
                 uparra = Vector3.zero;
             }
             //Get the perpendicular component of our velocity, just by subtraction
@@ -210,15 +209,6 @@ namespace OpenRelativity
                 float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
                 if (float.IsNaN(tisw) || float.IsInfinity(tisw)) tisw = 0.0f;
-                //Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
-                /*if (wrldTime + tisw > _strtTime || _strtTime == 0)
-                {
-                    o.draw = 1;
-                }
-                else
-                {
-                    o.draw = 0;
-                }*/
 
                 //get the new position offset, based on the new time we just found
                 //Should only be in the Z direction
@@ -302,8 +292,7 @@ namespace OpenRelativity
             //If our speed is nearly zero, set it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
             else
             {
-                speed = 0;
-                uparra = Vector3.zero;
+                uparra = viw;
             }
             //Get the perpendicular component of our velocity, just by subtraction
             Vector3 uperp = viw - uparra;
@@ -311,39 +300,18 @@ namespace OpenRelativity
             Vector3 vr = -(vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
             float speedr = vr.magnitude;
 
-            Quaternion rotFromVPCtoZ = Quaternion.identity;
             if (speedr == 0) // If the relative speed is zero, the optical position is equal to the world position.
             {
                 estimate = oPos;
             }
             else
             {
-                if (speed != 0)
-                {
-                    //We're getting the angle between our z direction of movement and the world's Z axis
-                    Vector3 direction = vpc.normalized;
-                    // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-                    float a = (-direction.z / speed);
-                    if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
-                    {
-                        a = -Mathf.Acos(-a);
-                        //This evaluates to false for infinite, NaN, and uselessly large and small angles:
-                        if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
-                        {
-                            rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
-                        }
-                        //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-                        //This is because all of our equations are based off of movement in one direction.
-                    }
-                }
-
                 Vector3 riw; //Position that will be used in the output
 
                 float newSqrError = (oPos - newOPos).sqrMagnitude;
                 float sqrError;
                 int iterationCount = 0;
                 float c, b, d, tisw, newz;
-                Vector3 rotateViw;
                 Vector3 vpcNorm = vpc.normalized;
                 do
                 {
@@ -351,9 +319,7 @@ namespace OpenRelativity
                     sqrError = newSqrError;
                     newEst = estimate + (oPos - newOPos);
 
-                    riw = rotFromVPCtoZ * (newEst - origin);
-
-                    rotateViw = rotFromVPCtoZ * viw * spdOfLight;
+                    riw = newEst - origin;
 
                     //Here begins a rotation-free modification of the original OpenRelativity shader:
 

@@ -130,10 +130,7 @@ Shader "Relativity/ColorShift"
 		//If our speed is nearly zero, it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
 		else
 		{
-			speed = 0;
-			uparra = 0;
-			viw = float4(0, 0, 0, 0);
-			vuDot = float4(0, 0, 0, 0);
+			uparra = viw;
 		}
 		//Get the perpendicular component of our velocity, just by subtraction
 		float4 uperp = viw - uparra;
@@ -156,7 +153,7 @@ Shader "Relativity/ColorShift"
         float4 riw = o.pos; //Position that will be used in the output
 		
 		//Transform fails and is unecessary if relative speed is zero:
-		if (speedr != 0)
+		if (speedr > divByZeroCutoff)
 		{
 			//Here begins a rotation-free modification of the original OpenRelativity shader:
 
@@ -167,8 +164,6 @@ Shader "Relativity/ColorShift"
 			float d = (_spdOfLight*_spdOfLight) - dot(viw, viw);
 
 			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-
-			if (isnan(tisw) || isinf(tisw)) tisw = 0.0f;
 
 			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
   			if (_wrldTime + tisw > _strtTime || _strtTime==0)
