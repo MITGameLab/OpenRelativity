@@ -185,7 +185,7 @@ namespace OpenRelativity
             else
             {
                 speed = 0;
-                uparra = viw;
+                uparra = Vector3.zero;
             }
             //Get the perpendicular component of our velocity, just by subtraction
             Vector3 uperp = viw - uparra;
@@ -196,60 +196,43 @@ namespace OpenRelativity
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
 
-            if (speedr != 0) // If speed is zero, rotation fails
+            //Transform fails and is unecessary if relative speed is zero:
+            if (speedr != 0)
             {
-                Quaternion rotFromVPCtoZ = Quaternion.identity;
-                if (speed != 0)
+                //Here begins a rotation-free modification of the original OpenRelativity shader:
+
+                float c = riw.sqrMagnitude; //first get position squared (position doted with position)
+
+                float b = -(2 * Vector3.Dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
+
+                float d = (spdOfLight * spdOfLight) - viw.sqrMagnitude;
+
+                float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+
+                if (float.IsNaN(tisw) || float.IsInfinity(tisw)) tisw = 0.0f;
+                //Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
+                /*if (wrldTime + tisw > _strtTime || _strtTime == 0)
                 {
-                    //We're getting the angle between our z direction of movement and the world's Z axis
-                    Vector3 direction = vpc.normalized;
-                    // If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-                    float a = (-direction.z / speed);
-                    if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
-                    {
-                        a = -Mathf.Acos(-a);
-                        //This evaluates to false for infinite, NaN, and uselessly large and small angles:
-                        if (Mathf.Abs(a) > divByZeroCutoff && Mathf.Abs(a) > 1.0f / divByZeroCutoff)
-                        {
-                            //we're getting the angle between our z direction of movement and the world's Z axis
-                            rotFromVPCtoZ = Quaternion.FromToRotation(direction, new Vector3(0.0f, 0.0f, 1.0f));
-
-                            //We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-                            //This is because all of our equations are based off of movement in one direction.
-
-                            //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
-                            riw = rotFromVPCtoZ * riw;
-                        }
-                    }
+                    o.draw = 1;
                 }
-
-                //Here begins the original code, made by the guys behind the Relativity game
-
-                //Rotate our velocity
-                Vector3 rotateViw = rotFromVPCtoZ * viw * spdOfLight;
-
-                float c = -(riw.sqrMagnitude); //first get position squared (position dotted with position)
-
-                float b = -(2.0f * Vector3.Dot(riw, rotateViw)); //next get position dotted with velocity, should be only in the Z direction
-
-                float d = (spdOfLight * spdOfLight) - rotateViw.sqrMagnitude;
-
-                float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
+                else
+                {
+                    o.draw = 0;
+                }*/
 
                 //get the new position offset, based on the new time we just found
                 //Should only be in the Z direction
 
-                riw += tisw * rotateViw;
+                riw = riw + (tisw * viw);
 
                 //Apply Lorentz transform
+                // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
                 //I had to break it up into steps, unity was getting order of operations wrong.	
                 float newz = (((float)speed * spdOfLight) * tisw);
 
-                newz = riw.z + newz;
-                newz /= Mathf.Sqrt(1 - (speed * speed));
-                riw.z = newz;
-
-                riw = Quaternion.Inverse(rotFromVPCtoZ) * riw;
+                Vector3 vpcNorm = vpc.normalized;
+                newz = (Vector3.Dot(riw, vpcNorm) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                riw = riw + (newz - Vector3.Dot(riw, vpcNorm)) * vpcNorm;
             }
 
             riw += origin;
@@ -320,7 +303,7 @@ namespace OpenRelativity
             else
             {
                 speed = 0;
-                uparra = viw;
+                uparra = Vector3.zero;
             }
             //Get the perpendicular component of our velocity, just by subtraction
             Vector3 uperp = viw - uparra;
@@ -361,6 +344,7 @@ namespace OpenRelativity
                 int iterationCount = 0;
                 float c, b, d, tisw, newz;
                 Vector3 rotateViw;
+                Vector3 vpcNorm = vpc.normalized;
                 do
                 {
                     estimate = newEst;
@@ -371,28 +355,30 @@ namespace OpenRelativity
 
                     rotateViw = rotFromVPCtoZ * viw * spdOfLight;
 
-                    c = -(riw.sqrMagnitude); //first get position squared (position dotted with position)
+                    //Here begins a rotation-free modification of the original OpenRelativity shader:
 
-                    b = -(2.0f * Vector3.Dot(riw, rotateViw)); //next get position dotted with velocity, should be only in the Z direction
+                    c = riw.sqrMagnitude; //first get position squared (position doted with position)
 
-                    d = (spdOfLight * spdOfLight) - rotateViw.sqrMagnitude;
+                    b = -(2 * Vector3.Dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
 
-                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
+                    d = (spdOfLight * spdOfLight) - viw.sqrMagnitude;
+
+                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+
+                    if (float.IsNaN(tisw) || float.IsInfinity(tisw)) tisw = 0.0f;
 
                     //get the new position offset, based on the new time we just found
                     //Should only be in the Z direction
 
-                    riw += tisw * rotateViw;
+                    riw = riw + (tisw * viw);
 
                     //Apply Lorentz transform
+                    // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
                     //I had to break it up into steps, unity was getting order of operations wrong.	
                     newz = (((float)speed * spdOfLight) * tisw);
 
-                    newz = riw.z + newz;
-                    newz /= Mathf.Sqrt(1 - (speed * speed));
-                    riw.z = newz;
-
-                    riw = Quaternion.Inverse(rotFromVPCtoZ) * riw;
+                    newz = (Vector3.Dot(riw, vpcNorm) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                    riw = riw + (newz - Vector3.Dot(riw, vpcNorm)) * vpcNorm;
 
                     riw += origin;
 

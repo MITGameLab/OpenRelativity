@@ -49,34 +49,10 @@ Shader "Relativity/ColorShift"
 
 	//Quaternion math
 	#define quaternion float4
-	#define PI_F 3.14159265f;
+	#define PI_F 3.14159265f
 
 	//Prevent NaN and Inf
     #define divByZeroCutoff 1e-8f
-
-	//Quaternion rotation
-	//https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
-	inline float3 rot3(quaternion q, float3 v) {
-		if (dot(q.xyz, q.xyz) == 0.0f) return v;
-		float3 t = 2.0f * cross(q.xyz, v);
-		return v + q.w * t + cross(q.xyz, t);
-	}
-
-	inline float4 rot4(quaternion q, float4 v) {
-		if (dot(q.xyz, q.xyz) == 0.0f) return v;
-		float3 t = 2.0f * cross(q.xyz, v.xyz);
-		t = v.xyz + q.w * t + cross(q.xyz, t);
-		return quaternion(t.x, t.y, t.z, 0.0f);
-	}
-
-	inline quaternion makeRotQ(float angle, float3 direction) {
-		return quaternion(sin(angle / 2.0f) * direction, cos(angle / 2.0f));
-	}
-
-	inline quaternion inverse(quaternion q) {
-		return q / dot(q, q);
-	}
-
 	 
 	//This is the data sent from the vertex shader to the fragment shader
 	struct v2f 
@@ -155,7 +131,9 @@ Shader "Relativity/ColorShift"
 		else
 		{
 			speed = 0;
-			uparra = viw;
+			uparra = 0;
+			viw = float4(0, 0, 0, 0);
+			vuDot = float4(0, 0, 0, 0);
 		}
 		//Get the perpendicular component of our velocity, just by subtraction
 		float4 uperp = viw - uparra;
@@ -177,42 +155,20 @@ Shader "Relativity/ColorShift"
 		//riw = location in world, for reference
         float4 riw = o.pos; //Position that will be used in the output
 		
-        if (speedr != 0) // If speed is zero, rotation fails
-        {
-			quaternion vpcToZRot = quaternion(0.0f, 0.0f, 0.0f, 1.0f);
-			if ( speed != 0 )
-			{
-				//We're getting the angle between our z direction of movement and the world's Z axis
-				float4 direction = normalize(_vpc);
-				// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-				float a = (-direction.z / speed);
-				if (abs(a) > divByZeroCutoff && abs(a) > 1.0f / divByZeroCutoff) {
-					a = -acos(-a);
-					//This evaluates to false for infinite, NaN, and uselessly large and small angles:
-					if (abs(a) > divByZeroCutoff && abs(a) > 1.0f / divByZeroCutoff) {
-						vpcToZRot = makeRotQ(a, cross(direction.xyz, float3(0, 0, 1)));
-						riw = rot4(vpcToZRot, o.pos);
-
-						//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-						//This is because all of our equations are based off of movement in one direction.
-					}
-				}
-			}
-			
-
-		
-			//Here begins the original code, made by the guys behind the Relativity game
-
-   			//Rotate our velocity
-			float4 rotateViw = _spdOfLight * rot4(vpcToZRot, viw);
+		//Transform fails and is unecessary if relative speed is zero:
+		if (speedr != 0)
+		{
+			//Here begins a rotation-free modification of the original OpenRelativity shader:
 
 			float c = -dot(riw, riw); //first get position squared (position doted with position)
 
-			float b = -(2 * dot(riw, rotateViw)); //next get position doted with velocity, should be only in the Z direction
+			float b = -(2 * dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
 
-			float d = (_spdOfLight*_spdOfLight) - dot(rotateViw, rotateViw);
+			float d = (_spdOfLight*_spdOfLight) - dot(viw, viw);
 
 			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+
+			if (isnan(tisw) || isinf(tisw)) tisw = 0.0f;
 
 			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
   			if (_wrldTime + tisw > _strtTime || _strtTime==0)
@@ -227,19 +183,16 @@ Shader "Relativity/ColorShift"
 			//get the new position offset, based on the new time we just found
 			//Should only be in the Z direction
 
-			riw += rotateViw * tisw;
+			riw = riw + (tisw * viw);
 
 			//Apply Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
 			//I had to break it up into steps, unity was getting order of operations wrong.	
 			float newz = (((float)speed*_spdOfLight) * tisw);
 	       
-			newz = riw.z + newz;
-			newz /= (float)sqrt(1 - (speed*speed));
-			riw.z = newz;
-
-			//Rotate back to our original orientation
-			riw = rot4(inverse(vpcToZRot), riw);
+			float4 vpcNorm = normalize(_vpc);
+			newz = (dot(riw, vpcNorm) + newz) / (float)sqrt(1 - (speed*speed));
+			riw = riw + (newz - dot(riw, vpcNorm)) * vpcNorm;
 		}
 		else
 		{

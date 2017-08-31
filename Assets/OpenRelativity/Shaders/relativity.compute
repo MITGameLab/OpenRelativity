@@ -33,29 +33,6 @@ StructuredBuffer<GlobalParams> glblPrms;
 RWStructuredBuffer<float3> verts;
 //RWStructuredBuffer<float> drawBools;
 
-// Quaternion rotation
-//https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
-inline float3 rot3(quaternion q, float3 v) {
-	if (dot(q.xyz, q.xyz) == 0.0f) return v;
-	float3 t = 2.0f * cross(q.xyz, v);
-	return v + q.w * t + cross(q.xyz, t);
-}
-
-inline float4 rot4(quaternion q, float4 v) {
-	if (dot(q.xyz, q.xyz) == 0.0f) return v;
-	float3 t = 2.0f * cross(q.xyz, v.xyz);
-	t = v.xyz + q.w * t + cross(q.xyz, t);
-	return quaternion(t.x, t.y, t.z, 0.0f);
-}
-
-inline quaternion makeRotQ(float angle, float3 direction) {
-	return quaternion(sin(angle / 2.0f) * direction, cos(angle / 2.0f));
-}
-
-inline quaternion inverse(quaternion q) {
-	return q / dot(q, q);
-}
-
 [numthreads(64,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
@@ -117,59 +94,44 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	//riw = location in world, for reference
 	float3 riw = pos; //Position that will be used in the output
 
-	if (speedr != 0) // If speed is zero, rotation fails
+	//Transform fails and is unecessary if relative speed is zero:
+	if (speedr != 0)
 	{
-		quaternion vpcToZRot = quaternion(0.0f, 0.0f, 0.0f, 1.0f);
-		if (speed != 0)
-		{
-			//We're getting the angle between our z direction of movement and the world's Z axis
-			float3 direction = normalize(vpc);
-			// If the velocity is almost entirely in the z direction already, this is unnecessary and will fail.
-			float a = (-direction.z / speed);
-			if (abs(a) > divByZeroCutoff && abs(a) > 1.0f / divByZeroCutoff) {
-				a = -acos(-a);
-				//This evaluates to false for infinite, NaN, and uselessly large and small angles:
-				if (abs(a) > divByZeroCutoff && abs(a) > 1.0f / divByZeroCutoff) {
-					vpcToZRot = makeRotQ(a, cross(direction, float3(0, 0, 1)));
-					riw = rot3(vpcToZRot, pos);
-
-					//We're rotating player velocity here, making it seem like the player's movement is all in the Z direction
-					//This is because all of our equations are based off of movement in one direction.
-				}
-			}
-		}
-
-
-
-		//Here begins the original code, made by the guys behind the Relativity game
-
-		//Rotate our velocity
-		float3 rotateViw = spdOfLight * rot3(vpcToZRot, viw);
+		//Here begins a rotation-free modification of the original OpenRelativity shader:
 
 		float c = -dot(riw, riw); //first get position squared (position doted with position)
 
-		float b = -(2 * dot(riw, rotateViw)); //next get position doted with velocity, should be only in the Z direction
+		float b = -(2 * dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
 
-		float d = (spdOfLight*spdOfLight) - dot(rotateViw, rotateViw);
+		float d = (spdOfLight*spdOfLight) - dot(viw, viw);
 
-		float tisw = ((-b - (sqrt((b * b) - 4.0f * d * c))) / (2.0f * d));
+		float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+
+		if (!(tisw > 0.0f || tisw <= 0.0f)) tisw = 0.0f;
+
+		//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
+		/*if (wrldTime + tisw > _strtTime || _strtTime == 0)
+		{
+			o.draw = 1;
+		}
+		else
+		{
+			o.draw = 0;
+		}*/
 
 		//get the new position offset, based on the new time we just found
 		//Should only be in the Z direction
 
-		riw += rotateViw * tisw;
+		riw = riw + (tisw * viw);
 
 		//Apply Lorentz transform
 		// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
 		//I had to break it up into steps, unity was getting order of operations wrong.	
 		float newz = (((float)speed*spdOfLight) * tisw);
 
-		newz = riw.z + newz;
-		newz /= (float)sqrt(1 - (speed*speed));
-		riw.z = newz;
-
-		//Rotate back to our original orientation
-		riw = rot3(inverse(vpcToZRot), riw);
+		float3 vpcNorm = normalize(vpc);
+		newz = (dot(riw, vpcNorm) + newz) / (float)sqrt(1 - (speed*speed));
+		riw = riw + (newz - dot(riw, vpcNorm)) * vpcNorm;
 	}
 
 	riw += playerOffset;
