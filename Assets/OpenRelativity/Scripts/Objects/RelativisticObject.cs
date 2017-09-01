@@ -49,6 +49,7 @@ namespace OpenRelativity.Objects
                 if (myRigidbody != null && !state.MovementFrozen)
                 {
                     myRigidbody.velocity = value * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+                    myRigidbody.angularVelocity = aviw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
                 }
 
                 //Update the shader parameters if necessary
@@ -71,6 +72,7 @@ namespace OpenRelativity.Objects
             if (myRigidbody != null && !state.MovementFrozen)
             {
                 myRigidbody.velocity = newViw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+                myRigidbody.angularVelocity = aviw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
             }
             UpdateShaderParams();
         }
@@ -91,6 +93,7 @@ namespace OpenRelativity.Objects
                 if (myRigidbody != null && !state.MovementFrozen)
                 {
                     //Changes in angular velocity do not change the shader mapping to optical space.
+                    myRigidbody.velocity = viw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
                     myRigidbody.angularVelocity = value * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
                 }
             }
@@ -127,7 +130,7 @@ namespace OpenRelativity.Objects
         private const float maxYoungsModulus = 1220.0e9f;
         //private const float drag = 0.1f;
         //private const float angularDrag = 0.1f;
-        public float initBounciness = 0.6f;
+        public float initBounciness = 0.8f;
         //During collision, viw getters and setters trigger many "enter" rather than "stay" events, so we smooth this:
         private class RecentCollision
         {
@@ -1139,6 +1142,7 @@ namespace OpenRelativity.Objects
                     if (collision.collider.Equals(collidedWith[i].Collider))
                     {
                         collidedWith[i].LastTime = state.TotalTimeWorld;
+                        didCollide = true;
                         //OnCollisionStay(collision);
                         //Then, immediately finish.
                         return;
@@ -1262,8 +1266,8 @@ namespace OpenRelativity.Objects
             Vector3 myVel = oldCollisionResultVel3;
             Vector3 myAngVel = oldCollisionResultAngVel3;
             Rigidbody otherRB = collision.rigidbody;
-            Vector3 otherVel = otherRO.viw;
-            Vector3 otherAngVel = otherRO.aviw;
+            Vector3 otherVel = otherRO.oldCollisionResultVel3;
+            Vector3 otherAngVel = otherRO.oldCollisionResultAngVel3;
 
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
@@ -1302,8 +1306,9 @@ namespace OpenRelativity.Objects
 
             //Rotate my relative contact point:
             Vector3 rotatedLoc = Quaternion.Inverse(transform.rotation) * myLocPoint;
+            rotatedLoc.Scale(rotatedLoc);
             //The relative contact point is the lever arm of the torque:
-            float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
+            float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, rotatedLoc);
             //In special relativity, the impulse relates the change in rapidities, rather than the change in velocities.
             float impulse;
             if (isReflected)
@@ -1313,7 +1318,8 @@ namespace OpenRelativity.Objects
             else
             {
                 rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
-                float otherMOI = Vector3.Dot(otherRB.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
+                rotatedLoc.Scale(rotatedLoc);
+                float otherMOI = Vector3.Dot(otherRB.inertiaTensor, rotatedLoc);
                 impulse = -rapidityOnLoA.magnitude * (combRestCoeff + 1.0f) / (1.0f / mass + 1.0f / otherRB.mass + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, lineOfAction), myLocPoint)) + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / otherMOI * Vector3.Cross(otLocPoint, lineOfAction), otLocPoint)));
             }
 
@@ -1345,8 +1351,8 @@ namespace OpenRelativity.Objects
             checkCollisionSpeed();
 
             //Velocity overwrite will come on next frame:
-            oldCollisionResultVel3 = collisionResultVel3;
-            oldCollisionResultAngVel3 = collisionResultAngVel3;
+            //oldCollisionResultVel3 = collisionResultVel3;
+            //oldCollisionResultAngVel3 = collisionResultAngVel3;
             didCollide = true;
             //collideTimeStart = (float)state.TotalTimeWorld;
         }
@@ -1428,7 +1434,7 @@ namespace OpenRelativity.Objects
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)
             {
-                oldCollisionResultAngVel3 = Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
+                collisionResultAngVel3 = Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
             }
             else
             {
