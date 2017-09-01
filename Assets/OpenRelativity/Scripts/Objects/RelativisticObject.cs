@@ -125,6 +125,17 @@ namespace OpenRelativity.Objects
         //This is a cap on penalty method collision.
         //(It's roughly the Unity units equivalent of Young's Modulus of diamond.)
         private const float maxYoungsModulus = 1220.0e9f;
+        //private const float drag = 0.1f;
+        //private const float angularDrag = 0.1f;
+        public float initBounciness = 0.6f;
+        //During collision, viw getters and setters trigger many "enter" rather than "stay" events, so we smooth this:
+        private class RecentCollision
+        {
+            public double LastTime { get; set; }
+            public Collider Collider { get; set; }
+        }
+        private List<RecentCollision> collidedWith;
+        private float collideAgainWait = 0.3f;
         #endregion
 
         //Keep track of our own Mesh Filter
@@ -516,8 +527,14 @@ namespace OpenRelativity.Objects
             didCollide = false;
             sleepFrameCounter = 0;
             myRigidbody = GetComponent<Rigidbody>();
+            collidedWith = new List<RecentCollision>();
 
             UpdateCollider();
+
+            if (myCollider != null)
+            {
+                myCollider.material.bounciness = initBounciness;
+            }
 
             if (myRigidbody != null)
             {
@@ -789,6 +806,19 @@ namespace OpenRelativity.Objects
             //Grab our renderer.
             Renderer tempRenderer = GetComponent<Renderer>();
 
+            int cwLcv = 0;
+            while (cwLcv < collidedWith.Count)
+            {
+                if (collidedWith[cwLcv].LastTime + collideAgainWait < state.TotalTimeWorld)
+                {
+                    collidedWith.RemoveAt(cwLcv);
+                }
+                else
+                {
+                    cwLcv++;
+                }
+            }
+
             if (meshFilter != null && !state.MovementFrozen)
             {
                 //As long as our object is actually alive, perform these calculations
@@ -1046,7 +1076,7 @@ namespace OpenRelativity.Objects
             public Vector3 normal;
         }
 
-        public void OnCollisionStay(Collision collision)
+        /*public void OnCollisionStay(Collision collision)
         {
             if (myRigidbody == null || myRigidbody.isKinematic)
             {
@@ -1069,11 +1099,6 @@ namespace OpenRelativity.Objects
 
             //If we made it this far, we shouldn't be sleeping:
             isSleeping = false;
-
-            if (!didCollide)
-            {
-                OnCollisionEnter(collision);
-            }
 
             RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
             PhysicMaterial otherMaterial = collision.collider.material;
@@ -1098,7 +1123,7 @@ namespace OpenRelativity.Objects
             PointAndNorm contactPoint = DecideContactPoint(collision);
             ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
             didCollide = true;
-        }
+        }*/
 
         public void OnCollisionEnter(Collision collision)
         {
@@ -1106,7 +1131,27 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
-            else if (isSleeping)
+            else if (collidedWith.Count > 0)
+            {
+                for (int i = 0; i < collidedWith.Count; i++)
+                {
+                    //If this collision is returned, redirect to OnCollisionStay
+                    if (collision.collider.Equals(collidedWith[i].Collider))
+                    {
+                        collidedWith[i].LastTime = state.TotalTimeWorld;
+                        //OnCollisionStay(collision);
+                        //Then, immediately finish.
+                        return;
+                    }
+                }
+            }
+            collidedWith.Add(new RecentCollision()
+            {
+                Collider = collision.collider,
+                LastTime = state.TotalTimeWorld
+            });
+
+            if (isSleeping)
             {
                 if (sleepingOnColliders.Count == 0)
                 {
