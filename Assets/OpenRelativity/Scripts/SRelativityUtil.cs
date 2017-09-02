@@ -39,52 +39,11 @@ namespace OpenRelativity
 
         public static Vector3 AddVelocity(this Vector3 orig, Vector3 toAdd)
         {
-            float toAddMag = toAdd.magnitude;
-            float origMag = orig.magnitude;
-            if (origMag == 0.0f)
-            {
-                if (toAddMag <= maxVel)
-                {
-                    return toAdd;
-                }
-                else
-                {
-                    return maxVel / toAddMag * toAdd;
-                }
-            }
-            else if (toAddMag == 0.0f)
-            {
-                if (origMag <= maxVel)
-                {
-                    return orig;
-                }
-                else
-                {
-                    return maxVel / origMag * orig;
-                }
-            }
-            else
-            {
-                Quaternion rot = Quaternion.FromToRotation(orig.normalized, Vector3.forward);
-                Vector3 toAddRot = rot * toAdd;
-                float denom = 1.0f / (1.0f + toAddRot.z * origMag / cSqrd);
-                float invGammaDenom = denom * Mathf.Sqrt(1.0f - orig.sqrMagnitude / cSqrd);
-
-                Vector3 toRet = Quaternion.Inverse(rot) * new Vector3(
-                    toAddRot.x * invGammaDenom,
-                    toAddRot.y * invGammaDenom,
-                    (toAddRot.z + origMag) * denom
-                );
-                float toRetMag = toRet.magnitude;
-                if (toRetMag <= maxVel)
-                {
-                    return toRet;
-                }
-                else
-                {
-                    return maxVel / toRetMag * toRet;
-                }
-            }
+            Vector3 parra = Vector3.Project(toAdd, orig);
+            Vector3 perp = toAdd - parra;
+            perp = orig.Gamma() * perp / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
+            parra = (parra + orig) / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
+            return parra + perp;
         }
 
         public static Vector4 AddVelocity(this Vector4 orig, Vector4 toAdd)

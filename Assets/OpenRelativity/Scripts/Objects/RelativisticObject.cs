@@ -1297,7 +1297,7 @@ namespace OpenRelativity.Objects
             //Boost to the inertial frame where my velocity is entirely along the line of action:
             Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
             //Find the relative velocity:
-            Vector3 relVel = otherContactVel.AddVelocity(myParraVel);
+            Vector3 relVel = (-otherContactVel).AddVelocity(myParraVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
             //Find the relative rapidity on the line of action, where my contact velocity is 0:
             Vector3 rapidityOnLoA = relVel.Gamma() * relVel;
@@ -1407,7 +1407,7 @@ namespace OpenRelativity.Objects
             //Boost to the inertial frame where my velocity is entirely along the line of action:
             Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
             //Find the relative velocity:
-            Vector3 relVel = otherContactVel.AddVelocity(myParraVel);
+            Vector3 relVel = (-otherContactVel).AddVelocity(myParraVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
 
             myLocPoint = myLocPoint.ContractLengthBy(relVel);
@@ -1438,12 +1438,14 @@ namespace OpenRelativity.Objects
             }
             else
             {
-                oldCollisionResultAngVel3 = myAngVel;
+                collisionResultAngVel3 = myAngVel;
             }
             //In the ideal, it shouldn't be necessary to clamp the speed
             // in order to prevent FTL collision results, but we could
             // still exceed the max speed and come very close to the speed of light
             checkCollisionSpeed();
+
+            didCollide = true;
         }
 
         private float GetPenetrationDepth(Collision collision, Vector3 myPRelVel, Vector3 oPos, ref PointAndNorm contactPoint)
