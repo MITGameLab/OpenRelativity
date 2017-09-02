@@ -128,6 +128,8 @@ namespace OpenRelativity.Objects
         //This is a cap on penalty method collision.
         //(It's roughly the Unity units equivalent of Young's Modulus of diamond.)
         private const float maxYoungsModulus = 1220.0e9f;
+        //The center of mass calculation in the rigidbody becomes non-physical when we transform the collider
+        public Vector3 opticalWorldCenterOfMass { get; set; }
         //private const float drag = 0.1f;
         //private const float angularDrag = 0.1f;
         public float initBounciness = 0.8f;
@@ -207,9 +209,6 @@ namespace OpenRelativity.Objects
         private Mesh trnsfrmdMesh;
         //If we have a Rigidbody, we cache it here
         private Rigidbody myRigidbody;
-        //The center of mass calculation in the rigidbody becomes non-physical when we transform the collider
-        public Vector3 opticalWorldCenterOfMass { get; set; }
-
         //Did we collide last frame?
         private bool didCollide;
         //What was the translational velocity result?
@@ -543,6 +542,7 @@ namespace OpenRelativity.Objects
             {
                 //Native rigidbody gravity should never be used:
                 myRigidbody.useGravity = false;
+                //myRigidbody.centerOfMass = Vector3.zero;
             }
 
             //Get the meshfilter
@@ -1142,7 +1142,7 @@ namespace OpenRelativity.Objects
                     if (collision.collider.Equals(collidedWith[i].Collider))
                     {
                         collidedWith[i].LastTime = state.TotalTimeWorld;
-                        didCollide = true;
+                        //didCollide = true;
                         //OnCollisionStay(collision);
                         //Then, immediately finish.
                         return;
@@ -1293,11 +1293,11 @@ namespace OpenRelativity.Objects
             Vector3 lineOfAction = -contactPoint.normal;
             //Decompose velocity in parallel and perpendicular components:
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
-            Vector3 myPerpVel = Vector3.Cross(lineOfAction, Vector3.Cross(lineOfAction, myTotalVel));
+            Vector3 myPerpVel = myTotalVel - myParraVel;
             //Boost to the inertial frame where my velocity is entirely along the line of action:
-            Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
+            Vector3 otherContactVel = otherTotalVel - myPerpVel;
             //Find the relative velocity:
-            Vector3 relVel = (-otherContactVel).AddVelocity(myParraVel);
+            Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
             //Find the relative rapidity on the line of action, where my contact velocity is 0:
             Vector3 rapidityOnLoA = relVel.Gamma() * relVel;
@@ -1326,15 +1326,12 @@ namespace OpenRelativity.Objects
             impulse *= (1.0f + combFriction);
 
             //The change in rapidity on the line of action:
-            Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;
+            Vector3 finalLinearRapidity = myVel.Gamma() * myVel + impulse / mass * lineOfAction;
             //The change in rapidity perpendincular to the line of action:
-            Vector3 finalPerpRapidity = myVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
-            //Velocities aren't linearly additive in relativity, but rapidities are:
-
-            double spdOfLight = state.SpeedOfLight;
-            Vector3 tanVelFinal = finalPerpRapidity.RapidityToVelocity();
+            Vector3 finalTanRapidity = myAngTanVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
+            Vector3 tanVelFinal = finalTanRapidity.RapidityToVelocity();
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalParraRapidity.RapidityToVelocity();
+            collisionResultVel3 = finalLinearRapidity.RapidityToVelocity();
             //If the angle of the torque is close to 0 or 180, we have rounding problems:
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)
@@ -1422,19 +1419,17 @@ namespace OpenRelativity.Objects
             float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld * GetGtt());
 
             //The change in rapidity on the line of action:
-            Vector3 finalParraRapidity = myVel.Gamma() * myParraVel + impulse / mass * lineOfAction;
+            Vector3 finalLinearRapidity = myVel.Gamma() * myVel + impulse / mass * lineOfAction;
             //The change in rapidity perpendincular to the line of action:
-            Vector3 finalPerpRapidity = myVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
-            //Velocities aren't linearly additive in relativity, but rapidities are:
-            Vector3 finalTotalRapidity = finalParraRapidity + finalPerpRapidity;
-            Vector3 tanVelFinal = finalPerpRapidity.RapidityToVelocity();
+            Vector3 finalTanRapidity = myAngTanVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
+            Vector3 tanVelFinal = finalTanRapidity.RapidityToVelocity();
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalTotalRapidity.RapidityToVelocity();
+            collisionResultVel3 = finalLinearRapidity.RapidityToVelocity();
             //If the angle of the torque is close to 0 or 180, we have rounding problems:
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)
             {
-                collisionResultAngVel3 = Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
+                collisionResultAngVel3 = -Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
             }
             else
             {

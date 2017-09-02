@@ -41,7 +41,7 @@ namespace OpenRelativity
         {
             Vector3 parra = Vector3.Project(toAdd, orig);
             Vector3 perp = toAdd - parra;
-            perp = orig.Gamma() * perp / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
+            perp = orig.InverseGamma() * perp / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
             parra = (parra + orig) / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
             return parra + perp;
         }
@@ -49,6 +49,36 @@ namespace OpenRelativity
         public static Vector4 AddVelocity(this Vector4 orig, Vector4 toAdd)
         {
             Vector3 new3Vel = orig.GetSpatial().AddVelocity(toAdd.GetSpatial());
+            return new Vector4(new3Vel.x, new3Vel.y, new3Vel.z, c);
+        }
+
+        public static Vector3 RelativeVelocityTo(this Vector3 myWorldVel, Vector3 otherWorldVel)
+        {
+            float speedSqr = myWorldVel.sqrMagnitude / cSqrd;
+            float vuDot = Vector3.Dot(myWorldVel, otherWorldVel) / cSqrd; //Get player velocity dotted with velocity of the object.
+            Vector3 vr;
+            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+            if (speedSqr != 0)
+            {
+                Vector3 uparra = (vuDot / speedSqr) * myWorldVel / c; //Get the parallel component of the object's velocity
+                                                                  //Get the perpendicular component of our velocity, just by subtraction
+                Vector3 uperp = otherWorldVel / c - uparra;
+                //relative velocity calculation
+                vr = (myWorldVel / c - uparra - (Mathf.Sqrt(1 - speedSqr)) * uperp) / (1 + vuDot);
+            }
+            //If our speed is nearly zero, it could lead to infinities.
+            else
+            {
+                //relative velocity calculation
+                vr = -otherWorldVel / c;
+            }
+
+            return vr * c;
+        }
+
+        public static Vector4 RelativeVelocityTo(this Vector4 myWorldVel, Vector4 otherWorldVel)
+        {
+            Vector3 new3Vel = myWorldVel.GetSpatial().RelativeVelocityTo(otherWorldVel.GetSpatial());
             return new Vector4(new3Vel.x, new3Vel.y, new3Vel.z, c);
         }
 
@@ -154,27 +184,24 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
-            Vector3 viwScaled = spdOfLight * viw;
 
             //Transform fails and is unecessary if relative speed is zero:
             if (speedr != 0)
             {
                 //Here begins a rotation-free modification of the original OpenRelativity shader:
 
-                float c = riw.sqrMagnitude; //first get position squared (position doted with position)
+                float c = -riw.sqrMagnitude; //first get position squared (position doted with position)
 
-                float b = -(2 * Vector3.Dot(riw, viwScaled)); //next get position doted with velocity, should be only in the Z direction
+                float b = -(2 * Vector3.Dot(riw, velocity)); //next get position doted with velocity, should be only in the Z direction
 
-                float d = (spdOfLight * spdOfLight) - viw.sqrMagnitude;
+                float d = (spdOfLight * spdOfLight) - velocity.sqrMagnitude;
 
                 float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-
-                if (float.IsNaN(tisw) || float.IsInfinity(tisw)) tisw = 0.0f;
 
                 //get the new position offset, based on the new time we just found
                 //Should only be in the Z direction
 
-                riw = riw + (tisw * viwScaled);
+                riw = riw + (tisw * velocity);
 
                 //Apply Lorentz transform
                 // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
@@ -283,7 +310,6 @@ namespace OpenRelativity
                 {
                     vpcUnit = vpc / speed;
                 }
-                Vector3 viwScaled = spdOfLight * viw;
 
                 do
                 {
@@ -295,20 +321,18 @@ namespace OpenRelativity
 
                     //Here begins a rotation-free modification of the original OpenRelativity shader:
 
-                    c = riw.sqrMagnitude; //first get position squared (position doted with position)
+                    c = -riw.sqrMagnitude; //first get position squared (position doted with position)
 
-                    b = -(2 * Vector3.Dot(riw, viwScaled)); //next get position doted with velocity, should be only in the Z direction
+                    b = -(2 * Vector3.Dot(riw, velocity)); //next get position doted with velocity, should be only in the Z direction
 
-                    d = (spdOfLight * spdOfLight) - viwScaled.sqrMagnitude;
+                    d = (spdOfLight * spdOfLight) - velocity.sqrMagnitude;
 
                     tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-
-                    if (float.IsNaN(tisw) || float.IsInfinity(tisw)) tisw = 0.0f;
 
                     //get the new position offset, based on the new time we just found
                     //Should only be in the Z direction
 
-                    riw = riw + (tisw * viwScaled);
+                    riw = riw + (tisw * velocity);
 
                     //Apply Lorentz transform
                     // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
