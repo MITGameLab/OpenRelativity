@@ -55,13 +55,15 @@ namespace OpenRelativity
         public static Vector3 RelativeVelocityTo(this Vector3 myWorldVel, Vector3 otherWorldVel)
         {
             float speedSqr = myWorldVel.sqrMagnitude / cSqrd;
-            float vuDot = Vector3.Dot(myWorldVel, otherWorldVel) / cSqrd; //Get player velocity dotted with velocity of the object.
+            //Get player velocity dotted with velocity of the object.
+            float vuDot = Vector3.Dot(myWorldVel, otherWorldVel) / cSqrd;
             Vector3 vr;
-            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+            //If our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
             if (speedSqr != 0)
             {
-                Vector3 uparra = (vuDot / speedSqr) * myWorldVel / c; //Get the parallel component of the object's velocity
-                                                                  //Get the perpendicular component of our velocity, just by subtraction
+                //Get the parallel component of the object's velocity
+                Vector3 uparra = (vuDot / speedSqr) * myWorldVel / c;
+                //Get the perpendicular component of our velocity, just by subtraction
                 Vector3 uperp = otherWorldVel / c - uparra;
                 //relative velocity calculation
                 vr = (myWorldVel / c - uparra - (Mathf.Sqrt(1 - speedSqr)) * uperp) / (1 + vuDot);
@@ -371,9 +373,9 @@ namespace OpenRelativity
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / SRelativityUtil.cSqrd);
         }
 
-        public static Vector3 RapidityToVelocity(this Vector3 rapidity)
+        public static Vector3 RapidityToVelocity(this Vector3 rapidity, float? altMag = null)
         {
-            float mag = rapidity.magnitude;
+            float mag = altMag ?? rapidity.magnitude;
             if (mag == 0.0f)
             {
                 return Vector3.zero;

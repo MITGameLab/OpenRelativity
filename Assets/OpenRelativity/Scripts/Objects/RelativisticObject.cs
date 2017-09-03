@@ -1319,15 +1319,16 @@ namespace OpenRelativity.Objects
             Vector3 lineOfAction = -contactPoint.normal;
             //Decompose velocity in parallel and perpendicular components:
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
-            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.InverseGamma();
-            //Vector3 testVel = (-myPerpVel).AddVelocity(myTotalVel);
+            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.Gamma();
+            Vector3 testVel = myTotalVel.AddVelocity(-myPerpVel);
             //Boost to the inertial frame where my velocity is entirely along the line of action:
-            Vector3 otherContactVel = (-myPerpVel).AddVelocity(otherTotalVel);
+            Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
             //Find the relative velocity:
             Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
             //Find the relative rapidity on the line of action, where my contact velocity is 0:
-            Vector3 rapidityOnLoA = relVel.Gamma() * relVel;
+            float relVelGamma = relVel.Gamma();
+            Vector3 rapidityOnLoA = relVelGamma * relVel;
             myLocPoint = myLocPoint.ContractLengthBy(relVel);
             otLocPoint = otLocPoint.ContractLengthBy(relVel);
 
@@ -1354,12 +1355,14 @@ namespace OpenRelativity.Objects
             //impulse += springImpulse;
 
             //The change in rapidity on the line of action:
-            Vector3 finalLinearRapidity = myVel.Gamma() * myVel + impulse / mass * lineOfAction;
+            Vector3 finalLinearRapidity = relVelGamma * myVel + impulse / mass * lineOfAction;
             //The change in rapidity perpendincular to the line of action:
-            Vector3 finalTanRapidity = myAngTanVel.Gamma() * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
-            Vector3 tanVelFinal = finalTanRapidity.RapidityToVelocity();
+            Vector3 finalTanRapidity = relVelGamma * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction), myLocPoint);
+            //Velocities aren't linearly additive in special relativity, but rapidities are:
+            float finalRapidityMag = (finalLinearRapidity + finalTanRapidity).magnitude;
+            Vector3 tanVelFinal = finalTanRapidity.RapidityToVelocity(finalRapidityMag);
             //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalLinearRapidity.RapidityToVelocity();
+            collisionResultVel3 = finalLinearRapidity.RapidityToVelocity(finalRapidityMag);
             //If the angle of the torque is close to 0 or 180, we have rounding problems:
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)
@@ -1427,10 +1430,10 @@ namespace OpenRelativity.Objects
             Vector3 otherTotalVel = otherVel.AddVelocity(otherAngTanVel);
 
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
-            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.InverseGamma();
-            //Vector3 testVel = (-myPerpVel).AddVelocity(myTotalVel);
+            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.Gamma();
+            Vector3 testVel = myTotalVel.AddVelocity(-myPerpVel);
             //Boost to the inertial frame where my velocity is entirely along the line of action:
-            Vector3 otherContactVel = (-myPerpVel).AddVelocity(otherTotalVel);
+            Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
             //Find the relative velocity:
             Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
