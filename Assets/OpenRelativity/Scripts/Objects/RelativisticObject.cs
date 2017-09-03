@@ -132,15 +132,15 @@ namespace OpenRelativity.Objects
         public Vector3 opticalWorldCenterOfMass { get; set; }
         //private const float drag = 0.1f;
         //private const float angularDrag = 0.1f;
-        public float initBounciness = 0.8f;
+        public float initBounciness = 0.4f;
         //During collision, viw getters and setters trigger many "enter" rather than "stay" events, so we smooth this:
         private class RecentCollision
         {
             public double LastTime { get; set; }
             public Collider Collider { get; set; }
         }
-        private List<RecentCollision> collidedWith;
-        private float collideAgainWait = 0.3f;
+        //private List<RecentCollision> collidedWith;
+        //private float collideAgainWait = 0.3f;
         #endregion
 
         //Keep track of our own Mesh Filter
@@ -529,7 +529,7 @@ namespace OpenRelativity.Objects
             didCollide = false;
             sleepFrameCounter = 0;
             myRigidbody = GetComponent<Rigidbody>();
-            collidedWith = new List<RecentCollision>();
+            //collidedWith = new List<RecentCollision>();
 
             UpdateCollider();
 
@@ -809,18 +809,18 @@ namespace OpenRelativity.Objects
             //Grab our renderer.
             Renderer tempRenderer = GetComponent<Renderer>();
 
-            int cwLcv = 0;
-            while (cwLcv < collidedWith.Count)
-            {
-                if (collidedWith[cwLcv].LastTime + collideAgainWait < state.TotalTimeWorld)
-                {
-                    collidedWith.RemoveAt(cwLcv);
-                }
-                else
-                {
-                    cwLcv++;
-                }
-            }
+            //int cwLcv = 0;
+            //while (cwLcv < collidedWith.Count)
+            //{
+            //    if (collidedWith[cwLcv].LastTime + collideAgainWait < state.TotalTimeWorld)
+            //    {
+            //        collidedWith.RemoveAt(cwLcv);
+            //    }
+            //    else
+            //    {
+            //        cwLcv++;
+            //    }
+            //}
 
             if (meshFilter != null && !state.MovementFrozen)
             {
@@ -1079,7 +1079,7 @@ namespace OpenRelativity.Objects
             public Vector3 normal;
         }
 
-        /*public void OnCollisionStay(Collision collision)
+        public void OnCollisionStay(Collision collision)
         {
             if (myRigidbody == null || myRigidbody.isKinematic)
             {
@@ -1110,6 +1110,16 @@ namespace OpenRelativity.Objects
             float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, myMaterial.bounciness, otherMaterial.bounciness);
 
             //Tangental relationship scales normalized "bounciness" to a Young's modulus
+
+            float combYoungsModulus = GetYoungsModulus(combRestCoeff);
+
+            PointAndNorm contactPoint = DecideContactPoint(collision);
+            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            didCollide = true;
+        }
+
+        private float GetYoungsModulus(float combRestCoeff)
+        {
             float combYoungsModulus;
             if (combRestCoeff < 1.0f)
             {
@@ -1123,10 +1133,8 @@ namespace OpenRelativity.Objects
                 combYoungsModulus = maxYoungsModulus;
             }
 
-            PointAndNorm contactPoint = DecideContactPoint(collision);
-            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
-            didCollide = true;
-        }*/
+            return combYoungsModulus;
+        }
 
         public void OnCollisionEnter(Collision collision)
         {
@@ -1134,26 +1142,26 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
-            else if (collidedWith.Count > 0)
-            {
-                for (int i = 0; i < collidedWith.Count; i++)
-                {
-                    //If this collision is returned, redirect to OnCollisionStay
-                    if (collision.collider.Equals(collidedWith[i].Collider))
-                    {
-                        collidedWith[i].LastTime = state.TotalTimeWorld;
-                        //didCollide = true;
-                        //OnCollisionStay(collision);
-                        //Then, immediately finish.
-                        return;
-                    }
-                }
-            }
-            collidedWith.Add(new RecentCollision()
-            {
-                Collider = collision.collider,
-                LastTime = state.TotalTimeWorld
-            });
+            //else if (collidedWith.Count > 0)
+            //{
+            //    for (int i = 0; i < collidedWith.Count; i++)
+            //    {
+            //        //If this collision is returned, redirect to OnCollisionStay
+            //        if (collision.collider.Equals(collidedWith[i].Collider))
+            //        {
+            //            collidedWith[i].LastTime = state.TotalTimeWorld;
+            //            //didCollide = true;
+            //            //OnCollisionStay(collision);
+            //            //Then, immediately finish.
+            //            return;
+            //        }
+            //    }
+            //}
+            //collidedWith.Add(new RecentCollision()
+            //{
+            //    Collider = collision.collider,
+            //    LastTime = state.TotalTimeWorld
+            //});
 
             if (isSleeping)
             {
@@ -1194,7 +1202,9 @@ namespace OpenRelativity.Objects
             RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
             PhysicMaterial otherMaterial = collision.collider.material;
             PhysicMaterial myMaterial = myCollider.material;
-            float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
+            float myFriction = isSleeping ? myMaterial.staticFriction : myMaterial.dynamicFriction;
+            float otherFriction = otherRO.isSleeping ? otherMaterial.staticFriction : otherMaterial.dynamicFriction;
+            float combFriction = CombinePhysics(myMaterial.frictionCombine, myFriction, otherFriction);
             float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, myMaterial.bounciness, otherMaterial.bounciness);
 
             oldCollisionResultVel3 = viw;
@@ -1274,6 +1284,22 @@ namespace OpenRelativity.Objects
             Vector3 myPRelVel = myVel.AddVelocity(-playerVel);
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
+            Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel);
+            float penDist = GetPenetrationDepth(collision, myPRelVel, oPos, ref contactPoint);
+
+            //We will apply penalty methods after the initial collision, in order to stabilize objects coming to rest on flat surfaces with gravity.
+            // Our penalty methods can give a somewhat obvious apparent deviation from conservation of energy and momentum,
+            // unless we account for the initial energy and momentum loss due to "spring-loading":
+            //float springImpulse = 0;
+            //if (penDist > 0.0f)
+            //{
+            //    float combYoungsModulus = GetYoungsModulus(combRestCoeff);
+            //    //Potential energy as if from a spring,
+            //    //H = K + V = p^2/(2m) + 1/2*k*l^2
+            //    // from which it can be shown that this is the change in momentum from the implied initial loading of the "spring":
+            //    springImpulse = Mathf.Sqrt(hookeMultiplier * combYoungsModulus * penDist * penDist * myRigidbody.mass);
+            //}
+
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);
             Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass);
@@ -1295,7 +1321,7 @@ namespace OpenRelativity.Objects
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
             Vector3 myPerpVel = myTotalVel - myParraVel;
             //Boost to the inertial frame where my velocity is entirely along the line of action:
-            Vector3 otherContactVel = otherTotalVel - myPerpVel;
+            Vector3 otherContactVel = (-myPerpVel).AddVelocity(otherTotalVel);
             //Find the relative velocity:
             Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
@@ -1323,7 +1349,8 @@ namespace OpenRelativity.Objects
                 impulse = -rapidityOnLoA.magnitude * (combRestCoeff + 1.0f) / (1.0f / mass + 1.0f / otherRB.mass + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, lineOfAction), myLocPoint)) + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / otherMOI * Vector3.Cross(otLocPoint, lineOfAction), otLocPoint)));
             }
 
-            impulse *= (1.0f + combFriction);
+            //impulse *= (1.0f + combFriction);
+            //impulse += springImpulse;
 
             //The change in rapidity on the line of action:
             Vector3 finalLinearRapidity = myVel.Gamma() * myVel + impulse / mass * lineOfAction;
@@ -1373,7 +1400,7 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             Vector3 lineOfAction = contactPoint.normal;
-            Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel/*, GetGtt()*/);
+            Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel);
             float penDist = GetPenetrationDepth(collision, myPRelVel, oPos, ref contactPoint);
 
             if (penDist <= 0.0f)
@@ -1429,7 +1456,7 @@ namespace OpenRelativity.Objects
             float angle = Vector3.Angle(myAngVel, myLocPoint);
             if (angle > 2.0f && angle < 178.0f)
             {
-                collisionResultAngVel3 = -Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
+                collisionResultAngVel3 = Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
             }
             else
             {
