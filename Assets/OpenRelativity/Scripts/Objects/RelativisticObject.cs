@@ -1319,7 +1319,8 @@ namespace OpenRelativity.Objects
             Vector3 lineOfAction = -contactPoint.normal;
             //Decompose velocity in parallel and perpendicular components:
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
-            Vector3 myPerpVel = myTotalVel - myParraVel;
+            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.InverseGamma();
+            //Vector3 testVel = (-myPerpVel).AddVelocity(myTotalVel);
             //Boost to the inertial frame where my velocity is entirely along the line of action:
             Vector3 otherContactVel = (-myPerpVel).AddVelocity(otherTotalVel);
             //Find the relative velocity:
@@ -1425,13 +1426,13 @@ namespace OpenRelativity.Objects
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
             Vector3 otherTotalVel = otherVel.AddVelocity(otherAngTanVel);
 
-            //Decompose velocity in parallel and perpendicular components:
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
-            Vector3 myPerpVel = Vector3.Cross(lineOfAction, Vector3.Cross(lineOfAction, myTotalVel));
+            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.InverseGamma();
+            //Vector3 testVel = (-myPerpVel).AddVelocity(myTotalVel);
             //Boost to the inertial frame where my velocity is entirely along the line of action:
-            Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
+            Vector3 otherContactVel = (-myPerpVel).AddVelocity(otherTotalVel);
             //Find the relative velocity:
-            Vector3 relVel = (-otherContactVel).AddVelocity(myParraVel);
+            Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
             lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
 
             myLocPoint = myLocPoint.ContractLengthBy(relVel);
