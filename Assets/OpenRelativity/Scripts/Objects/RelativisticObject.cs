@@ -231,7 +231,6 @@ namespace OpenRelativity.Objects
         private bool wasFrozen = false;
         private void UpdateMeshCollider()
         {
-
             //Freeze the physics if the global state is frozen.
             if (state.MovementFrozen)
             {
@@ -531,6 +530,13 @@ namespace OpenRelativity.Objects
             myRigidbody = GetComponent<Rigidbody>();
             //collidedWith = new List<RecentCollision>();
 
+            //Get the meshfilter
+            if (isParent)
+            {
+                CombineParent();
+            }
+            meshFilter = GetComponent<MeshFilter>();
+
             UpdateCollider();
 
             if (myCollider != null)
@@ -544,13 +550,6 @@ namespace OpenRelativity.Objects
                 myRigidbody.useGravity = false;
                 //myRigidbody.centerOfMass = Vector3.zero;
             }
-
-            //Get the meshfilter
-            if (isParent)
-            {
-                CombineParent();
-            }
-            meshFilter = GetComponent<MeshFilter>();
 
             //Get the vertices of our mesh
             if (meshFilter != null)
@@ -644,7 +643,7 @@ namespace OpenRelativity.Objects
             Collider oldCollider = myCollider;
             MeshCollider myMeshCollider = GetComponent<MeshCollider>();
             myCollider = myMeshCollider;
-            if (myCollider != null)
+            if (myCollider != null && myCollider.enabled)
             {
                 if (oldCollider != myCollider)
                 {
@@ -652,12 +651,24 @@ namespace OpenRelativity.Objects
                     {
                         myCollider = null;
                     }
+                    //else if (SystemInfo.supportsComputeShaders)
                     else
                     {
                         trnsfrmdMesh = Instantiate(myMeshCollider.sharedMesh);
                         myColliderIsMesh = true;
                         myColliderIsBox = false;
                     }
+                    //else if (myCollider.enabled)
+                    //{
+                    //    myMeshCollider.enabled = false;
+                    //    myColliderIsBox = true;
+                    //    myColliderIsMesh = false;
+                    //    myCollider = GetComponent<BoxCollider>();
+                    //    if (myCollider == null)
+                    //    {
+                    //        myCollider = gameObject.AddComponent<BoxCollider>();
+                    //    }
+                    //}
                 }
             }
             else
@@ -921,7 +932,7 @@ namespace OpenRelativity.Objects
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
             if (!nonrelativisticShader && myCollider != null)
             {
-                if (myColliderIsMesh && colliderShader != null)
+                if (myColliderIsMesh && colliderShader != null && SystemInfo.supportsComputeShaders)
                 {
                     UpdateMeshCollider();
                 }
@@ -1114,7 +1125,7 @@ namespace OpenRelativity.Objects
             float combYoungsModulus = GetYoungsModulus(combRestCoeff);
 
             PointAndNorm contactPoint = DecideContactPoint(collision);
-            //ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
             didCollide = true;
         }
 
@@ -1290,15 +1301,15 @@ namespace OpenRelativity.Objects
             //We will apply penalty methods after the initial collision, in order to stabilize objects coming to rest on flat surfaces with gravity.
             // Our penalty methods can give a somewhat obvious apparent deviation from conservation of energy and momentum,
             // unless we account for the initial energy and momentum loss due to "spring-loading":
-            //float springImpulse = 0;
-            //if (penDist > 0.0f)
-            //{
-            //    float combYoungsModulus = GetYoungsModulus(combRestCoeff);
-            //    //Potential energy as if from a spring,
-            //    //H = K + V = p^2/(2m) + 1/2*k*l^2
-            //    // from which it can be shown that this is the change in momentum from the implied initial loading of the "spring":
-            //    springImpulse = Mathf.Sqrt(hookeMultiplier * combYoungsModulus * penDist * penDist * myRigidbody.mass);
-            //}
+            float springImpulse = 0;
+            if (penDist > 0.0f)
+            {
+                float combYoungsModulus = GetYoungsModulus(combRestCoeff);
+                //Potential energy as if from a spring,
+                //H = K + V = p^2/(2m) + 1/2*k*l^2
+                // from which it can be shown that this is the change in momentum from the implied initial loading of the "spring":
+                springImpulse = Mathf.Sqrt(hookeMultiplier * combYoungsModulus * penDist * penDist * myRigidbody.mass);
+            }
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);

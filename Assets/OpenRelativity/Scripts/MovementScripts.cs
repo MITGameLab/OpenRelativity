@@ -370,15 +370,21 @@ namespace OpenRelativity
                 {
                     isFalling = false;
                     Vector3 pVel = state.PlayerVelocityVector;
+                    Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
                     if (pVel.y > 0.0f)
                     {
-                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y, 0.0f));
+                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
                     }
 
-                    dist = 2.0f * extents.y - hitInfo.distance;
-                    if (dist > 0.2f)
+                    otherRO.UpdateColliderPosition();
+
+                    if (collider.Raycast(rayDown, out hitInfo, 4.0f * extents.y))
                     {
-                        state.playerTransform.position -= (dist * Vector3.down).InverseContractLengthBy(pVel).ContractLengthBy(state.PlayerVelocityVector);
+                        dist = 2.0f * extents.y - hitInfo.distance;
+                        if (Mathf.Abs(dist) > 0.2f)
+                        {
+                            state.playerTransform.position += (dist * Vector3.up);
+                        }
                     }
 
                     bool foundCollider = false;

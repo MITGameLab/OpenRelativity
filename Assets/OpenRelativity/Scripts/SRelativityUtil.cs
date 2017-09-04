@@ -387,5 +387,25 @@ namespace OpenRelativity
         {
             return Physics.gravity;
         }
+
+        public static Vector4 LorentzTransform(this Vector4 pos4, Vector3 vel3)
+        {
+            float gamma = vel3.Gamma();
+            Vector3 pos3 = pos4;
+            Vector3 parra = Vector3.Project(pos3, vel3.normalized);
+            float tnew = gamma * (pos4.w - Vector3.Dot(parra, vel3) / SRelativityUtil.cSqrd);
+            pos3 = gamma * (parra - vel3 * pos4.w) + (pos3 - parra);
+            return new Vector4(pos3.x, pos3.y, pos3.z, tnew);
+        }
+
+        public static Vector4 InverseLorentzTransform(this Vector4 pos4, Vector3 vel3)
+        {
+            float gamma = vel3.Gamma();
+            Vector3 pos3 = pos4;
+            Vector3 parra = Vector3.Project(pos3, vel3.normalized);
+            float tnew = gamma * (pos4.w + Vector3.Dot(parra, vel3) / SRelativityUtil.cSqrd);
+            pos3 = gamma * (parra + vel3 * pos4.w) + (pos3 - parra);
+            return new Vector4(pos3.x, pos3.y, pos3.z, tnew);
+        }
     }
 }
