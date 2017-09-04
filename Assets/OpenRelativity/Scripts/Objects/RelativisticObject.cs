@@ -932,7 +932,7 @@ namespace OpenRelativity.Objects
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
             if (!nonrelativisticShader && myCollider != null)
             {
-                if (myColliderIsMesh && colliderShader != null && SystemInfo.supportsComputeShaders)
+                if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders)
                 {
                     UpdateMeshCollider();
                 }
