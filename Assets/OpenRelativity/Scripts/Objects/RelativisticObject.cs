@@ -456,7 +456,7 @@ namespace OpenRelativity.Objects
             //"Delete" all children.
             for (int i = 0; i < transform.childCount; i++)
             {
-                //transform.GetChild(i).gameObject.SetActive(false);
+                transform.GetChild(i).gameObject.SetActive(false);
                 Destroy(transform.GetChild(i).gameObject);
             }
 
@@ -528,20 +528,24 @@ namespace OpenRelativity.Objects
             didCollide = false;
             sleepFrameCounter = 0;
             myRigidbody = GetComponent<Rigidbody>();
+            rawVertsBufferLength = 0;
             //collidedWith = new List<RecentCollision>();
 
             //Get the meshfilter
             if (isParent)
             {
                 CombineParent();
+                //Debug.Log("Combined parent.");
             }
             meshFilter = GetComponent<MeshFilter>();
 
             UpdateCollider();
+            //Debug.Log("Found collider.");
 
             if (myCollider != null)
             {
                 myCollider.material.bounciness = initBounciness;
+                //Debug.Log("Set bounciness.");
             }
 
             if (myRigidbody != null)
@@ -557,6 +561,7 @@ namespace OpenRelativity.Objects
                 rawVertsBufferLength = meshFilter.mesh.vertices.Length;
                 rawVertsBuffer = meshFilter.mesh.vertices;
                 meshFilter.mesh.MarkDynamic();
+                //Debug.Log("Got mesh verts.");
             }
             else
             {
@@ -565,13 +570,18 @@ namespace OpenRelativity.Objects
             }
 
             //Once we have the mesh vertices, allocate and immediately transform the collider:
-            if (myColliderIsMesh && myCollider != null)
+            if (myColliderIsMesh && rawVertsBufferLength > 0 && (myCollider != null))
             {
                 trnsfrmdMeshVerts = new Vector3[rawVertsBufferLength];
+                //Debug.Log("Initialized verts.");
                 colliderShaderParams.viw = Vector3.zero;
+                //Debug.Log("Initialized viw.");
                 colliderShaderParams.aviw = Vector3.zero;
+                //Debug.Log("Initialized aviw.");
                 colliderShaderParams.piw = Vector3.zero;
-                colliderShaderParams.strtTime = (float)startTime;
+                //Debug.Log("Initialized piw.");
+                colliderShaderParams.strtTime = startTime;
+                //Debug.Log("Initialized mesh shader.");
             }
 
             checkSpeed();

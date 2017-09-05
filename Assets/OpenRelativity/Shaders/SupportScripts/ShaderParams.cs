@@ -4,7 +4,7 @@ using UnityEngine;
 namespace OpenRelativity
 {
     //Shader properties:
-    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 52)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 204)]
     public struct ShaderParams
     {
         //[FieldOffset(0)]
@@ -22,14 +22,12 @@ namespace OpenRelativity
         //[FieldOffset(44)]
         public Vector3 playerOffset; //player position in world
         //[FieldOffset(47)]
-        //public float gtt; //metric tensor 00 component
+        public System.Single speed; //speed of player;
         //[FieldOffset(48)]
-        public float speed; //speed of player;
+        public System.Single spdOfLight; //current speed of light
         //[FieldOffset(49)]
-        public float spdOfLight; //current speed of light
+        public System.Single wrldTime; //current time in world
         //[FieldOffset(50)]
-        public float wrldTime; //current time in world
-        //[FieldOffset(51)]
-        public float strtTime; //starting time in world
+        public System.Single strtTime; //starting time in world
     }
 }
