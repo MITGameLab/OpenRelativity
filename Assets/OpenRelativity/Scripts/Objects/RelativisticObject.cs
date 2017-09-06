@@ -1601,10 +1601,12 @@ namespace OpenRelativity.Objects
 
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:
+            Transform cparent = contractor.parent;
+            contractor.parent = null;
             contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
 
             // - Reset the contractor, in any case:
-            transform.parent = contractor.parent;
+            transform.parent = cparent;
             contractor.position = transform.position;
             transform.parent = contractor;
 
