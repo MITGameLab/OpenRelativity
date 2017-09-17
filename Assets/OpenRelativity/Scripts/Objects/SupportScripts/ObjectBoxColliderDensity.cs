@@ -28,6 +28,7 @@ namespace OpenRelativity.Objects
         //We handle length contraction in a separate step, for a little improvement in accuracy.
         // To do it, we use a "contractor" transform:
         private Transform contractor;
+        private Vector3 contractorLocalScale;
         private Transform colliderTransform;
         private RelativisticObject myRO;
         private Rigidbody myRB;
@@ -78,7 +79,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void Update()
+        private void FixedUpdate()
         {
             if (colliderShader != null && SystemInfo.supportsComputeShaders)
             {
@@ -186,6 +187,7 @@ namespace OpenRelativity.Objects
                 contractor.parent = this.transform;
                 contractor.localPosition = Vector3.zero;
                 contractor.rotation = Quaternion.identity;
+                contractorLocalScale = contractor.localScale;
 
                 GameObject colliderGO = new GameObject();
                 colliderGO.name = gameObject.name + " Collider";
@@ -211,6 +213,7 @@ namespace OpenRelativity.Objects
                 contractor.parent = this.transform;
                 contractor.localPosition = Vector3.zero;
                 contractor.localRotation = Quaternion.identity;
+                contractorLocalScale = contractor.localScale;
                 colliderTransform.parent = contractor;
                 colliderTransform.localPosition = Vector3.zero;
                 colliderTransform.localRotation = Quaternion.identity;
@@ -228,15 +231,16 @@ namespace OpenRelativity.Objects
 
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:
-            contractor.localPosition = Vector3.zero;
-            Transform cparent = contractor.parent;
-            contractor.parent = null;
-            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            //contractor.localPosition = Vector3.zero;
+            //Transform cparent = contractor.parent;
+            //contractor.parent = null;
+            //contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            contractor.localScale = contractorLocalScale;
 
             // - Reset the contractor, in any case:
+            colliderTransform.parent = null;
             contractor.position = gameState.playerTransform.position;
             colliderTransform.position = transform.position;
-            colliderTransform.parent = null;
 
             if (relVelMag > 0.0f)
             {
@@ -251,13 +255,13 @@ namespace OpenRelativity.Objects
                 colliderTransform.parent = contractor;
 
                 // - Set the scale based only on the velocity relative to the player:
-                contractor.localScale = (new Vector3(1.0f, 1.0f, 1.0f)).ContractLengthBy(relVelMag * Vector3.forward);
+                contractor.localScale = contractorLocalScale.ContractLengthBy(relVelMag * Vector3.forward);
             }
             else
             {
                 colliderTransform.parent = contractor;
             }
-            contractor.parent = cparent;
+            //contractor.parent = cparent;
         }
 
         //Just subdivide something

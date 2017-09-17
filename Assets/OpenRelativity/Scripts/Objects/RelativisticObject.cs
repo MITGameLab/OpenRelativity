@@ -185,6 +185,8 @@ namespace OpenRelativity.Objects
         public bool nonrelativisticShader = false;
         //If the shader is not relativistic, we need to handle length contraction with a "contractor" transform.
         private Transform contractor;
+        //Changing a transform's parent is expensive, but we can avoid it with this:
+        private Vector3 contractorLocalScale;
         //Store transform info only for a nonrelativistic shader;
         private class NonRelShaderHistoryPoint
         {
@@ -206,6 +208,7 @@ namespace OpenRelativity.Objects
         //If we specifically have a mesh collider, we need to know to transform the verts of the mesh itself.
         private bool myColliderIsMesh;
         private bool myColliderIsBox;
+        private bool myColliderIsVoxel;
         //We create a new collider mesh, so as not to interfere with primitives, and reuse it
         private Mesh trnsfrmdMesh;
         //If we have a Rigidbody, we cache it here
@@ -761,6 +764,7 @@ namespace OpenRelativity.Objects
                             trnsfrmdMesh.MarkDynamic();
                             myColliderIsMesh = true;
                             myColliderIsBox = false;
+                            myColliderIsVoxel = false;
                             //Debug.Log("My collider is mesh.");
                         }
                         //else if (myCollider.enabled)
@@ -782,14 +786,24 @@ namespace OpenRelativity.Objects
                     if (myCollider != null)
                     {
                         myColliderIsBox = true;
+                        myColliderIsMesh = false;
+                        myColliderIsVoxel = false;
                     }
                     else
                     {
                         myColliderIsBox = false;
+                        myColliderIsMesh = false;
+                        myColliderIsVoxel = false;
                         myCollider = GetComponent<Collider>();
                     }
 
                 }
+            }
+            else
+            {
+                myColliderIsVoxel = true;
+                myColliderIsBox = false;
+                myColliderIsMesh = false;
             }
         }
 
@@ -837,7 +851,7 @@ namespace OpenRelativity.Objects
             EnforceCollision();
 
             //Update the rigidbody reference.
-            myRigidbody = GetComponent<Rigidbody>();
+            //myRigidbody = GetComponent<Rigidbody>();
 
             if (myRigidbody != null)
             {
@@ -865,7 +879,7 @@ namespace OpenRelativity.Objects
 
             
             //Update the collider reference.
-            UpdateCollider();
+            //UpdateCollider();
 
             if (meshFilter != null && !state.MovementFrozen)
             {
@@ -927,22 +941,6 @@ namespace OpenRelativity.Objects
         }
 
         void FixedUpdate() {
-            //Grab our renderer.
-            Renderer tempRenderer = GetComponent<Renderer>();
-
-            //int cwLcv = 0;
-            //while (cwLcv < collidedWith.Count)
-            //{
-            //    if (collidedWith[cwLcv].LastTime + collideAgainWait < state.TotalTimeWorld)
-            //    {
-            //        collidedWith.RemoveAt(cwLcv);
-            //    }
-            //    else
-            //    {
-            //        cwLcv++;
-            //    }
-            //}
-
             if (meshFilter != null && !state.MovementFrozen)
             {
                 //As long as our object is actually alive, perform these calculations
@@ -993,15 +991,20 @@ namespace OpenRelativity.Objects
                     {
                         KillObject();
                     }
-                    else if (!tempRenderer.enabled && (state.TotalTimeWorld + tisw > startTime))
+                    else if ((state.TotalTimeWorld + tisw > startTime))
                     {
-                        tempRenderer.enabled = !hasParent;
-                        AudioSource[] audioSources = GetComponents<AudioSource>();
-                        if (audioSources.Length > 0)
+                        //Grab our renderer.
+                        Renderer tempRenderer = GetComponent<Renderer>();
+                        if (!tempRenderer.enabled)
                         {
-                            for (int i = 0; i < audioSources.Length; i++)
+                            tempRenderer.enabled = !hasParent;
+                            AudioSource[] audioSources = GetComponents<AudioSource>();
+                            if (audioSources.Length > 0)
                             {
-                                audioSources[i].enabled = true;
+                                for (int i = 0; i < audioSources.Length; i++)
+                                {
+                                    audioSources[i].enabled = true;
+                                }
                             }
                         }
                     }
@@ -1028,7 +1031,7 @@ namespace OpenRelativity.Objects
                 }
             }
             //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
-            else if (meshFilter != null && tempRenderer != null && myRigidbody != null)
+            else if (meshFilter != null && myRigidbody != null && GetComponent<MeshRenderer>() != null)
             {
                 myRigidbody.velocity = Vector3.zero;
                 myRigidbody.angularVelocity = Vector3.zero;
@@ -1039,7 +1042,7 @@ namespace OpenRelativity.Objects
 
         public void UpdateColliderPosition()
         {
-            if (GetComponent<ObjectBoxColliderDensity>() == null)
+            if (!myColliderIsVoxel)
             {
                 //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
                 if (!nonrelativisticShader && myCollider != null && myCollider.enabled)
@@ -1713,12 +1716,16 @@ namespace OpenRelativity.Objects
                 contractor.position = transform.position;
                 contractor.parent = transform.parent;
                 transform.parent = contractor;
+                contractorLocalScale = contractor.localScale;
             }
             else
             {
-                transform.parent = null;
+                contractor.parent = null;
+                contractor.localScale = new Vector3();
+                contractor.parent = transform.parent;
                 contractor.position = transform.position;
                 transform.parent = contractor;
+                contractorLocalScale = contractor.localScale;
             }        
         }
 
@@ -1733,17 +1740,20 @@ namespace OpenRelativity.Objects
 
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:
-            Transform cparent = contractor.parent;
-            contractor.parent = null;
-            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            //Transform cparent = contractor.parent;
+            //contractor.parent = null;
+            //contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            contractor.localScale = contractorLocalScale;
 
             // - Reset the contractor, in any case:
-            transform.parent = cparent;
+            //transform.parent = cparent;
             contractor.position = transform.position;
-            //transform.parent = contractor;
+            transform.localPosition = Vector3.zero;
 
             if (relVelMag > 0.0f)
             {
+                Quaternion rot = transform.rotation;
+
                 relVelMag = Mathf.Sqrt(relVelMag);
                 // - If we need to contract the object, unparent it from the contractor before rotation:
                 //transform.parent = cparent;
@@ -1752,14 +1762,10 @@ namespace OpenRelativity.Objects
                 contractor.rotation = Quaternion.FromToRotation(Vector3.forward, relVel / relVelMag);
 
                 // - Re-parent the object to the contractor before length contraction:
-                transform.parent = contractor;
+                transform.rotation = transform.rotation;
 
                 // - Set the scale based only on the velocity relative to the player:
-                contractor.localScale = (new Vector3(1.0f, 1.0f, 1.0f)).ContractLengthBy(relVelMag * Vector3.forward);
-            }
-            else
-            {
-                transform.parent = contractor;
+                contractor.localScale = contractorLocalScale.ContractLengthBy(relVelMag * Vector3.forward);
             }
         }
 
