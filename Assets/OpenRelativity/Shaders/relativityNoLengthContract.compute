@@ -111,13 +111,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 		//Apply Lorentz transform
 		//I had to break it up into steps, unity was getting order of operations wrong.	
-		float newz = (((float)speed*spdOfLight) * tisw);
+		//float newz = (((float)speed*spdOfLight) * tisw);
 
-		if (speed != 0) {
-			float3 vpcUnit = vpc / speed;
-			newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-			riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
-		}
+		//if (speed != 0) {
+		//	float3 vpcUnit = vpc / speed;
+		//	newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+		//	riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
+		//}
 	}
 
 	riw += playerOffset;

@@ -3,7 +3,7 @@
 // Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
 // Upgrade NOTE: replaced '_World2Object' with 'unity_WorldToObject'
 
-Shader "Relativity/ColorShift" 
+Shader "Relativity/ColorOnly" 
 {
 	Properties 
 	{
@@ -74,13 +74,13 @@ Shader "Relativity/ColorShift"
 	
 	//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 	float4 _viw = float4(0,0,0,0); //velocity of object in world
-	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
+	//float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0,0,0,0); //velocity of player
 	//float _gtt = 1; //velocity of player
 	float4 _playerOffset = float4(0,0,0,0); //player position in world
 	float _spdOfLight = 100; //current speed of light
-	//float _wrldTime = 0; //current time in world
-	//float _strtTime = 0; //starting time in world
+	float _wrldTime = 0; //current time in world
+	float _strtTime = 0; //starting time in world
 	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 	float xyr = 1; // xy ratio
@@ -113,7 +113,6 @@ Shader "Relativity/ColorShift"
 		//	}
 		//}
 		//o.pos = o.pos + _piw - _playerOffset; //Shift coordinates so player is at origin
-		o.pos = mul(unity_ObjectToWorld, v.vertex) - _playerOffset; //Shift coordinates so player is at origin
 
 		o.uv1.xy = v.texcoord; //get the UV coordinate for the current vertex, will be passed to fragment shade
 
@@ -152,57 +151,60 @@ Shader "Relativity/ColorShift"
 			 o.uv1.y = 1.0- o.uv1.y;
 		#endif 
 		//riw = location in world, for reference
-        float4 riw = o.pos; //Position that will be used in the output
+        //float4 riw = o.pos; //Position that will be used in the output
 
-		if (speedr != 0)
-		{
-			float4 viwScaled = _spdOfLight * viw;
+		//if (speedr != 0)
+		//{
+		//	float4 viwScaled = _spdOfLight * viw;
 
-			//Here begins a rotation-free modification of the original OpenRelativity shader:
+		//	//Here begins a rotation-free modification of the original OpenRelativity shader:
 
-			float c = -dot(riw, riw); //first get position squared (position doted with position)
+		//	float c = -dot(riw, riw); //first get position squared (position doted with position)
 
-			float b = -(2 * dot(viwScaled, viwScaled)); //next get position doted with velocity, should be only in the Z direction
+		//	float b = -(2 * dot(viwScaled, viwScaled)); //next get position doted with velocity, should be only in the Z direction
 
-			float d = (_spdOfLight*_spdOfLight) - dot(viwScaled, viwScaled);
+		//	float d = (_spdOfLight*_spdOfLight) - dot(viwScaled, viwScaled);
 
-			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+		//	float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
-			//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
-			//if (_wrldTime + tisw > _strtTime || _strtTime == 0)
-			//{
-			//	o.draw = 1;
-			//}
-			//else
-			//{
-			//	o.draw = 0;
-			//}
+		//	//Check to make sure that objects that have velocity do not appear before they were created (Moving Person objects behind Sender objects) 
+		//	if (_wrldTime + tisw > _strtTime || _strtTime == 0)
+		//	{
+		//		o.draw = 1;
+		//	}
+		//	else
+		//	{
+		//		o.draw = 0;
+		//	}
 
-			//get the new position offset, based on the new time we just found
-			//Should only be in the Z direction
+		//	//get the new position offset, based on the new time we just found
+		//	//Should only be in the Z direction
 
-			riw = riw + (tisw * viwScaled);
+		//	riw = riw + (tisw * viwScaled);
 
-			//Apply Lorentz transform
-			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-			//I had to break it up into steps, unity was getting order of operations wrong.	
-			float newz = (((float)speed*_spdOfLight) * tisw);
+		//	//Apply Lorentz transform
+		//	// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+		//	//I had to break it up into steps, unity was getting order of operations wrong.	
+		//	float newz = (((float)speed*_spdOfLight) * tisw);
 
-			if (speed != 0) {
-				float4 vpcUnit = _vpc / speed;
-				newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-				riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
-			}
-		}
-		
-		riw += _playerOffset;
+		//	if (speed != 0) {
+		//		float4 vpcUnit = _vpc / speed;
+		//		newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+		//		riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
+		//	}
+		//}
+		//
+		//riw += _playerOffset;
+		//o.draw = 1;
 	
         //Transform the vertex back into local space for the mesh to use it
-		o.pos = mul(unity_WorldToObject*1.0,riw);
+		//o.pos = mul(unity_WorldToObject*1.0,riw);
+		//For a color only shader, we don't relativistically transform the position
+		o.pos = v.vertex;
 
 		//o.pos2 = mul(unity_ObjectToWorld, o.pos );
 		//o.pos2 -= _playerOffset;
-		o.pos2 = riw - _playerOffset;
+		o.pos2 = v.vertex -_playerOffset;
 		
 
 		o.pos = UnityObjectToClipPos(o.pos);

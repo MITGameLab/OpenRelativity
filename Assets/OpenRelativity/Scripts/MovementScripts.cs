@@ -351,7 +351,17 @@ namespace OpenRelativity
         private void OnTrigger(Collider collider)
         {
             Rigidbody otherRB = collider.GetComponent<Rigidbody>();
-            RelativisticObject otherRO = collider.GetComponent<RelativisticObject>();
+            GameObject otherGO = collider.gameObject;
+            ObjectBoxColliderDensityTag otherTag = otherGO.GetComponent<ObjectBoxColliderDensityTag>();
+            RelativisticObject otherRO;
+            if (otherTag == null)
+            {
+                otherRO = otherGO.GetComponent<RelativisticObject>();
+            }
+            else
+            {
+                otherRO = otherTag.myRO;
+            }
             if (otherRO != null && otherRB != null && otherRB.isKinematic)
             {
                 Collider myColl = GetComponent<Collider>();
@@ -377,13 +387,14 @@ namespace OpenRelativity
                     }
 
                     otherRO.UpdateColliderPosition();
-
-                    if (collider.Raycast(rayDown, out hitInfo, 4.0f * extents.y))
+                    Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
+                    if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
                     {
-                        dist = 2.0f * extents.y - hitInfo.distance;
+                        Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
+                        dist = transform.position.y - newPos.y;
                         if (Mathf.Abs(dist) > 0.2f)
                         {
-                            state.playerTransform.position += (dist * Vector3.up);
+                            state.playerTransform.position = newPos;
                         }
                     }
 

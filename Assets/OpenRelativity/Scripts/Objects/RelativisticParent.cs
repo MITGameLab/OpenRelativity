@@ -21,7 +21,8 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            startTime = (float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().TotalTimeWorld;
+            if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+            startTime = (float)state.TotalTimeWorld;
         }
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public void SetDeathTime()
@@ -31,6 +32,7 @@ namespace OpenRelativity.Objects
         //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
+            if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             if (viw.magnitude > state.MaxSpeed - .01)
             {
                 viw = viw.normalized * (float)(state.MaxSpeed - .01f);
