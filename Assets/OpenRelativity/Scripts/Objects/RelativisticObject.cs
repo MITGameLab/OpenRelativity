@@ -187,7 +187,7 @@ namespace OpenRelativity.Objects
         private Transform contractor;
         //Changing a transform's parent is expensive, but we can avoid it with this:
         private Vector3 contractorLocalScale;
-        private int oldParentID;
+        private int? oldParentID;
         //Store transform info only for a nonrelativistic shader;
         private class NonRelShaderHistoryPoint
         {
@@ -1714,31 +1714,44 @@ namespace OpenRelativity.Objects
                 GameObject contractorGO = new GameObject();
                 contractorGO.name = gameObject.name + " Contractor";
                 contractor = contractorGO.transform;
-                contractor.position = transform.position;
                 contractor.parent = transform.parent;
-                transform.parent = contractor;
-                contractorLocalScale = contractor.localScale;
             }
             else
             {
+                Transform prnt = contractor.parent;
                 contractor.parent = null;
                 contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-                contractor.parent = transform.parent;
-                contractor.position = transform.position;
-                transform.parent = contractor;
-                contractorLocalScale = contractor.localScale;
-            }        
+                contractor.parent = prnt;
+            }
+            contractor.position = transform.position;
+            transform.parent = contractor;
+            contractorLocalScale = contractor.localScale;
+            if (contractor.parent != null)
+            {
+                oldParentID = contractor.parent.gameObject.GetInstanceID();
+            }
+            else
+            {
+                oldParentID = null;
+            }
         }
 
         public void ContractLength()
         {
             //WARNING: Doppler shift is inaccurate due to order of player and object frame updates
 
-            int parentID = transform.parent.gameObject.GetInstanceID();
-            if (contractor == null || (parentID != oldParentID))
+
+            if (contractor == null)
             {
-                oldParentID = parentID;
                 SetUpContractor();
+            }
+            else
+            {
+                int parentID = contractor.parent.gameObject.GetInstanceID();
+                if (parentID != oldParentID)
+                {
+                    SetUpContractor();
+                }
             }
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 relVel = viw.RelativeVelocityTo(playerVel);

@@ -29,7 +29,7 @@ namespace OpenRelativity.Objects
         // To do it, we use a "contractor" transform:
         private Transform contractor;
         private Vector3 contractorLocalScale;
-        private int oldParentID;
+        //private int oldParentID;
         private Transform colliderTransform;
         private RelativisticObject myRO;
         private Rigidbody myRB;
@@ -217,7 +217,7 @@ namespace OpenRelativity.Objects
             {
                 contractor.parent = null;
                 contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-                contractor.parent = colliderTransform.parent;
+                contractor.parent = transform;
                 contractor.position = gameState.playerTransform.position;
                 colliderTransform.parent = contractor;
                 contractorLocalScale = contractor.localScale;
@@ -228,12 +228,18 @@ namespace OpenRelativity.Objects
         {
             //WARNING: Doppler shift is inaccurate due to order of player and object frame updates
 
-            int parentID = transform.parent.gameObject.GetInstanceID();
-            if (contractor == null || (parentID != oldParentID))
+            if (contractor == null)
             {
-                oldParentID = parentID;
                 SetUpContractor();
             }
+            //else
+            //{
+            //    int parentID = contractor.parent.gameObject.GetInstanceID();
+            //    if (parentID != oldParentID)
+            //    {
+            //        SetUpContractor();
+            //    }
+            //}
             Vector3 playerVel = gameState.PlayerVelocityVector;
             Vector3 relVel = myRO.viw.RelativeVelocityTo(playerVel);
             float relVelMag = relVel.sqrMagnitude;
