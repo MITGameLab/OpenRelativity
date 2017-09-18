@@ -187,6 +187,7 @@ namespace OpenRelativity.Objects
         private Transform contractor;
         //Changing a transform's parent is expensive, but we can avoid it with this:
         private Vector3 contractorLocalScale;
+        private int oldParentID;
         //Store transform info only for a nonrelativistic shader;
         private class NonRelShaderHistoryPoint
         {
@@ -1721,7 +1722,7 @@ namespace OpenRelativity.Objects
             else
             {
                 contractor.parent = null;
-                contractor.localScale = new Vector3();
+                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
                 contractor.parent = transform.parent;
                 contractor.position = transform.position;
                 transform.parent = contractor;
@@ -1733,7 +1734,12 @@ namespace OpenRelativity.Objects
         {
             //WARNING: Doppler shift is inaccurate due to order of player and object frame updates
 
-            if (contractor == null) SetUpContractor();
+            int parentID = transform.parent.gameObject.GetInstanceID();
+            if (contractor == null || (parentID != oldParentID))
+            {
+                oldParentID = parentID;
+                SetUpContractor();
+            }
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 relVel = viw.RelativeVelocityTo(playerVel);
             float relVelMag = relVel.sqrMagnitude;

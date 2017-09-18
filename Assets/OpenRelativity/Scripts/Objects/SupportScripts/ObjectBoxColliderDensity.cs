@@ -29,6 +29,7 @@ namespace OpenRelativity.Objects
         // To do it, we use a "contractor" transform:
         private Transform contractor;
         private Vector3 contractorLocalScale;
+        private int oldParentID;
         private Transform colliderTransform;
         private RelativisticObject myRO;
         private Rigidbody myRB;
@@ -82,7 +83,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void FixedUpdate()
+        private void Update()
         {
             if (colliderShader != null && SystemInfo.supportsComputeShaders)
             {
@@ -214,14 +215,12 @@ namespace OpenRelativity.Objects
             }
             else
             {
-                //transform.parent = null;
-                contractor.parent = this.transform;
-                contractor.localPosition = Vector3.zero;
-                contractor.localRotation = Quaternion.identity;
-                contractorLocalScale = contractor.localScale;
+                contractor.parent = null;
+                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                contractor.parent = colliderTransform.parent;
+                contractor.position = gameState.playerTransform.position;
                 colliderTransform.parent = contractor;
-                colliderTransform.localPosition = Vector3.zero;
-                colliderTransform.localRotation = Quaternion.identity;
+                contractorLocalScale = contractor.localScale;
             }
         }
 
@@ -229,7 +228,12 @@ namespace OpenRelativity.Objects
         {
             //WARNING: Doppler shift is inaccurate due to order of player and object frame updates
 
-            if (contractor == null) SetUpContractor();
+            int parentID = transform.parent.gameObject.GetInstanceID();
+            if (contractor == null || (parentID != oldParentID))
+            {
+                oldParentID = parentID;
+                SetUpContractor();
+            }
             Vector3 playerVel = gameState.PlayerVelocityVector;
             Vector3 relVel = myRO.viw.RelativeVelocityTo(playerVel);
             float relVelMag = relVel.sqrMagnitude;
