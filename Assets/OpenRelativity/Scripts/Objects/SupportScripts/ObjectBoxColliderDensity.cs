@@ -15,7 +15,7 @@ namespace OpenRelativity.Objects
         public bool state { get; set; }
 
         //Store the original box collider (disabled):
-        public BoxCollider original { get; set; }
+        public BoxCollider[] original { get; set; }
         public List<BoxCollider> change { get; set; }
 
         public ComputeShader colliderShader;
@@ -59,18 +59,21 @@ namespace OpenRelativity.Objects
             myRO = GetComponent<RelativisticObject>();
             SetUpContractor();
             //Grab the meshfilter, and if it's not null, keep going
-            BoxCollider origBoxCollider = GetComponent<BoxCollider>();
-            if (origBoxCollider != null && myRO != null)
+            BoxCollider[] origBoxColliders = GetComponents<BoxCollider>();
+            if (origBoxColliders.Length > 0 && myRO != null)
             {
-                //Store a copy of our original mesh
-                original = origBoxCollider;
-                original.enabled = false;
-
                 //Prepare a new list of colliders for our split collider
                 change = new List<BoxCollider>();
 
-                //Split this collider until all of its dimensions have length less than our chosen value
-                Subdivide(original, change);
+                //Store a copy of our original mesh
+                original = origBoxColliders;
+                totalBoxCount = 0;
+                for (int i = 0; i < original.Length; i++)
+                {
+                    original[i].enabled = false;
+                    //Split this collider until all of its dimensions have length less than our chosen value
+                    Subdivide(original[i], change);
+                }
             }
             else
             {
@@ -181,6 +184,7 @@ namespace OpenRelativity.Objects
             {
                 GameObject contractorGO = new GameObject();
                 contractorGO.name = gameObject.name + " Contractor";
+                contractorGO.layer = gameObject.layer;
                 contractor = contractorGO.transform;
                 contractor.parent = null;
                 contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
@@ -191,6 +195,7 @@ namespace OpenRelativity.Objects
 
                 GameObject colliderGO = new GameObject();
                 colliderGO.name = gameObject.name + " Collider";
+                colliderGO.layer = gameObject.layer;
                 colliderTransform = colliderGO.transform;
                 colliderTransform.parent = contractor;
                 colliderTransform.localPosition = Vector3.zero;
@@ -297,7 +302,7 @@ namespace OpenRelativity.Objects
             int xCount = ((int)(2.0f * xExtent / constant + 0.5f));
             int yCount = ((int)(2.0f * yExtent / constant + 0.5f));
             int zCount = ((int)(2.0f * zExtent / constant + 0.5f));
-            totalBoxCount = xCount * yCount * zCount;
+            totalBoxCount += xCount * yCount * zCount;
 
             Vector3 newColliderPos = new Vector3();
             Vector3 newColliderSize = new Vector3(origSize.x / xCount, origSize.y / yCount, origSize.z / zCount);
@@ -334,7 +339,10 @@ namespace OpenRelativity.Objects
             if (posBuffer != null) posBuffer.Release();
             if (colliderTransform != null) Destroy(colliderTransform.gameObject);
             if (contractor != null) Destroy(contractor.gameObject);
-            original.enabled = true;
+            for (int i = 0; i < original.Length; i++)
+            {
+                original[i].enabled = true;
+            }
         }
     }
 }
