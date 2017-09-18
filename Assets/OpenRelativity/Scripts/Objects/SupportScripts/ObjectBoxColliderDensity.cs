@@ -216,6 +216,7 @@ namespace OpenRelativity.Objects
             else
             {
                 contractor.parent = null;
+                colliderTransform.parent =null;
                 contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
                 contractor.parent = transform;
                 contractor.position = gameState.playerTransform.position;
@@ -251,6 +252,11 @@ namespace OpenRelativity.Objects
             //contractor.parent = null;
             //contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
             contractor.localScale = contractorLocalScale;
+            contractor.localScale = contractorLocalScale;
+            if ((contractor.lossyScale - new Vector3(1.0f, 1.0f, 1.0f)).sqrMagnitude > 0.0001)
+            {
+                SetUpContractor();
+            }
 
             // - Reset the contractor, in any case:
             colliderTransform.parent = null;

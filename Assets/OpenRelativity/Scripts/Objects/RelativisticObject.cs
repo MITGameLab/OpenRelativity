@@ -187,7 +187,7 @@ namespace OpenRelativity.Objects
         private Transform contractor;
         //Changing a transform's parent is expensive, but we can avoid it with this:
         private Vector3 contractorLocalScale;
-        private int? oldParentID;
+        //private int? oldParentID;
         //Store transform info only for a nonrelativistic shader;
         private class NonRelShaderHistoryPoint
         {
@@ -1720,20 +1720,13 @@ namespace OpenRelativity.Objects
             {
                 Transform prnt = contractor.parent;
                 contractor.parent = null;
+                transform.parent = null;
                 contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
                 contractor.parent = prnt;
             }
             contractor.position = transform.position;
             transform.parent = contractor;
             contractorLocalScale = contractor.localScale;
-            if (contractor.parent != null)
-            {
-                oldParentID = contractor.parent.gameObject.GetInstanceID();
-            }
-            else
-            {
-                oldParentID = null;
-            }
         }
 
         public void ContractLength()
@@ -1745,14 +1738,6 @@ namespace OpenRelativity.Objects
             {
                 SetUpContractor();
             }
-            else
-            {
-                int parentID = contractor.parent.gameObject.GetInstanceID();
-                if (parentID != oldParentID)
-                {
-                    SetUpContractor();
-                }
-            }
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 relVel = viw.RelativeVelocityTo(playerVel);
             float relVelMag = relVel.sqrMagnitude;
@@ -1763,6 +1748,10 @@ namespace OpenRelativity.Objects
             //contractor.parent = null;
             //contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
             contractor.localScale = contractorLocalScale;
+            if ((contractor.lossyScale - new Vector3(1.0f, 1.0f, 1.0f)).sqrMagnitude > 0.0001)
+            {
+                SetUpContractor();
+            }
 
             // - Reset the contractor, in any case:
             //transform.parent = cparent;
