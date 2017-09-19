@@ -10,11 +10,11 @@ Shader "Relativity/ColorOnly"
 		_MainTex ("Base (RGB)", 2D) = "" {} //Visible Spectrum Texture ( RGB )
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		//_piw("piw", Vector) = (0,0,0,0) //Vector that represents object's position in world frame
+		_piw("piw", Vector) = (0,0,0,0) //Vector that represents object's position in world frame
 		_viw ("viw", Vector)=(0,0,0,0) //Vector that represents object's velocity in world frame
-		//_aviw ("aviw", Vector)=(0,0,0,0) //Vector that represents object's angular velocity times the object's world scale
+		_aviw ("aviw", Vector)=(0,0,0,0) //Vector that represents object's angular velocity times the object's world scale
 		//_gtt("gtt", float) = 0 //float that represents 00 component of metric due to player acceleration
-		//_strtTime ("strtTime", float)=0 //For moving objects, when they created, this variable is set to current world time
+		_strtTime ("strtTime", float)=0 //For moving objects, when they created, this variable is set to current world time
 		_Cutoff ("Base Alpha cutoff", Range (0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
 	
@@ -62,7 +62,7 @@ Shader "Relativity/ColorOnly"
 		float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 		float svc: TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 		float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
-		//float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
+		float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
 	};
 	
 
@@ -72,9 +72,9 @@ Shader "Relativity/ColorOnly"
 	sampler2D _UVTex;
 	sampler2D _CameraDepthTexture;
 	
-	//float4 _piw = float4(0, 0, 0, 0); //position of object in world
+	float4 _piw = float4(0, 0, 0, 0); //position of object in world
 	float4 _viw = float4(0,0,0,0); //velocity of object in world
-	//float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
+	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0,0,0,0); //velocity of player
 	//float _gtt = 1; //velocity of player
 	float4 _playerOffset = float4(0,0,0,0); //player position in world
@@ -195,7 +195,7 @@ Shader "Relativity/ColorOnly"
 		//}
 		//
 		//riw += _playerOffset;
-		//o.draw = 1;
+		o.draw = 1;
 	
         //Transform the vertex back into local space for the mesh to use it
 		//o.pos = mul(unity_WorldToObject*1.0,riw);
@@ -321,7 +321,7 @@ Shader "Relativity/ColorOnly"
 		float IR = tex2D( _IRTex, i.uv1).r;
 	
 		//Set alpha of drawing pixel to 0 if vertex shader has determined it should not be drawn.
-  	    //data.a = i.draw ? data.a : 0;
+  	    data.a = i.draw ? data.a : 0;
 
 		float3 rgb = data.xyz;
 

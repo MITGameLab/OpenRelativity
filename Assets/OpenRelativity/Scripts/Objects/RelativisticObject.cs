@@ -526,51 +526,46 @@ namespace OpenRelativity.Objects
             transform.gameObject.SetActive(true);
             gameObject.isStatic = wasStatic;
 
-            if (GetComponent<ObjectBoxColliderDensity>() == null)
+            if (isColliderParent)
             {
-                if (isColliderParent)
+                MeshCollider myMeshCollider = GetComponent<MeshCollider>();
+                if (myMeshCollider != null)
                 {
-                    MeshCollider myMeshCollider = GetComponent<MeshCollider>();
-                    if (myMeshCollider != null)
-                    {
-                        myMeshCollider.sharedMesh = myMesh;
-                    }
-                    //"Delete" all children.
-                    for (int i = 0; i < transform.childCount; i++)
+                    myMeshCollider.sharedMesh = myMesh;
+                }
+                //"Delete" all children.
+                for (int i = 0; i < transform.childCount; i++)
+                {
+                    GameObject child = transform.GetChild(i).gameObject;
+                    if (child.tag != "Contractor" && child.tag != "Voxel Collider")
                     {
                         transform.GetChild(i).gameObject.SetActive(false);
                         Destroy(transform.GetChild(i).gameObject);
                     }
-                    GetComponent<MeshRenderer>().enabled = true;
                 }
-                else
+                GetComponent<MeshRenderer>().enabled = true;
+            }
+            else
+            {
+                Transform[] descendents = GetComponentsInChildren<Transform>();
+
+                //"Delete" all children.
+                for (int i = 0; i < descendents.Length; i++)
                 {
-                    //Collider[] childColliders = GetComponentsInChildren<Collider>();
-                    //for (int i = 0; i < childColliders.Length; i++)
-                    //{
-                    //    childColliders[i]
-                    //}
-
-                    Transform[] descendents = GetComponentsInChildren<Transform>();
-
-                    //"Delete" all children.
-                    for (int i = 0; i < descendents.Length; i++)
+                    Transform child = descendents[i];
+                    MonoBehaviour[] comps = child.GetComponents<MonoBehaviour>();
+                    for (int j = 0; j < comps.Length; j++)
                     {
-                        Transform child = descendents[i];
-                        MonoBehaviour[] comps = child.GetComponents<MonoBehaviour>();
-                        for (int j = 0; j < comps.Length; j++)
+                        comps[j].enabled = false;
+                    }
+                    Collider childCollider = child.GetComponent<Collider>();
+                    if (childCollider != null)
+                    {
+                        childCollider.enabled = true;
+                        RelativisticObject childRO = child.GetComponent<RelativisticObject>();
+                        if (childRO != null)
                         {
-                            comps[j].enabled = false;
-                        }
-                        Collider childCollider = child.GetComponent<Collider>();
-                        if (childCollider != null)
-                        {
-                            childCollider.enabled = true;
-                            RelativisticObject childRO = child.GetComponent<RelativisticObject>();
-                            if (childRO != null)
-                            {
-                                childRO.enabled = true;
-                            }
+                            childRO.enabled = true;
                         }
                     }
                 }

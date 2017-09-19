@@ -40,6 +40,10 @@ namespace OpenRelativity.Objects
         private int origPositionsBufferLength;
         private Vector3[] trnsfrmdPositions;
 
+        System.Diagnostics.Stopwatch coroutineTimer;
+
+        private bool finishedCoroutine;
+
         private GameState _gameState = null;
         private GameState gameState
         {
@@ -57,6 +61,8 @@ namespace OpenRelativity.Objects
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
         {
+            finishedCoroutine = false;
+            coroutineTimer = new System.Diagnostics.Stopwatch();
             myRO = GetComponent<RelativisticObject>();
             SetUpContractor();
             //Grab the meshfilter, and if it's not null, keep going
@@ -85,11 +91,49 @@ namespace OpenRelativity.Objects
 
         private void Update()
         {
+            //if (finishedCoroutine)
+            //{
+            //    finishedCoroutine = false;
+            //    StartCoroutine("UpdatePositions");
+            //}
+
             if (colliderShader != null && SystemInfo.supportsComputeShaders)
             {
                 UpdateColliderPositions();
                 ContractLength();
             }
+        }
+
+        private IEnumerator CPUUpdatePositions()
+        {
+            //if (colliderShader != null && SystemInfo.supportsComputeShaders)
+            //{
+            //UpdateColliderPositions();
+            coroutineTimer.Start();
+            ContractLength();
+            Vector3 initCOM = myRB.centerOfMass;
+            Vector3 viw = myRO.viw;
+            Vector3 playerPos = gameState.playerTransform.position;
+            Vector3 vpw = gameState.PlayerVelocityVector;
+            for (int i = 0; i < totalBoxCount; i++)
+            {
+                change[i].center = origPositions[i].WorldToOpticalNoLengthContract(viw, playerPos, vpw);
+                if (coroutineTimer.ElapsedMilliseconds >= 5)
+                {
+                    coroutineTimer.Stop();
+                    coroutineTimer.Reset();
+                    yield return null;
+                    coroutineTimer.Start();
+                }
+            }
+            //Cache actual world center of mass, and then reset local (rest frame) center of mass:
+            myRB.ResetCenterOfMass();
+            myRO.opticalWorldCenterOfMass = myRB.worldCenterOfMass;
+            myRB.centerOfMass = initCOM;
+            //}
+            finishedCoroutine = true;
+            coroutineTimer.Stop();
+            coroutineTimer.Reset();
         }
 
         private void UpdateColliderPositions()
@@ -186,6 +230,7 @@ namespace OpenRelativity.Objects
                 GameObject contractorGO = new GameObject();
                 contractorGO.name = gameObject.name + " Contractor";
                 contractorGO.layer = gameObject.layer;
+                contractorGO.tag = "Contractor";
                 contractor = contractorGO.transform;
                 contractor.parent = null;
                 contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
@@ -197,6 +242,7 @@ namespace OpenRelativity.Objects
                 GameObject colliderGO = new GameObject();
                 colliderGO.name = gameObject.name + " Collider";
                 colliderGO.layer = gameObject.layer;
+                colliderGO.tag = "Voxel Collider";
                 colliderTransform = colliderGO.transform;
                 colliderTransform.parent = contractor;
                 colliderTransform.localPosition = Vector3.zero;
