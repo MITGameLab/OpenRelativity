@@ -1236,16 +1236,7 @@ namespace OpenRelativity.Objects
             isSleeping = false;
 
             GameObject otherGO = collision.gameObject;
-            ObjectBoxColliderDensityTag otherTag = otherGO.GetComponent<ObjectBoxColliderDensityTag>();
-            RelativisticObject otherRO;
-            if (otherTag == null)
-            {
-                otherRO = otherGO.GetComponent<RelativisticObject>();
-            }
-            else
-            {
-                otherRO = otherTag.myRO;
-            }
+            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
             PhysicMaterial otherMaterial = collision.collider.material;
             PhysicMaterial myMaterial = myCollider.material;
             float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
@@ -1342,16 +1333,7 @@ namespace OpenRelativity.Objects
             }
 
             GameObject otherGO = collision.gameObject;
-            ObjectBoxColliderDensityTag otherTag = otherGO.GetComponent<ObjectBoxColliderDensityTag>();
-            RelativisticObject otherRO;
-            if (otherTag == null)
-            {
-                otherRO = otherGO.GetComponent<RelativisticObject>();
-            }
-            else
-            {
-                otherRO = otherTag.myRO;
-            }
+            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
             PhysicMaterial otherMaterial = collision.collider.material;
             PhysicMaterial myMaterial = myCollider.material;
             float myFriction = isSleeping ? myMaterial.staticFriction : myMaterial.dynamicFriction;

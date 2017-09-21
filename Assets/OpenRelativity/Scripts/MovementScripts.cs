@@ -352,16 +352,7 @@ namespace OpenRelativity
         {
             Rigidbody otherRB = collider.GetComponent<Rigidbody>();
             GameObject otherGO = collider.gameObject;
-            ObjectBoxColliderDensityTag otherTag = otherGO.GetComponent<ObjectBoxColliderDensityTag>();
-            RelativisticObject otherRO;
-            if (otherTag == null)
-            {
-                otherRO = otherGO.GetComponent<RelativisticObject>();
-            }
-            else
-            {
-                otherRO = otherTag.myRO;
-            }
+            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
             if (otherRO != null && otherRB != null && otherRB.isKinematic)
             {
                 Collider myColl = GetComponent<Collider>();

@@ -25,12 +25,6 @@ namespace OpenRelativity.Objects
 
         private int totalBoxCount;
 
-        //We handle length contraction in a separate step, for a little improvement in accuracy.
-        // To do it, we use a "contractor" transform:
-        private Transform contractor;
-        private Vector3 contractorLocalScale;
-        //private int oldParentID;
-        private Transform colliderTransform;
         private RelativisticObject myRO;
         private Rigidbody myRB;
 
@@ -61,10 +55,10 @@ namespace OpenRelativity.Objects
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
         {
-            finishedCoroutine = false;
+            finishedCoroutine = true;
             coroutineTimer = new System.Diagnostics.Stopwatch();
             myRO = GetComponent<RelativisticObject>();
-            SetUpContractor();
+            myRB = GetComponent<Rigidbody>();
             //Grab the meshfilter, and if it's not null, keep going
             BoxCollider[] origBoxColliders = GetComponents<BoxCollider>();
             if (origBoxColliders.Length > 0 && myRO != null)
@@ -89,7 +83,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void Update()
+        private void FixedUpdate()
         {
             //if (finishedCoroutine)
             //{
@@ -100,31 +94,32 @@ namespace OpenRelativity.Objects
             if (colliderShader != null && SystemInfo.supportsComputeShaders)
             {
                 UpdateColliderPositions();
-                ContractLength();
+            }
+            else //if (finishedCoroutine)
+            {
+                finishedCoroutine = false;
+                //StartCoroutine("UpdatePositions");
+                CPUUpdatePositions();
             }
         }
 
-        private IEnumerator CPUUpdatePositions()
+        private void CPUUpdatePositions()
         {
-            //if (colliderShader != null && SystemInfo.supportsComputeShaders)
-            //{
-            //UpdateColliderPositions();
             coroutineTimer.Start();
-            ContractLength();
             Vector3 initCOM = myRB.centerOfMass;
             Vector3 viw = myRO.viw;
             Vector3 playerPos = gameState.playerTransform.position;
             Vector3 vpw = gameState.PlayerVelocityVector;
             for (int i = 0; i < totalBoxCount; i++)
             {
-                change[i].center = origPositions[i].WorldToOpticalNoLengthContract(viw, playerPos, vpw);
-                if (coroutineTimer.ElapsedMilliseconds >= 5)
+                change[i].center = origPositions[i].WorldToOptical(viw, playerPos, vpw);
+                /*if (coroutineTimer.ElapsedMilliseconds >= 5)
                 {
                     coroutineTimer.Stop();
                     coroutineTimer.Reset();
                     yield return null;
                     coroutineTimer.Start();
-                }
+                }*/
             }
             //Cache actual world center of mass, and then reset local (rest frame) center of mass:
             myRB.ResetCenterOfMass();
@@ -167,8 +162,8 @@ namespace OpenRelativity.Objects
 
             //Set remaining global parameters:
             ShaderParams colliderShaderParams = myRO.colliderShaderParams;
-            colliderShaderParams.ltwMatrix = colliderTransform.localToWorldMatrix;
-            colliderShaderParams.wtlMatrix = colliderTransform.worldToLocalMatrix;
+            colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
+            colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
             //colliderShaderParams.piw = transform.position;
             //colliderShaderParams.viw = viw / (float)state.SpeedOfLight;
             //colliderShaderParams.aviw = aviw;
@@ -223,126 +218,18 @@ namespace OpenRelativity.Objects
             //Debug.Log("Finished updating mesh collider.");
         }
 
-        private void SetUpContractor()
-        {
-            if (contractor == null)
-            {
-                GameObject contractorGO = new GameObject();
-                contractorGO.name = gameObject.name + " Contractor";
-                contractorGO.layer = gameObject.layer;
-                contractorGO.tag = "Contractor";
-                contractor = contractorGO.transform;
-                contractor.parent = null;
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-                contractor.parent = this.transform;
-                contractor.localPosition = Vector3.zero;
-                contractor.rotation = Quaternion.identity;
-                contractorLocalScale = contractor.localScale;
-
-                GameObject colliderGO = new GameObject();
-                colliderGO.name = gameObject.name + " Collider";
-                colliderGO.layer = gameObject.layer;
-                colliderGO.tag = "Voxel Collider";
-                colliderTransform = colliderGO.transform;
-                colliderTransform.parent = contractor;
-                colliderTransform.localPosition = Vector3.zero;
-                colliderTransform.rotation = transform.rotation;
-                colliderGO.AddComponent<ObjectBoxColliderDensityTag>().myRO = myRO;
-                Rigidbody origRB = GetComponent<Rigidbody>();
-                myRB = colliderGO.AddComponent<Rigidbody>();
-                myRB.isKinematic = origRB.isKinematic;
-                myRB.useGravity = origRB.useGravity;
-                myRB.mass = origRB.mass;
-                myRB.drag = origRB.drag;
-                myRB.angularDrag = origRB.angularDrag;
-                myRB.interpolation = origRB.interpolation;
-                myRB.collisionDetectionMode = origRB.collisionDetectionMode;
-                myRB.constraints = origRB.constraints;
-            }
-            else
-            {
-                contractor.parent = null;
-                colliderTransform.parent =null;
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-                contractor.parent = transform;
-                contractor.position = gameState.playerTransform.position;
-                colliderTransform.parent = contractor;
-                contractorLocalScale = contractor.localScale;
-            }
-        }
-
-        public void ContractLength()
-        {
-            //WARNING: Doppler shift is inaccurate due to order of player and object frame updates
-
-            if (contractor == null)
-            {
-                SetUpContractor();
-            }
-            //else
-            //{
-            //    int parentID = contractor.parent.gameObject.GetInstanceID();
-            //    if (parentID != oldParentID)
-            //    {
-            //        SetUpContractor();
-            //    }
-            //}
-            Vector3 playerVel = gameState.PlayerVelocityVector;
-            Vector3 relVel = myRO.viw.RelativeVelocityTo(playerVel);
-            float relVelMag = relVel.sqrMagnitude;
-
-            //Undo length contraction from previous state, and apply updated contraction:
-            // - First, return to world frame:
-            //contractor.localPosition = Vector3.zero;
-            //Transform cparent = contractor.parent;
-            //contractor.parent = null;
-            //contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-            contractor.localScale = contractorLocalScale;
-            contractor.localScale = contractorLocalScale;
-            if ((contractor.lossyScale - new Vector3(1.0f, 1.0f, 1.0f)).sqrMagnitude > 0.0001)
-            {
-                SetUpContractor();
-            }
-
-            // - Reset the contractor, in any case:
-            colliderTransform.parent = null;
-            contractor.position = gameState.playerTransform.position;
-            colliderTransform.position = transform.position;
-
-            if (relVelMag > 0.0f)
-            {
-                relVelMag = Mathf.Sqrt(relVelMag);
-                // - If we need to contract the object, unparent it from the contractor before rotation:
-                //transform.parent = cparent;
-
-                // - Rotate contractor to point parallel to velocity relative player:
-                contractor.rotation = Quaternion.FromToRotation(Vector3.forward, relVel / relVelMag);
-
-                // - Re-parent the object to the contractor before length contraction:
-                colliderTransform.parent = contractor;
-
-                // - Set the scale based only on the velocity relative to the player:
-                contractor.localScale = contractorLocalScale.ContractLengthBy(relVelMag * Vector3.forward);
-            }
-            else
-            {
-                colliderTransform.parent = contractor;
-            }
-            //contractor.parent = cparent;
-        }
-
         //Just subdivide something
         //Using this for subdividing a mesh as far as we need to for its mesh triangle area to be less than our defined constant
         public bool Subdivide(BoxCollider orig, List<BoxCollider> newColliders)
         {
             List<Vector3> origPosList = new List<Vector3>();
+            if (origPositions != null &&  origPositions.Length > 0)
+            {
+                origPosList.AddRange(origPositions);
+            }
             //Take in the UVs and Triangles
             bool change = false;
             Transform origTransform = orig.transform;
-
-            colliderTransform.parent = transform;
-            colliderTransform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-            colliderTransform.localRotation = Quaternion.identity;
 
             Vector3 origSize = orig.size;
             Vector3 origCenter = orig.center;
@@ -368,7 +255,6 @@ namespace OpenRelativity.Objects
 
             Vector3 newColliderPos = new Vector3();
             Vector3 newColliderSize = new Vector3(origSize.x / xCount, origSize.y / yCount, origSize.z / zCount);
-            GameObject colliderGO = colliderTransform.gameObject;
             for (int i = 0; i < xCount; i++)
             {
                 newColliderPos.x = xNear + ((xFar - xNear) * i / xCount) + newColliderSize.x /2.0f;
@@ -378,7 +264,7 @@ namespace OpenRelativity.Objects
                     for (int k = 0; k < zCount; k++)
                     {
                         newColliderPos.z = zNear + ((zFar - zNear) * k / zCount) + newColliderSize.z / 2.0f;
-                        BoxCollider newCollider = colliderGO.AddComponent<BoxCollider>();
+                        BoxCollider newCollider = gameObject.AddComponent<BoxCollider>();
                         newColliders.Add(newCollider);
                         newCollider.size = newColliderSize;
                         newCollider.center = newColliderPos;
@@ -390,7 +276,6 @@ namespace OpenRelativity.Objects
             origPositions = origPosList.ToArray();
             origPositionsBufferLength = origPositions.Length;
             trnsfrmdPositions = new Vector3[origPositionsBufferLength];
-            colliderTransform.parent = contractor;
 
             return change;
         }
@@ -399,8 +284,6 @@ namespace OpenRelativity.Objects
         {
             if (paramsBuffer != null) paramsBuffer.Release();
             if (posBuffer != null) posBuffer.Release();
-            if (colliderTransform != null) Destroy(colliderTransform.gameObject);
-            if (contractor != null) Destroy(contractor.gameObject);
             for (int i = 0; i < original.Length; i++)
             {
                 original[i].enabled = true;
