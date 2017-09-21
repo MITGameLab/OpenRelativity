@@ -85,6 +85,11 @@ namespace OpenRelativity.Objects
 
         private void FixedUpdate()
         {
+            UpdatePositions();
+        }
+
+        public void UpdatePositions()
+        {
             //if (finishedCoroutine)
             //{
             //    finishedCoroutine = false;
@@ -93,7 +98,7 @@ namespace OpenRelativity.Objects
 
             if (colliderShader != null && SystemInfo.supportsComputeShaders)
             {
-                UpdateColliderPositions();
+                GPUUpdatePositions();
             }
             else //if (finishedCoroutine)
             {
@@ -131,7 +136,7 @@ namespace OpenRelativity.Objects
             coroutineTimer.Reset();
         }
 
-        private void UpdateColliderPositions()
+        private void GPUUpdatePositions()
         {
             //Debug.Log("Updating mesh collider.");
 

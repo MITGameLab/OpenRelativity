@@ -178,7 +178,7 @@ namespace OpenRelativity.Objects
 
         //Use this instead of relativistic parent
         public bool isParent = false;
-        public bool isColliderParent = false;
+        public bool isCombinedColliderParent = false;
         //Don't render if object has relativistic parent
         private bool hasParent = false;
         //Use this if not using an explicitly relativistic shader
@@ -205,7 +205,8 @@ namespace OpenRelativity.Objects
         //We save and reuse the transformed vert array to avoid garbage collection 
         private Vector3[] trnsfrmdMeshVerts;
         //If we have a collider to transform, we cache it here
-        private Collider myCollider;
+        private Collider[] myColliders;
+        private PhysicMaterial myPhysicMaterial;
         //If we specifically have a mesh collider, we need to know to transform the verts of the mesh itself.
         private bool myColliderIsMesh;
         private bool myColliderIsBox;
@@ -243,7 +244,7 @@ namespace OpenRelativity.Objects
         //We need to freeze any attached rigidbody if the world states is frozen 
         public bool wasKinematic { get; set; }
         public bool wasFrozen { get; set; }
-        private void UpdateMeshCollider()
+        private void UpdateMeshCollider(MeshCollider transformCollider)
         {
             //Debug.Log("Updating mesh collider.");
 
@@ -319,7 +320,7 @@ namespace OpenRelativity.Objects
             //Change mesh:
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
             trnsfrmdMesh.RecalculateBounds();
-            ((MeshCollider)myCollider).sharedMesh = trnsfrmdMesh;
+            transformCollider.sharedMesh = trnsfrmdMesh;
             //meshFilter.mesh.RecalculateBounds();
             //meshFilter.mesh.RecalculateNormals();
             //Mobile only:
@@ -526,51 +527,62 @@ namespace OpenRelativity.Objects
             transform.gameObject.SetActive(true);
             gameObject.isStatic = wasStatic;
 
-            if (isColliderParent)
+            if (isCombinedColliderParent)
             {
                 MeshCollider myMeshCollider = GetComponent<MeshCollider>();
                 if (myMeshCollider != null)
                 {
                     myMeshCollider.sharedMesh = myMesh;
-                }
-                //"Delete" all children.
-                for (int i = 0; i < transform.childCount; i++)
-                {
-                    GameObject child = transform.GetChild(i).gameObject;
-                    if (child.tag != "Contractor" && child.tag != "Voxel Collider")
-                    {
-                        transform.GetChild(i).gameObject.SetActive(false);
-                        Destroy(transform.GetChild(i).gameObject);
-                    }
-                }
-                GetComponent<MeshRenderer>().enabled = true;
+                }  
             }
             else
             {
-                Transform[] descendents = GetComponentsInChildren<Transform>();
-
-                //"Delete" all children.
-                for (int i = 0; i < descendents.Length; i++)
+                MeshCollider[] childrenColliders = GetComponentsInChildren<MeshCollider>();
+                List<Collider> dupes = new List<Collider>();
+                for (int i = 0; i < childrenColliders.Length; i++)
                 {
-                    Transform child = descendents[i];
-                    MonoBehaviour[] comps = child.GetComponents<MonoBehaviour>();
-                    for (int j = 0; j < comps.Length; j++)
-                    {
-                        comps[j].enabled = false;
-                    }
-                    Collider childCollider = child.GetComponent<Collider>();
-                    if (childCollider != null)
-                    {
-                        childCollider.enabled = true;
-                        RelativisticObject childRO = child.GetComponent<RelativisticObject>();
-                        if (childRO != null)
-                        {
-                            childRO.enabled = true;
-                        }
-                    }
+                    MeshCollider orig = childrenColliders[i];
+                    MeshCollider dupe = CopyComponent(childrenColliders[i], gameObject);
+                    dupe.convex = orig.convex;
+                    dupe.inflateMesh = orig.inflateMesh;
+                    dupe.skinWidth = orig.skinWidth;
+                    dupe.sharedMesh = Instantiate(orig.sharedMesh);
+                    dupes.Add(dupe);
+                }
+                if (myColliders == null)
+                {
+                    myColliders = dupes.ToArray();
+                }
+                else
+                {
+                    dupes.AddRange(myColliders);
+                    myColliders = dupes.ToArray();
                 }
             }
+            //"Delete" all children.
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                GameObject child = transform.GetChild(i).gameObject;
+                if (child.tag != "Contractor" && child.tag != "Voxel Collider")
+                {
+                    transform.GetChild(i).gameObject.SetActive(false);
+                    Destroy(transform.GetChild(i).gameObject);
+                }
+            }
+            GetComponent<MeshRenderer>().enabled = true;
             GetComponent<RelativisticObject>().enabled = true;
+        }
+
+        T CopyComponent<T>(T original, GameObject destination) where T : Component
+        {
+            System.Type type = original.GetType();
+            Component copy = destination.AddComponent(type);
+            System.Reflection.FieldInfo[] fields = type.GetFields();
+            foreach (System.Reflection.FieldInfo field in fields)
+            {
+                field.SetValue(copy, field.GetValue(original));
+            }
+            return copy as T;
         }
 
         void Start()
@@ -601,6 +613,9 @@ namespace OpenRelativity.Objects
                 //Debug.Log("Position set.");
             }
 
+            UpdateCollider();
+            //Debug.Log("Found collider.");
+
             //Get the meshfilter
             if (isParent)
             {
@@ -609,16 +624,16 @@ namespace OpenRelativity.Objects
             }
             meshFilter = GetComponent<MeshFilter>();
 
-            UpdateCollider();
-            //Debug.Log("Found collider.");
-
-            if (myCollider != null)
+            if (myColliders != null)
             {
-                myCollider.material.bounciness = initBounciness;
-                //Debug.Log("Set bounciness.");
-                if (!nonrelativisticShader && colliderShader != null)
+                for (int i = 0; i < myColliders.Length; i++)
                 {
-                    ((MeshCollider)myCollider).sharedMesh.MarkDynamic();
+                    myColliders[i].material.bounciness = initBounciness;
+                    //Debug.Log("Set bounciness.");
+                    if (myColliderIsMesh)
+                    {
+                        ((MeshCollider)myColliders[i]).sharedMesh.MarkDynamic();
+                    }
                 }
             }
 
@@ -648,7 +663,7 @@ namespace OpenRelativity.Objects
             }
 
             //Once we have the mesh vertices, allocate and immediately transform the collider:
-            if (myColliderIsMesh && rawVertsBufferLength > 0 && (myCollider != null))
+            if (myColliderIsMesh && rawVertsBufferLength > 0 && (myColliders != null))
             {
                 trnsfrmdMeshVerts = new Vector3[rawVertsBufferLength];
                 //Debug.Log("Initialized verts.");
@@ -740,59 +755,28 @@ namespace OpenRelativity.Objects
         {
             if (GetComponent<ObjectBoxColliderDensity>() == null)
             {
-                Collider oldCollider = myCollider;
-                MeshCollider myMeshCollider = GetComponent<MeshCollider>();
-                myCollider = myMeshCollider;
-                if (myCollider != null && myCollider.enabled)
+                Collider[] oldCollider = myColliders;
+                MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
+                myColliders = myMeshColliders;
+                if (myColliders.Length > 0)
                 {
-                    if (oldCollider != myCollider)
+                    myColliderIsMesh = true;
+                    myColliderIsBox = false;
+                    myColliderIsVoxel = false;
+                    for (int i = 0; i < myMeshColliders.Length; i++)
                     {
-                        if (myMeshCollider.sharedMesh == null)
-                        {
-                            myCollider = null;
-                            //Debug.Log("No shared mesh.");
-                        }
-                        //else if (SystemInfo.supportsComputeShaders)
-                        else
-                        {
-                            trnsfrmdMesh = Instantiate(myMeshCollider.sharedMesh);
-                            myMeshCollider.sharedMesh = trnsfrmdMesh;
-                            trnsfrmdMesh.MarkDynamic();
-                            myColliderIsMesh = true;
-                            myColliderIsBox = false;
-                            myColliderIsVoxel = false;
-                            //Debug.Log("My collider is mesh.");
-                        }
-                        //else if (myCollider.enabled)
-                        //{
-                        //    myMeshCollider.enabled = false;
-                        //    myColliderIsBox = true;
-                        //    myColliderIsMesh = false;
-                        //    myCollider = GetComponent<BoxCollider>();
-                        //    if (myCollider == null)
-                        //    {
-                        //        myCollider = gameObject.AddComponent<BoxCollider>();
-                        //    }
-                        //}
+                        trnsfrmdMesh = Instantiate(myMeshColliders[i].sharedMesh);
+                        myMeshColliders[i].sharedMesh = trnsfrmdMesh;
+                        trnsfrmdMesh.MarkDynamic();
+                        //Debug.Log("My collider is mesh.");
                     }
                 }
                 else
                 {
-                    myCollider = GetComponent<BoxCollider>();
-                    if (myCollider != null)
-                    {
-                        myColliderIsBox = true;
-                        myColliderIsMesh = false;
-                        myColliderIsVoxel = false;
-                    }
-                    else
-                    {
-                        myColliderIsBox = false;
-                        myColliderIsMesh = false;
-                        myColliderIsVoxel = false;
-                        myCollider = GetComponent<Collider>();
-                    }
-
+                    myColliders = GetComponents<BoxCollider>();
+                    myColliderIsBox = (myColliders.Length > 0);
+                    myColliderIsMesh = false;
+                    myColliderIsVoxel = false;
                 }
             }
             else
@@ -800,6 +784,12 @@ namespace OpenRelativity.Objects
                 myColliderIsVoxel = true;
                 myColliderIsBox = false;
                 myColliderIsMesh = false;
+            }
+
+            Collider collider = GetComponent<Collider>();
+            if (collider != null)
+            {
+                myPhysicMaterial = collider.material;
             }
         }
 
@@ -1038,30 +1028,44 @@ namespace OpenRelativity.Objects
 
         public void UpdateColliderPosition()
         {
-            if (!myColliderIsVoxel)
+            if (myColliderIsVoxel)
+            {
+                ObjectBoxColliderDensity obcd = GetComponent<ObjectBoxColliderDensity>();
+                if (obcd != null)
+                {
+                    obcd.UpdatePositions();
+                }
+            }
+            else
             {
                 //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-                if (!nonrelativisticShader && myCollider != null && myCollider.enabled)
+                if (!nonrelativisticShader && myColliders != null && myColliders.Length > 0)
                 {
                     if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders)
                     {
-                        UpdateMeshCollider();
+                        for (int i = 0; i < myColliders.Length; i++)
+                        {
+                            UpdateMeshCollider((MeshCollider)myColliders[i]);
+                        }
                     }
                     //If we have a BoxCollider, transform its center to its optical position
                     else if (myColliderIsBox)
                     {
-                        Vector3 initCOM = Vector3.zero;
-                        if (myRigidbody != null)
+                        for (int i = 0; i < myColliders.Length; i++)
                         {
-                            initCOM = myRigidbody.centerOfMass;
-                        }
-                        Vector3 playerPos = state.playerTransform.position;
-                        Vector3 playerVel = state.PlayerVelocityVector;
-                        opticalWorldCenterOfMass = transform.position.WorldToOptical(viw, playerPos, playerVel);
-                        ((BoxCollider)myCollider).center = transform.InverseTransformPoint(opticalWorldCenterOfMass);
-                        if (myRigidbody != null)
-                        {
-                            myRigidbody.centerOfMass = initCOM;
+                            Vector3 initCOM = Vector3.zero;
+                            if (myRigidbody != null)
+                            {
+                                initCOM = myRigidbody.centerOfMass;
+                            }
+                            Vector3 playerPos = state.playerTransform.position;
+                            Vector3 playerVel = state.PlayerVelocityVector;
+                            opticalWorldCenterOfMass = transform.position.WorldToOptical(viw, playerPos, playerVel);
+                            ((BoxCollider)myColliders[i]).center = transform.InverseTransformPoint(opticalWorldCenterOfMass);
+                            if (myRigidbody != null)
+                            {
+                                myRigidbody.centerOfMass = initCOM;
+                            }
                         }
                     }
                 }
@@ -1211,45 +1215,44 @@ namespace OpenRelativity.Objects
             public Vector3 normal;
         }
 
-        public void OnCollisionStay(Collision collision)
-        {
-            if (myRigidbody == null || myRigidbody.isKinematic)
-            {
-                return;
-            }
-            else if (isSleeping)
-            {
-                int i = 0;
-                while (i < sleepingOnColliders.Count && !sleepingOnColliders[i].Equals(collision.collider))
-                {
-                    i++;
-                }
-                if (i >= sleepingOnColliders.Count)
-                {
-                    sleepingOnColliders.Add(collision.collider);
-                }
-                Sleep();
-                return;
-            }
+        //public void OnCollisionStay(Collision collision)
+        //{
+        //    if (myRigidbody == null || myRigidbody.isKinematic)
+        //    {
+        //        return;
+        //    }
+        //    else if (isSleeping)
+        //    {
+        //        int i = 0;
+        //        while (i < sleepingOnColliders.Count && !sleepingOnColliders[i].Equals(collision.collider))
+        //        {
+        //            i++;
+        //        }
+        //        if (i >= sleepingOnColliders.Count)
+        //        {
+        //            sleepingOnColliders.Add(collision.collider);
+        //        }
+        //        Sleep();
+        //        return;
+        //    }
 
-            //If we made it this far, we shouldn't be sleeping:
-            isSleeping = false;
+        //    //If we made it this far, we shouldn't be sleeping:
+        //    isSleeping = false;
 
-            GameObject otherGO = collision.gameObject;
-            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
-            PhysicMaterial otherMaterial = collision.collider.material;
-            PhysicMaterial myMaterial = myCollider.material;
-            float combFriction = CombinePhysics(myMaterial.frictionCombine, myMaterial.staticFriction, otherMaterial.staticFriction);
-            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, myMaterial.bounciness, otherMaterial.bounciness);
+        //    GameObject otherGO = collision.gameObject;
+        //    RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
+        //    PhysicMaterial otherMaterial = collision.collider.material;
+        //    float combFriction = CombinePhysics(myPhysicMaterial.frictionCombine, myPhysicMaterial.staticFriction, otherMaterial.staticFriction);
+        //    float combRestCoeff = CombinePhysics(myPhysicMaterial.bounceCombine, myPhysicMaterial.bounciness, otherMaterial.bounciness);
 
-            //Tangental relationship scales normalized "bounciness" to a Young's modulus
+        //    //Tangental relationship scales normalized "bounciness" to a Young's modulus
 
-            float combYoungsModulus = GetYoungsModulus(combRestCoeff);
+        //    float combYoungsModulus = GetYoungsModulus(combRestCoeff);
 
-            PointAndNorm contactPoint = DecideContactPoint(collision);
-            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
-            didCollide = true;
-        }
+        //    PointAndNorm contactPoint = DecideContactPoint(collision);
+        //    ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
+        //    didCollide = true;
+        //}
 
         private float GetYoungsModulus(float combRestCoeff)
         {
@@ -1271,7 +1274,7 @@ namespace OpenRelativity.Objects
 
         public void OnCollisionEnter(Collision collision)
         {
-            if (myRigidbody == null || myCollider == null || myRigidbody.isKinematic)
+            if (myRigidbody == null || myColliders == null || myRigidbody.isKinematic)
             {
                 return;
             }
@@ -1335,11 +1338,10 @@ namespace OpenRelativity.Objects
             GameObject otherGO = collision.gameObject;
             RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
             PhysicMaterial otherMaterial = collision.collider.material;
-            PhysicMaterial myMaterial = myCollider.material;
-            float myFriction = isSleeping ? myMaterial.staticFriction : myMaterial.dynamicFriction;
+            float myFriction = isSleeping ? myPhysicMaterial.staticFriction : myPhysicMaterial.dynamicFriction;
             float otherFriction = otherRO.isSleeping ? otherMaterial.staticFriction : otherMaterial.dynamicFriction;
-            float combFriction = CombinePhysics(myMaterial.frictionCombine, myFriction, otherFriction);
-            float combRestCoeff = CombinePhysics(myMaterial.bounceCombine, myMaterial.bounciness, otherMaterial.bounciness);
+            float combFriction = CombinePhysics(myPhysicMaterial.frictionCombine, myFriction, otherFriction);
+            float combRestCoeff = CombinePhysics(myPhysicMaterial.bounceCombine, myPhysicMaterial.bounciness, otherMaterial.bounciness);
 
             oldCollisionResultVel3 = viw;
             oldCollisionResultAngVel3 = aviw;
@@ -1419,20 +1421,20 @@ namespace OpenRelativity.Objects
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel);
-            float penDist = GetPenetrationDepth(collision, myPRelVel, oPos, ref contactPoint);
+            //float penDist = GetPenetrationDepth(collision, myPRelVel, oPos, ref contactPoint);
 
-            //We will apply penalty methods after the initial collision, in order to stabilize objects coming to rest on flat surfaces with gravity.
-            // Our penalty methods can give a somewhat obvious apparent deviation from conservation of energy and momentum,
-            // unless we account for the initial energy and momentum loss due to "spring-loading":
-            float springImpulse = 0;
-            if (penDist > 0.0f)
-            {
-                float combYoungsModulus = GetYoungsModulus(combRestCoeff);
-                //Potential energy as if from a spring,
-                //H = K + V = p^2/(2m) + 1/2*k*l^2
-                // from which it can be shown that this is the change in momentum from the implied initial loading of the "spring":
-                springImpulse = Mathf.Sqrt(hookeMultiplier * combYoungsModulus * penDist * penDist * myRigidbody.mass);
-            }
+            ////We will apply penalty methods after the initial collision, in order to stabilize objects coming to rest on flat surfaces with gravity.
+            //// Our penalty methods can give a somewhat obvious apparent deviation from conservation of energy and momentum,
+            //// unless we account for the initial energy and momentum loss due to "spring-loading":
+            //float springImpulse = 0;
+            //if (penDist > 0.0f)
+            //{
+            //    float combYoungsModulus = GetYoungsModulus(combRestCoeff);
+            //    //Potential energy as if from a spring,
+            //    //H = K + V = p^2/(2m) + 1/2*k*l^2
+            //    // from which it can be shown that this is the change in momentum from the implied initial loading of the "spring":
+            //    springImpulse = Mathf.Sqrt(hookeMultiplier * combYoungsModulus * penDist * penDist * myRigidbody.mass);
+            //}
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);
@@ -1617,7 +1619,6 @@ namespace OpenRelativity.Objects
             Vector3 testNormal;
             float penDist = 0.0f;
             float penTest = 0.0f;
-            float temp = 0.0f;
             Vector3 extents = meshFilter.mesh.bounds.extents;
             float startDist = 4.0f * Mathf.Max(extents.x, extents.y, extents.z);
             RaycastHit hitInfo;
@@ -1630,19 +1631,9 @@ namespace OpenRelativity.Objects
                 testNormal = point.normal;
                 ray.origin = oPos + startDist * testNormal;
                 ray.direction = -testNormal;
-                if (collision.collider.Raycast(ray, out hitInfo, startDist * 2.0f))
+                if (collision.collider.Raycast(ray, out hitInfo, startDist))
                 {
                     penTest = hitInfo.distance - startDist;
-                    ray.origin = oPos - startDist * testNormal;
-                    ray.direction = testNormal;
-                    if (myCollider.Raycast(ray, out hitInfo, startDist))
-                    {
-                        temp = Mathf.Abs(((startDist - hitInfo.distance) - penTest) * gamma);
-                        if (temp > 0.0f)
-                        {
-                            penTest = temp;
-                        }
-                    }
                 }
                 else
                 {
