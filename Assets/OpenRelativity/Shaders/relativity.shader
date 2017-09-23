@@ -63,13 +63,18 @@ Shader "Relativity/ColorShift"
 		float svc: TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 		float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
 		//float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
+		float2 uv2 : TEXCOORD4; //UV TEXCOORD
+		float2 uv3 : TEXCOORD5; //IR TEXCOORD
 	};
 	
 
 	//Variables that we use to access texture data
 	sampler2D _MainTex;
+	uniform float4 _MainTex_ST;
 	sampler2D _IRTex;
+	uniform float4 _IRTex_ST;
 	sampler2D _UVTex;
+	uniform float4 _UVTex_ST;
 	sampler2D _CameraDepthTexture;
 	
 	//float4 _piw = float4(0, 0, 0, 0); //position of object in world
@@ -115,7 +120,9 @@ Shader "Relativity/ColorShift"
 		//o.pos = o.pos + _piw - _playerOffset; //Shift coordinates so player is at origin
 		o.pos = mul(unity_ObjectToWorld, v.vertex) - _playerOffset; //Shift coordinates so player is at origin
 
-		o.uv1.xy = v.texcoord; //get the UV coordinate for the current vertex, will be passed to fragment shade
+		o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
+		o.uv2.xy = (v.texcoord + _UVTex_ST.zw) * _UVTex_ST.xy; //also for UV texture
+		o.uv3.xy = (v.texcoord + _IRTex_ST.zw) * _IRTex_ST.xy; //also for IR texture
 
 		float speed = sqrt(dot(_vpc, _vpc));
 		//vw + vp/(1+vw*vp/c^2)
@@ -162,7 +169,7 @@ Shader "Relativity/ColorShift"
 
 			float c = -dot(riw, riw); //first get position squared (position doted with position)
 
-			float b = -(2 * dot(viwScaled, viwScaled)); //next get position doted with velocity, should be only in the Z direction
+			float b = -(2 * dot(riw, viwScaled)); //next get position doted with velocity, should be only in the Z direction
 
 			float d = (_spdOfLight*_spdOfLight) - dot(viwScaled, viwScaled);
 
@@ -315,8 +322,8 @@ Shader "Relativity/ColorShift"
 		}
 		//Get initial color 
 		float4 data = tex2D (_MainTex, i.uv1).rgba;   
-		float UV = tex2D( _UVTex, i.uv1).r;
-		float IR = tex2D( _IRTex, i.uv1).r;
+		float UV = tex2D( _UVTex, i.uv2).r;
+		float IR = tex2D( _IRTex, i.uv3).r;
 	
 		//Set alpha of drawing pixel to 0 if vertex shader has determined it should not be drawn.
   	    //data.a = i.draw ? data.a : 0;
