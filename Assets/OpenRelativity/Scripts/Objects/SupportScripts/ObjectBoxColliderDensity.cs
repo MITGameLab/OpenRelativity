@@ -117,7 +117,8 @@ namespace OpenRelativity.Objects
             Vector3 vpw = gameState.PlayerVelocityVector;
             for (int i = 0; i < totalBoxCount; i++)
             {
-                change[i].center = origPositions[i].WorldToOptical(viw, playerPos, vpw);
+                Transform changeTransform = change[i].transform;
+                change[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(viw, playerPos, vpw));
                 /*if (coroutineTimer.ElapsedMilliseconds >= 5)
                 {
                     coroutineTimer.Stop();
@@ -254,8 +255,11 @@ namespace OpenRelativity.Objects
             float zExtent = (origTransform.TransformPoint(zEdge + origCenter) - origWorldCenter).magnitude;
 
             int xCount = ((int)(2.0f * xExtent / constant + 0.5f));
+            if (xCount == 0) xCount = 1;
             int yCount = ((int)(2.0f * yExtent / constant + 0.5f));
+            if (yCount == 0) yCount = 1;
             int zCount = ((int)(2.0f * zExtent / constant + 0.5f));
+            if (zCount == 0) zCount = 1;
             totalBoxCount += xCount * yCount * zCount;
 
             Vector3 newColliderPos = new Vector3();
