@@ -30,11 +30,8 @@ namespace OpenRelativity.Objects
 
                 if (nonrelativisticShader)
                 {
-                    if (oldShaderTransform != null)
-                    {
-                        oldShaderTransform.oldViw = value;
-                        ContractLength();
-                    }
+                    oldShaderTransform.oldViw = value;
+                    ContractLength();
                 }
                 else
                 {
@@ -42,6 +39,9 @@ namespace OpenRelativity.Objects
                     Vector3 playerPos = state.playerTransform.position;
                     Vector3 otwEst = transform.position.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
                     transform.position = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorldSearch(value, playerPos, state.PlayerVelocityVector, otwEst);
+                    //Vector3 test = transform.position.WorldToOptical(_viw, playerPos, state.PlayerVelocityVector).OpticalToWorld(value, playerPos, state.PlayerVelocityVector);
+                    //test = test - transform.position;
+                    //test = Vector3.left;
                 }
                 
                 _viw = value;
@@ -63,7 +63,7 @@ namespace OpenRelativity.Objects
             _viw = newViw;
             transform.position = newPiw;
 
-            if (nonrelativisticShader && oldShaderTransform != null)
+            if (nonrelativisticShader)
             {
                 oldShaderTransform.oldViw = newViw;
                 ContractLength();
@@ -233,10 +233,20 @@ namespace OpenRelativity.Objects
         public void MarkStaticAndPos(bool isSttc = true)
         {
             isStatic = isSttc;
-            staticPosition = transform.position;
+            staticTransformPosition = transform.position;
+            if (myColliderIsBox && (myColliders != null))
+            {
+                List<Vector3> sttcPosList = new List<Vector3>();
+                for (int i = 0;i < myColliders.Length; i++)
+                {
+                    sttcPosList.Add(((BoxCollider)myColliders[i]).center);
+                }
+                staticColliderPositions = sttcPosList.ToArray();
+            }
         }
         public float staticResetPlayerSpeedSqr;
-        public Vector3 staticPosition;
+        public Vector3 staticTransformPosition;
+        public Vector3[] staticColliderPositions;
 
         ComputeBuffer paramsBuffer;
         ComputeBuffer vertBuffer;
@@ -596,25 +606,20 @@ namespace OpenRelativity.Objects
             myRigidbody = GetComponent<Rigidbody>();
             rawVertsBufferLength = 0;
             //collidedWith = new List<RecentCollision>();
-            staticPosition = Vector3.zero;
+            staticTransformPosition = Vector3.zero;
             wasKinematic = false;
             wasFrozen = false;
+            oldShaderTransform = new NonRelShaderHistoryPoint();
 
             staticResetPlayerSpeedSqr = (float)(state.SpeedOfLightSqrd * 0.005f * 0.005f);
 
-            if (!nonrelativisticShader)
-            {
-                isStatic = false;
-            }
+            UpdateCollider();
+            //Debug.Log("Found collider.");
 
             if (isStatic)
             {
-                staticPosition = transform.position;
-                //Debug.Log("Position set.");
+                MarkStaticAndPos();
             }
-
-            UpdateCollider();
-            //Debug.Log("Found collider.");
 
             //Get the meshfilter
             if (isParent)
@@ -731,17 +736,14 @@ namespace OpenRelativity.Objects
                     contractor.position = transform.position.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
                     if (isStatic)
                     {
-                        staticPosition = transform.position;
+                        staticTransformPosition = transform.position;
                         //Debug.Log("Position set.");
                     }
                 }
-                oldShaderTransform = new NonRelShaderHistoryPoint()
-                {
-                    oldPiw = transform.position,
-                    oldViw = viw,
-                    oldPlayerPos = state.playerTransform.position,
-                    oldPlayerVel = state.PlayerVelocityVector
-                };
+                oldShaderTransform.oldPiw = transform.position;
+                oldShaderTransform.oldViw = viw;
+                oldShaderTransform.oldPlayerPos = state.playerTransform.position;
+                oldShaderTransform.oldPlayerVel = state.PlayerVelocityVector;
                 //Handle length contraction:
                 ContractLength();
                 if (myRigidbody != null)
@@ -755,7 +757,6 @@ namespace OpenRelativity.Objects
         {
             if (GetComponent<ObjectBoxColliderDensity>() == null)
             {
-                Collider[] oldCollider = myColliders;
                 MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
                 myColliders = myMeshColliders;
                 if (myColliders.Length > 0)
@@ -1038,47 +1039,16 @@ namespace OpenRelativity.Objects
             }
             else
             {
-                //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-                if (!nonrelativisticShader && myColliders != null && myColliders.Length > 0)
-                {
-                    if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders)
-                    {
-                        for (int i = 0; i < myColliders.Length; i++)
-                        {
-                            UpdateMeshCollider((MeshCollider)myColliders[i]);
-                        }
-                    }
-                    //If we have a BoxCollider, transform its center to its optical position
-                    else if (myColliderIsBox)
-                    {
-                        for (int i = 0; i < myColliders.Length; i++)
-                        {
-                            Vector3 initCOM = Vector3.zero;
-                            if (myRigidbody != null)
-                            {
-                                initCOM = myRigidbody.centerOfMass;
-                            }
-                            Vector3 playerPos = state.playerTransform.position;
-                            Vector3 playerVel = state.PlayerVelocityVector;
-                            opticalWorldCenterOfMass = transform.position.WorldToOptical(viw, playerPos, playerVel);
-                            ((BoxCollider)myColliders[i]).center = transform.InverseTransformPoint(opticalWorldCenterOfMass);
-                            if (myRigidbody != null)
-                            {
-                                myRigidbody.centerOfMass = initCOM;
-                            }
-                        }
-                    }
-                }
-                else if (nonrelativisticShader && oldShaderTransform != null)
+                if (nonrelativisticShader)
                 {
                     Vector3 playerPos = state.playerTransform.position;
                     Vector3 playerVel = state.PlayerVelocityVector;
 
                     Vector3 otwEst = transform.position.WorldToOptical(-viw, oldShaderTransform.oldPlayerPos);
                     oldShaderTransform.oldPiw = transform.position.OpticalToWorldSearch(oldShaderTransform.oldViw, oldShaderTransform.oldPlayerPos, oldShaderTransform.oldPlayerVel, otwEst);
-                    if (nonrelativisticShader && isStatic && (playerVel.sqrMagnitude < staticResetPlayerSpeedSqr))
+                    if (isStatic && (playerVel.sqrMagnitude < staticResetPlayerSpeedSqr))
                     {
-                        contractor.position = staticPosition.WorldToOptical(Vector3.zero, playerPos, playerVel);
+                        contractor.position = staticTransformPosition.WorldToOptical(Vector3.zero, playerPos, playerVel);
                     }
                     else
                     {
@@ -1094,6 +1064,52 @@ namespace OpenRelativity.Objects
                     if (myRigidbody != null)
                     {
                         opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
+                    }
+                }
+                //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
+                else if (myColliders != null && myColliders.Length > 0)
+                {
+                    if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders)
+                    {
+                        for (int i = 0; i < myColliders.Length; i++)
+                        {
+                            UpdateMeshCollider((MeshCollider)myColliders[i]);
+                        }
+                    }
+                    //If we have a BoxCollider, transform its center to its optical position
+                    else if (myColliderIsBox)
+                    {
+                        Vector3 playerPos = state.playerTransform.position;
+                        Vector3 playerVel = state.PlayerVelocityVector;
+
+                        Vector3 otwEst = transform.position.WorldToOptical(-viw, oldShaderTransform.oldPlayerPos);
+                        Vector3 pos = transform.position;
+                        Vector3 revertedPos = pos.OpticalToWorldSearch(oldShaderTransform.oldViw, oldShaderTransform.oldPlayerPos, oldShaderTransform.oldPlayerVel, otwEst);
+                        oldShaderTransform.oldPiw = revertedPos;
+                        for (int i = 0; i < myColliders.Length; i++)
+                        {
+                            BoxCollider collider = (BoxCollider)myColliders[i];
+                            if (isStatic)
+                            {
+                                pos = transform.TransformPoint(staticColliderPositions[i]);
+                                collider.center = pos.WorldToOptical(Vector3.zero, playerPos, playerVel);
+                            }
+                            else
+                            {
+                                pos = transform.TransformPoint(collider.center);
+                                otwEst = pos.WorldToOptical(-viw, oldShaderTransform.oldPlayerPos);
+                                revertedPos = pos.OpticalToWorldSearch(oldShaderTransform.oldViw, oldShaderTransform.oldPlayerPos, oldShaderTransform.oldPlayerVel, otwEst);
+                                collider.center = transform.InverseTransformPoint(revertedPos.WorldToOptical(viw, playerPos, playerVel));
+                            }
+                        }
+
+                        oldShaderTransform.oldViw = viw;
+                        oldShaderTransform.oldPlayerPos = playerPos;
+                        oldShaderTransform.oldPlayerVel = playerVel;
+                        if (myRigidbody != null)
+                        {
+                            opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
+                        }
                     }
                 }
             }
@@ -1420,7 +1436,7 @@ namespace OpenRelativity.Objects
             Vector3 myPRelVel = myVel.AddVelocity(-playerVel);
             Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
-            Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel);
+            //Vector3 oPos = transform.position.WorldToOptical(oldCollisionResultVel3, playerPos, playerVel);
             //float penDist = GetPenetrationDepth(collision, myPRelVel, oPos, ref contactPoint);
 
             ////We will apply penalty methods after the initial collision, in order to stabilize objects coming to rest on flat surfaces with gravity.
@@ -1456,7 +1472,7 @@ namespace OpenRelativity.Objects
             //Decompose velocity in parallel and perpendicular components:
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
             Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.Gamma();
-            Vector3 testVel = myTotalVel.AddVelocity(-myPerpVel);
+            //Vector3 testVel = myTotalVel.AddVelocity(-myPerpVel);
             //Boost to the inertial frame where my velocity is entirely along the line of action:
             Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
             //Find the relative velocity:
@@ -1567,7 +1583,7 @@ namespace OpenRelativity.Objects
 
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
             Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.Gamma();
-            Vector3 testVel = myTotalVel.AddVelocity(-myPerpVel);
+            //Vector3 testVel = myTotalVel.AddVelocity(-myPerpVel);
             //Boost to the inertial frame where my velocity is entirely along the line of action:
             Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
             //Find the relative velocity:
@@ -1614,7 +1630,7 @@ namespace OpenRelativity.Objects
         {
             //Raycast with other collider in a collision
 
-            float gamma = myPRelVel.Gamma();
+            //float gamma = myPRelVel.Gamma();
 
             Vector3 testNormal;
             float penDist = 0.0f;

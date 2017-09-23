@@ -36,7 +36,7 @@ namespace OpenRelativity.Objects
 
         System.Diagnostics.Stopwatch coroutineTimer;
 
-        private bool finishedCoroutine;
+        //private bool finishedCoroutine;
 
         private GameState _gameState = null;
         private GameState gameState
@@ -55,7 +55,7 @@ namespace OpenRelativity.Objects
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
         {
-            finishedCoroutine = true;
+            //finishedCoroutine = true;
             coroutineTimer = new System.Diagnostics.Stopwatch();
             myRO = GetComponent<RelativisticObject>();
             myRB = GetComponent<Rigidbody>();
@@ -102,7 +102,7 @@ namespace OpenRelativity.Objects
             }
             else //if (finishedCoroutine)
             {
-                finishedCoroutine = false;
+                //finishedCoroutine = false;
                 //StartCoroutine("UpdatePositions");
                 CPUUpdatePositions();
             }
@@ -115,10 +115,16 @@ namespace OpenRelativity.Objects
             Vector3 viw = myRO.viw;
             Vector3 playerPos = gameState.playerTransform.position;
             Vector3 vpw = gameState.PlayerVelocityVector;
+            float nanInfTest;
             for (int i = 0; i < totalBoxCount; i++)
             {
                 Transform changeTransform = change[i].transform;
-                change[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(viw, playerPos, vpw));
+                Vector3 newPos = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(viw, playerPos, vpw));
+                nanInfTest = Vector3.Dot(newPos, newPos);
+                if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
+                {
+                    change[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(viw, playerPos, vpw));
+                }
                 /*if (coroutineTimer.ElapsedMilliseconds >= 5)
                 {
                     coroutineTimer.Stop();
@@ -132,7 +138,7 @@ namespace OpenRelativity.Objects
             myRO.opticalWorldCenterOfMass = myRB.worldCenterOfMass;
             myRB.centerOfMass = initCOM;
             //}
-            finishedCoroutine = true;
+            //finishedCoroutine = true;
             coroutineTimer.Stop();
             coroutineTimer.Reset();
         }
@@ -212,9 +218,14 @@ namespace OpenRelativity.Objects
             posBuffer.GetData(trnsfrmdPositions);
 
             //Change mesh:
+            float nanInfTest;
             for (int i = 0; i < totalBoxCount; i++)
             {
-                change[i].center = trnsfrmdPositions[i];
+                nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
+                if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
+                {
+                    change[i].center = trnsfrmdPositions[i];
+                }
             }
             //Cache actual world center of mass, and then reset local (rest frame) center of mass:
             myRB.ResetCenterOfMass();
