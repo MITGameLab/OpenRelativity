@@ -228,12 +228,12 @@ namespace OpenRelativity
 
         public static Vector3 OpticalToWorld(this Vector3 realPos, Vector3 velocity)
         {
-            return OpticalToWorld(realPos, velocity, Vector3.zero, Vector3.zero);
+            return realPos.OpticalToWorld(velocity, Vector3.zero, Vector3.zero);
         }
 
         public static Vector3 OpticalToWorld(this Vector3 realPos, Vector3 velocity, Vector3 origin)
         {
-            return OpticalToWorld(realPos, velocity, origin, Vector3.zero);
+            return realPos.OpticalToWorld(velocity, origin, Vector3.zero);
         }
 
         public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
@@ -270,20 +270,37 @@ namespace OpenRelativity
             //Transform fails and is unecessary if relative speed is zero:
             if (speedr != 0)
             {
+                float newz;
                 if (speed != 0)
                 {
                     Vector3 vpcUnit = vpc / speed;
-                    float newz = Vector3.Dot(riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
+                    newz = Vector3.Dot(riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
                     riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
                 }
 
-                //float tisw;
-                //riw = riw - tisw * (velocity + playerVel);
+                float c = riw.sqrMagnitude;
+
+                float b = -(4.0f * Vector3.Dot(velocity, riw) + 2.0f * Vector3.Dot(-playerVel, riw));
+
+                float d = -((spdOfLight * spdOfLight) + 2.0f * velocity.sqrMagnitude + 4.0f * Vector3.Dot(velocity, -playerVel) + playerVel.sqrMagnitude);
+
+                float tisw = (-b + (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+
+                newz = (((float)speed * spdOfLight) * tisw);
+
+                if (speed != 0)
+                {
+                    Vector3 vpcUnit = vpc / speed;
+                    riw = riw - newz * vpcUnit;
+                }
+
+                riw = riw - (tisw * velocity);
             }
 
             riw += origin;
 
             return riw;
+
         }
 
         public static Vector3 OpticalToWorldSearch(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
