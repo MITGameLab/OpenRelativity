@@ -194,7 +194,7 @@ namespace OpenRelativity
 
                 float c = -riw.sqrMagnitude; //first get position squared (position doted with position)
 
-                float b = -(2 * Vector3.Dot(riw, velocity)); //next get position doted with velocity, should be only in the Z direction
+                float b = (2 * Vector3.Dot(riw, velocity)); //next get position doted with velocity, should be only in the Z direction
 
                 float d = (spdOfLight * spdOfLight) - velocity.sqrMagnitude;
 
