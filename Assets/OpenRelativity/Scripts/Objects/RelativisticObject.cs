@@ -63,6 +63,11 @@ namespace OpenRelativity.Objects
             _viw = newViw;
             transform.position = newPiw;
 
+            if (oldShaderTransform == null)
+            {
+                oldShaderTransform = new NonRelShaderHistoryPoint();
+            }
+
             if (nonrelativisticShader)
             {
                 oldShaderTransform.oldViw = newViw;

@@ -30,7 +30,8 @@ StructuredBuffer<GlobalParams> glblPrms;
 RWStructuredBuffer<float3> verts;
 //RWStructuredBuffer<float> drawBools;
 
-[numthreads(64,1,1)]
+[numthreads(256, 1, 1)]
+//[numthreads(64,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
 	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;

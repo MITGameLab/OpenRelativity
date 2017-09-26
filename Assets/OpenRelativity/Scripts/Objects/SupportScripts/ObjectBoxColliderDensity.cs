@@ -36,7 +36,7 @@ namespace OpenRelativity.Objects
 
         System.Diagnostics.Stopwatch coroutineTimer;
 
-        //private bool finishedCoroutine;
+        private bool finishedCoroutine;
 
         private GameState _gameState = null;
         private GameState gameState
@@ -55,7 +55,7 @@ namespace OpenRelativity.Objects
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
         {
-            //finishedCoroutine = true;
+            finishedCoroutine = true;
             coroutineTimer = new System.Diagnostics.Stopwatch();
             myRO = GetComponent<RelativisticObject>();
             myRB = GetComponent<Rigidbody>();
@@ -81,6 +81,41 @@ namespace OpenRelativity.Objects
                 original = null;
                 change = null;
             }
+
+            //Grab the meshfilter, and if it's not null, keep going
+            //List<BoxCollider> allBC = new List<BoxCollider>();
+            //allBC.AddRange(GetComponentsInChildren<BoxCollider>());
+
+            //int lcv = 0;
+            //while (lcv < allBC.Count)
+            //{
+            //    if (allBC[lcv].enabled)
+            //    {
+            //        DuplicateBoxColliderInSelf(allBC[lcv]);
+            //        lcv++;
+            //    }
+            //    else
+            //    {
+            //        allBC.RemoveAt(lcv);
+            //    }
+            //}
+
+            //lcv = allBC.Count;
+            //allBC.AddRange(GetComponents<BoxCollider>());
+
+            //while (lcv < allBC.Count)
+            //{
+            //    if (allBC[lcv].enabled)
+            //    {
+            //        lcv++;
+            //    }
+            //    else
+            //    {
+            //        allBC.RemoveAt(lcv);
+            //    }
+            //}
+
+            //BoxCollider[] origBoxColliders = allBC.ToArray();
         }
 
         private void FixedUpdate()
@@ -98,18 +133,19 @@ namespace OpenRelativity.Objects
 
             if (colliderShader != null && SystemInfo.supportsComputeShaders)
             {
-                GPUUpdatePositions();
+                finishedCoroutine = false;
+                StartCoroutine("GPUUpdatePositions");
             }
             else //if (finishedCoroutine)
             {
-                //finishedCoroutine = false;
-                //StartCoroutine("UpdatePositions");
-                CPUUpdatePositions();
+                finishedCoroutine = false;
+                StartCoroutine("CPUUpdatePositions");
             }
         }
 
-        private void CPUUpdatePositions()
+        private IEnumerator CPUUpdatePositions()
         {
+            coroutineTimer.Reset();
             coroutineTimer.Start();
             Vector3 initCOM = myRB.centerOfMass;
             Vector3 viw = myRO.viw;
@@ -123,28 +159,32 @@ namespace OpenRelativity.Objects
                 nanInfTest = Vector3.Dot(newPos, newPos);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
+                    //Change mesh:
+                    if (coroutineTimer.ElapsedMilliseconds > 1)
+                    {
+                        coroutineTimer.Stop();
+                        coroutineTimer.Reset();
+                        yield return null;
+                        coroutineTimer.Start();
+                    }
                     change[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(viw, playerPos, vpw));
                 }
-                /*if (coroutineTimer.ElapsedMilliseconds >= 5)
-                {
-                    coroutineTimer.Stop();
-                    coroutineTimer.Reset();
-                    yield return null;
-                    coroutineTimer.Start();
-                }*/
             }
             //Cache actual world center of mass, and then reset local (rest frame) center of mass:
             myRB.ResetCenterOfMass();
             myRO.opticalWorldCenterOfMass = myRB.worldCenterOfMass;
             myRB.centerOfMass = initCOM;
             //}
-            //finishedCoroutine = true;
+            finishedCoroutine = true;
             coroutineTimer.Stop();
             coroutineTimer.Reset();
         }
 
-        private void GPUUpdatePositions()
+        private IEnumerator GPUUpdatePositions()
         {
+            coroutineTimer.Stop();
+            coroutineTimer.Reset();
+            coroutineTimer.Start();
             //Debug.Log("Updating mesh collider.");
 
             //Freeze the physics if the global state is frozen.
@@ -158,7 +198,6 @@ namespace OpenRelativity.Objects
                     myRB.isKinematic = true;
                 }
                 myRO.collideTimeStart += gameState.DeltaTimeWorld;
-                return;
             }
             else if (myRO.wasFrozen)
             {
@@ -215,6 +254,15 @@ namespace OpenRelativity.Objects
             colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
             colliderShader.SetBuffer(kernel, "verts", posBuffer);
             colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
+            if (coroutineTimer.ElapsedMilliseconds > 1)
+            {
+                coroutineTimer.Stop();
+                coroutineTimer.Reset();
+                yield return null;
+                coroutineTimer.Start();
+            }
+            coroutineTimer.Reset();
+            coroutineTimer.Start();
             posBuffer.GetData(trnsfrmdPositions);
 
             //Change mesh:
@@ -224,6 +272,13 @@ namespace OpenRelativity.Objects
                 nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
+                    if (coroutineTimer.ElapsedMilliseconds > 1)
+                    {
+                        coroutineTimer.Stop();
+                        coroutineTimer.Reset();
+                        yield return null;
+                        coroutineTimer.Start();
+                    }
                     change[i].center = trnsfrmdPositions[i];
                 }
             }
@@ -233,6 +288,8 @@ namespace OpenRelativity.Objects
             myRB.centerOfMass = initCOM;
 
             //Debug.Log("Finished updating mesh collider.");
+
+            finishedCoroutine = true;
         }
 
         //Just subdivide something

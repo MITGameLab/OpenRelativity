@@ -22,7 +22,7 @@ namespace OpenRelativity
 
 
         //This constant determines triangle size. We subdivide meshes until all their triangles have less than this area.
-        private double constant = 16;
+        private double constant = 24;
 
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
