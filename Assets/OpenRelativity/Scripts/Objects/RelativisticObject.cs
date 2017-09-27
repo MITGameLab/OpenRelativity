@@ -1032,14 +1032,14 @@ namespace OpenRelativity.Objects
             UpdateColliderPosition();
         }
 
-        public void UpdateColliderPosition()
+        public void UpdateColliderPosition(Collider toUpdate = null)
         {
             if (myColliderIsVoxel)
             {
                 ObjectBoxColliderDensity obcd = GetComponent<ObjectBoxColliderDensity>();
                 if (obcd != null)
                 {
-                    obcd.UpdatePositions();
+                    obcd.UpdatePositions(toUpdate);
                 }
             }
             else

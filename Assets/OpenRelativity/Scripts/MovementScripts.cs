@@ -377,7 +377,7 @@ namespace OpenRelativity
                         state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
                     }
 
-                    otherRO.UpdateColliderPosition();
+                    otherRO.UpdateColliderPosition(collider);
                     Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
                     if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
                     {

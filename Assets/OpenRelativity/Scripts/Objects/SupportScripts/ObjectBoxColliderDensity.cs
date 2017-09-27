@@ -123,9 +123,32 @@ namespace OpenRelativity.Objects
             UpdatePositions();
         }
 
-        public void UpdatePositions()
+        public void UpdatePositions(Collider toUpdate = null)
         {
-            if (finishedCoroutine)
+            if (toUpdate != null)
+            {
+                BoxCollider toUpdateBox = (BoxCollider)toUpdate;
+                bool foundCollider = false;
+                int i = 0;
+                while ((!foundCollider) && (i < change.Count)) {
+                    if (toUpdateBox.Equals(change[i]))
+                    {
+                        foundCollider = true;
+                    }
+                    else
+                    {
+                        i++;
+                    }
+                }
+
+                if (foundCollider)
+                {
+                    toUpdateBox.center = transform.InverseTransformPoint(
+                        transform.TransformPoint(origPositions[i]).WorldToOptical(myRO.viw, gameState.playerTransform.position, gameState.PlayerVelocityVector)
+                   );
+                }
+            }
+            else if (finishedCoroutine)
             {
                 if (colliderShader != null && SystemInfo.supportsComputeShaders)
                 {
