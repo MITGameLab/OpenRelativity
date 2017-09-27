@@ -125,21 +125,18 @@ namespace OpenRelativity.Objects
 
         public void UpdatePositions()
         {
-            //if (finishedCoroutine)
-            //{
-            //    finishedCoroutine = false;
-            //    StartCoroutine("UpdatePositions");
-            //}
-
-            if (colliderShader != null && SystemInfo.supportsComputeShaders)
+            if (finishedCoroutine)
             {
-                finishedCoroutine = false;
-                StartCoroutine("GPUUpdatePositions");
-            }
-            else //if (finishedCoroutine)
-            {
-                finishedCoroutine = false;
-                StartCoroutine("CPUUpdatePositions");
+                if (colliderShader != null && SystemInfo.supportsComputeShaders)
+                {
+                    finishedCoroutine = false;
+                    StartCoroutine("GPUUpdatePositions");
+                }
+                else //if (finishedCoroutine)
+                {
+                    finishedCoroutine = false;
+                    StartCoroutine("CPUUpdatePositions");
+                }
             }
         }
 
@@ -254,13 +251,14 @@ namespace OpenRelativity.Objects
             colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
             colliderShader.SetBuffer(kernel, "verts", posBuffer);
             colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
-            if (coroutineTimer.ElapsedMilliseconds > 1)
-            {
-                coroutineTimer.Stop();
-                coroutineTimer.Reset();
-                yield return null;
-                coroutineTimer.Start();
-            }
+            //if (coroutineTimer.ElapsedMilliseconds > 1)
+            //{
+            //    coroutineTimer.Stop();
+            //    coroutineTimer.Reset();
+            //    yield return null;
+            //    coroutineTimer.Start();
+            //}
+            yield return null;
             coroutineTimer.Reset();
             coroutineTimer.Start();
             posBuffer.GetData(trnsfrmdPositions);
