@@ -41,6 +41,7 @@ namespace OpenRelativity.Objects
         System.Diagnostics.Stopwatch coroutineTimer;
 
         private bool finishedCoroutine;
+        private bool dispatchedShader;
 
         private GameState _gameState = null;
         private GameState gameState
@@ -61,6 +62,7 @@ namespace OpenRelativity.Objects
         {
             wasStatic = isStatic;
             finishedCoroutine = true;
+            dispatchedShader = false;
             coroutineTimer = new System.Diagnostics.Stopwatch();
             myRO = GetComponent<RelativisticObject>();
             myRB = GetComponent<Rigidbody>();
@@ -352,6 +354,13 @@ namespace OpenRelativity.Objects
                 posBuffer.Dispose();
                 posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
             }
+            //Read data for frame at last possible moment:
+            if (dispatchedShader)
+            {
+                posBuffer.GetData(trnsfrmdPositions);
+                dispatchedShader = false;
+            }
+
             posBuffer.SetData(origPositions);
             int kernel = colliderShader.FindKernel("CSMain");
             colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
@@ -359,6 +368,7 @@ namespace OpenRelativity.Objects
 
             //Dispatch doesn't block, but it might take multiple frames to return:
             colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
+            dispatchedShader = true;
 
             //Update the old result while waiting:
             float nanInfTest;
@@ -391,9 +401,6 @@ namespace OpenRelativity.Objects
             finishedCoroutine = true;
             coroutineTimer.Stop();
             coroutineTimer.Reset();
-
-            //Finish by reading in the data for the next frame:
-            posBuffer.GetData(trnsfrmdPositions);
         }
 
         //Just subdivide something
