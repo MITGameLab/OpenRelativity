@@ -1,0 +1,132 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+//Prevent NaN and Inf
+#define divByZeroCutoff 1e-8f
+
+struct GlobalParams {
+	float4x4 ltwMatrix; //local-to-world transform matrix
+	float4x4 wtlMatrix; //world-to-local transform matrix
+	//float3 piw; //position of object in world
+	float3 viw; //velocity of object in world
+	//float3 aviw; //angular velocity of object in inverse local scale
+	float3 vpc; //velocity of player
+	float3 playerOffset; //player position in world
+	//float gtt; // 00 component of metric, due to player acceleration
+	float speed; //speed of player;
+	float spdOfLight; //current speed of light
+	//float wrldTime; //current time in world
+	//float strtTime; //starting time in world
+};
+
+//struct VertDraw {
+//	float3 vert;
+//	float draw;
+//};
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+StructuredBuffer<GlobalParams> glblPrms;
+RWStructuredBuffer<float3> verts;
+//RWStructuredBuffer<float> drawBools;
+
+[numthreads(256, 1, 1)]
+//[numthreads(64,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
+	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
+	//float3 piw = glblPrms[0].piw;
+	float3 viw = glblPrms[0].viw;
+	//float3 aviw = glblPrms[0].aviw;
+	float3 vpc = glblPrms[0].vpc;
+	float3 playerOffset = glblPrms[0].playerOffset;
+	//float gtt = glblPrms[0].gtt;
+	float speed = glblPrms[0].speed;
+	float spdOfLight = glblPrms[0].spdOfLight;
+	//float wrldTime = glblPrms[0].wrldTime;
+	//float strtTime = glblPrms[0].strtTime;	
+
+	//float3 pos = verts[id.x];
+	//float4 tempPos = mul(ltwMatrix, float4(pos.x, pos.y, pos.z, 1.0f));
+	//pos = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w - piw;
+	//We relativistically add the tangential velocity to the translational.
+	//if (dot(aviw, aviw) != 0.0f) // If angular speed is zero, no need
+	//{
+	//	float siwSqr = dot(viw, viw); //speed of object in world, squared
+	//	float3 tv3 = -cross(aviw, pos) / spdOfLight; //tangential velocity in world
+	//	if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
+	//		float invGamma = sqrt(1.0f - siwSqr);
+	//		float vdtv = dot(viw, tv3); //velocity dotted with tangential velocity
+	//		viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv3 + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
+	//	}
+	//	else { //If the object has no speed, the velocity of the point is just the tangential velocity
+	//		viw = tv3;
+	//	}
+	//}
+	//pos = pos + piw - playerOffset; //Shift coordinates so player is at origin
+	//vw + vp/(1+vw*vp/c^2)
+	//pos = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w - playerOffset;
+
+	float3 pos = verts[id.x] - playerOffset;
+
+	float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
+	float3 vr;
+	//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
+	if (speed != 0)
+	{
+		float3 uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
+		//Get the perpendicular component of our velocity, just by subtraction
+		float3 uperp = viw - uparra;
+		//relative velocity calculation
+		vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+	}
+	//If our speed is nearly zero, it could lead to infinities.
+	else
+	{
+		//relative velocity calculation
+		vr = -viw;
+	}
+
+	//relative speed
+	float speedr = sqrt(dot(vr, vr));
+
+	//riw = location in world, for reference
+	float3 riw = pos; //Position that will be used in the output
+	float3 viwScaled = spdOfLight * viw;
+
+	//Transform fails and is unecessary if relative speed is zero:
+	if (speedr != 0)
+	{
+		//Here begins a rotation-free modification of the original OpenRelativity shader:
+
+		float c = -dot(riw, riw); //first get position squared (position doted with position)
+
+		float b = -(2 * dot(riw, viwScaled)); //next get position doted with velocity, should be only in the Z direction
+
+		float d = (spdOfLight*spdOfLight) - dot(viwScaled, viwScaled);
+
+		float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+
+		//get the new position offset, based on the new time we just found
+
+		riw += (tisw * viwScaled);
+
+		//Apply Lorentz transform
+		//I had to break it up into steps, unity was getting order of operations wrong.	
+		float newz = (((float)speed*spdOfLight) * tisw);
+
+		if (speed != 0) {
+			float3 vpcUnit = vpc / speed;
+			newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+			riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
+		}
+	}
+
+	riw += playerOffset;
+
+	//Transform the vertex back into local space for the mesh to use it
+	//tempPos = mul(wtlMatrix, float4(riw.x, riw.y, riw.z, 1.0f));
+	//verts[id.x] = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w;
+	verts[id.x] = riw;
+}
