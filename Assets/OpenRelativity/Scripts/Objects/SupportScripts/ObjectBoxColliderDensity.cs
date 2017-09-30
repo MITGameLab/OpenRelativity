@@ -120,21 +120,21 @@ namespace OpenRelativity.Objects
             
         }
 
-        //private void OnEnable()
-        //{
-        //    if (isStatic)
-        //    {
-        //        TakeQueueNumber();
-        //    }
-        //}
+        private void OnEnable()
+        {
+            if (isStatic)
+            {
+                TakeQueueNumber();
+            }
+        }
 
-        //void OnDisable()
-        //{
-        //    if (isStatic)
-        //    {
-        //        ReturnQueueNumber();
-        //    }
-        //}
+        void OnDisable()
+        {
+            if (isStatic)
+            {
+                ReturnQueueNumber();
+            }
+        }
 
         private void TakeQueueNumber()
         {
@@ -159,25 +159,25 @@ namespace OpenRelativity.Objects
             }
         }
 
-        //private void Update()
-        //{
-        //    if (wasStatic && !isStatic)
-        //    {
-        //        ReturnQueueNumber();
-        //    }
-        //    else if (!wasStatic && isStatic)
-        //    {
-        //        TakeQueueNumber();
-        //    }
-        //    wasStatic = isStatic;
-        //}
+        private void Update()
+        {
+            if (wasStatic && !isStatic)
+            {
+                ReturnQueueNumber();
+            }
+            else if (!wasStatic && isStatic)
+            {
+                TakeQueueNumber();
+            }
+            wasStatic = isStatic;
+        }
 
         private void FixedUpdate()
         {
-            //if (!isStatic && !wasStatic)
-            //{
+            if (!isStatic && !wasStatic)
+            {
                 UpdatePositions();
-            //}
+            }
         }
 
         public void UpdatePositions(Collider toUpdate = null)

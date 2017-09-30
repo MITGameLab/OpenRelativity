@@ -11,7 +11,7 @@ namespace OpenRelativity.Objects
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
-        private const int cullingSqrDistance = 64 * 64;
+        private const int cullingSqrDistance = 178 * 178;
         private const int cullingFrameInterval = 10;
         private int cullingFrameCount;
 
@@ -100,7 +100,6 @@ namespace OpenRelativity.Objects
             allColliders.AddRange(collidersToAdd);
             origPositionsList.AddRange(positionsToAdd);
             Cull();
-            //queuedOrigPositions = origPositionsList.ToArray();
             batchSizeDict.Add(batchNum, positionsToAdd.Length);
             serialQueue.Add(batchNum);
 
@@ -278,7 +277,7 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < queuedColliders.Count; i++)
             {
                 Transform changeTransform = queuedColliders[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(queuedOrigPositions[i]).WorldToOptical(Vector3.zero, playerPos, vpw));
+                Vector3 newPos = changeTransform.InverseTransformPoint(queuedOrigPositions[i].WorldToOptical(Vector3.zero, playerPos, vpw));
                 nanInfTest = Vector3.Dot(newPos, newPos);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
@@ -290,7 +289,7 @@ namespace OpenRelativity.Objects
                         yield return null;
                         coroutineTimer.Start();
                     }
-                    queuedColliders[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(queuedOrigPositions[i]).WorldToOptical(Vector3.zero, playerPos, vpw));
+                    queuedColliders[i].center = newPos;
                 }
             }
 
@@ -315,8 +314,13 @@ namespace OpenRelativity.Objects
                     distSqr = (origPositionsList[i].WorldToOptical(Vector3.zero, playerPos, playerVel) - playerPos).sqrMagnitude;
                     if (distSqr < cullingSqrDistance)
                     {
+                        allColliders[i].enabled = true;
                         queuedColliders.Add(allColliders[i]);
                         queuedOrigPositionsList.Add(origPositionsList[i]);
+                    }
+                    else
+                    {
+                        allColliders[i].enabled = false;
                     }
                 }
             }
