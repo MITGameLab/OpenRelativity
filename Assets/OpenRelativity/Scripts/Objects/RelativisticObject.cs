@@ -181,6 +181,9 @@ namespace OpenRelativity.Objects
         private float _DeathTime = float.PositiveInfinity;
         public float DeathTime { get { return _DeathTime; } set { _DeathTime = value; } }
 
+        //Acceleration desyncronizes our clock from the world clock:
+        public double localTimeOffset { get; private set; }
+
         //Use this instead of relativistic parent
         public bool isParent = false;
         public bool isCombinedColliderParent = false;
@@ -840,6 +843,8 @@ namespace OpenRelativity.Objects
 
         public void Update()
         {
+            localTimeOffset += state.DeltaTimeWorld * (GetGtt() - 1.0);
+
             EnforceCollision();
 
             //Update the rigidbody reference.
@@ -979,11 +984,11 @@ namespace OpenRelativity.Objects
 
                     float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4 * a * c))) / (2 * a)));
                     //If we're past our death time (in the player's view, as seen by tisw)
-                    if (state.TotalTimeWorld + tisw > DeathTime)
+                    if (state.TotalTimeWorld + localTimeOffset + tisw > DeathTime)
                     {
                         KillObject();
                     }
-                    else if ((state.TotalTimeWorld + tisw > startTime))
+                    else if ((state.TotalTimeWorld + localTimeOffset + tisw > startTime))
                     {
                         //Grab our renderer.
                         Renderer tempRenderer = GetComponent<Renderer>();
@@ -1029,7 +1034,10 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularVelocity = Vector3.zero;
             }
 
-            UpdateColliderPosition();
+            if (!myColliderIsVoxel)
+            {
+                UpdateColliderPosition();
+            }
         }
 
         public void UpdateColliderPosition(Collider toUpdate = null)

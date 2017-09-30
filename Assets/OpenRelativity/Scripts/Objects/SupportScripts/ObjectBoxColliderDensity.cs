@@ -9,7 +9,7 @@ namespace OpenRelativity.Objects
     public class ObjectBoxColliderDensity : MonoBehaviour
     {
         //If a large number of voxels are static with respect to world coordinates, we can batch them and gain performance:
-        public bool isStatic = false;
+        public bool isStatic = true;
         private bool wasStatic;
         private Guid staticQueueNumber;
 
@@ -120,21 +120,21 @@ namespace OpenRelativity.Objects
             
         }
 
-        private void OnEnable()
-        {
-            if (isStatic)
-            {
-                TakeQueueNumber();
-            }
-        }
+        //private void OnEnable()
+        //{
+        //    if (isStatic)
+        //    {
+        //        TakeQueueNumber();
+        //    }
+        //}
 
-        void OnDisable()
-        {
-            if (isStatic)
-            {
-                ReturnQueueNumber();
-            }
-        }
+        //void OnDisable()
+        //{
+        //    if (isStatic)
+        //    {
+        //        ReturnQueueNumber();
+        //    }
+        //}
 
         private void TakeQueueNumber()
         {
@@ -159,25 +159,25 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void Update()
-        {
-            if (wasStatic && !isStatic)
-            {
-                ReturnQueueNumber();
-            }
-            else if (!wasStatic && isStatic)
-            {
-                TakeQueueNumber();
-            }
-            wasStatic = isStatic;
-        }
+        //private void Update()
+        //{
+        //    if (wasStatic && !isStatic)
+        //    {
+        //        ReturnQueueNumber();
+        //    }
+        //    else if (!wasStatic && isStatic)
+        //    {
+        //        TakeQueueNumber();
+        //    }
+        //    wasStatic = isStatic;
+        //}
 
         private void FixedUpdate()
         {
-            if (!isStatic && !wasStatic)
-            {
+            //if (!isStatic && !wasStatic)
+            //{
                 UpdatePositions();
-            }
+            //}
         }
 
         public void UpdatePositions(Collider toUpdate = null)
@@ -261,7 +261,7 @@ namespace OpenRelativity.Objects
                     {
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
-                        yield return null;
+                        yield return new WaitForFixedUpdate();
                         coroutineTimer.Start();
                     }
                     change[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(viw, playerPos, vpw));
@@ -381,7 +381,7 @@ namespace OpenRelativity.Objects
                     {
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
-                        yield return null;
+                        yield return new WaitForFixedUpdate();
                         coroutineTimer.Start();
                     }
                     change[i].center = trnsfrmdPositions[i];

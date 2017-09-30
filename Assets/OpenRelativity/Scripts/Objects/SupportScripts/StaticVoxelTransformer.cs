@@ -8,20 +8,23 @@ namespace OpenRelativity.Objects
 {
     public class StaticVoxelTransformer : MonoBehaviour
     {
+        public bool sphericalCulling = false;
+        public ComputeShader colliderShader;
+
+        private const int cullingSqrDistance = 64 * 64;
+        private const int cullingFrameInterval = 10;
+        private int cullingFrameCount;
 
         //We cache (static) colliders and collider positions in parallel: 
-        private Vector3[] origPositions { get; set; }
+        private Vector3[] queuedOrigPositions { get; set; }
         private List<Vector3> origPositionsList { get; set; }
+        private List<Vector3> queuedOrigPositionsList { get; set; }
+        private List<BoxCollider> allColliders { get; set; }
         private List<BoxCollider> queuedColliders { get; set; }
 
         //The queue is a one-dimensional FIFO of contiguouos sub-list intervals:
         private Dictionary<Guid, int> batchSizeDict;
         private List<Guid> serialQueue;
-
-        //state array contains information on splitting
-        public bool state { get; set; }
-
-        public ComputeShader colliderShader;
 
         //This constant determines maximum box size. We subdivide boxes until all their dimensions are less than this length.
         private float constant = 16;
@@ -36,6 +39,7 @@ namespace OpenRelativity.Objects
 
         private bool finishedCoroutine;
         private bool dispatchedShader;
+        private bool wasFrozen;
 
         private ShaderParams colliderShaderParams;
 
@@ -53,17 +57,27 @@ namespace OpenRelativity.Objects
             }
         }
 
+        private void Awake()
+        {
+            Init();
+        }
+
         // Use this for initialization
         private void Start()
         {
+            origPositionsBufferLength = 0;
+            cullingFrameCount = 0;
             finishedCoroutine = true;
             dispatchedShader = false;
-            Init();
+            wasFrozen = false;
+            coroutineTimer = new System.Diagnostics.Stopwatch();
         }
         void Init()
         {
             if (origPositionsList == null) origPositionsList = new List<Vector3>();
             if (queuedColliders == null) queuedColliders = new List<BoxCollider>();
+            if (queuedOrigPositionsList == null) queuedOrigPositionsList = new List<Vector3>();
+            if (allColliders == null) allColliders = new List<BoxCollider>();
             if (batchSizeDict == null) batchSizeDict = new Dictionary<Guid, int>();
             if (serialQueue == null) serialQueue = new List<Guid>();
 
@@ -83,9 +97,10 @@ namespace OpenRelativity.Objects
 
             Guid batchNum = Guid.NewGuid();
 
-            queuedColliders.AddRange(collidersToAdd);
+            allColliders.AddRange(collidersToAdd);
             origPositionsList.AddRange(positionsToAdd);
-            origPositions = origPositionsList.ToArray();
+            Cull();
+            //queuedOrigPositions = origPositionsList.ToArray();
             batchSizeDict.Add(batchNum, positionsToAdd.Length);
             serialQueue.Add(batchNum);
 
@@ -108,17 +123,19 @@ namespace OpenRelativity.Objects
                     else
                     {
                         int size = batchSizeDict[qn];
- 
-                        origPositionsList.RemoveRange(startIndex, size);
-                        queuedColliders.RemoveRange(startIndex, size);
 
-                        origPositions = origPositionsList.ToArray();
+                        origPositionsList.RemoveRange(startIndex, size);
+                        allColliders.RemoveRange(startIndex, size);
+
+                        //queuedOrigPositions = origPositionsList.ToArray();
                         batchSizeDict.Remove(qn);
                         serialQueue.RemoveAt(i);
 
                         break;
                     }
                 }
+
+                Cull();
 
                 return true;
             }
@@ -128,21 +145,58 @@ namespace OpenRelativity.Objects
             }
         }
 
+        private void Update()
+        {
+            UpdatePositions();
+        }
+
         // Update is called once per frame
         public void UpdatePositions()
         {
-            if (finishedCoroutine)
+            if (!gameState.MovementFrozen)
             {
-                if (colliderShader != null && SystemInfo.supportsComputeShaders)
+                if (sphericalCulling) cullingFrameCount++;
+                if (finishedCoroutine)
                 {
-                    finishedCoroutine = false;
-                    StartCoroutine("GPUUpdatePositions");
+                    if (sphericalCulling && ((cullingFrameCount + 1) >= cullingFrameInterval))
+                    {
+                        cullingFrameCount = 0;
+                        Cull();
+                    }
+                    if (colliderShader != null && SystemInfo.supportsComputeShaders)
+                    {
+                        finishedCoroutine = false;
+                        StartCoroutine("GPUUpdatePositions");
+                    }
+                    else //if (finishedCoroutine)
+                    {
+                        finishedCoroutine = false;
+                        StartCoroutine("CPUUpdatePositions");
+                    }
                 }
-                else //if (finishedCoroutine)
+            }
+            else
+            {
+                queuedColliders.Clear();
+                queuedColliders.AddRange(allColliders);
+                queuedOrigPositionsList.Clear();
+                queuedOrigPositionsList.AddRange(origPositionsList);
+                queuedOrigPositions = queuedOrigPositionsList.ToArray();
+                cullingFrameCount = cullingFrameInterval;
+                if (!wasFrozen)
                 {
-                    finishedCoroutine = false;
-                    StartCoroutine("CPUUpdatePositions");
+                    if (colliderShader != null && SystemInfo.supportsComputeShaders)
+                    {
+                        finishedCoroutine = false;
+                        StartCoroutine("GPUUpdatePositions");
+                    }
+                    else //if (finishedCoroutine)
+                    {
+                        finishedCoroutine = false;
+                        StartCoroutine("CPUUpdatePositions");
+                    }
                 }
+                wasFrozen = true;
             }
         }
 
@@ -170,7 +224,7 @@ namespace OpenRelativity.Objects
             {
                 posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
             }
-            else if (posBuffer.count != origPositionsBufferLength)
+            else if (posBuffer.count < origPositionsBufferLength)
             {
                 posBuffer.Dispose();
                 posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
@@ -182,7 +236,7 @@ namespace OpenRelativity.Objects
                 dispatchedShader = false;
             }
 
-            posBuffer.SetData(origPositions);
+            posBuffer.SetData(queuedOrigPositions);
             int kernel = colliderShader.FindKernel("CSMain");
             colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
             colliderShader.SetBuffer(kernel, "verts", posBuffer);
@@ -190,7 +244,7 @@ namespace OpenRelativity.Objects
             //Dispatch doesn't block, but it might take multiple frames to return:
             colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
             dispatchedShader = true;
-            
+
             //Update the old result while waiting:
             float nanInfTest;
             for (int i = 0; i < queuedColliders.Count; i++)
@@ -198,7 +252,7 @@ namespace OpenRelativity.Objects
                 nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
-                    if (coroutineTimer.ElapsedMilliseconds > 8)
+                    if (coroutineTimer.ElapsedMilliseconds > 20)
                     {
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
@@ -224,7 +278,7 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < queuedColliders.Count; i++)
             {
                 Transform changeTransform = queuedColliders[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(Vector3.zero, playerPos, vpw));
+                Vector3 newPos = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(queuedOrigPositions[i]).WorldToOptical(Vector3.zero, playerPos, vpw));
                 nanInfTest = Vector3.Dot(newPos, newPos);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
@@ -236,13 +290,46 @@ namespace OpenRelativity.Objects
                         yield return null;
                         coroutineTimer.Start();
                     }
-                    queuedColliders[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(origPositions[i]).WorldToOptical(Vector3.zero, playerPos, vpw));
+                    queuedColliders[i].center = changeTransform.InverseTransformPoint(changeTransform.TransformPoint(queuedOrigPositions[i]).WorldToOptical(Vector3.zero, playerPos, vpw));
                 }
             }
 
             finishedCoroutine = true;
             coroutineTimer.Stop();
             coroutineTimer.Reset();
+        }
+
+        private void Cull()
+        {
+            Init();
+            if (sphericalCulling)
+            {
+                queuedOrigPositionsList.Clear();
+                queuedColliders.Clear();
+                Vector3 playerPos = gameState.playerTransform.position;
+                Vector3 playerVel = gameState.PlayerVelocityVector;
+                float distSqr;
+
+                for (int i = 0; i < origPositionsList.Count; i++)
+                {
+                    distSqr = (origPositionsList[i].WorldToOptical(Vector3.zero, playerPos, playerVel) - playerPos).sqrMagnitude;
+                    if (distSqr < cullingSqrDistance)
+                    {
+                        queuedColliders.Add(allColliders[i]);
+                        queuedOrigPositionsList.Add(origPositionsList[i]);
+                    }
+                }
+            }
+            else
+            {
+                queuedColliders.Clear();
+                queuedColliders.AddRange(allColliders);
+                queuedOrigPositionsList.Clear();
+                queuedOrigPositionsList.AddRange(origPositionsList);
+            }
+
+            queuedOrigPositions = queuedOrigPositionsList.ToArray();
+            origPositionsBufferLength = queuedOrigPositions.Length;
         }
     }
 }
