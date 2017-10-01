@@ -28,9 +28,9 @@ namespace OpenRelativity.Objects
                 //This makes instantiation cleaner:
                 initialViw = value;
 
+                if (oldShaderTransform != null) oldShaderTransform.oldViw = value;
                 if (nonrelativisticShader)
                 {
-                    oldShaderTransform.oldViw = value;
                     ContractLength();
                 }
                 else
@@ -62,15 +62,22 @@ namespace OpenRelativity.Objects
             
             _viw = newViw;
             transform.position = newPiw;
+            staticTransformPosition = newPiw;
 
             if (oldShaderTransform == null)
             {
                 oldShaderTransform = new NonRelShaderHistoryPoint();
             }
 
+            oldShaderTransform.oldViw = newViw;
+            oldShaderTransform.oldPiw = newPiw;
+
             if (nonrelativisticShader)
             {
-                oldShaderTransform.oldViw = newViw;
+                if (contractor != null)
+                {
+                    contractor.position = transform.position;
+                }
                 ContractLength();
             }
             //Also update the Rigidbody, if any
@@ -748,10 +755,14 @@ namespace OpenRelativity.Objects
                         //Debug.Log("Position set.");
                     }
                 }
-                oldShaderTransform.oldPiw = transform.position;
-                oldShaderTransform.oldViw = viw;
-                oldShaderTransform.oldPlayerPos = state.playerTransform.position;
-                oldShaderTransform.oldPlayerVel = state.PlayerVelocityVector;
+            }
+
+            oldShaderTransform.oldPiw = transform.position;
+            oldShaderTransform.oldViw = viw;
+            oldShaderTransform.oldPlayerPos = state.playerTransform.position;
+            oldShaderTransform.oldPlayerVel = state.PlayerVelocityVector;
+
+            if (nonrelativisticShader) {
                 //Handle length contraction:
                 ContractLength();
                 if (myRigidbody != null)
@@ -937,52 +948,47 @@ namespace OpenRelativity.Objects
             UpdateShaderParams();
         }
 
+        public float GetTisw(Vector3? playerPos = null)
+        {
+            Vector3 riw;
+            if (playerPos == null)
+            {
+                riw = transform.position - state.playerTransform.position;
+            }
+            else
+            {
+                riw = transform.position - playerPos.Value;
+            }
+            //Place the vertex to be changed in a new Vector3
+            
+
+            //Here begins a rotation-free modification of the original OpenRelativity shader:
+
+            float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
+
+            float b = -(2 * Vector3.Dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
+
+            float d = (float)(state.SpeedOfLightSqrd) - Vector3.Dot(viw, viw);
+
+            return (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
+        }
+
         void FixedUpdate() {
             if (meshFilter != null && !state.MovementFrozen)
             {
                 //As long as our object is actually alive, perform these calculations
                 if (transform != null)
                 {
-                    //Here I take the angle that the player's velocity vector makes with the z axis
-                    float rotationAroundZ = 0f;
-                    Quaternion rotateZ = Quaternion.identity;
-                    if (state.PlayerVelocityVector.sqrMagnitude != 0f)
-                    {
-                        rotationAroundZ = Mathf.Rad2Deg * Mathf.Acos(Vector3.Dot(state.PlayerVelocityVector, Vector3.forward) / state.PlayerVelocityVector.magnitude);
-                        //Now we turn that rotation into a quaternion
-                        rotateZ = Quaternion.AngleAxis(-rotationAroundZ, Vector3.Cross(state.PlayerVelocityVector, Vector3.forward));
-                    }
-                    //******************************************************************
+                    /***************************
+                     * Start Part 6 Bullet 1
+                     * *************************/
 
-                    //Place the vertex to be changed in a new Vector3
-                    Vector3 riw = transform.position;
-                    riw -= state.playerTransform.position;
-
-
-                    //And we rotate our point that much to make it as if our magnitude of velocity is in the Z direction
-                    riw = rotateZ * riw;
-
-
-                    //Here begins the original code, made by the guys behind the Relativity game
-                    /****************************
-                         * Start Part 6 Bullet 1
-
-                    */
-
-                    //Rotate that velocity!
-                    Vector3 storedViw = rotateZ * viw;
-
-                    float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
-
-                    float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
-
-                    float a = (float)state.SpeedOfLightSqrd - storedViw.sqrMagnitude;
+                    float tisw = GetTisw();
 
                     /****************************
                      * Start Part 6 Bullet 2
                      * **************************/
 
-                    float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4 * a * c))) / (2 * a)));
                     //If we're past our death time (in the player's view, as seen by tisw)
                     if (state.TotalTimeWorld + localTimeOffset + tisw > DeathTime)
                     {
@@ -1042,6 +1048,13 @@ namespace OpenRelativity.Objects
 
         public void UpdateColliderPosition(Collider toUpdate = null)
         {
+            Vector3 playerPos = state.playerTransform.position;
+            Vector3 playerVel = state.PlayerVelocityVector;
+            oldShaderTransform.oldViw = viw;
+            oldShaderTransform.oldPlayerPos = playerPos;
+            oldShaderTransform.oldPlayerVel = playerVel;
+            oldShaderTransform.oldPiw = transform.position;
+
             if (myColliderIsVoxel)
             {
                 ObjectBoxColliderDensity obcd = GetComponent<ObjectBoxColliderDensity>();
@@ -1054,9 +1067,6 @@ namespace OpenRelativity.Objects
             {
                 if (nonrelativisticShader)
                 {
-                    Vector3 playerPos = state.playerTransform.position;
-                    Vector3 playerVel = state.PlayerVelocityVector;
-
                     Vector3 otwEst = transform.position.WorldToOptical(-viw, oldShaderTransform.oldPlayerPos);
                     oldShaderTransform.oldPiw = transform.position.OpticalToWorldSearch(oldShaderTransform.oldViw, oldShaderTransform.oldPlayerPos, oldShaderTransform.oldPlayerVel, otwEst);
                     if (isStatic && (playerVel.sqrMagnitude < staticResetPlayerSpeedSqr))
@@ -1069,9 +1079,7 @@ namespace OpenRelativity.Objects
                     }
                     transform.localPosition = Vector3.zero;
 
-                    oldShaderTransform.oldViw = viw;
-                    oldShaderTransform.oldPlayerPos = playerPos;
-                    oldShaderTransform.oldPlayerVel = playerVel;
+                    
 
                     ContractLength();
                     if (myRigidbody != null)
@@ -1092,9 +1100,6 @@ namespace OpenRelativity.Objects
                     //If we have a BoxCollider, transform its center to its optical position
                     else if (myColliderIsBox)
                     {
-                        Vector3 playerPos = state.playerTransform.position;
-                        Vector3 playerVel = state.PlayerVelocityVector;
-
                         Vector3 otwEst = transform.position.WorldToOptical(-viw, oldShaderTransform.oldPlayerPos);
                         Vector3 pos = transform.position;
                         Vector3 revertedPos = pos.OpticalToWorldSearch(oldShaderTransform.oldViw, oldShaderTransform.oldPlayerPos, oldShaderTransform.oldPlayerVel, otwEst);
