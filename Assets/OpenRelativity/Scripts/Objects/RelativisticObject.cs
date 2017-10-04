@@ -151,8 +151,8 @@ namespace OpenRelativity.Objects
             public double LastTime { get; set; }
             public Collider Collider { get; set; }
         }
-        //private List<RecentCollision> collidedWith;
-        //private float collideAgainWait = 0.3f;
+        private List<RecentCollision> collidedWith;
+        private float collideAgainWait = 0.3f;
         #endregion
 
         //Keep track of our own Mesh Filter
@@ -190,6 +190,11 @@ namespace OpenRelativity.Objects
 
         //Acceleration desyncronizes our clock from the world clock:
         public double localTimeOffset { get; private set; }
+
+        public void ResetLocalTime()
+        {
+            localTimeOffset = 0.0;
+        }
 
         //Use this instead of relativistic parent
         public bool isParent = false;
@@ -620,7 +625,7 @@ namespace OpenRelativity.Objects
             sleepFrameCounter = 0;
             myRigidbody = GetComponent<Rigidbody>();
             rawVertsBufferLength = 0;
-            //collidedWith = new List<RecentCollision>();
+            collidedWith = new List<RecentCollision>();
             staticTransformPosition = Vector3.zero;
             wasKinematic = false;
             wasFrozen = false;
@@ -974,6 +979,19 @@ namespace OpenRelativity.Objects
         }
 
         void FixedUpdate() {
+            int lcv = 0;
+            while (lcv < collidedWith.Count)
+            {
+                if (collidedWith[lcv].LastTime + collideAgainWait <= state.TotalTimeWorld)
+                {
+                    collidedWith.RemoveAt(lcv);
+                }
+                else
+                {
+                    lcv++;
+                }
+            }
+
             if (meshFilter != null && !state.MovementFrozen)
             {
                 //As long as our object is actually alive, perform these calculations
@@ -1312,26 +1330,26 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
-            //else if (collidedWith.Count > 0)
-            //{
-            //    for (int i = 0; i < collidedWith.Count; i++)
-            //    {
-            //        //If this collision is returned, redirect to OnCollisionStay
-            //        if (collision.collider.Equals(collidedWith[i].Collider))
-            //        {
-            //            collidedWith[i].LastTime = state.TotalTimeWorld;
-            //            //didCollide = true;
-            //            //OnCollisionStay(collision);
-            //            //Then, immediately finish.
-            //            return;
-            //        }
-            //    }
-            //}
-            //collidedWith.Add(new RecentCollision()
-            //{
-            //    Collider = collision.collider,
-            //    LastTime = state.TotalTimeWorld
-            //});
+            else if (collidedWith.Count > 0)
+            {
+                for (int i = 0; i < collidedWith.Count; i++)
+                {
+                    //If this collision is returned, redirect to OnCollisionStay
+                    if (collision.collider.Equals(collidedWith[i].Collider))
+                    {
+                        collidedWith[i].LastTime = state.TotalTimeWorld;
+                        //didCollide = true;
+                        //OnCollisionStay(collision);
+                        //Then, immediately finish.
+                        return;
+                    }
+                }
+            }
+            collidedWith.Add(new RecentCollision()
+            {
+                Collider = collision.collider,
+                LastTime = state.TotalTimeWorld
+            });
 
             if (isSleeping)
             {
@@ -1471,22 +1489,23 @@ namespace OpenRelativity.Objects
             //}
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint = (contactPoint.point - opticalWorldCenterOfMass);
-            Vector3 otLocPoint = (contactPoint.point - otherRO.opticalWorldCenterOfMass);
-            if (myColliderIsMesh || nonrelativisticShader)
-            {
-                //If I have a mesh collider, my collider is affected by length contraction:
-                myLocPoint = myLocPoint.InverseContractLengthBy(-myPRelVel);
-            }
-            if (otherRO.myColliderIsMesh || otherRO.nonrelativisticShader)
-            {
-                otLocPoint = otLocPoint.InverseContractLengthBy(-otherPRelVel);
-            }
+            Vector3 myLocPoint, otLocPoint;
+            Vector3 contact = contactPoint.point.WorldToOptical(-myVel, playerPos);
+            contact = contactPoint.point.OpticalToWorldSearch(myVel, playerPos, playerVel, contact);
+            Vector3 com = opticalWorldCenterOfMass.WorldToOptical(-myVel, playerPos);
+            com = opticalWorldCenterOfMass.OpticalToWorldSearch(myVel, playerPos, playerVel, com);
+            myLocPoint = contact - com;
+            contact = contactPoint.point.WorldToOptical(-otherVel, playerPos);
+            contact = contactPoint.point.OpticalToWorldSearch(otherVel, playerPos, playerVel, contact);
+            com = otherRO.opticalWorldCenterOfMass.WorldToOptical(-otherVel, playerPos);
+            com = otherRO.opticalWorldCenterOfMass.OpticalToWorldSearch(otherVel, playerPos, playerVel, com);
+            otLocPoint = contact - com;
             Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
             Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
             Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
             Vector3 otherTotalVel = otherVel.AddVelocity(otherAngTanVel);
-            Vector3 lineOfAction = -contactPoint.normal;
+            Vector3 lineOfAction = -contactPoint.normal.InverseContractLengthBy(myVel);
+            lineOfAction.Normalize();
             //Decompose velocity in parallel and perpendicular components:
             Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
             Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.Gamma();
@@ -1495,12 +1514,9 @@ namespace OpenRelativity.Objects
             Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
             //Find the relative velocity:
             Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
-            lineOfAction = lineOfAction.InverseContractLengthBy(myPRelVel).normalized.ContractLengthBy(relVel).normalized;
             //Find the relative rapidity on the line of action, where my contact velocity is 0:
             float relVelGamma = relVel.Gamma();
             Vector3 rapidityOnLoA = relVelGamma * relVel;
-            myLocPoint = myLocPoint.ContractLengthBy(relVel);
-            otLocPoint = otLocPoint.ContractLengthBy(relVel);
 
             //Rotate my relative contact point:
             Vector3 rotatedLoc = Quaternion.Inverse(transform.rotation) * myLocPoint;

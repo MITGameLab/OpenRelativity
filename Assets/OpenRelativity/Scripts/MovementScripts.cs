@@ -441,7 +441,7 @@ namespace OpenRelativity
                         Vector3 myParraVel = Vector3.Project(pVel, direction) * 2.0f;
                         //Vector3 myPerpVel = Vector3.Cross(direction, Vector3.Cross(direction, pVel));
                         //Relativistically cancel the downward velocity:
-                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(-myParraVel);
+                        state.PlayerVelocityVector = state.PlayerVelocityVector - myParraVel;
                     }
                     state.playerTransform.position -= dist * direction;
                 }
