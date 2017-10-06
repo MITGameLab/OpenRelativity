@@ -10,7 +10,6 @@ namespace OpenRelativity
         //Consts 
         private const float SLOW_DOWN_RATE = 0.75f;
         private const float ACCEL_RATE = 7.5f;
-        private const float WORLD_GRAVITY = 2.0f; 
         private const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
         public bool useGravity = false;
@@ -44,7 +43,6 @@ namespace OpenRelativity
             //Assume we are in free fall
             isFalling = true;
             collidersBelow = new List<Collider>();
-            Physics.gravity = WORLD_GRAVITY * Physics.gravity.normalized;
 
             //grab Game State, we need it for many actions
             state = GetComponent<GameState>();
@@ -350,6 +348,11 @@ namespace OpenRelativity
         //Note that this method assumes that walls are locked at right angles to the world coordinate axes.
         private void OnTrigger(Collider collider)
         {
+            if (collider.isTrigger)
+            {
+                return;
+            }
+
             Rigidbody otherRB = collider.GetComponent<Rigidbody>();
             GameObject otherGO = collider.gameObject;
             RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
@@ -383,7 +386,7 @@ namespace OpenRelativity
                     {
                         Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
                         dist = transform.position.y - newPos.y;
-                        if (Mathf.Abs(dist) > 0.2f)
+                        if (Mathf.Abs(dist) > 0.01f)
                         {
                             state.playerTransform.position = newPos;
                         }

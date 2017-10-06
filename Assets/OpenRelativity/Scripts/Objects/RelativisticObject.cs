@@ -61,7 +61,6 @@ namespace OpenRelativity.Objects
                 newPiw = newPiw.WorldToOptical(newViw, state.playerTransform.position, state.PlayerVelocityVector);
             }
             transform.position = newPiw;
-            MarkStaticAndPos(isStatic);
 
             if (nonrelativisticShader)
             {
@@ -70,6 +69,9 @@ namespace OpenRelativity.Objects
                 transform.localPosition = Vector3.zero;
                 ContractLength();
             }
+
+            MarkStaticColliderPos();
+
             //Also update the Rigidbody, if any
             if (myRigidbody != null && !state.MovementFrozen)
             {
@@ -117,12 +119,14 @@ namespace OpenRelativity.Objects
 
         //This is a velocity we "sleep" the rigid body at:
         private const float sleepVelocity = 0.01f;
+        //Gravity might keep the velocity above this, so we also check whether the position is changing:
+        private const float sleepDistance = 0.0001f;
         private Vector3 sleepOldPosition;
         //Once we're below the sleep velocity threshold, this is how many frames we wait for
         // before sleeping the object:
         private const int sleepFrameDelay = 3;
         private int sleepFrameCounter;
-        private List<Collider> sleepingOnColliders;
+        private bool isSleepingOnCollider;
         //TODO: Rigidbody doesn't stay asleep. Figure out why, and get rid of this:
         private bool isSleeping;
         //Length contraction and rounding error pulls sleeping objects off the surfaces they rest on.
@@ -145,7 +149,6 @@ namespace OpenRelativity.Objects
         private List<RecentCollision> collidedWith;
         private float collideAgainWait = 0.3f;
         #endregion
-
         //Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
         //Store our raw vertices in this variable, so that we can refer to them later.
@@ -201,8 +204,6 @@ namespace OpenRelativity.Objects
         //private int? oldParentID;
         //Store world position, and player position and velocity, only for a nonrelativistic shader:
         private Vector3 piw;
-        private Vector3 oldPlayerVel;
-        private Vector3 oldPlayerPos;
 
         //We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
@@ -236,10 +237,9 @@ namespace OpenRelativity.Objects
         private Vector3 oldCollisionResultAngVel3;
         //If the shader is nonrelativistic, and if the object is static, it helps to save and restore the initial position
         public bool isStatic = false;
-        public void MarkStaticAndPos(bool isSttc = true)
+        public void MarkStaticColliderPos()
         {
-            isStatic = isSttc;
-            if (myColliderIsBox && (myColliders != null))
+            if (myColliderIsBox && myColliders != null)
             {
                 List<Vector3> sttcPosList = new List<Vector3>();
                 for (int i = 0;i < myColliders.Length; i++)
@@ -605,7 +605,7 @@ namespace OpenRelativity.Objects
             _viw = initialViw;
             _aviw = initialAviw;
             isSleeping = false;
-            sleepingOnColliders = new List<Collider>();
+            isSleepingOnCollider = false;
             didCollide = false;
             sleepFrameCounter = 0;
             myRigidbody = GetComponent<Rigidbody>();
@@ -619,7 +619,7 @@ namespace OpenRelativity.Objects
             UpdateCollider();
             //Debug.Log("Found collider.");
 
-            MarkStaticAndPos(isStatic);
+            MarkStaticColliderPos();
 
             //Get the meshfilter
             if (isParent)
@@ -923,7 +923,8 @@ namespace OpenRelativity.Objects
             {
 
                 if (!isSleeping
-                    && ((viw.sqrMagnitude < (sleepVelocity * sleepVelocity)) && (aviw.sqrMagnitude < (sleepVelocity * sleepVelocity))))
+                    && (((viw.sqrMagnitude < (sleepVelocity * sleepVelocity)) && (aviw.sqrMagnitude < (sleepVelocity * sleepVelocity)))
+                    || ((sleepOldPosition - transform.position).sqrMagnitude < (sleepDistance * sleepDistance))) )
                 {
                     sleepFrameCounter++;
                     if (sleepFrameCounter >= sleepFrameDelay)
@@ -942,30 +943,10 @@ namespace OpenRelativity.Objects
                     UpdateGravity();
                 }
 
-                if (sleepingOnColliders.Count > 0 && myColliders.Length > 0)
+                if ((sleepOldPosition - transform.position).sqrMagnitude >= (sleepDistance * sleepDistance))
                 {
-                    float maxDist = (transform.position - sleepingOnColliders[0].transform.position).sqrMagnitude;
-                    Ray downRay = new Ray()
-                    {
-                        direction = Vector3.down,
-                        origin = transform.position
-                    };
-                    RaycastHit hitInfo;
-                    if (sleepingOnColliders[0].Raycast(downRay, out hitInfo, maxDist))
-                    {
-                        float extentY = myColliders[0].bounds.extents.y;
-                        if (nonrelativisticShader)
-                        {
-                            contractor.position += (hitInfo.distance - extentY) * Vector3.down;
-                        }
-                        else
-                        {
-                            transform.position += (hitInfo.distance - extentY) * Vector3.down;
-                        }
-                    }
+                    sleepOldPosition = transform.position;
                 }
-
-                sleepOldPosition = transform.position;
             }
 
             if (meshFilter != null && !state.MovementFrozen)
@@ -1034,14 +1015,9 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularVelocity = Vector3.zero;
             }
 
-            if (!myColliderIsVoxel)
-            {
-                UpdateColliderPosition();
-            }
-
             if (nonrelativisticShader)
             {
-                if (!isStatic)
+                if (!isStatic && !isSleeping)
                 {
                     //Update the position in world, if necessary:
                     piw += transform.position - contractor.position;
@@ -1054,10 +1030,38 @@ namespace OpenRelativity.Objects
             {
                 piw = transform.position;
             }
-            MarkStaticAndPos(isStatic);
 
-            oldPlayerPos = state.playerTransform.position;
-            oldPlayerVel = state.PlayerVelocityVector;
+            if (!myColliderIsVoxel)
+            {
+                UpdateColliderPosition();
+            }
+            MarkStaticColliderPos();
+
+            //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
+            if (myColliderIsBox && isSleeping && isSleepingOnCollider)
+            {
+                float extentY = myColliders[0].bounds.extents.y;
+                float maxDist = 100f;
+                Ray downRay = new Ray()
+                {
+                    direction = Vector3.down,
+                    origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center) + extentY * Vector3.up
+                };
+                RaycastHit hitInfo;
+                if (Physics.Raycast(downRay, out hitInfo, 2.0f * maxDist))
+                {
+                    
+                    if (nonrelativisticShader)
+                    {
+                        contractor.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
+                        transform.localPosition = Vector3.zero;
+                    }
+                    else
+                    {
+                        transform.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
+                    }
+                }
+            }
         }
 
         public void UpdateColliderPosition(Collider toUpdate = null)
@@ -1086,7 +1090,7 @@ namespace OpenRelativity.Objects
                 //If we have a BoxCollider, transform its center to its optical position
                 else if (myColliderIsBox)
                 {
-                    if (isStatic)
+                    if (isStatic || isSleeping)
                     {
                         Vector3 pos;
                         for (int i = 0; i < myColliders.Length; i++)
@@ -1231,30 +1235,21 @@ namespace OpenRelativity.Objects
 
         public void OnCollisionStay(Collision collision)
         {
-            if (myRigidbody == null || myRigidbody.isKinematic)
+            if (myRigidbody == null || myRigidbody.isKinematic || isSleeping)
             {
                 return;
             }
-            else if (isSleeping)
-            {
-                int i = 0;
-                while (i < sleepingOnColliders.Count && !sleepingOnColliders[i].Equals(collision.collider))
-                {
-                    i++;
-                }
-                if (i >= sleepingOnColliders.Count)
-                {
-                    sleepingOnColliders.Add(collision.collider);
-                }
-                Sleep();
-                return;
-            }
-
-            //If we made it this far, we shouldn't be sleeping:
-            isSleeping = false;
 
             GameObject otherGO = collision.gameObject;
             RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
+
+            //Lorentz transformation might make us come "unglued" from a collider we're resting on.
+            // If we're asleep, and the other collider has zero velocity, we don't need to wake up:
+            if (isSleeping && otherRO.viw == Vector3.zero)
+            {
+                return;
+            }
+
             PhysicMaterial otherMaterial = collision.collider.material;
             float combFriction = CombinePhysics(myPhysicMaterial.frictionCombine, myPhysicMaterial.staticFriction, otherMaterial.staticFriction);
             float combRestCoeff = CombinePhysics(myPhysicMaterial.bounceCombine, myPhysicMaterial.bounciness, otherMaterial.bounciness);
@@ -1313,35 +1308,19 @@ namespace OpenRelativity.Objects
                 LastTime = state.TotalTimeWorld
             });
 
-            if (isSleeping)
+            GameObject otherGO = collision.gameObject;
+            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
+
+            //Lorentz transformation might make us come "unglued" from a collider we're resting on.
+            // If we're asleep, and the other collider has zero velocity, we don't need to wake up:
+            if (isSleeping && otherRO.viw == Vector3.zero)
             {
-                if (sleepingOnColliders.Count == 0)
-                {
-                    //In this case, we're sitting just at the point to trip OnCollisionEnter constantly,
-                    // but we haven't registered the collider we're sleeping on, yet.
-                    sleepingOnColliders.Add(collision.collider);
-                    Sleep();
-                    return;
-                }
-                for (int i = 0; i < sleepingOnColliders.Count; i++)
-                {
-                    //If we're sleeping on this collider, and length contraction made us
-                    // come a little unglued, ignore the OnCollisionEnter
-                    if (sleepingOnColliders[i].Equals(collision.collider))
-                    {
-                        Sleep();
-                        return;
-                    }
-                }
+                return;
             }
 
             //If we made it this far, we shouldn't be sleeping:
             isSleeping = false;
-
-            //If we made it this far, we're no longer sleeping.
-            sleepingOnColliders.Clear();
             didCollide = true;
-            //Debug.Log("Entered");
 
             PointAndNorm contactPoint = DecideContactPoint(collision);
             if (contactPoint == null)
@@ -1349,8 +1328,6 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            GameObject otherGO = collision.gameObject;
-            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
             PhysicMaterial otherMaterial = collision.collider.material;
             float myFriction = isSleeping ? myPhysicMaterial.staticFriction : myPhysicMaterial.dynamicFriction;
             float otherFriction = otherRO.isSleeping ? otherMaterial.staticFriction : otherMaterial.dynamicFriction;
@@ -1432,7 +1409,7 @@ namespace OpenRelativity.Objects
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 myPRelVel = myVel.AddVelocity(-playerVel);
-            Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
+            //Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector3 myLocPoint, otLocPoint, contact, com;
@@ -1529,7 +1506,7 @@ namespace OpenRelativity.Objects
             }
 
             //impulse *= (1.0f + combFriction);
-            //impulse += springImpulse;
+            impulse += springImpulse;
 
             //The change in rapidity on the line of action:
             Vector3 finalLinearRapidity = relVelGamma * myVel + impulse / mass * lineOfAction;
@@ -1578,7 +1555,7 @@ namespace OpenRelativity.Objects
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 myPRelVel = myVel.AddVelocity(-playerVel);
-            Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
+            //Vector3 otherPRelVel = otherVel.AddVelocity(-playerVel);
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector3 myLocPoint, otLocPoint, contact, com;
@@ -1636,7 +1613,7 @@ namespace OpenRelativity.Objects
             Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
             //Find the relative rapidity on the line of action, where my contact velocity is 0:
             float relVelGamma = relVel.Gamma();
-            Vector3 rapidityOnLoA = relVelGamma * relVel;
+            //Vector3 rapidityOnLoA = relVelGamma * relVel;
 
             Vector3 myPos = opticalWorldCenterOfMass;
             Vector3 otherPos = otherRO.opticalWorldCenterOfMass;
@@ -1795,6 +1772,13 @@ namespace OpenRelativity.Objects
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 relVel = viw.RelativeVelocityTo(playerVel);
             float relVelMag = relVel.sqrMagnitude;
+
+            if (relVelMag > (state.SpeedOfLightSqrd * 0.95f))
+            {
+                relVel.Normalize();
+                relVelMag = (float)(state.SpeedOfLightSqrd * 0.95f);
+                relVel = relVelMag * relVel;
+            }
 
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:

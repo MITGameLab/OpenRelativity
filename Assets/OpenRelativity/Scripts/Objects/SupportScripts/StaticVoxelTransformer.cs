@@ -26,9 +26,6 @@ namespace OpenRelativity.Objects
         private Dictionary<Guid, int> batchSizeDict;
         private List<Guid> serialQueue;
 
-        //This constant determines maximum box size. We subdivide boxes until all their dimensions are less than this length.
-        private float constant = 16;
-
         private ComputeBuffer paramsBuffer;
         private ComputeBuffer posBuffer;
         //To avoid garbage collection, we might over-allocate the buffer:
@@ -227,6 +224,10 @@ namespace OpenRelativity.Objects
             {
                 posBuffer.Dispose();
                 posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+            }
+            if (trnsfrmdPositions == null || (trnsfrmdPositions.Length < queuedOrigPositions.Length))
+            {
+                trnsfrmdPositions = new Vector3[queuedOrigPositions.Length];
             }
             //Read data for frame at last possible moment:
             if (dispatchedShader)
