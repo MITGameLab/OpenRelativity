@@ -1235,7 +1235,7 @@ namespace OpenRelativity.Objects
 
         public void OnCollisionStay(Collision collision)
         {
-            if (myRigidbody == null || myRigidbody.isKinematic || isSleeping)
+            if (myRigidbody == null || myRigidbody.isKinematic)
             {
                 return;
             }
@@ -1249,6 +1249,9 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
+
+            //If we made it this far, we shouldn't be sleeping:
+            WakeUp();
 
             PhysicMaterial otherMaterial = collision.collider.material;
             float combFriction = CombinePhysics(myPhysicMaterial.frictionCombine, myPhysicMaterial.staticFriction, otherMaterial.staticFriction);
@@ -1319,7 +1322,7 @@ namespace OpenRelativity.Objects
             }
 
             //If we made it this far, we shouldn't be sleeping:
-            isSleeping = false;
+            WakeUp();
             didCollide = true;
 
             PointAndNorm contactPoint = DecideContactPoint(collision);
@@ -1740,6 +1743,16 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularVelocity = Vector3.zero;
                 myRigidbody.Sleep();
                 isSleeping = true;
+            }
+        }
+
+        private void WakeUp()
+        {
+            isSleeping = false;
+            isSleepingOnCollider = false;
+            if (myRigidbody != null)
+            {
+                myRigidbody.WakeUp();
             }
         }
         #endregion
