@@ -30,33 +30,20 @@ namespace OpenRelativity.Objects
 
                 Vector3 playerPos = state.playerTransform.position;
                 Vector3 playerVel = state.PlayerVelocityVector;
+                Vector3 otwEst = piw.WorldToOptical(_viw, playerPos, playerVel).WorldToOptical(-value, playerPos);
                 //Under instantaneous changes in velocity, the optical position should be invariant:
-                if (nonrelativisticShader)
-                {
-                    piw += transform.position - contractor.position;
-                    transform.localPosition = Vector3.zero;
-                }
-                else
-                {
-                    piw = transform.position;
-                }
-                Vector3 otwEst = piw.WorldToOptical(_viw, playerPos).WorldToOptical(-value, playerPos);
                 piw = piw.WorldToOptical(_viw, playerPos, playerVel).OpticalToWorldSearch(value, playerPos, playerVel, otwEst);
-                if (nonrelativisticShader)
-                {
-                    contractor.position = piw;
-                }
-                else
+                if (!nonrelativisticShader)
                 {
                     transform.position = piw;
                 }
-                
                 _viw = value;
                 //Also update the Rigidbody, if any
                 if (myRigidbody != null && !state.MovementFrozen)
                 {
-                    myRigidbody.velocity = value * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
-                    myRigidbody.angularVelocity = aviw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+                    float timeFactor = (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+                    myRigidbody.velocity = value * timeFactor;
+                    myRigidbody.angularVelocity = aviw * timeFactor;
                 }
 
                 //Update the shader parameters if necessary
@@ -77,11 +64,9 @@ namespace OpenRelativity.Objects
 
             if (nonrelativisticShader)
             {
-                if (contractor != null)
-                {
-                    contractor.position = transform.position;
-                    transform.localPosition = Vector3.zero;
-                }
+                if (contractor == null) SetUpContractor();
+                contractor.position = transform.position;
+                transform.localPosition = Vector3.zero;
                 ContractLength();
             }
             //Also update the Rigidbody, if any
@@ -213,8 +198,10 @@ namespace OpenRelativity.Objects
         //Changing a transform's parent is expensive, but we can avoid it with this:
         private Vector3 contractorLocalScale;
         //private int? oldParentID;
-        //Store world position info only for a nonrelativistic shader:
+        //Store world position, and player position and velocity, only for a nonrelativistic shader:
         private Vector3 piw;
+        private Vector3 oldPlayerVel;
+        private Vector3 oldPlayerPos;
 
         //We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
@@ -631,7 +618,10 @@ namespace OpenRelativity.Objects
             UpdateCollider();
             //Debug.Log("Found collider.");
 
-            MarkStaticAndPos(isStatic);
+            if (isStatic)
+            {
+                MarkStaticAndPos();
+            }
 
             //Get the meshfilter
             if (isParent)
@@ -739,21 +729,17 @@ namespace OpenRelativity.Objects
                 meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
             }
 
-            //If the shader is nonrelativistic, map the object from world space to optical space.
+            //If the shader is nonrelativistic, map the object from world space to optical space and handle length contraction:
             if (nonrelativisticShader)
             {
-                if (contractor == null)
-                {
-                    SetUpContractor();
-                    contractor.position = transform.position.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
-                }
-
-                //Handle length contraction:
+                transform.position = transform.position.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
+                if (contractor == null) SetUpContractor();
                 ContractLength();
-                if (myRigidbody != null)
-                {
-                    opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
-                }
+            }
+
+            if (myRigidbody != null)
+            {
+                opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
             }
         }
 
@@ -816,7 +802,7 @@ namespace OpenRelativity.Objects
         public void UpdateGravity()
         {
             Vector3 tempViw = viw.Gamma() * viw;
-            tempViw -= Physics.gravity * (float)state.FixedDeltaTimeWorld;
+            tempViw += Physics.gravity * (float)state.FixedDeltaTimeWorld;
             tempViw = tempViw.RapidityToVelocity();
             float test = tempViw.x + tempViw.y + tempViw.z;
             if (!float.IsNaN(test) && !float.IsInfinity(test))
@@ -1059,23 +1045,23 @@ namespace OpenRelativity.Objects
 
             if (nonrelativisticShader)
             {
-                if (isStatic)
-                {
-                    contractor.position = piw.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
-                }
-                else
+                if (!isStatic)
                 {
                     //Update the position in world, if necessary:
                     piw += transform.position - contractor.position;
-                    transform.localPosition = Vector3.zero;
-                    contractor.position = piw.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
                 }
+                transform.localPosition = Vector3.zero;
+                contractor.position = piw.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
+                ContractLength();
             }
             else
             {
                 piw = transform.position;
             }
             MarkStaticAndPos(isStatic);
+
+            oldPlayerPos = state.playerTransform.position;
+            oldPlayerVel = state.PlayerVelocityVector;
         }
 
         public void UpdateColliderPosition(Collider toUpdate = null)
@@ -1820,20 +1806,12 @@ namespace OpenRelativity.Objects
             }
             contractor.position = transform.position;
             transform.parent = contractor;
+            transform.localPosition = Vector3.zero;
             contractorLocalScale = contractor.localScale;
         }
 
         public void ContractLength()
         {
-            if (contractor == null)
-            {
-                SetUpContractor();
-            }
-            else
-            {
-                //Update position in world, if necessary:
-                piw += transform.position - contractor.position;
-            }
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 relVel = viw.RelativeVelocityTo(playerVel);
             float relVelMag = relVel.sqrMagnitude;
@@ -1846,8 +1824,6 @@ namespace OpenRelativity.Objects
                 //If we can't avoid (expensive) re-parenting, we do it:
                 SetUpContractor();
             }
-            contractor.position = transform.position;
-            transform.localPosition = Vector3.zero;
 
             if (relVelMag > 0.0f)
             {
