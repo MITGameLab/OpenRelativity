@@ -30,9 +30,10 @@ namespace OpenRelativity.Objects
 
                 Vector3 playerPos = state.playerTransform.position;
                 Vector3 playerVel = state.PlayerVelocityVector;
-                Vector3 otwEst = piw.WorldToOptical(_viw, playerPos, playerVel).WorldToOptical(-value, playerPos);
                 //Under instantaneous changes in velocity, the optical position should be invariant:
-                piw = piw.WorldToOptical(_viw, playerPos, playerVel).OpticalToWorldSearch(value, playerPos, playerVel, otwEst);
+                //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
+                piw = piw.WorldToOptical(_viw, playerPos, playerVel).OpticalToWorld(value, playerPos, playerVel);
+                //test = test - piw.WorldToOptical(value, playerPos, playerVel);
                 if (!nonrelativisticShader)
                 {
                     transform.position = piw;
@@ -618,10 +619,7 @@ namespace OpenRelativity.Objects
             UpdateCollider();
             //Debug.Log("Found collider.");
 
-            if (isStatic)
-            {
-                MarkStaticAndPos();
-            }
+            MarkStaticAndPos(isStatic);
 
             //Get the meshfilter
             if (isParent)
@@ -1442,47 +1440,39 @@ namespace OpenRelativity.Objects
             Vector3 myLocPoint, otLocPoint, contact, com;
             if (myColliderIsMesh)
             {
-                contact = contactPoint.point.WorldToOptical(-myVel, playerPos);
-                contact = contactPoint.point.OpticalToWorldSearch(myVel, playerPos, playerVel, contact);
-                com = opticalWorldCenterOfMass.WorldToOptical(-myVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(myVel, playerPos, playerVel, com);
+                contact = contactPoint.point.OpticalToWorld(myVel, playerPos, playerVel);
+                com = opticalWorldCenterOfMass.OpticalToWorld(myVel, playerPos, playerVel);
                 myLocPoint = contact - com;
             }
             else if (nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = opticalWorldCenterOfMass.WorldToOptical(-myVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(myVel, playerPos, playerVel, com);
+                com = opticalWorldCenterOfMass.OpticalToWorld(myVel, playerPos, playerVel);
                 myLocPoint = (contact - com).InverseContractLengthBy(myVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = opticalWorldCenterOfMass.WorldToOptical(-myVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(myVel, playerPos, playerVel, com);
+                com = opticalWorldCenterOfMass.OpticalToWorld(myVel, playerPos, playerVel);
                 myLocPoint = (contact - com);
             }
             
             if (otherRO.myColliderIsMesh)
             {
-                contact = contactPoint.point.WorldToOptical(-otherVel, playerPos);
-                contact = contactPoint.point.OpticalToWorldSearch(otherVel, playerPos, playerVel, contact);
-                com = otherRO.opticalWorldCenterOfMass.WorldToOptical(-otherVel, playerPos);
-                com = otherRO.opticalWorldCenterOfMass.OpticalToWorldSearch(otherVel, playerPos, playerVel, com);
+                contact = contactPoint.point.OpticalToWorld(otherVel, playerPos, playerVel);
+                com = otherRO.opticalWorldCenterOfMass.OpticalToWorld(otherVel, playerPos, playerVel);
                 otLocPoint = contact - com;
             }
             else if (otherRO.nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = otherRO.opticalWorldCenterOfMass.WorldToOptical(-otherVel, playerPos);
-                com = otherRO.opticalWorldCenterOfMass.OpticalToWorldSearch(otherVel, playerPos, playerVel, com);
+                com = otherRO.opticalWorldCenterOfMass.OpticalToWorld(otherVel, playerPos, playerVel);
                 otLocPoint = (contact - com).InverseContractLengthBy(otherVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = opticalWorldCenterOfMass.WorldToOptical(-otherVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(otherVel, playerPos, playerVel, com);
+                com = opticalWorldCenterOfMass.OpticalToWorld(otherVel, playerPos, playerVel);
                 otLocPoint = (contact - com);
             }
 
@@ -1596,47 +1586,39 @@ namespace OpenRelativity.Objects
             Vector3 myLocPoint, otLocPoint, contact, com;
             if (myColliderIsMesh)
             {
-                contact = contactPoint.point.WorldToOptical(-myVel, playerPos);
-                contact = contactPoint.point.OpticalToWorldSearch(myVel, playerPos, playerVel, contact);
-                com = opticalWorldCenterOfMass.WorldToOptical(-myVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(myVel, playerPos, playerVel, com);
+                contact = contactPoint.point.OpticalToWorld(myVel, playerPos, playerVel);
+                com = opticalWorldCenterOfMass.OpticalToWorld(myVel, playerPos, playerVel);
                 myLocPoint = contact - com;
             }
             else if (nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = opticalWorldCenterOfMass.WorldToOptical(-myVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(myVel, playerPos, playerVel, com);
+                com = opticalWorldCenterOfMass.OpticalToWorld(myVel, playerPos, playerVel);
                 myLocPoint = (contact - com).InverseContractLengthBy(myVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = opticalWorldCenterOfMass.WorldToOptical(-myVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(myVel, playerPos, playerVel, com);
+                com = opticalWorldCenterOfMass.OpticalToWorld(myVel, playerPos, playerVel);
                 myLocPoint = (contact - com);
             }
 
             if (otherRO.myColliderIsMesh)
             {
-                contact = contactPoint.point.WorldToOptical(-otherVel, playerPos);
-                contact = contactPoint.point.OpticalToWorldSearch(otherVel, playerPos, playerVel, contact);
-                com = otherRO.opticalWorldCenterOfMass.WorldToOptical(-otherVel, playerPos);
-                com = otherRO.opticalWorldCenterOfMass.OpticalToWorldSearch(otherVel, playerPos, playerVel, com);
+                contact = contactPoint.point.OpticalToWorld(otherVel, playerPos, playerVel);
+                com = otherRO.opticalWorldCenterOfMass.OpticalToWorld(otherVel, playerPos, playerVel);
                 otLocPoint = contact - com;
             }
             else if (otherRO.nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = otherRO.opticalWorldCenterOfMass.WorldToOptical(-otherVel, playerPos);
-                com = otherRO.opticalWorldCenterOfMass.OpticalToWorldSearch(otherVel, playerPos, playerVel, com);
+                com = otherRO.opticalWorldCenterOfMass.OpticalToWorld(otherVel, playerPos, playerVel);
                 otLocPoint = (contact - com).InverseContractLengthBy(otherVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = opticalWorldCenterOfMass.WorldToOptical(-otherVel, playerPos);
-                com = opticalWorldCenterOfMass.OpticalToWorldSearch(otherVel, playerPos, playerVel, com);
+                com = opticalWorldCenterOfMass.OpticalToWorld(otherVel, playerPos, playerVel);
                 otLocPoint = (contact - com);
             }
 

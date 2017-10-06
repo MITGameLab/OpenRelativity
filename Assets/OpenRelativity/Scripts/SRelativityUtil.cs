@@ -162,6 +162,7 @@ namespace OpenRelativity
             float spdOfLight = SRelativityUtil.c;
 
             Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            float playerVelMag = playerVel.magnitude;
             float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
@@ -169,7 +170,7 @@ namespace OpenRelativity
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 vr;
             //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed != 0)
+            if (speed > divByZeroCutoff)
             {
                 Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
                 //Get the perpendicular component of our velocity, just by subtraction
@@ -211,9 +212,9 @@ namespace OpenRelativity
                 //I had to break it up into steps, unity was getting order of operations wrong.	
                 float newz = (((float)speed * spdOfLight) * tisw);
 
-                if (speed != 0)
+                if (speed > divByZeroCutoff)
                 {
-                    Vector3 vpcUnit = vpc / speed;
+                    Vector3 vpcUnit = -playerVel / playerVelMag;
                     newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
                     riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
                 }
@@ -242,6 +243,7 @@ namespace OpenRelativity
             float spdOfLight = SRelativityUtil.c;
 
             Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            float playerVelMag = playerVel.magnitude;
             float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
@@ -249,7 +251,7 @@ namespace OpenRelativity
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 vr;
             //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed != 0)
+            if (speed > divByZeroCutoff)
             {
                 Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
                 //Get the perpendicular component of our velocity, just by subtraction
@@ -272,26 +274,26 @@ namespace OpenRelativity
             if (speedr != 0)
             {
                 float newz;
-                if (speed != 0)
+                if (speed > divByZeroCutoff)
                 {
-                    Vector3 vpcUnit = vpc / speed;
+                    Vector3 vpcUnit = -playerVel / playerVelMag;
                     newz = Vector3.Dot(riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
                     riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
                 }
 
-                float c = riw.sqrMagnitude;
+                float c = -riw.sqrMagnitude;
 
-                float b = -(4.0f * Vector3.Dot(velocity, riw) + 2.0f * Vector3.Dot(-playerVel, riw));
+                float b = 2.0f * Vector3.Dot(velocity, riw);
 
-                float d = -((spdOfLight * spdOfLight) + 2.0f * velocity.sqrMagnitude + 4.0f * Vector3.Dot(velocity, -playerVel) + playerVel.sqrMagnitude);
+                float d = spdOfLight * spdOfLight - velocity.sqrMagnitude;
 
-                float tisw = (-b + (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
-                newz = (((float)speed * spdOfLight) * tisw);
+                newz = playerVelMag * tisw;
 
-                if (speed != 0)
+                if (speed > divByZeroCutoff)
                 {
-                    Vector3 vpcUnit = vpc / speed;
+                    Vector3 vpcUnit = -playerVel / playerVelMag;
                     riw = riw - newz * vpcUnit;
                 }
 
@@ -302,143 +304,6 @@ namespace OpenRelativity
 
             return riw;
 
-        }
-
-        public static Vector3 OpticalToWorldSearch(this Vector3 oPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 initPIWestimate, float maxIterations = defaultOpticalToWorldMaxIterations, float sqrErrorTolerance = defaultOpticalToWorldSqrErrorTolerance)
-        {
-            //The exact inverse of WorldToOptical is either really complicated or transcendental (i.e., can't be solved for).
-            // However, we can approximate the inverse numerically.
-            // Turns out from trial and error that a good initial estimate for a round trip to and from optical position on a velocity change is:
-            // position.WorldToOptical(oldViw, state.PlayerTransform.position).WorldToOptical(-newViw, state.PlayerTransform.position)
-            // (That is, this neglects player velocity, using only the object's velocity and player's position. Notice the minus sign on newViw.)
-            // You can use this to seed the search.
-
-            //High level, more expensive implementation:
-            //***************************************************************************************************************************//
-
-            //Vector3 estimate = initPIWestimate;
-            //Vector3 newEst = estimate;
-            //Vector3 newOPos = estimate.WorldToOptical(velocity, origin, playerVel);
-            //float newSqrError = (oPos - newOPos).sqrMagnitude;
-            //float sqrError;
-            //int iterationCount = 0;
-            //do
-            //{
-            //    estimate = newEst;
-            //    sqrError = newSqrError;
-            //    newEst = estimate + (oPos - newOPos);
-            //    newOPos = newEst.WorldToOptical(velocity, origin, playerVel);
-            //    newSqrError = (oPos - newOPos).sqrMagnitude;
-            //    iterationCount++;
-            //} while (newSqrError < sqrError && newSqrError > sqrErrorTolerance && iterationCount < defaultOpticalToWorldMaxIterations);
-
-            //if (newSqrError < sqrError)
-            //{
-            //    estimate = newEst;
-            //}
-
-            //return estimate;
-
-            //***************************************************************************************************************************//
-
-            //Low level, less expensive implementation:
-
-            Vector3 estimate = initPIWestimate;
-            Vector3 newEst = estimate;
-            Vector3 newOPos = estimate.WorldToOptical(velocity, origin, playerVel);
-
-            float spdOfLight = SRelativityUtil.c;
-
-            Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
-            float speed = playerVel.magnitude / spdOfLight; // (float)srCamera.playerVelocity;
-            Vector3 viw = velocity;
-
-            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
-            Vector3 vr;
-            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed != 0)
-            {
-                Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
-                //Get the perpendicular component of our velocity, just by subtraction
-                Vector3 uperp = viw - uparra;
-                //relative velocity calculation
-                vr = (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
-            }
-            //If our speed is nearly zero, it could lead to infinities, so treat is as exactly zero, and set parallel velocity to zero
-            else
-            {
-                //relative velocity calculation
-                vr = -viw;
-            }
-            float speedr = vr.magnitude;
-
-            if (speedr == 0) // If the relative speed is zero, the optical position is equal to the world position.
-            {
-                estimate = oPos;
-            }
-            else
-            {
-                Vector3 riw; //Position that will be used in the output
-
-                float newSqrError = (oPos - newOPos).sqrMagnitude;
-                float sqrError;
-                int iterationCount = 0;
-                float c, b, d, tisw, newz;
-                Vector3 vpcUnit = Vector3.zero;
-                //float vpcNorm = Mathf.Sqrt(Vector3.Dot(vpc, vpc));
-                if (speed != 0)
-                {
-                    vpcUnit = vpc / speed;
-                }
-
-                do
-                {
-                    estimate = newEst;
-                    sqrError = newSqrError;
-                    newEst = estimate + (oPos - newOPos);
-
-                    riw = newEst - origin;
-
-                    //Here begins a rotation-free modification of the original OpenRelativity shader:
-
-                    c = -riw.sqrMagnitude; //first get position squared (position doted with position)
-
-                    b = -(2 * Vector3.Dot(riw, velocity)); //next get position doted with velocity, should be only in the Z direction
-
-                    d = (spdOfLight * spdOfLight) - velocity.sqrMagnitude;
-
-                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-
-                    //get the new position offset, based on the new time we just found
-                    //Should only be in the Z direction
-
-                    riw = riw + (tisw * velocity);
-
-                    //Apply Lorentz transform
-                    // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                    //I had to break it up into steps, unity was getting order of operations wrong.	
-                    newz = (((float)speed * spdOfLight) * tisw);
-
-                    if (speed != 0)
-                    {
-                        newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                        riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
-                    }
-
-                    riw += origin;
-
-                    newOPos = riw;
-                    newSqrError = (oPos - newOPos).sqrMagnitude;
-                    iterationCount++;
-                } while (newSqrError < sqrError && newSqrError > sqrErrorTolerance && iterationCount < defaultOpticalToWorldMaxIterations);
-
-                if (newSqrError < sqrError)
-                {
-                    estimate = newEst;
-                }
-            }
-
-            return estimate;
         }
 
         public static float Gamma(this Vector3 velocity)
