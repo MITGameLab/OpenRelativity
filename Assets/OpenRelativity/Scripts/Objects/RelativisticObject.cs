@@ -10,7 +10,6 @@ namespace OpenRelativity.Objects
         #region Rigid body physics
         //Since we don't have direct access to the level of rigid bodies or PhysX in Unity,
         // we need to manually update some relativistic rigid body mechanics, for the time-being.
-
         public Vector3 initialViw;
         private Vector3 _viw = Vector3.zero;
         public Vector3 viw
@@ -1040,6 +1039,9 @@ namespace OpenRelativity.Objects
             //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
             if (myColliderIsBox && isSleeping && isSleepingOnCollider)
             {
+                int myLayer = gameObject.layer;
+                gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
+                
                 float extentY = myColliders[0].bounds.extents.y;
                 float maxDist = 100f;
                 Ray downRay = new Ray()
@@ -1048,9 +1050,8 @@ namespace OpenRelativity.Objects
                     origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center) + extentY * Vector3.up
                 };
                 RaycastHit hitInfo;
-                if (Physics.Raycast(downRay, out hitInfo, 2.0f * maxDist))
+                if (Physics.Raycast(downRay, out hitInfo, maxDist, gameObject.layer))
                 {
-                    
                     if (nonrelativisticShader)
                     {
                         contractor.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
@@ -1061,6 +1062,8 @@ namespace OpenRelativity.Objects
                         transform.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
                     }
                 }
+
+                gameObject.layer = myLayer;
             }
         }
 
@@ -1743,6 +1746,7 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularVelocity = Vector3.zero;
                 myRigidbody.Sleep();
                 isSleeping = true;
+                isSleepingOnCollider = true;
             }
         }
 
