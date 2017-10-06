@@ -190,7 +190,7 @@ namespace OpenRelativity
             Vector3 riw = pos; //Position that will be used in the output
 
             //Transform fails and is unecessary if relative speed is zero:
-            if (speedr != 0)
+            if (speedr > divByZeroCutoff)
             {
                 //Here begins a rotation-free modification of the original OpenRelativity shader:
 
@@ -271,7 +271,7 @@ namespace OpenRelativity
             Vector3 riw = pos; //Position that will be used in the output
 
             //Transform fails and is unecessary if relative speed is zero:
-            if (speedr != 0)
+            if (speedr > divByZeroCutoff)
             {
                 float newz;
                 if (speed > divByZeroCutoff)
@@ -304,6 +304,34 @@ namespace OpenRelativity
 
             return riw;
 
+        }
+
+        public static Vector3 OpticalToWorldHighPrecision(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
+        {
+            Vector3 startPoint = piw;
+            Vector3 est = piw.OpticalToWorld(velocity, origin, playerVel);
+            Vector3 newEst;
+            Vector3 offset = piw - est.WorldToOptical(velocity, origin, playerVel);
+            float sqrError = (piw - est.WorldToOptical(velocity, origin, playerVel)).sqrMagnitude;
+            float oldSqrError = sqrError + 1.0f;
+            float iterations = 1;
+            while ( (iterations < defaultOpticalToWorldMaxIterations)
+                && (sqrError > defaultOpticalToWorldSqrErrorTolerance)
+                && (sqrError < oldSqrError) )
+            {
+                iterations++;
+                startPoint += offset / 2.0f;
+                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel);
+                offset = startPoint - newEst.WorldToOptical(velocity, origin, playerVel);
+                oldSqrError = sqrError;
+                sqrError = (piw - newEst.WorldToOptical(velocity, origin, playerVel)).sqrMagnitude;
+                if (sqrError < oldSqrError)
+                {
+                    est = newEst;
+                }
+            }
+
+            return est;
         }
 
         public static float Gamma(this Vector3 velocity)

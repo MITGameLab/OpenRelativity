@@ -131,7 +131,7 @@ Shader "Relativity/ColorShift"
 		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
 		float4 vr;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if (speed != 0)
+		if (speed > divByZeroCutoff)
 		{
 			float4 uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 			//Get the perpendicular component of our velocity, just by subtraction
@@ -161,7 +161,7 @@ Shader "Relativity/ColorShift"
 		//riw = location in world, for reference
         float4 riw = o.pos; //Position that will be used in the output
 
-		if (speedr != 0)
+		if (speedr > divByZeroCutoff)
 		{
 			float4 viwScaled = _spdOfLight * viw;
 
@@ -195,7 +195,7 @@ Shader "Relativity/ColorShift"
 			//I had to break it up into steps, unity was getting order of operations wrong.	
 			float newz = (((float)speed*_spdOfLight) * tisw);
 
-			if (speed != 0) {
+			if (speed > divByZeroCutoff) {
 				float4 vpcUnit = _vpc / speed;
 				newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
 				riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;

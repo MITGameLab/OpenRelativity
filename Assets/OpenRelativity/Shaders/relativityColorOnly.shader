@@ -123,7 +123,7 @@ Shader "Relativity/ColorOnly"
 		float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
 		float4 vr;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if (speed != 0)
+		if (speed > divByZeroCutoff)
 		{
 			float4 uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
 			//Get the perpendicular component of our velocity, just by subtraction

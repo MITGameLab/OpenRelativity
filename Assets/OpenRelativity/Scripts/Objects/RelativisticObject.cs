@@ -32,7 +32,7 @@ namespace OpenRelativity.Objects
                 Vector3 playerVel = state.PlayerVelocityVector;
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
-                piw = piw.WorldToOptical(_viw, playerPos, playerVel).OpticalToWorld(value, playerPos, playerVel);
+                piw = piw.WorldToOptical(_viw, playerPos, playerVel).OpticalToWorldHighPrecision(value, playerPos, playerVel);
                 //test = test - piw.WorldToOptical(value, playerPos, playerVel);
                 if (!nonrelativisticShader)
                 {
@@ -803,11 +803,9 @@ namespace OpenRelativity.Objects
             tempViw += Physics.gravity * (float)state.FixedDeltaTimeWorld;
             tempViw = tempViw.RapidityToVelocity();
             float test = tempViw.x + tempViw.y + tempViw.z;
-            if (!float.IsNaN(test) && !float.IsInfinity(test))
+            if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
             {
                 viw = tempViw;
-                //Don't exceed max speed:
-                checkSpeed();
             }
         }
 
@@ -1162,7 +1160,7 @@ namespace OpenRelativity.Objects
         //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
-            if (viw.magnitude > state.MaxSpeed - .01)
+            if (viw.sqrMagnitude > ((state.MaxSpeed - .01) * (state.MaxSpeed - .01)))
             {
                 viw = viw.normalized * (float)(state.MaxSpeed - .01f);
             }

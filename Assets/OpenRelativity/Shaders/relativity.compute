@@ -71,7 +71,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
 	float3 vr;
 	//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-	if (speed != 0)
+	if (speed > divByZeroCutoff)
 	{
 		float3 uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
 		//Get the perpendicular component of our velocity, just by subtraction
@@ -94,7 +94,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float3 viwScaled = spdOfLight * viw;
 
 	//Transform fails and is unecessary if relative speed is zero:
-	if (speedr != 0)
+	if (speedr > divByZeroCutoff)
 	{
 		//Here begins a rotation-free modification of the original OpenRelativity shader:
 
@@ -114,7 +114,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 		//I had to break it up into steps, unity was getting order of operations wrong.	
 		float newz = (((float)speed*spdOfLight) * tisw);
 
-		if (speed != 0) {
+		if (speed > divByZeroCutoff) {
 			float3 vpcUnit = vpc / speed;
 			newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
 			riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
