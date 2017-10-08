@@ -1,4 +1,8 @@
-﻿Shader "Relativity/Lit/ColorShift" {
+﻿//NOTE: For correct relativistic behavior, all light sources must be static
+// with respect to world coordinates! General constant velocity lights are more complicated,
+// and lights that accelerate might not be at all feasible.
+
+Shader "Relativity/Lit/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -209,30 +213,51 @@
 
 		float getXFromCurve(float3 param, float shift)
 		{
-			float top1 = param.x * xla * exp((float)(-(pow((param.y*shift) - xlb, 2)
-				/ (2 * (pow(param.z*shift, 2) + pow(xlc, 2))))))*sqrt((float)(float(2)*(float)3.14159265358979323));
-			float bottom1 = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(xlc, 2)));
+			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
 
-			float top2 = param.x * xha * exp(float(-(pow((param.y*shift) - xhb, 2)
-				/ (2 * (pow(param.z*shift, 2) + pow(xhc, 2))))))*sqrt((float)(float(2)*(float)3.14159265358979323));
-			float bottom2 = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(xhc, 2)));
+			//Re-use memory to save per-vertex operations:
+			float bottom2 = param.z * shift;
+			bottom2 *= bottom2;
+
+			float top1 = param.x * xla * exp(-((((param.y * shift) - xlb) * ((param.y * shift) - xlb))
+				/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
+			float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
+
+			float top2 = param.x * xha * exp(-((((param.y * shift) - xhb) * ((param.y * shift) - xhb))
+				/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
+			bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
 
 			return (top1 / bottom1) + (top2 / bottom2);
 		}
 		float getYFromCurve(float3 param, float shift)
 		{
-			float top = param.x * ya * exp(float(-(pow((param.y*shift) - yb, 2)
-				/ (2 * (pow(param.z*shift, 2) + pow(yc, 2))))))*sqrt(float(float(2)*(float)3.14159265358979323));
-			float bottom = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(yc, 2)));
+			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+
+			//Re-use memory to save per-vertex operations:
+			float bottom = param.z * shift;
+			bottom *= bottom;
+
+			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
+				/ (2 * (bottom + yc * yc)))) * sqrt2Pi;
+			bottom = sqrt(1 / bottom + 1 / (yc * yc));
 
 			return top / bottom;
 		}
 
 		float getZFromCurve(float3 param, float shift)
 		{
-			float top = param.x * za * exp(float(-(pow((param.y*shift) - zb, 2)
-				/ (2 * (pow(param.z*shift, 2) + pow(zc, 2))))))*sqrt(float(float(2)*(float)3.14159265358979323));
-			float bottom = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(zc, 2)));
+			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+
+			//Re-use memory to save per-vertex operations:
+			float bottom = param.z * shift;
+			bottom *= bottom;
+
+			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
+				/ (2 * (bottom + zc * zc))))* sqrt2Pi;
+			bottom = sqrt(1 / bottom + 1 / (zc * zc));
 
 			return top / bottom;
 		}

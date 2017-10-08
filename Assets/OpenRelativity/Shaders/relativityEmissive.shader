@@ -1,4 +1,8 @@
-﻿Shader "Relativity/Lit/EmissiveColorShift" {
+﻿//NOTE: For correct relativistic behavior, all light sources must be static
+// with respect to world coordinates! General constant velocity lights are more complicated,
+// and lights that accelerate might not be at all feasible.
+
+Shader "Relativity/Lit/EmissiveColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -185,6 +189,8 @@
 		float nl = max(0, dot(worldNormal.xyz, _WorldSpaceLightPos0.xyz));
 		// factor in the light color
 		o.diff = nl * _LightColor0;
+		// add ambient light
+		o.diff.rgb += ShadeSH9(half4(worldNormal));
 
 		return o;
 	}
@@ -218,30 +224,51 @@
 
 	float getXFromCurve(float3 param, float shift)
 	{
-		float top1 = param.x * xla * exp((float)(-(pow((param.y*shift) - xlb, 2)
-			/ (2 * (pow(param.z*shift, 2) + pow(xlc, 2))))))*sqrt((float)(float(2)*(float)3.14159265358979323));
-		float bottom1 = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(xlc, 2)));
+		//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+		const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
 
-		float top2 = param.x * xha * exp(float(-(pow((param.y*shift) - xhb, 2)
-			/ (2 * (pow(param.z*shift, 2) + pow(xhc, 2))))))*sqrt((float)(float(2)*(float)3.14159265358979323));
-		float bottom2 = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(xhc, 2)));
+		//Re-use memory to save per-vertex operations:
+		float bottom2 = param.z * shift;
+		bottom2 *= bottom2;
+
+		float top1 = param.x * xla * exp(-((((param.y * shift) - xlb) * ((param.y * shift) - xlb))
+			/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
+		float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
+
+		float top2 = param.x * xha * exp(-((((param.y * shift) - xhb) * ((param.y * shift) - xhb))
+			/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
+		bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
 
 		return (top1 / bottom1) + (top2 / bottom2);
 	}
 	float getYFromCurve(float3 param, float shift)
 	{
-		float top = param.x * ya * exp(float(-(pow((param.y*shift) - yb, 2)
-			/ (2 * (pow(param.z*shift, 2) + pow(yc, 2))))))*sqrt(float(float(2)*(float)3.14159265358979323));
-		float bottom = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(yc, 2)));
+		//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+		const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+
+		//Re-use memory to save per-vertex operations:
+		float bottom = param.z * shift;
+		bottom *= bottom;
+
+		float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
+			/ (2 * (bottom + yc * yc)))) * sqrt2Pi;
+		bottom = sqrt(1 / bottom + 1 / (yc * yc));
 
 		return top / bottom;
 	}
 
 	float getZFromCurve(float3 param, float shift)
 	{
-		float top = param.x * za * exp(float(-(pow((param.y*shift) - zb, 2)
-			/ (2 * (pow(param.z*shift, 2) + pow(zc, 2))))))*sqrt(float(float(2)*(float)3.14159265358979323));
-		float bottom = sqrt((float)(1 / pow(param.z*shift, 2)) + (1 / pow(zc, 2)));
+		//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+		const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+
+		//Re-use memory to save per-vertex operations:
+		float bottom = param.z * shift;
+		bottom *= bottom;
+
+		float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
+			/ (2 * (bottom + zc * zc))))* sqrt2Pi;
+		bottom = sqrt(1 / bottom + 1 / (zc * zc));
 
 		return top / bottom;
 	}
@@ -313,8 +340,6 @@
 
 		xyz = RGBToXYZC((tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor);
 		weights = weightFromXYZCurves(xyz);
-		//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
-		//are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
 		rParam.x = weights.x;
 		gParam.x = weights.y;
 		bParam.x = weights.z;
@@ -388,84 +413,10 @@
 			//Per pixel shader, does color modifications
 			fixed4 frag_custom_meta(v2f i) : SV_Target
 			{
-				////Used to maintian a square scale ( adjust for screen aspect ratio )
-				//float3 x1y1z1 = i.pos2 * (float3)(2 * xs, 2 * xs / xyr, 1);
-
-				//// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-				//float shift = (1 - dot(x1y1z1, i.vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
-				//if (_colorShift == 0)
-				//{
-				//	shift = 1.0f;
-				//}
-
-				//Get initial color 
-				float4 data = tex2D(_MainTex, i.uv1).rgba;
-				//float UV = tex2D(_UVTex, i.uv2).r;
-				//float IR = tex2D(_IRTex, i.uv3).r;
-
-				//float3 rgb = data.xyz;
-
-				////Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-				//float3 xyz = RGBToXYZC(rgb);
-				//float3 weights = weightFromXYZCurves(xyz);
-				//float3 rParam,gParam,bParam,UVParam,IRParam;
-				//rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
-				//gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
-				//bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
-				//UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
-				//IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
-
-				//float xf = pow((1 / shift),3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
-				//float yf = pow((1 / shift),3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
-				//float zf = pow((1 / shift),3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
-				//float3 rgbFinal = XYZToRGBC(float3(xf,yf,zf));
-
-				float3 rgbFinal = data.xyz;
-
-				//xyz = RGBToXYZC(i.diff);
-				//weights = weightFromXYZCurves(xyz);
-				////The Doppler factor is squared for (diffuse or specular) reflected light:
-				//shift = shift * shift;
-				////The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
-				////are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
-				//rParam.x = weights.x;
-				//gParam.x = weights.y;
-				//bParam.x = weights.z;
-
-				//xf = pow((1 / shift), 3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-				//yf = pow((1 / shift), 3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-				//zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-				//float3 rgbLight = XYZToRGBC(float3(xf, yf, zf));
-				//Apply lighting:
-				rgbFinal *= i.diff;
-
-				//xyz = RGBToXYZC((tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor);
-				//weights = weightFromXYZCurves(xyz);
-				//shift = (1 - dot(x1y1z1, -i.vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
-				////The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
-				////are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
-				//rParam.x = weights.x;
-				//gParam.x = weights.y;
-				//bParam.x = weights.z;
-
-				//xf = pow((1 / shift), 3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-				//yf = pow((1 / shift), 3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-				//zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-				//float3 rgbEmission = XYZToRGBC(float3(xf, yf, zf));
-
-				float3 rgbEmission = RGBToXYZC((tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor);
-
-				rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
-
-																			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
-																			//float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
-																			//float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a));
-																			//return temp2;	
-																			//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a );
 				UnityMetaInput o;
 				UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
-				o.Albedo = rgbFinal;
-				o.Emission = rgbEmission;
+				o.Albedo = tex2D(_MainTex, i.uv1).rgb * i.diff;
+				o.Emission = (tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor;
 				return UnityMetaFragment(o);
 			}
 
