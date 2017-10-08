@@ -1,21 +1,20 @@
-Shader "Relativity/Unlit/ColorShift"
-{
-	Properties
-	{
-		_MainTex("Base (RGB)", 2D) = "" {} //Visible Spectrum Texture ( RGB )
+﻿Shader "Relativity/Lit/ColorShift" {
+	Properties{
+		_Color("Color", Color) = (1,1,1,1)
+		_MainTex("Albedo", 2D) = "white" {}
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in world frame
-		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1 //Used to determine when not to render alpha materials
+		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
+		_viw("viw", Vector) = (0,0,0,0)
 	}
-
 		CGINCLUDE
 
 #pragma exclude_renderers xbox360
 #pragma glsl
 #include "UnityCG.cginc"
+#include "UnityLightingCommon.cginc" // for _LightColor0
 
-			//Color shift variables, used to make guassians for XYZ curves
+//Color shift variables, used to make guassians for XYZ curves
 #define xla 0.39952807612909519
 #define xlb 444.63156780935032
 #define xlc 20.095464678736523
@@ -32,7 +31,7 @@ Shader "Relativity/Unlit/ColorShift"
 #define zb 448.45126344558236
 #define zc 22.357297606503543
 
-//Used to determine where to center UV/IR curves
+			//Used to determine where to center UV/IR curves
 #define IR_RANGE 400
 #define IR_START 700
 #define UV_RANGE 380
@@ -49,9 +48,9 @@ Shader "Relativity/Unlit/ColorShift"
 			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 			float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
-			//float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
 			float2 uv2 : TEXCOORD4; //UV TEXCOORD
 			float2 uv3 : TEXCOORD5; //IR TEXCOORD
+			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 		};
 
 
@@ -68,11 +67,9 @@ Shader "Relativity/Unlit/ColorShift"
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-		//float _gtt = 1; //velocity of player
+										  //float _gtt = 1; //velocity of player
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 		float _spdOfLight = 100; //current speed of light
-		//float _wrldTime = 0; //current time in world
-		//float _strtTime = 0; //starting time in world
 		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 		float xyr = 1; // xy ratio
@@ -82,7 +79,7 @@ Shader "Relativity/Unlit/ColorShift"
 		uniform float4 _CameraDepthTexture_ST;
 
 		//Per vertex operations
-		v2f vert(appdata_img v)
+		v2f vert(appdata_base v)
 		{
 			v2f o;
 
@@ -104,7 +101,7 @@ Shader "Relativity/Unlit/ColorShift"
 			if (speed > divByZeroCutoff)
 			{
 				float4 uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
-				//Get the perpendicular component of our velocity, just by subtraction
+																//Get the perpendicular component of our velocity, just by subtraction
 				float4 uperp = viw - uparra;
 				//relative velocity calculation
 				vr = (_vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
@@ -172,6 +169,13 @@ Shader "Relativity/Unlit/ColorShift"
 
 			o.pos = UnityObjectToClipPos(o.pos);
 
+			float4 nrml = float4(v.normal, 0);
+			float4 worldNormal = mul(unity_ObjectToWorld*1.0, nrml);
+			// dot product between normal and light direction for
+			// standard diffuse (Lambert) lighting
+			float nl = max(0, dot(worldNormal.xyz, _WorldSpaceLightPos0.xyz));
+			// factor in the light color
+			o.diff = nl * _LightColor0;
 
 			return o;
 		}
@@ -275,13 +279,11 @@ Shader "Relativity/Unlit/ColorShift"
 			{
 				shift = 1.0f;
 			}
+
 			//Get initial color 
 			float4 data = tex2D(_MainTex, i.uv1).rgba;
 			float UV = tex2D(_UVTex, i.uv2).r;
 			float IR = tex2D(_IRTex, i.uv3).r;
-
-			//Set alpha of drawing pixel to 0 if vertex shader has determined it should not be drawn.
-			//data.a = i.draw ? data.a : 0;
 
 			float3 rgb = data.xyz;
 
@@ -298,8 +300,26 @@ Shader "Relativity/Unlit/ColorShift"
 			float xf = pow((1 / shift),3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
 			float yf = pow((1 / shift),3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
 			float zf = pow((1 / shift),3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
-
 			float3 rgbFinal = XYZToRGBC(float3(xf,yf,zf));
+
+			xyz = RGBToXYZC(i.diff);
+			weights = weightFromXYZCurves(xyz);
+			//The Doppler factor is squared for (diffuse or specular) reflected light:
+			shift = shift * shift;
+			//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
+			//are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
+			rParam.x = weights.x;
+			gParam.x = weights.y;
+			bParam.x = weights.z;
+
+			xf = pow((1 / shift), 3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+			yf = pow((1 / shift), 3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+			zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+			float3 rgbLight = XYZToRGBC(float3(xf, yf, zf));
+
+			//Apply lighting:
+			rgbFinal *= rgbLight;
+
 			rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
 			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
@@ -318,8 +338,8 @@ Shader "Relativity/Unlit/ColorShift"
 				//Shader properties, for things such as transparency
 				Cull Off ZWrite On
 				ZTest LEqual
-				Fog { Mode off } //Fog does not shift properly and there is no way to do so with this fog
-				Tags {"RenderType" = "Transparent" "Queue" = "Transparent"}
+				Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
+				Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" }
 
 				AlphaTest Greater[_Cutoff]
 				Blend SrcAlpha OneMinusSrcAlpha
@@ -336,7 +356,5 @@ Shader "Relativity/Unlit/ColorShift"
 			}
 		}
 
-		Fallback "Unlit/Transparent"
-
-} // shader
-
+		FallBack "Relativity/Unlit/ColorShift"
+}
