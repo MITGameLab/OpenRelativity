@@ -352,10 +352,10 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 		bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
 		UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
 		IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
-		float xf = pow((1 / shift), 3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-		float yf = pow((1 / shift), 3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-		float zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-		float3 rgbEmission = XYZToRGBC(float3(xf, yf, zf));
+		xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+		float3 rgbEmission = XYZToRGBC(xyz);
 
 		//The Doppler factor is squared for (diffuse or specular) reflected light.
 		//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
@@ -375,13 +375,16 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 		rParam.x = weights.x;
 		gParam.x = weights.y;
 		bParam.x = weights.z;
-		xf = pow((1 / shift), 3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-		yf = pow((1 / shift), 3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-		zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-		float3 rgbFinal = XYZToRGBC(float3(xf, yf, zf));
-
+		xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+		float3 rgbFinal = XYZToRGBC(pow((1 / shift), 3) * xyz);
+		//Apply lighting:
+		rgbFinal *= i.diff;
+		//Doppler factor should be squared for reflected light:
+		rgbFinal = XYZToRGBC(pow(1 / shift, 3) * RGBToXYZC(rgbFinal));
+		//Add emission:
 		rgbFinal += rgbEmission;
-
 		rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
 																	//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
