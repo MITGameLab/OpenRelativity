@@ -2,7 +2,7 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Lit/EmissiveColorShift" {
+Shader "Relativity/VertexLit/EmissiveColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -382,7 +382,15 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 		//Apply lighting:
 		rgbFinal *= i.diff;
 		//Doppler factor should be squared for reflected light:
-		rgbFinal = XYZToRGBC(pow(1 / shift, 3) * RGBToXYZC(rgbFinal));
+		xyz = RGBToXYZC(rgbFinal);
+		weights = weightFromXYZCurves(xyz);
+		rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+		gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+		bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+		xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+		rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
 		//Add emission:
 		rgbFinal += rgbEmission;
 		rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
@@ -429,11 +437,12 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 			CGPROGRAM
 
 			//Per pixel shader, does color modifications
+			//Necessarily from static geometry, (so no Doppler shift).
 			fixed4 frag_custom_meta(v2f i) : SV_Target
 			{
 				UnityMetaInput o;
 				UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
-				o.Albedo = tex2D(_MainTex, i.uv1).rgb * i.diff;
+				o.Albedo = tex2D(_MainTex, i.uv1).rgb;
 				o.Emission = (tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor;
 				return UnityMetaFragment(o);
 			}

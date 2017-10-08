@@ -2,7 +2,7 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Lit/ColorShift" {
+Shader "Relativity/VertexLit/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -361,7 +361,15 @@ Shader "Relativity/Lit/ColorShift" {
 			//Apply lighting:
 			rgbFinal *= i.diff;
 			//Doppler factor should be squared for reflected light:
-			rgbFinal = XYZToRGBC(pow(1 / shift, 3) * RGBToXYZC(rgbFinal));
+			xyz = RGBToXYZC(rgbFinal);
+			weights = weightFromXYZCurves(xyz);
+			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+			rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
 			rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
 			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
