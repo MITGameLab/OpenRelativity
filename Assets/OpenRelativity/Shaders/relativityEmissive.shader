@@ -342,27 +342,34 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 			shift = 1.0f;
 		}
 
+		//The Doppler factor is squared for (diffuse or specular) reflected light.
+		//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
+		//are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
+		//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent. 
+		shift = shift * shift;
+
 		//Get initial color 
 		float4 data = tex2D(_MainTex, i.uv1).rgba;
 		float UV = tex2D(_UVTex, i.uv2).r;
 		float IR = tex2D(_IRTex, i.uv3).r;
 
-		float3 rgb = data.xyz;
+		//Apply lighting in world frame:
+		float3 rgb = data.xyz * i.diff;
 
 		//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 		float3 xyz = RGBToXYZC(rgb);
 		float3 weights = weightFromXYZCurves(xyz);
-		float3 rParam,gParam,bParam,UVParam,IRParam;
+		float3 rParam, gParam, bParam, UVParam, IRParam;
 		rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
 		gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
 		bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
 		UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
 		IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
 
-		float xf = pow((1 / shift),3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
-		float yf = pow((1 / shift),3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
-		float zf = pow((1 / shift),3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
-		float3 rgbFinal = XYZToRGBC(float3(xf,yf,zf));
+		float xf = pow((1 / shift), 3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+		float yf = pow((1 / shift), 3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+		float zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+		float3 rgbFinal = XYZToRGBC(float3(xf, yf, zf));
 
 		xyz = RGBToXYZC((tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor);
 		weights = weightFromXYZCurves(xyz);
@@ -375,23 +382,6 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 		zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
 		float3 rgbEmission = XYZToRGBC(float3(xf, yf, zf));
 
-		xyz = RGBToXYZC(i.diff);
-		weights = weightFromXYZCurves(xyz);
-		//The Doppler factor is squared for (diffuse or specular) reflected light:
-		shift = shift * shift;
-		//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
-		//are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
-		rParam.x = weights.x;
-		gParam.x = weights.y;
-		bParam.x = weights.z;
-
-		xf = pow((1 / shift), 3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-		yf = pow((1 / shift), 3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-		zf = pow((1 / shift), 3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-		float3 rgbLight = XYZToRGBC(float3(xf, yf, zf));
-
-		//Apply lighting:
-		rgbFinal *= rgbLight;
 		rgbFinal += rgbEmission;
 
 		rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
