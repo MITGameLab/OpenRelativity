@@ -192,6 +192,32 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 		// add ambient light
 		o.diff.rgb += ShadeSH9(half4(worldNormal));
 
+#ifdef VERTEXLIGHT_ON
+		float4 lightPosition;
+		float3 vertexToLightSource, lightDirection, diffuseReflection;
+		float squaredDistance;
+		float attentuation;
+		for (int index = 0; index < 4; index++)
+		{
+			lightPosition = float4(unity_4LightPosX0[index],
+				unity_4LightPosY0[index],
+				unity_4LightPosZ0[index], 1.0);
+
+			vertexToLightSource =
+				lightPosition.xyz - output.posWorld.xyz;
+			lightDirection = normalize(vertexToLightSource);
+			squaredDistance =
+				dot(vertexToLightSource, vertexToLightSource);
+			attenuation = 1.0 / (1.0 +
+				unity_4LightAtten0[index] * squaredDistance);
+			diffuseReflection = attenuation
+				* unity_LightColor[index].rgb * _Color.rgb
+				* max(0.0, dot(output.normalDir, lightDirection));
+
+			o.diff += diffuseReflection;
+		}
+#endif
+
 		return o;
 	}
 
@@ -387,7 +413,7 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 			Cull Off ZWrite On
 			ZTest LEqual
 			Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
-			Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" }
+			Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" "LightMode" = "ForwardBase" }
 
 			AlphaTest Greater[_Cutoff]
 			Blend SrcAlpha OneMinusSrcAlpha
@@ -395,6 +421,7 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 			CGPROGRAM
 
 			#pragma fragmentoption ARB_precision_hint_nicest
+			#pragma multi_compile_fwdbase 
 
 			#pragma vertex vert
 			#pragma fragment frag
