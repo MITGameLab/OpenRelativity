@@ -44,6 +44,13 @@ Shader "Relativity/VertexLit/ColorShift" {
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
 
+		struct appdata {
+			float4 vertex : POSITION;
+			float4 texcoord : TEXCOORD0; // main uses 1st uv
+			float4 texcoord1 : TEXCOORD1; // lightmap uses 2nd uv
+			float4 normal : NORMAL; // lightmap uses 2nd uv
+		};
+
 		//This is the data sent from the vertex shader to the fragment shader
 		struct v2f
 		{
@@ -52,10 +59,10 @@ Shader "Relativity/VertexLit/ColorShift" {
 			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 			float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
-			float2 uv2 : TEXCOORD4; //UV TEXCOORD
-			float2 uv3 : TEXCOORD5; //IR TEXCOORD
+			float2 uv2 : TEXCOORD7; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 		};
+
 
 		uniform float4 _Color;
 		//Variables that we use to access texture data
@@ -83,7 +90,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 		uniform float4 _CameraDepthTexture_ST;
 
 		//Per vertex operations
-		v2f vert(appdata_base v)
+		v2f vert(appdata v)
 		{
 			v2f o;
 
@@ -92,8 +99,10 @@ Shader "Relativity/VertexLit/ColorShift" {
 			o.pos = mul(unity_ObjectToWorld, v.vertex) - _playerOffset; //Shift coordinates so player is at origin
 
 			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
-			o.uv2.xy = (v.texcoord + _UVTex_ST.zw) * _UVTex_ST.xy; //also for UV texture
-			o.uv3.xy = (v.texcoord + _IRTex_ST.zw) * _IRTex_ST.xy; //also for IR texture
+			o.uv2 = float2(0, 0);
+#ifdef LIGHTMAP_ON
+			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
+#endif
 
 			float speed = sqrt(dot(_vpc, _vpc));
 			//vw + vp/(1+vw*vp/c^2)
@@ -170,18 +179,21 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			o.pos2 = riw - _playerOffset;
 
-
 			o.pos = UnityObjectToClipPos(o.pos);
 
-			float4 nrml = float4(v.normal, 0);
-			float4 worldNormal = mul(unity_ObjectToWorld*1.0, nrml);
+//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
+			float4 worldNormal = normalize(mul(unity_ObjectToWorld, v.normal));
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
 			float nl = max(0, dot(worldNormal.xyz, _WorldSpaceLightPos0.xyz));
 			// factor in the light color
 			o.diff = nl * _LightColor0;
+			// add ambient light
+			o.diff.rgb += max(0, ShadeSH9(half4(worldNormal)));
 
-#ifdef VERTEXLIGHT_ON
+#if defined(VERTEXLIGHT_ON)
+
+
 			float4 lightPosition;
 			float3 vertexToLightSource, lightDirection, diffuseReflection;
 			float squaredDistance;
@@ -205,7 +217,13 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 				o.diff.xyz += diffuseReflection;
 			}
+#elif defined(LIGHTMAP_ON)
+			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
+			o.diff = float4((float3)lms, 0);
 #endif
+			//#else
+			//		o.diff = 0;
+			//#endif
 
 			return o;
 		}
@@ -338,8 +356,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			//Get initial color 
 			float4 data = tex2D(_MainTex, i.uv1).rgba;
-			float UV = tex2D(_UVTex, i.uv2).r;
-			float IR = tex2D(_IRTex, i.uv3).r;
+			float UV = tex2D(_UVTex, i.uv1).r;
+			float IR = tex2D(_IRTex, i.uv1).r;
 
 			//Apply lighting in world frame:
 			float3 rgb = data.xyz;
@@ -397,7 +415,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 				CGPROGRAM
 
 				#pragma fragmentoption ARB_precision_hint_nicest
-				#pragma multi_compile_fwdbase 
+				#pragma multi_compile_fwdbase
+				//#pragma multi_compile LIGHTMAP_ON VERTEXLIGHT_ON
 
 				#pragma vertex vert
 				#pragma fragment frag

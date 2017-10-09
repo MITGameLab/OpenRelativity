@@ -48,6 +48,13 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		//Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
 
+	struct appdata {
+		float4 vertex : POSITION;
+		float4 texcoord : TEXCOORD0; // main uses 1st uv
+		float4 texcoord1 : TEXCOORD1; // lightmap uses 2nd uv
+		float4 normal : NORMAL;
+	};
+
 	//This is the data sent from the vertex shader to the fragment shader
 	struct v2f
 	{
@@ -56,12 +63,12 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 		float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 		float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
-		float2 uv2 : TEXCOORD4; //UV TEXCOORD
-		float2 uv3 : TEXCOORD5; //IR TEXCOORD
-		float2 uv4 : TEXCOORD6; //EmisionMap TEXCOORD
+		float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
+		float2 uv3 : TEXCOORD5; //EmisionMap TEXCOORD
 		float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 	};
 
+	//uniform float4 _Color;
 	//Variables that we use to access texture data
 	//sampler2D _MainTex;
 	//uniform float4 _MainTex_ST;
@@ -69,10 +76,11 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 	uniform float4 _IRTex_ST;
 	sampler2D _UVTex;
 	uniform float4 _UVTex_ST;
-	sampler2D _CameraDepthTexture;
+	//sampler2D _EmissionMap;
 	uniform float4 _EmissionMap_ST;
-
+	//float _EmissionColor;
 	float _EmissionMultiplier;
+	sampler2D _CameraDepthTexture;
 
 	//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 	float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
@@ -90,7 +98,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 	uniform float4 _CameraDepthTexture_ST;
 
 	//Per vertex operations
-	v2f vert(appdata_base v)
+	v2f vert(appdata v)
 	{
 		v2f o;
 
@@ -99,9 +107,11 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		o.pos = mul(unity_ObjectToWorld, v.vertex) - _playerOffset; //Shift coordinates so player is at origin
 
 		o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
-		o.uv2.xy = (v.texcoord + _UVTex_ST.zw) * _UVTex_ST.xy; //also for UV texture
-		o.uv3.xy = (v.texcoord + _IRTex_ST.zw) * _IRTex_ST.xy; //also for IR texture
-		o.uv4.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy; //also for IR texture
+		o.uv2 = float2(0, 0);
+#ifdef LIGHTMAP_ON
+		o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
+#endif
+		o.uv3.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy;
 
 		float speed = sqrt(dot(_vpc, _vpc));
 		//vw + vp/(1+vw*vp/c^2)
@@ -173,25 +183,26 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 		riw += _playerOffset;
 
-		//Transform the vertex back into local space for the mesh to use it
+		//Transform the vertex back into local space for the mesh to use 
 		o.pos = mul(unity_WorldToObject*1.0, riw);
 
 		o.pos2 = riw - _playerOffset;
 
-
 		o.pos = UnityObjectToClipPos(o.pos);
 
-		float4 nrml = float4(v.normal, 0);
-		float4 worldNormal = mul(unity_ObjectToWorld*1.0, nrml);
+		//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
+		float4 worldNormal = normalize(mul(unity_ObjectToWorld, v.normal));
 		// dot product between normal and light direction for
 		// standard diffuse (Lambert) lighting
 		float nl = max(0, dot(worldNormal.xyz, _WorldSpaceLightPos0.xyz));
 		// factor in the light color
 		o.diff = nl * _LightColor0;
 		// add ambient light
-		o.diff.rgb += ShadeSH9(half4(worldNormal));
+		o.diff.rgb += max(0, ShadeSH9(half4(worldNormal)));
 
-#ifdef VERTEXLIGHT_ON
+#if defined(VERTEXLIGHT_ON)
+
+
 		float4 lightPosition;
 		float3 vertexToLightSource, lightDirection, diffuseReflection;
 		float squaredDistance;
@@ -215,7 +226,13 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 			o.diff.xyz += diffuseReflection;
 		}
+#elif defined(LIGHTMAP_ON)
+		half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
+		o.diff = float4((float3)lms, 0);
 #endif
+		//#else
+		//		o.diff = 0;
+		//#endif
 
 		return o;
 	}
@@ -341,12 +358,13 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 			shift = 1.0f;
 		}
 
-		float UV = tex2D(_UVTex, i.uv2).r;
-		float IR = tex2D(_IRTex, i.uv3).r;
+		float UV = tex2D(_UVTex, i.uv1).r;
+		float IR = tex2D(_IRTex, i.uv1).r;
 
-		float3 xyz = RGBToXYZC((tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor);
+		float3 xyz = RGBToXYZC((tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor);
 		float3 weights = weightFromXYZCurves(xyz);
-		float3 rParam, gParam, bParam, UVParam, IRParam;		rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+		float3 rParam, gParam, bParam, UVParam, IRParam;
+		rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
 		gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
 		bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
 		UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
@@ -360,24 +378,26 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
 		//are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
 		//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent. 
-		shift = shift * shift;
 
 		//Get initial color 
 		float4 data = tex2D(_MainTex, i.uv1).rgba;
 
 		//Apply lighting in world frame:
-		float3 rgb = data.xyz * i.diff;
+		float3 rgb = data.xyz;
 
 		//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 		xyz = RGBToXYZC(rgb);
 		weights = weightFromXYZCurves(xyz);
-		rParam.x = weights.x;
-		gParam.x = weights.y;
-		bParam.x = weights.z;
+		rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+		gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+		bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+		UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
+		IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
+
 		xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
 		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
 		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-		float3 rgbFinal = XYZToRGBC(pow((1 / shift), 3) * xyz);
+		float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
 		//Apply lighting:
 		rgbFinal *= i.diff;
 		//Doppler factor should be squared for reflected light:
@@ -419,7 +439,8 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 			CGPROGRAM
 
 			#pragma fragmentoption ARB_precision_hint_nicest
-			#pragma multi_compile_fwdbase 
+			#pragma multi_compile_fwdbase
+			//#pragma multi_compile LIGHTMAP_ON VERTEXLIGHT_ON
 
 			#pragma vertex vert
 			#pragma fragment frag
@@ -442,7 +463,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 				UnityMetaInput o;
 				UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
 				o.Albedo = tex2D(_MainTex, i.uv1).rgb;
-				o.Emission = (tex2D(_EmissionMap, i.uv4) * _EmissionMultiplier) * _EmissionColor;
+				o.Emission = (tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor;
 				return UnityMetaFragment(o);
 			}
 
