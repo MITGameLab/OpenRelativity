@@ -204,7 +204,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 				unity_4LightPosZ0[index], 1.0);
 
 			vertexToLightSource =
-				lightPosition.xyz - output.posWorld.xyz;
+				lightPosition.xyz - pos.xyz;
 			lightDirection = normalize(vertexToLightSource);
 			squaredDistance =
 				dot(vertexToLightSource, vertexToLightSource);
@@ -212,7 +212,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 				unity_4LightAtten0[index] * squaredDistance);
 			diffuseReflection = attenuation
 				* unity_LightColor[index].rgb * _Color.rgb
-				* max(0.0, dot(output.normalDir, lightDirection));
+				* max(0.0, dot(worldNormal.xyz, lightDirection));
 
 			o.diff += diffuseReflection;
 		}
