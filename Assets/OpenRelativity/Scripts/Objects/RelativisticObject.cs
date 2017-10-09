@@ -603,6 +603,7 @@ namespace OpenRelativity.Objects
         {
             _viw = initialViw;
             _aviw = initialAviw;
+            piw = transform.position;
             isSleeping = false;
             isSleepingOnCollider = false;
             didCollide = false;
@@ -948,70 +949,73 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            if (meshFilter != null && !state.MovementFrozen)
+            if (!state.MovementFrozen)
             {
-                //As long as our object is actually alive, perform these calculations
-                if (transform != null)
+                if (meshFilter != null)
                 {
-                    /***************************
-                     * Start Part 6 Bullet 1
-                     * *************************/
-
-                    float tisw = GetTisw();
-
-                    /****************************
-                     * Start Part 6 Bullet 2
-                     * **************************/
-
-                    //If we're past our death time (in the player's view, as seen by tisw)
-                    if (state.TotalTimeWorld + localTimeOffset + tisw > DeathTime)
+                    //As long as our object is actually alive, perform these calculations
+                    if (transform != null)
                     {
-                        KillObject();
-                    }
-                    else if ((state.TotalTimeWorld + localTimeOffset + tisw > startTime))
-                    {
-                        //Grab our renderer.
-                        Renderer tempRenderer = GetComponent<Renderer>();
-                        if (!tempRenderer.enabled)
+                        /***************************
+                         * Start Part 6 Bullet 1
+                         * *************************/
+
+                        float tisw = GetTisw();
+
+                        /****************************
+                         * Start Part 6 Bullet 2
+                         * **************************/
+
+                        //If we're past our death time (in the player's view, as seen by tisw)
+                        if (state.TotalTimeWorld + localTimeOffset + tisw > DeathTime)
                         {
-                            tempRenderer.enabled = !hasParent;
-                            AudioSource[] audioSources = GetComponents<AudioSource>();
-                            if (audioSources.Length > 0)
+                            KillObject();
+                        }
+                        else if ((state.TotalTimeWorld + localTimeOffset + tisw > startTime))
+                        {
+                            //Grab our renderer.
+                            Renderer tempRenderer = GetComponent<Renderer>();
+                            if (!tempRenderer.enabled)
                             {
-                                for (int i = 0; i < audioSources.Length; i++)
+                                tempRenderer.enabled = !hasParent;
+                                AudioSource[] audioSources = GetComponents<AudioSource>();
+                                if (audioSources.Length > 0)
                                 {
-                                    audioSources[i].enabled = true;
+                                    for (int i = 0; i < audioSources.Length; i++)
+                                    {
+                                        audioSources[i].enabled = true;
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                //update our viw and set the rigid body proportionally
-                if (myRigidbody != null
-                    && !double.IsNaN(state.SqrtOneMinusVSquaredCWDividedByCSquared)
-                    && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0.0
-                    && state.SpeedOfLightSqrd != 0.0)
+                    //update our viw and set the rigid body proportionally
+                    if (myRigidbody != null
+                        && !double.IsNaN(state.SqrtOneMinusVSquaredCWDividedByCSquared)
+                        && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0.0
+                        && state.SpeedOfLightSqrd != 0.0)
+                    {
+                        //Dragging probably happens intrinsically in the rest frame,
+                        // so it acts on the rapidity. (Drag is computationally expensive
+                        // due to tripping the velocity setter every frame.)
+                        // TODO: Replace with drag force
+                        //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
+                        //viw = rapidity.RapidityToVelocity();
+                        //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
+
+                        //Correct for both time dilation and change in metric due to player acceleration:
+                        float timeFactor = GetGtt() / (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        myRigidbody.velocity = viw * timeFactor;
+                        myRigidbody.angularVelocity = aviw * timeFactor;
+                    }
+                }
+                //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
+                else if (myRigidbody != null && GetComponent<MeshRenderer>() != null)
                 {
-                    //Dragging probably happens intrinsically in the rest frame,
-                    // so it acts on the rapidity. (Drag is computationally expensive
-                    // due to tripping the velocity setter every frame.)
-                    // TODO: Replace with drag force
-                    //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
-                    //viw = rapidity.RapidityToVelocity();
-                    //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
-
-                    //Correct for both time dilation and change in metric due to player acceleration:
-                    float timeFactor = GetGtt() / (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                    myRigidbody.velocity = viw * timeFactor;
-                    myRigidbody.angularVelocity = aviw * timeFactor;
+                    myRigidbody.velocity = Vector3.zero;
+                    myRigidbody.angularVelocity = Vector3.zero;
                 }
-            }
-            //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
-            else if (meshFilter != null && myRigidbody != null && GetComponent<MeshRenderer>() != null)
-            {
-                myRigidbody.velocity = Vector3.zero;
-                myRigidbody.angularVelocity = Vector3.zero;
             }
 
             if (nonrelativisticShader)

@@ -203,7 +203,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 				unity_4LightPosZ0[index], 1.0);
 
 			vertexToLightSource =
-				lightPosition.xyz - o.pos.xyz;
+				lightPosition.xyz - o.pos2.xyz;
 			lightDirection = normalize(vertexToLightSource);
 			squaredDistance =
 				dot(vertexToLightSource, vertexToLightSource);

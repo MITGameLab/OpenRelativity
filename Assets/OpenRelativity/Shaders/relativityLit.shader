@@ -165,7 +165,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			riw += _playerOffset;
 
-			//Transform the vertex back into local space for the mesh to use it
+			//Transform the vertex back into local space for the mesh to use 
 			o.pos = mul(unity_WorldToObject*1.0, riw);
 
 			o.pos2 = riw - _playerOffset;
@@ -193,7 +193,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 					unity_4LightPosZ0[index], 1.0);
 
 				vertexToLightSource =
-					lightPosition.xyz - o.pos.xyz;
+					lightPosition.xyz - o.pos2.xyz;
 				lightDirection = normalize(vertexToLightSource);
 				squaredDistance =
 					dot(vertexToLightSource, vertexToLightSource);
