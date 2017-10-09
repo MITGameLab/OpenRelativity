@@ -57,7 +57,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 		};
 
-
+		uniform float4 _Color;
 		//Variables that we use to access texture data
 		sampler2D _MainTex;
 		uniform float4 _MainTex_ST;
@@ -185,7 +185,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 			float4 lightPosition;
 			float3 vertexToLightSource, lightDirection, diffuseReflection;
 			float squaredDistance;
-			float attentuation;
+			float attenuation;
 			for (int index = 0; index < 4; index++)
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
@@ -193,7 +193,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 					unity_4LightPosZ0[index], 1.0);
 
 				vertexToLightSource =
-					lightPosition.xyz - pos.xyz;
+					lightPosition.xyz - o.pos.xyz;
 				lightDirection = normalize(vertexToLightSource);
 				squaredDistance =
 					dot(vertexToLightSource, vertexToLightSource);
@@ -203,7 +203,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 					* unity_LightColor[index].rgb * _Color.rgb
 					* max(0.0, dot(worldNormal.xyz, lightDirection));
 
-				o.diff += diffuseReflection;
+				o.diff.xyz += diffuseReflection;
 			}
 #endif
 
