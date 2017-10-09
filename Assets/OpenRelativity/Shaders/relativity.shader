@@ -296,6 +296,17 @@ Shader "Relativity/Unlit/ColorShift"
 			{
 				shift = 1.0f;
 			}
+
+			//This is a debatable and stylistic point,
+			// but, if we think of the albedo as due to (diffuse) reflectance, we should do this:
+			shift *= shift;
+			// Reflectance squares the effective Doppler shift. Unsquared, the shift
+			// would be appropriate for a black body or spectral emission spectrum.
+			// The factor can thought of as due to the apparent velocity of a (static with respect to world coordinates) source image,
+			// which is twice as much as the velocity of the (diffuse) "mirror." (See: https://arxiv.org/pdf/physics/0605100.pdf )
+			// The point is, most of the colors of common objects that humans see are due to reflectance.
+			// Light directly from a light bulb, or flame, or LED, would not receive this Doppler factor squaring.
+
 			//Get initial color 
 			float4 data = tex2D(_MainTex, i.uv1).rgba;
 			float UV = tex2D(_UVTex, i.uv2).r;
@@ -316,11 +327,10 @@ Shader "Relativity/Unlit/ColorShift"
 			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
 			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
 
-			float xf = pow((1 / shift),3)*(getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
-			float yf = pow((1 / shift),3)*(getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
-			float zf = pow((1 / shift),3)*(getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
-
-			float3 rgbFinal = XYZToRGBC(float3(xf,yf,zf));
+			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
+			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
+			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
+			float3 rgbFinal = XYZToRGBC(pow(1 / shift ,3) * xyz);
 			rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
 			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
