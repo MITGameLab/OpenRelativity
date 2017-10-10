@@ -182,13 +182,14 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			o.pos = UnityObjectToClipPos(o.pos);
 
-			o.normal = normalize(mul(unity_ObjectToWorld, v.normal));
+			o.normal = float4(UnityObjectToWorldNormal(v.normal), 0);
 
-//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
+			//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
 #if defined(VERTEXLIGHT_ON)
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
-			float nl = max(0, dot(o.normal.xyz, _WorldSpaceLightPos0.xyz));
+			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
+			nl = max(0, nl);
 			// factor in the light color
 			o.diff = nl * _LightColor0;
 			// add ambient light
@@ -231,7 +232,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 #else 
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
-			float nl = max(0, dot(o.normal.xyz, _WorldSpaceLightPos0.xyz));
+			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
+			nl = max(0, nl);
 			// factor in the light color
 			o.diff = nl * _LightColor0;
 			// add ambient light
@@ -411,8 +413,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 				attenuation = 1.0 / (1.0 + 0.0005 * distance * distance);
 				lightDirection = normalize(vertexToLightSource);
 			}
-
-			i.diff.rgb = float4(attenuation * _LightColor0.rgb * _Color.rgb * max(0.0, dot(normalDirection, lightDirection)), 1);
+			float nl = max(0, dot(normalDirection, lightDirection));
+			i.diff = float4(attenuation * _LightColor0.rgb * _Color.rgb * nl, 1);
 #endif
 
 			//Apply lighting:

@@ -191,14 +191,14 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 		o.pos = UnityObjectToClipPos(o.pos);
 
-		o.normal = normalize(mul(unity_ObjectToWorld, v.normal));
+		o.normal = float4(UnityObjectToWorldNormal(v.normal),0);
 
-//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
+		//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
 #if defined(VERTEXLIGHT_ON)
 		// dot product between normal and light direction for
 		// standard diffuse (Lambert) lighting
 		float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
-		nl = max(nl, -nl);
+		nl = max(0, nl);
 		// factor in the light color
 		o.diff = nl * _LightColor0;
 		// add ambient light
@@ -242,7 +242,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		// dot product between normal and light direction for
 		// standard diffuse (Lambert) lighting
 		float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
-		nl = max(nl, -nl);
+		nl = max(0, nl);
 		// factor in the light color
 		o.diff = nl * _LightColor0;
 		// add ambient light
@@ -425,6 +425,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
 		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
 		float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
+
 #ifdef POINT
 		float3 normalDirection = normalize(i.normal.xyz);
 		float3 lightDirection;
@@ -443,9 +444,10 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 			attenuation = 1.0 / (1.0 + 0.0005 * distance * distance);
 			lightDirection = normalize(vertexToLightSource);
 		}
-		float nl = dot(normalDirection, lightDirection);
-		i.diff = float4(attenuation * _LightColor0.rgb * _Color.rgb * max(nl, -nl), 1);
+		float nl = max(0, dot(normalDirection, lightDirection));
+		i.diff = float4(attenuation * _LightColor0.rgb * _Color.rgb * nl, 1);
 #endif
+
 		//Apply lighting:
 		rgbFinal *= i.diff;
 		//Doppler factor should be squared for reflected light:
