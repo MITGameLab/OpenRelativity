@@ -66,6 +66,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 		float2 uv3 : TEXCOORD5; //EmisionMap TEXCOORD
 		float4 diff : COLOR0; //Diffuse lighting color in world rest frame
+		float4 normal : TEXCOORD6; //normal in world
 	};
 
 	//uniform float4 _Color;
@@ -190,18 +191,18 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 		o.pos = UnityObjectToClipPos(o.pos);
 
-		//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
-		float4 worldNormal = normalize(mul(unity_ObjectToWorld, v.normal));
+		o.normal = normalize(mul(unity_ObjectToWorld, v.normal));
+
+//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
+#if defined(VERTEXLIGHT_ON)
 		// dot product between normal and light direction for
 		// standard diffuse (Lambert) lighting
-		float nl = max(0, dot(worldNormal.xyz, _WorldSpaceLightPos0.xyz));
+		float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
+		nl = max(nl, -nl);
 		// factor in the light color
 		o.diff = nl * _LightColor0;
 		// add ambient light
-		o.diff.rgb += max(0, ShadeSH9(half4(worldNormal)));
-
-#if defined(VERTEXLIGHT_ON)
-
+		o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 
 		float4 lightPosition;
 		float3 vertexToLightSource, lightDirection, diffuseReflection;
@@ -215,24 +216,41 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 			vertexToLightSource =
 				lightPosition.xyz - o.pos2.xyz;
-			lightDirection = normalize(vertexToLightSource);
 			squaredDistance =
 				dot(vertexToLightSource, vertexToLightSource);
-			attenuation = 1.0 / (1.0 +
-				unity_4LightAtten0[index] * squaredDistance);
+			if (dot(float4(0, 0, 1, 0), unity_SpotDirection[index]) != 1) // directional light?
+			{
+				attenuation = 1.0; // no attenuation
+				lightDirection =
+					normalize(unity_SpotDirection[index]);
+			}
+			else {
+				attenuation = 1.0 / (1.0 +
+					unity_4LightAtten0[index] * squaredDistance);
+				lightDirection = normalize(vertexToLightSource);
+			}
 			diffuseReflection = attenuation
 				* unity_LightColor[index].rgb * _Color.rgb
-				* max(0.0, dot(worldNormal.xyz, lightDirection));
+				* max(0.0, dot(o.normal.xyz, lightDirection));
 
-			o.diff.xyz += diffuseReflection;
+			o.diff.rgb += diffuseReflection;
 		}
 #elif defined(LIGHTMAP_ON)
 		half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
 		o.diff = float4((float3)lms, 0);
+#else 
+		// dot product between normal and light direction for
+		// standard diffuse (Lambert) lighting
+		float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
+		nl = max(nl, -nl);
+		// factor in the light color
+		o.diff = nl * _LightColor0;
+		// add ambient light
+		o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 #endif
-		//#else
-		//		o.diff = 0;
-		//#endif
+//#else
+//		o.diff = 0;
+//#endif
 
 		return o;
 	}
@@ -360,7 +378,15 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 		float UV = tex2D(_UVTex, i.uv1).r;
 		float IR = tex2D(_IRTex, i.uv1).r;
-
+#ifdef POINT
+		float3 rgbEmission = 0;
+		float3 xyz, weights, rParam, gParam, bParam, UVParam, IRParam;
+		rParam.y = (float)615; rParam.z = (float)8;
+		gParam.y = (float)550; gParam.z = (float)4;
+		bParam.y = (float)463; bParam.z = (float)5;
+		UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
+		IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
+#else
 		float3 xyz = RGBToXYZC((tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor);
 		float3 weights = weightFromXYZCurves(xyz);
 		float3 rParam, gParam, bParam, UVParam, IRParam;
@@ -373,6 +399,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
 		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
 		float3 rgbEmission = XYZToRGBC(xyz);
+#endif
 
 		//The Doppler factor is squared for (diffuse or specular) reflected light.
 		//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
@@ -398,6 +425,27 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
 		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
 		float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
+#ifdef POINT
+		float3 normalDirection = normalize(i.normal.xyz);
+		float3 lightDirection;
+		float attenuation;
+		if (0.0 == _WorldSpaceLightPos0.w) // directional light?
+		{
+			attenuation = 1.0; // no attenuation
+			lightDirection =
+				normalize(_WorldSpaceLightPos0.xyz);
+		}
+		else // point or spot light
+		{
+			float3 vertexToLightSource =
+				_WorldSpaceLightPos0.xyz - i.pos2.xyz;
+			float distance = length(vertexToLightSource);
+			attenuation = 1.0 / (1.0 + 0.0005 * distance * distance);
+			lightDirection = normalize(vertexToLightSource);
+		}
+		float nl = dot(normalDirection, lightDirection);
+		i.diff = float4(attenuation * _LightColor0.rgb * _Color.rgb * max(nl, -nl), 1);
+#endif
 		//Apply lighting:
 		rgbFinal *= i.diff;
 		//Doppler factor should be squared for reflected light:
@@ -439,8 +487,27 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 			CGPROGRAM
 
 			#pragma fragmentoption ARB_precision_hint_nicest
+
 			#pragma multi_compile_fwdbase
 			//#pragma multi_compile LIGHTMAP_ON VERTEXLIGHT_ON
+			//#pragma multi_compile FORWARD_BASE_PASS
+
+			#pragma vertex vert
+			#pragma fragment frag
+			#pragma target 3.0
+
+			ENDCG
+		}
+
+		Pass{
+			Tags{ "LightMode" = "ForwardAdd" }
+			// pass for additional light sources
+			Blend One One // additive blending 
+
+			CGPROGRAM
+
+			#pragma fragmentoption ARB_precision_hint_nicest
+			#pragma multi_compile_fwdadd
 
 			#pragma vertex vert
 			#pragma fragment frag

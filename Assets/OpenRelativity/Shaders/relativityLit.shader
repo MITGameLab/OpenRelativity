@@ -59,8 +59,9 @@ Shader "Relativity/VertexLit/ColorShift" {
 			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 			float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
-			float2 uv2 : TEXCOORD7; //Lightmap TEXCOORD
+			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
+			float4 normal : TEXCOORD5; //normal in world
 		};
 
 
@@ -98,7 +99,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			o.pos = mul(unity_ObjectToWorld, v.vertex) - _playerOffset; //Shift coordinates so player is at origin
 
-			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
+			o.uv1.xy = v.texcoord * _MainTex_ST.xy + _MainTex_ST.zw; //get the UV coordinate for the current vertex, will be passed to fragment shader
 			o.uv2 = float2(0, 0);
 #ifdef LIGHTMAP_ON
 			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
@@ -181,18 +182,17 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			o.pos = UnityObjectToClipPos(o.pos);
 
+			o.normal = normalize(mul(unity_ObjectToWorld, v.normal));
+
 //#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
-			float4 worldNormal = normalize(mul(unity_ObjectToWorld, v.normal));
+#if defined(VERTEXLIGHT_ON)
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
-			float nl = max(0, dot(worldNormal.xyz, _WorldSpaceLightPos0.xyz));
+			float nl = max(0, dot(o.normal.xyz, _WorldSpaceLightPos0.xyz));
 			// factor in the light color
 			o.diff = nl * _LightColor0;
 			// add ambient light
-			o.diff.rgb += max(0, ShadeSH9(half4(worldNormal)));
-
-#if defined(VERTEXLIGHT_ON)
-
+			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 
 			float4 lightPosition;
 			float3 vertexToLightSource, lightDirection, diffuseReflection;
@@ -206,24 +206,40 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 				vertexToLightSource =
 					lightPosition.xyz - o.pos2.xyz;
-				lightDirection = normalize(vertexToLightSource);
 				squaredDistance =
 					dot(vertexToLightSource, vertexToLightSource);
-				attenuation = 1.0 / (1.0 +
-					unity_4LightAtten0[index] * squaredDistance);
+				if (dot(float4(0, 0, 1, 0), unity_SpotDirection[index]) != 1) // directional light?
+				{
+					attenuation = 1.0; // no attenuation
+					lightDirection =
+						normalize(unity_SpotDirection[index]);
+				}
+				else {
+					attenuation = 1.0 / (1.0 +
+						unity_4LightAtten0[index] * squaredDistance);
+					lightDirection = normalize(vertexToLightSource);
+				}
 				diffuseReflection = attenuation
 					* unity_LightColor[index].rgb * _Color.rgb
-					* max(0.0, dot(worldNormal.xyz, lightDirection));
+					* max(0.0, dot(o.normal.xyz, lightDirection));
 
-				o.diff.xyz += diffuseReflection;
+				o.diff.rgb += diffuseReflection;
 			}
 #elif defined(LIGHTMAP_ON)
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
 			o.diff = float4((float3)lms, 0);
+#else 
+			// dot product between normal and light direction for
+			// standard diffuse (Lambert) lighting
+			float nl = max(0, dot(o.normal.xyz, _WorldSpaceLightPos0.xyz));
+			// factor in the light color
+			o.diff = nl * _LightColor0;
+			// add ambient light
+			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 #endif
-			//#else
-			//		o.diff = 0;
-			//#endif
+//#else
+//		o.diff = 0;
+//#endif
 
 			return o;
 		}
@@ -376,6 +392,29 @@ Shader "Relativity/VertexLit/ColorShift" {
 			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
 			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
 			float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
+
+#ifdef POINT
+			float3 normalDirection = normalize(i.normal.xyz);
+			float3 lightDirection;
+			float attenuation;
+			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
+			{
+				attenuation = 1.0; // no attenuation
+				lightDirection =
+					normalize(_WorldSpaceLightPos0.xyz);
+			}
+			else // point or spot light
+			{
+				float3 vertexToLightSource =
+					_WorldSpaceLightPos0.xyz - i.pos2.xyz;
+				float distance = length(vertexToLightSource);
+				attenuation = 1.0 / (1.0 + 0.0005 * distance * distance);
+				lightDirection = normalize(vertexToLightSource);
+			}
+
+			i.diff.rgb = float4(attenuation * _LightColor0.rgb * _Color.rgb * max(0.0, dot(normalDirection, lightDirection)), 1);
+#endif
+
 			//Apply lighting:
 			rgbFinal *= i.diff;
 			//Doppler factor should be squared for reflected light:
@@ -415,8 +454,28 @@ Shader "Relativity/VertexLit/ColorShift" {
 				CGPROGRAM
 
 				#pragma fragmentoption ARB_precision_hint_nicest
+
 				#pragma multi_compile_fwdbase
 				//#pragma multi_compile LIGHTMAP_ON VERTEXLIGHT_ON
+				//#pragma multi_compile FORWARD_BASE_PASS
+
+				#pragma vertex vert
+				#pragma fragment frag
+				#pragma target 3.0
+				#pragma FORWARD_BASE_PASS
+
+				ENDCG
+			}
+
+			Pass{
+				Tags{ "LightMode" = "ForwardAdd" }
+				// pass for additional light sources
+				Blend One One // additive blending 
+
+				CGPROGRAM
+
+				#pragma fragmentoption ARB_precision_hint_nicest
+				#pragma multi_compile_fwdadd
 
 				#pragma vertex vert
 				#pragma fragment frag
