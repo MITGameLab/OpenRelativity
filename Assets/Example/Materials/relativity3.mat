@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_Name: relativity3
+  m_Shader: {fileID: 4800000, guid: 3d1e4cad500d9ec4abaa059aeb862431, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _EmissionMap:
+        m_Texture: {fileID: 2800000, guid: ec001dfafb93de3419ba484ba6fac082, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _IRTex:
+        m_Texture: {fileID: 2800000, guid: f27fe42b9399022438e84e04a0bf9f7d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: b737de5bd171aba448e3722f2fb1f355, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _UVTex:
+        m_Texture: {fileID: 2800000, guid: 5fcb170f12a4b4844af24eefdf1ec1f3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _Cutoff: 0
+    - _EmissionMultiplier: 0.1
+    - _strtTime: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 1, b: 1, a: 1}
+    - _aviw: {r: 0, g: 0, b: 0, a: 0}
+    - _piw: {r: 0, g: 0, b: 0, a: 0}
+    - _viw: {r: 0, g: 0, b: 0, a: 0}

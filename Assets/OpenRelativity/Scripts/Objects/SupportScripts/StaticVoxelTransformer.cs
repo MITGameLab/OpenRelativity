@@ -8,6 +8,7 @@ namespace OpenRelativity.Objects
 {
     public class StaticVoxelTransformer : MonoBehaviour
     {
+        public bool forceCPU = true;
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
@@ -159,7 +160,7 @@ namespace OpenRelativity.Objects
                         cullingFrameCount = 0;
                         Cull();
                     }
-                    if (colliderShader != null && SystemInfo.supportsComputeShaders)
+                    if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
                     {
                         finishedCoroutine = false;
                         StartCoroutine("GPUUpdatePositions");
@@ -181,7 +182,7 @@ namespace OpenRelativity.Objects
                 cullingFrameCount = cullingFrameInterval;
                 if (!wasFrozen)
                 {
-                    if (colliderShader != null && SystemInfo.supportsComputeShaders)
+                    if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
                     {
                         finishedCoroutine = false;
                         StartCoroutine("GPUUpdatePositions");
@@ -252,7 +253,7 @@ namespace OpenRelativity.Objects
                 nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
-                    if (coroutineTimer.ElapsedMilliseconds > 20)
+                    if (coroutineTimer.ElapsedMilliseconds > 8)
                     {
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
@@ -283,7 +284,7 @@ namespace OpenRelativity.Objects
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
                     //Change mesh:
-                    if (coroutineTimer.ElapsedMilliseconds > 1)
+                    if (coroutineTimer.ElapsedMilliseconds > 8)
                     {
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
