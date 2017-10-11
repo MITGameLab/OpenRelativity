@@ -217,16 +217,16 @@ namespace OpenRelativity
                         {
                             if (!isFalling)
                             {
-                                if (rotatedVelocity.y > 0.0f)
+                                if (addedVelocity.y > 0.0f)
                                 {
-                                    rotatedVelocity.y = 0.0f;
+                                    addedVelocity.y = 0.0f;
                                 }
-                                state.PlayerVelocityVector = rotatedVelocity;
-                                totalAccel += Physics.gravity;
+                                state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(addedVelocity);
+                                acceleration += Physics.gravity;
                             }
                             else
                             {
-                                state.PlayerVelocityVector = rotatedVelocity.AddVelocity((-Physics.gravity * Time.deltaTime).RapidityToVelocity());
+                                state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(addedVelocity.AddVelocity((-Physics.gravity * Time.deltaTime).RapidityToVelocity()));
                             }
                         }
                     }
