@@ -787,7 +787,7 @@ namespace OpenRelativity.Objects
         public void UpdateGravity()
         {
             Vector3 tempViw = viw.Gamma() * viw;
-            tempViw += Physics.gravity * (float)state.FixedDeltaTimeWorld;
+            tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw));
             tempViw = tempViw.RapidityToVelocity();
             float test = tempViw.x + tempViw.y + tempViw.z;
             if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
@@ -799,7 +799,7 @@ namespace OpenRelativity.Objects
         public void Update()
         {
 
-            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw) * state.SqrtOneMinusVSquaredCWDividedByCSquared - 1.0);
+            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw) - 1.0);
 
             EnforceCollision();
 
@@ -907,36 +907,6 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            if (myRigidbody != null)
-            {
-
-                if (!isSleeping
-                    && (((viw.sqrMagnitude < (sleepVelocity * sleepVelocity)) && (aviw.sqrMagnitude < (sleepVelocity * sleepVelocity)))
-                    || ((sleepOldPosition - transform.position).sqrMagnitude < (sleepDistance * sleepDistance))) )
-                {
-                    sleepFrameCounter++;
-                    if (sleepFrameCounter >= sleepFrameDelay)
-                    {
-                        sleepFrameCounter = sleepFrameDelay;
-                        Sleep();
-                    }
-                }
-                else
-                {
-                    sleepFrameCounter = 0;
-                }
-
-                if (!isSleeping && useGravity && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
-                {
-                    UpdateGravity();
-                }
-
-                if ((sleepOldPosition - transform.position).sqrMagnitude >= (sleepDistance * sleepDistance))
-                {
-                    sleepOldPosition = transform.position;
-                }
-            }
-
             if (!state.MovementFrozen)
             {
                 if (meshFilter != null)
@@ -977,7 +947,62 @@ namespace OpenRelativity.Objects
                             }
                         }
                     }
+                }
 
+                if (nonrelativisticShader)
+                {
+                    if (!isStatic && !isSleeping)
+                    {
+                        //Update the position in world, if necessary:
+                        piw += transform.position - contractor.position;
+                    }
+                    transform.localPosition = Vector3.zero;
+                    contractor.position = piw.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
+                    ContractLength();
+                }
+                else
+                {
+                    piw = transform.position;
+                }
+
+                if (!myColliderIsVoxel)
+                {
+                    UpdateColliderPosition();
+                }
+                MarkStaticColliderPos();
+
+                //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
+                if (myColliderIsBox && isSleeping && isSleepingOnCollider)
+                {
+                    int myLayer = gameObject.layer;
+                    gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
+
+                    float extentY = myColliders[0].bounds.extents.y;
+                    float maxDist = 100f;
+                    Ray downRay = new Ray()
+                    {
+                        direction = Vector3.down,
+                        origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center) + extentY * Vector3.up
+                    };
+                    RaycastHit hitInfo;
+                    if (Physics.Raycast(downRay, out hitInfo, maxDist, gameObject.layer))
+                    {
+                        if (nonrelativisticShader)
+                        {
+                            contractor.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
+                            transform.localPosition = Vector3.zero;
+                        }
+                        else
+                        {
+                            transform.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
+                        }
+                    }
+
+                    gameObject.layer = myLayer;
+                }
+
+                if (myRigidbody != null)
+                {
                     //update our viw and set the rigid body proportionally
                     //Dragging probably happens intrinsically in the rest frame,
                     // so it acts on the rapidity. (Drag is computationally expensive
@@ -989,65 +1014,39 @@ namespace OpenRelativity.Objects
 
                     //Correct for both time dilation and change in metric due to player acceleration:
                     UpdateRigidbodyVelocity(viw, aviw);
-                }
-                //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
-                else if (myRigidbody != null && GetComponent<MeshRenderer>() != null)
-                {
-                    myRigidbody.velocity = Vector3.zero;
-                    myRigidbody.angularVelocity = Vector3.zero;
-                }
-            }
 
-            if (nonrelativisticShader)
-            {
-                if (!isStatic && !isSleeping)
-                {
-                    //Update the position in world, if necessary:
-                    piw += transform.position - contractor.position;
-                }
-                transform.localPosition = Vector3.zero;
-                contractor.position = piw.WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector);
-                ContractLength();
-            }
-            else
-            {
-                piw = transform.position;
-            }
-
-            if (!myColliderIsVoxel)
-            {
-                UpdateColliderPosition();
-            }
-            MarkStaticColliderPos();
-
-            //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
-            if (myColliderIsBox && isSleeping && isSleepingOnCollider)
-            {
-                int myLayer = gameObject.layer;
-                gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
-                
-                float extentY = myColliders[0].bounds.extents.y;
-                float maxDist = 100f;
-                Ray downRay = new Ray()
-                {
-                    direction = Vector3.down,
-                    origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center) + extentY * Vector3.up
-                };
-                RaycastHit hitInfo;
-                if (Physics.Raycast(downRay, out hitInfo, maxDist, gameObject.layer))
-                {
-                    if (nonrelativisticShader)
+                    if (!isSleeping
+                        && (((viw.sqrMagnitude < (sleepVelocity * sleepVelocity)) && (aviw.sqrMagnitude < (sleepVelocity * sleepVelocity)))
+                        || ((sleepOldPosition - transform.position).sqrMagnitude < (sleepDistance * sleepDistance))))
                     {
-                        contractor.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
-                        transform.localPosition = Vector3.zero;
+                        sleepFrameCounter++;
+                        if (sleepFrameCounter >= sleepFrameDelay)
+                        {
+                            sleepFrameCounter = sleepFrameDelay;
+                            Sleep();
+                        }
                     }
                     else
                     {
-                        transform.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
+                        sleepFrameCounter = 0;
+                    }
+
+                    if (!isSleeping && useGravity && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                    {
+                        UpdateGravity();
+                    }
+
+                    if ((sleepOldPosition - transform.position).sqrMagnitude >= (sleepDistance * sleepDistance))
+                    {
+                        sleepOldPosition = transform.position;
                     }
                 }
-
-                gameObject.layer = myLayer;
+            }
+            //If our rigidbody is not null, and movement is frozen, then set the object to standstill.
+            else if (myRigidbody != null)
+            {
+                myRigidbody.velocity = Vector3.zero;
+                myRigidbody.angularVelocity = Vector3.zero;
             }
         }
 
@@ -1619,7 +1618,7 @@ namespace OpenRelativity.Objects
             //The relative contact point is the lever arm of the torque:
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld * GetTimeFactor(viw) * state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw));
 
             //The change in rapidity on the line of action:
             Vector3 finalLinearRapidity = relVelGamma * myVel + impulse / mass * lineOfAction;
@@ -1853,9 +1852,9 @@ namespace OpenRelativity.Objects
 
         private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)
         {
-            if (myRigidbody != null && viw.sqrMagnitude < state.SpeedOfLightSqrd && state.SqrtOneMinusVSquaredCWDividedByCSquared > 0)
+            if (myRigidbody != null)
             {
-                if (!state.MovementFrozen)
+                if ((!state.MovementFrozen) && (viw.sqrMagnitude < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
                     Matrix4x4 metric = GetMetric();
                     float timeFactor = (float)GetTimeFactor(mViw);
