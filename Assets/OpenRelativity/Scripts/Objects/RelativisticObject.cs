@@ -1810,9 +1810,18 @@ namespace OpenRelativity.Objects
             }
         }
 
-        //This is the "t-t" or "0-0" component of the metric tensor in an accelerated frame in special relativity.
-        // It appears to change due to proper acceleration from the player's/camera's point of view, since acceleration is not relative.
-        // It also depends on an object's distance from the player, so it is calculated by and for the object itself.
+        //This is the metric tensor in an accelerated frame in special relativity.
+        // Special relativity assumes a flat metric, (the "Minkowski metric").
+        // In general relativity, the underlying metric could be curved, according to the Einstein field equations.
+        // The (flat) metric appears to change due to proper acceleration from the player's/camera's point of view, since acceleration is not physically relative like velocity.
+        // (Physically, proper acceleration could be detected by a force on the observer in the opposite direction from the acceleration,
+        // like being pushed back into the seat of an accelerating car. When we stand still on the surface of earth, we feel our weight pushed into
+        // the surface of the planet due to gravity, which is equivalent to an acceleration in the opposite direction, upwards, similar to the car.
+        // "Einstein equivalence principle" says that, over small enough regions, we can't tell the difference between
+        // a uniform acceleration and a gravitational field, that the two are physically equivalent over small enough regions of space.
+        // In free-fall, gravitational fields disappear. Hence, when the player is in free-fall, their acceleration is considered to be zero,
+        // while it is considered to be "upwards" when they are at rest under the effects of gravity, so they don't fall through the surface they're feeling pushed into.)
+        // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
         public Matrix4x4 GetMetric()
         {
             Matrix4x4 metric = Matrix4x4.zero;

@@ -26,25 +26,7 @@ namespace OpenRelativity
         //world rotation so that we can transform between the two
         private Matrix4x4 worldRotation;
         //Player's velocity in vector format
-        //private Vector3 _playerVelocityVector;
         private Vector3 playerVelocityVector;
-        //Lengh contraction appears to asymmetric in sphere. Might be coordinate artifact.
-        //The commented code below is an attempt to fix this.
-        //{
-        //    get
-        //    {
-        //        return _playerVelocityVector;
-        //    }
-        //    set
-        //    {
-        //        Vector3 newOrigin = (Vector3.zero - playerTransform.position)
-        //            .ContractLengthBy(-playerVelocityVector)
-        //            .InverseContractLengthBy(-value)
-        //            + playerTransform.position;
-        //        playerTransform.Translate(-newOrigin);
-        //        _playerVelocityVector = value;
-        //    }
-        //}
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
         //Player's angular velocity in vector format
@@ -169,36 +151,6 @@ namespace OpenRelativity
             playerRotation = Vector3.zero;
             deltaRotation = Vector3.zero;
         }
-        //This can't be used, because materials have to have distinct shader parameters:
-        //public void Start()
-        //{
-        //    //Because we do a lot of manual renderer manipulation,
-        //    // our materials end up needlessly redundant.
-        //    // Most of this manipulation happens during "Awake()".
-        //    // We can optimize by combining redudant materials.
-        //    MeshRenderer[] renderers = FindObjectsOfType<MeshRenderer>();
-        //    Dictionary<string, Material> materialDictionary = new Dictionary<string, Material>();
-        //    for (int i = 0; i < renderers.Length; i++)
-        //    {
-        //        MeshRenderer testRenderer = renderers[i];
-        //        for (int j = 0; j < testRenderer.materials.Length; j++)
-        //        {
-        //            string name = testRenderer.materials[j].name.Replace(" (Instance)", "");
-        //            if (materialDictionary.ContainsKey(name))
-        //            {
-        //                //if (!testRenderer.sharedMaterials[j].Equals(materialDictionary[name]))
-        //                //{
-        //                //    Destroy(testRenderer.materials[j]);
-        //                //}
-        //                testRenderer.materials[j] = materialDictionary[name];
-        //            }
-        //            else
-        //            {
-        //                materialDictionary.Add(name, testRenderer.materials[j]);
-        //            }
-        //        }
-        //    }
-        //}
         public void reset()
         {
             //Reset everything not level-based
@@ -404,16 +356,18 @@ namespace OpenRelativity
         //Normalize the given quaternion so that its magnitude is one.
         public Quaternion Normalize(Quaternion quat)
         {
-            Quaternion q = quat;
-
-            double magnitudeSqr = q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z;
-            if (magnitudeSqr != 1)
+            Vector4 qVec = new Vector4(quat.x, quat.y, quat.z, quat.w);
+            Quaternion q;
+            float m = qVec.sqrMagnitude;
+            if (m != 1)
             {
-                double magnitude = (double)Math.Sqrt(magnitudeSqr);
-                q.w = (float)((double)q.w / magnitude);
-                q.x = (float)((double)q.x / magnitude);
-                q.y = (float)((double)q.y / magnitude);
-                q.z = (float)((double)q.z / magnitude);
+                m = Mathf.Sqrt(m);
+                qVec /= m;
+                q = new Quaternion(qVec.x, qVec.y, qVec.z, qVec.w);
+            }
+            else
+            {
+                q = quat;
             }
             return q;
         }
