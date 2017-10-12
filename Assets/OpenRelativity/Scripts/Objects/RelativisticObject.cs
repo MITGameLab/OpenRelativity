@@ -1833,15 +1833,15 @@ namespace OpenRelativity.Objects
             Vector3 angFac = Vector3.Cross(playerAngVel, myPos);
 
             //Diagonal terms:
-            metric[0, 0] = (float)(Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(-state.PlayerAccelerationVector, myPos), 2) - angFac.sqrMagnitude);
+            metric[3, 3] = (float)(Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(-state.PlayerAccelerationVector, myPos), 2) - angFac.sqrMagnitude);
+            metric[0, 0] = -1;
             metric[1, 1] = -1;
             metric[2, 2] = -1;
-            metric[3, 3] = -1;
 
             //Off-diagonal terms:
-            metric[1, 0] = metric[0, 1] = -2 * angFac.x;
-            metric[2, 0] = metric[0, 2] = -2 * angFac.y;
-            metric[3, 0] = metric[0, 3] = -2 * angFac.z;
+            metric[0, 3] = metric[3, 0] = -2 * angFac.x;
+            metric[1, 3] = metric[3, 1] = -2 * angFac.y;
+            metric[2, 3] = metric[3, 2] = -2 * angFac.z;
 
             float test = Vector3.Dot((new Vector4(1.0f, 1.0f, 1.0f, 1.0f)), metric * (new Vector4(1.0f, 1.0f, 1.0f, 1.0f)));
 
@@ -1850,11 +1850,14 @@ namespace OpenRelativity.Objects
                 //Return Minkowski metric as default:
                 metric = Matrix4x4.zero;
 
-                metric[0, 0] = 1;
+                metric[0, 0] = -1;
                 metric[1, 1] = -1;
                 metric[2, 2] = -1;
-                metric[3, 3] = -1;
+                metric[3, 3] = 1;
             }
+
+            //Apply conformal map:
+            metric = state.conformalMap.GetConformalFactor(piw) * metric;
 
             return metric;
         }
@@ -1865,7 +1868,6 @@ namespace OpenRelativity.Objects
             {
                 if ((!state.MovementFrozen) && (viw.sqrMagnitude < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
-                    Matrix4x4 metric = GetMetric();
                     float timeFactor = (float)GetTimeFactor(mViw);
                     myRigidbody.velocity = mViw * timeFactor;
                     myRigidbody.angularVelocity = mAviw * timeFactor;
@@ -1878,13 +1880,24 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private double GetTimeFactor(Vector3 mViw)
+        public double GetTimeFactor(Vector3? mViw = null)
         {
-            Matrix4x4 metric = GetMetric();
-            Vector4 timeVec = metric.GetRow(0);
-            Vector3 spaceVec = new Vector3(timeVec.y, timeVec.z, timeVec.w);
-            spaceVec.Scale(mViw);
-            return (timeVec.x + spaceVec.magnitude) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+            if (mViw == null)
+            {
+                mViw = viw;
+            }
+            if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
+            {
+                Matrix4x4 metric = GetMetric();
+                Vector4 timeVec = metric.GetRow(3);
+                Vector3 spaceVec = new Vector3(timeVec.x, timeVec.y, timeVec.z);
+                spaceVec.Scale(mViw.Value);
+                return (timeVec.w + spaceVec.magnitude) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+            }
+            else
+            {
+                return 1;
+            }
         }
     }
 }

@@ -111,6 +111,8 @@ namespace OpenRelativity
         public bool keyHit { get; set; }
         public double MaxSpeed { get { return maxSpeed; } set { maxSpeed = value; } }
 
+        public ConformalMaps.ConformalMap conformalMap;
+
         #endregion
 
         #region consts
@@ -125,6 +127,12 @@ namespace OpenRelativity
 
         public void Awake()
         {
+            //If the conformalMap parameter is null, default to Minkowski
+            if (conformalMap == null)
+            {
+                conformalMap = new ConformalMaps.Minkowski();
+            }
+
             //Initialize the player's speed to zero
             playerVelocityVector = Vector3.zero;
             playerVelocity = 0;
