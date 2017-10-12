@@ -29,8 +29,6 @@ namespace OpenRelativity
         private Vector3 playerVelocityVector;
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
-        //Player's angular velocity in vector format
-        private Vector3 playerAngularVelocityVector;
         //We use this to update the player acceleration vector:
         //private Vector3 oldPlayerVelocityVector;
 
@@ -78,8 +76,8 @@ namespace OpenRelativity
         public Vector3 deltaRotation { get; set; }
         public double pctOfSpdUsing { get; set; } // Percent of velocity you are using
 
-        private Quaternion oldCameraRotation { get; set; }
-        public Quaternion cameraRotation { get; set; }
+        private Vector3 oldCameraForward { get; set; }
+        public Vector3 cameraForward { get; set; }
         public float deltaCameraAngle { get; set; }
 
 
@@ -308,13 +306,13 @@ namespace OpenRelativity
                 //Add up our rotation so that we know where the character (NOT CAMERA) should be facing 
                 playerRotation += deltaRotation;
 
-                cameraRotation = playerTransform.rotation;
-                deltaCameraAngle = Quaternion.Angle(oldCameraRotation, cameraRotation);
+                cameraForward = playerTransform.forward;
+                deltaCameraAngle = Vector3.SignedAngle(oldCameraForward, cameraForward, playerTransform.up);
                 if (deltaCameraAngle == 180.0f)
                 {
                     deltaCameraAngle = 0;
                 }
-                oldCameraRotation = cameraRotation;
+                oldCameraForward = cameraForward;
             }
         }
         #region Matrix/Quat math
