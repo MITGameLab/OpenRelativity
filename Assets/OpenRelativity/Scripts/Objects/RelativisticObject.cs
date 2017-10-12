@@ -39,12 +39,7 @@ namespace OpenRelativity.Objects
                 }
                 _viw = value;
                 //Also update the Rigidbody, if any
-                if (myRigidbody != null && !state.MovementFrozen)
-                {
-                    float timeFactor = (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
-                    myRigidbody.velocity = value * timeFactor;
-                    myRigidbody.angularVelocity = aviw * timeFactor;
-                }
+                UpdateRigidbodyVelocity(value, aviw);
 
                 //Update the shader parameters if necessary
                 UpdateShaderParams();
@@ -72,11 +67,8 @@ namespace OpenRelativity.Objects
             MarkStaticColliderPos();
 
             //Also update the Rigidbody, if any
-            if (myRigidbody != null && !state.MovementFrozen)
-            {
-                myRigidbody.velocity = newViw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
-                myRigidbody.angularVelocity = aviw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
-            }
+            UpdateRigidbodyVelocity(newViw, aviw);
+
             UpdateShaderParams();
         }
 
@@ -93,12 +85,7 @@ namespace OpenRelativity.Objects
             {
                 initialAviw = value;
                 _aviw = value;
-                if (myRigidbody != null && !state.MovementFrozen)
-                {
-                    //Changes in angular velocity do not change the shader mapping to optical space.
-                    myRigidbody.velocity = viw * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
-                    myRigidbody.angularVelocity = value * (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
-                }
+                UpdateRigidbodyVelocity(viw, value);
             }
         }
 
@@ -365,7 +352,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            timeDelayToPlayer *= (float)GetTimeFactor(viw);
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
@@ -375,7 +362,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)(GetGtt() / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+            timeDelayToPlayer *= (float)GetTimeFactor(viw);
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -811,7 +798,8 @@ namespace OpenRelativity.Objects
 
         public void Update()
         {
-            localTimeOffset += state.DeltaTimeWorld * (GetGtt() - 1.0);
+
+            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw) * state.SqrtOneMinusVSquaredCWDividedByCSquared - 1.0);
 
             EnforceCollision();
 
@@ -991,24 +979,16 @@ namespace OpenRelativity.Objects
                     }
 
                     //update our viw and set the rigid body proportionally
-                    if (myRigidbody != null
-                        && !double.IsNaN(state.SqrtOneMinusVSquaredCWDividedByCSquared)
-                        && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0.0
-                        && state.SpeedOfLightSqrd != 0.0)
-                    {
-                        //Dragging probably happens intrinsically in the rest frame,
-                        // so it acts on the rapidity. (Drag is computationally expensive
-                        // due to tripping the velocity setter every frame.)
-                        // TODO: Replace with drag force
-                        //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
-                        //viw = rapidity.RapidityToVelocity();
-                        //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
+                    //Dragging probably happens intrinsically in the rest frame,
+                    // so it acts on the rapidity. (Drag is computationally expensive
+                    // due to tripping the velocity setter every frame.)
+                    // TODO: Replace with drag force
+                    //Vector3 rapidity = (float)(1.0 - drag * state.DeltaTimeWorld) * viw.Gamma() * viw;
+                    //viw = rapidity.RapidityToVelocity();
+                    //aviw = (float)(1.0 - angularDrag * state.DeltaTimeWorld) * aviw;
 
-                        //Correct for both time dilation and change in metric due to player acceleration:
-                        float timeFactor = GetGtt() / (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        myRigidbody.velocity = viw * timeFactor;
-                        myRigidbody.angularVelocity = aviw * timeFactor;
-                    }
+                    //Correct for both time dilation and change in metric due to player acceleration:
+                    UpdateRigidbodyVelocity(viw, aviw);
                 }
                 //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
                 else if (myRigidbody != null && GetComponent<MeshRenderer>() != null)
@@ -1639,7 +1619,7 @@ namespace OpenRelativity.Objects
             //The relative contact point is the lever arm of the torque:
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld * GetGtt());
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimeWorld * GetTimeFactor(viw) * state.SqrtOneMinusVSquaredCWDividedByCSquared);
 
             //The change in rapidity on the line of action:
             Vector3 finalLinearRapidity = relVelGamma * myVel + impulse / mass * lineOfAction;
@@ -1834,11 +1814,69 @@ namespace OpenRelativity.Objects
         //This is the "t-t" or "0-0" component of the metric tensor in an accelerated frame in special relativity.
         // It appears to change due to proper acceleration from the player's/camera's point of view, since acceleration is not relative.
         // It also depends on an object's distance from the player, so it is calculated by and for the object itself.
-        public float GetGtt()
+        public Matrix4x4 GetMetric()
         {
+            Matrix4x4 metric = Matrix4x4.zero;
+            
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
-            return (float)Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(-state.PlayerAccelerationVector, transform.position.WorldToOptical(viw, playerPos, playerVel)), 2);
+            Vector3 playerAngVel = state.PlayerAngularVelocityVector;
+            Vector3 myPos = transform.position.WorldToOptical(viw, playerPos, playerVel);
+            Vector3 angFac = Vector3.Cross(playerAngVel, myPos);
+
+            //Diagonal terms:
+            metric[0, 0] = (float)(Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(-state.PlayerAccelerationVector, myPos), 2) - angFac.sqrMagnitude);
+            metric[1, 1] = -1;
+            metric[2, 2] = -1;
+            metric[3, 3] = -1;
+
+            //Off-diagonal terms:
+            metric[1, 0] = metric[0, 1] = -2 * angFac.x;
+            metric[2, 0] = metric[0, 2] = -2 * angFac.y;
+            metric[3, 0] = metric[0, 3] = -2 * angFac.z;
+
+            float test = Vector3.Dot((new Vector4(1.0f, 1.0f, 1.0f, 1.0f)), metric * (new Vector4(1.0f, 1.0f, 1.0f, 1.0f)));
+
+            if (float.IsInfinity(test) || float.IsNaN(test))
+            {
+                //Return Minkowski metric as default:
+                metric = Matrix4x4.zero;
+
+                metric[0, 0] = 1;
+                metric[1, 1] = -1;
+                metric[2, 2] = -1;
+                metric[3, 3] = -1;
+            }
+
+            return metric;
+        }
+
+        private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)
+        {
+            if (myRigidbody != null && viw.sqrMagnitude < state.SpeedOfLightSqrd && state.SqrtOneMinusVSquaredCWDividedByCSquared > 0)
+            {
+                if (!state.MovementFrozen)
+                {
+                    Matrix4x4 metric = GetMetric();
+                    float timeFactor = (float)GetTimeFactor(mViw);
+                    myRigidbody.velocity = mViw * timeFactor;
+                    myRigidbody.angularVelocity = mAviw * timeFactor;
+                }
+                else
+                {
+                    myRigidbody.velocity = Vector3.zero;
+                    myRigidbody.angularVelocity = Vector3.zero;
+                }
+            }
+        }
+
+        private double GetTimeFactor(Vector3 mViw)
+        {
+            Matrix4x4 metric = GetMetric();
+            Vector4 timeVec = metric.GetRow(0);
+            Vector3 spaceVec = new Vector3(timeVec.y, timeVec.z, timeVec.w);
+            spaceVec.Scale(mViw);
+            return (timeVec.x + spaceVec.magnitude) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
         }
     }
 }

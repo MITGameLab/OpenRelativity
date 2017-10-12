@@ -47,6 +47,8 @@ namespace OpenRelativity
         //}
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
+        //Player's angular velocity in vector format
+        private Vector3 playerAngularVelocityVector;
         //We use this to update the player acceleration vector:
         //private Vector3 oldPlayerVelocityVector;
 
@@ -94,6 +96,10 @@ namespace OpenRelativity
         public Vector3 deltaRotation { get; set; }
         public double pctOfSpdUsing { get; set; } // Percent of velocity you are using
 
+        private Quaternion oldCameraRotation { get; set; }
+        public Quaternion cameraRotation { get; set; }
+        public float deltaCameraAngle { get; set; }
+
 
 
         #endregion
@@ -106,6 +112,7 @@ namespace OpenRelativity
         public Quaternion Orientation { get { return orientation; } }
         public Vector3 PlayerVelocityVector { get { return playerVelocityVector; } set { playerVelocityVector = value; } }
         public Vector3 PlayerAccelerationVector { get { return playerAccelerationVector; } set { playerAccelerationVector = value; } }
+        public Vector3 PlayerAngularVelocityVector { get { if (deltaTimePlayer == 0) { return Vector3.zero; } else { return (float)(deltaCameraAngle * Mathf.Deg2Rad / deltaTimePlayer) * playerTransform.up; } } }
 
         public double PctOfSpdUsing { get { return pctOfSpdUsing; } set { pctOfSpdUsing = value; } }
         public double PlayerVelocity { get { return playerVelocity; } }
@@ -349,7 +356,13 @@ namespace OpenRelativity
                 //Add up our rotation so that we know where the character (NOT CAMERA) should be facing 
                 playerRotation += deltaRotation;
 
-
+                cameraRotation = playerTransform.rotation;
+                deltaCameraAngle = Quaternion.Angle(oldCameraRotation, cameraRotation);
+                if (deltaCameraAngle == 180.0f)
+                {
+                    deltaCameraAngle = 0;
+                }
+                oldCameraRotation = cameraRotation;
             }
         }
         #region Matrix/Quat math
