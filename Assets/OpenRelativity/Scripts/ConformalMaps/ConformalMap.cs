@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
-    public abstract class ConformalMap
+    public abstract class ConformalMap : MonoBehaviour
     {
         public Matrix4x4 metric;
 

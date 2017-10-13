@@ -409,5 +409,38 @@ namespace OpenRelativity
         {
             return go.AddComponent<T>().GetCopyOf(toAdd) as T;
         }
+
+        public static Vector4 SphericalToCartesian(this Vector4 spherical)
+        {
+            float radius = spherical.x;
+            float polar = spherical.y;
+            float elevation = spherical.z;
+            float time = spherical.w;
+            Vector4 outCart;
+
+            float a = radius * Mathf.Cos(elevation);
+            outCart.x = a * Mathf.Cos(polar);
+            outCart.y = radius * Mathf.Sin(elevation);
+            outCart.z = a * Mathf.Sin(polar);
+            outCart.w = time;
+
+            return outCart;
+        }
+
+        public static Vector4 CartesianToSpherical(this Vector4 cartesian)
+        {
+            float outTime = cartesian.w;
+            if (cartesian.x == 0)
+                cartesian.x = Mathf.Epsilon;
+            float outRadius = Mathf.Sqrt((cartesian.x * cartesian.x)
+                            + (cartesian.y * cartesian.y)
+                            + (cartesian.z * cartesian.z));
+            float outPolar = Mathf.Atan(cartesian.z / cartesian.x);
+            if (cartesian.x < 0)
+                outPolar += Mathf.PI;
+            float outElevation = Mathf.Asin(cartesian.y / outRadius);
+
+            return new Vector4(outRadius, outPolar, outElevation, outTime);
+        }
     }
 }
