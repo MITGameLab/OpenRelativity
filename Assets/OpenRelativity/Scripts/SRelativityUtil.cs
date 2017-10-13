@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 
@@ -413,8 +411,8 @@ namespace OpenRelativity
         public static Vector4 SphericalToCartesian(this Vector4 spherical)
         {
             float radius = spherical.x;
-            float polar = spherical.y;
-            float elevation = spherical.z;
+            float elevation = spherical.y;
+            float polar = spherical.z;
             float time = spherical.w;
             Vector4 outCart;
 
@@ -430,17 +428,37 @@ namespace OpenRelativity
         public static Vector4 CartesianToSpherical(this Vector4 cartesian)
         {
             float outTime = cartesian.w;
-            if (cartesian.x == 0)
-                cartesian.x = Mathf.Epsilon;
-            float outRadius = Mathf.Sqrt((cartesian.x * cartesian.x)
-                            + (cartesian.y * cartesian.y)
-                            + (cartesian.z * cartesian.z));
-            float outPolar = Mathf.Atan(cartesian.z / cartesian.x);
-            if (cartesian.x < 0)
-                outPolar += Mathf.PI;
-            float outElevation = Mathf.Asin(cartesian.y / outRadius);
+            float radius, polar, elevation;
+            Vector3 spatial = new Vector3(cartesian.x, cartesian.y, cartesian.z);
+            radius = spatial.magnitude;
+            if (radius == 0)
+            {
+                polar = 0;
+                elevation = 0;
+            }
+            else {
+                float sqrtXSqrYSqr = Mathf.Sqrt(cartesian.x * cartesian.x + cartesian.y * cartesian.y);
+                if ((cartesian.z == 0) && (sqrtXSqrYSqr == 0))
+                {
+                    elevation = 0;
+                }
+                else
+                {
+                    elevation = Mathf.Atan2(sqrtXSqrYSqr, cartesian.z);
+                }
 
-            return new Vector4(outRadius, outPolar, outElevation, outTime);
+                if ((cartesian.y == 0) && (cartesian.x == 0))
+                {
+                    polar = 0;
+                }
+                else
+                {
+                    polar = Mathf.Atan2(cartesian.y, cartesian.x);
+                    
+                }
+            }
+
+            return new Vector4(radius, elevation, polar, outTime);
         }
     }
 }
