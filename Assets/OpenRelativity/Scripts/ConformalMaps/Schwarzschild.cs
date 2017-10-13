@@ -44,7 +44,7 @@ namespace OpenRelativity.ConformalMaps
                 sphericalConformalFactor[3, 3] = schwarzFac;
                 sphericalConformalFactor[0, 0] = 1 / schwarzFac;
                 sphericalConformalFactor[1, 1] = dist * dist;
-                sphericalConformalFactor[2, 2] = dist * dist * Mathf.Sin(sphericalPos.y);
+                sphericalConformalFactor[2, 2] = dist * dist * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2);
 
                 //A particular useful "tensor" (which we can think of loosely here as "just a matrix") called the "Jacobian"
                 // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
