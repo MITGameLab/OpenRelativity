@@ -1845,7 +1845,7 @@ namespace OpenRelativity.Objects
 
             float test = Vector3.Dot((new Vector4(1.0f, 1.0f, 1.0f, 1.0f)), metric * (new Vector4(1.0f, 1.0f, 1.0f, 1.0f)));
 
-            if (float.IsInfinity(test) || float.IsNaN(test))
+            if (float.IsInfinity(test) || float.IsNaN(test) || (metric[3, 3] <= 0))
             {
                 //Return Minkowski metric as default:
                 metric = Matrix4x4.zero;
@@ -1866,11 +1866,16 @@ namespace OpenRelativity.Objects
         {
             if (myRigidbody != null)
             {
-                if ((!state.MovementFrozen) && (viw.sqrMagnitude < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
+                if ((!state.MovementFrozen) && (mViw.sqrMagnitude < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
-                    float timeFactor = (float)GetTimeFactor(mViw);
-                    myRigidbody.velocity = mViw * timeFactor;
-                    myRigidbody.angularVelocity = mAviw * timeFactor;
+                    Matrix4x4 metric = GetMetric();
+                    float myTimeFac = (float)Math.Sqrt(1 - mViw.sqrMagnitude / state.SpeedOfLightSqrd);
+                    Vector4 viw4 = new Vector4(mViw.x, mViw.y, mViw.z, -myTimeFac);
+                    viw4 = metric * viw4;
+
+                    float timeFac = (float)(viw4.w / state.SqrtOneMinusVSquaredCWDividedByCSquared);
+                    myRigidbody.velocity = (new Vector3(viw4.x, viw4.y, viw4.z)) * timeFac;
+                    myRigidbody.angularVelocity = mAviw / timeFac;
                 }
                 else
                 {
@@ -1888,8 +1893,7 @@ namespace OpenRelativity.Objects
             }
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {
-                Matrix4x4 metric = GetMetric();
-                Vector4 timeVec = metric.GetRow(3);
+                Vector4 timeVec = GetMetric().GetRow(3);
                 Vector3 spaceVec = new Vector3(timeVec.x, timeVec.y, timeVec.z);
                 spaceVec.Scale(mViw.Value);
                 return (timeVec.w + spaceVec.magnitude) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

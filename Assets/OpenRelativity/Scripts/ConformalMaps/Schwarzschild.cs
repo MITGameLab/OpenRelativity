@@ -33,8 +33,6 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-
-                float cSqr = SRelativityUtil.cSqrd;
                 float schwarzFac = (1 - radius / dist);
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
@@ -61,14 +59,16 @@ namespace OpenRelativity.ConformalMaps
                 jacobian.m10 = sinTheta * sinPhi;
                 jacobian.m11 = rho * cosTheta * sinPhi;
                 jacobian.m12 = rho * sinTheta * cosPhi;
-                jacobian.m20 = cosPhi;
+                jacobian.m20 = cosTheta;
                 jacobian.m21 = -rho * sinTheta;
-                jacobian.m22 = 1;
+                jacobian.m22 = 0;
+                jacobian.m33 = 1;
 
                 //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
                 //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
                 // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
-                return jacobian.transpose * sphericalConformalFactor * jacobian;
+                Matrix4x4 cf = jacobian.transpose * sphericalConformalFactor * jacobian;
+                return cf;
             }
         }
     }
