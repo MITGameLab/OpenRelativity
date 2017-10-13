@@ -1871,12 +1871,12 @@ namespace OpenRelativity.Objects
                 {
                     Matrix4x4 metric = GetMetric();
                     float myTimeFac = (float)Math.Sqrt(1 - mViw.sqrMagnitude / state.SpeedOfLightSqrd);
-                    Vector4 viw4 = new Vector4(mViw.x, mViw.y, mViw.z, -myTimeFac);
+                    Vector4 viw4 = new Vector4(-mViw.x, -mViw.y, -mViw.z, myTimeFac);
                     viw4 = metric * viw4;
 
                     float timeFac = (float)(viw4.w / state.SqrtOneMinusVSquaredCWDividedByCSquared);
                     myRigidbody.velocity = (new Vector3(viw4.x, viw4.y, viw4.z)) * timeFac;
-                    myRigidbody.angularVelocity = mAviw / timeFac;
+                    myRigidbody.angularVelocity = mAviw * timeFac;
                 }
                 else
                 {
