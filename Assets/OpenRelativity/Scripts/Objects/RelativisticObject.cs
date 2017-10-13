@@ -1866,7 +1866,8 @@ namespace OpenRelativity.Objects
         {
             if (myRigidbody != null)
             {
-                if ((!state.MovementFrozen) && (mViw.sqrMagnitude < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
+                float mViwSqrMag = mViw.sqrMagnitude;
+                if ((!state.MovementFrozen) && (mViwSqrMag > 0) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
                     Matrix4x4 metric = GetMetric();
                     float myTimeFac = (float)Math.Sqrt(1 - mViw.sqrMagnitude / state.SpeedOfLightSqrd);
