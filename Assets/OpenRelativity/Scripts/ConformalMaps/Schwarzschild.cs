@@ -41,8 +41,8 @@ namespace OpenRelativity.ConformalMaps
                 Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = schwarzFac;
-                sphericalConformalFactor[0, 0] = 1 / schwarzFac;
+                sphericalConformalFactor[3, 3] = 1 /schwarzFac;
+                sphericalConformalFactor[0, 0] = schwarzFac;
                 sphericalConformalFactor[1, 1] = dist * dist;
                 sphericalConformalFactor[2, 2] = dist * dist * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2);
 
@@ -63,7 +63,7 @@ namespace OpenRelativity.ConformalMaps
                 jacobian.m12 = rho * sinTheta * cosPhi;
                 jacobian.m20 = cosPhi;
                 jacobian.m21 = -rho * sinTheta;
-                jacobian.m22 = 0;
+                jacobian.m22 = 1;
 
                 //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
                 //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
