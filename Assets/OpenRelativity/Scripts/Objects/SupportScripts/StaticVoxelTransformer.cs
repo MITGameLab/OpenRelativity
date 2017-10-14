@@ -279,7 +279,7 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < queuedColliders.Count; i++)
             {
                 Transform changeTransform = queuedColliders[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(gameState.conformalMap.WorldToOptical(queuedOrigPositions[i], Vector3.zero, playerPos, vpw));
+                Vector3 newPos = changeTransform.InverseTransformPoint(queuedOrigPositions[i].WorldToOptical(Vector3.zero, playerPos, vpw));
                 nanInfTest = Vector3.Dot(newPos, newPos);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
@@ -313,7 +313,7 @@ namespace OpenRelativity.Objects
 
                 for (int i = 0; i < origPositionsList.Count; i++)
                 {
-                    distSqr = (gameState.conformalMap.WorldToOptical(origPositionsList[i], Vector3.zero, playerPos, playerVel) - playerPos).sqrMagnitude;
+                    distSqr = (origPositionsList[i].WorldToOptical(Vector3.zero, playerPos, playerVel) - playerPos).sqrMagnitude;
                     if (distSqr < cullingSqrDistance)
                     {
                         allColliders[i].enabled = true;
