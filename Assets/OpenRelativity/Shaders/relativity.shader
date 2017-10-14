@@ -52,6 +52,9 @@ Shader "Relativity/Unlit/ColorShift"
 			//float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
 		};
 
+		float4x4 _Metric = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,-1 }; //The numerical value of the metric at piw
+		//For the time being, we can only approximate by the value of the metric at the center of the object.
+		//Ideally, we'd have a differently numerical metric value for each vertex or fragment.
 
 		//Variables that we use to access texture data
 		sampler2D _MainTex;
@@ -133,13 +136,17 @@ Shader "Relativity/Unlit/ColorShift"
 
 				//Here begins a rotation-free modification of the original OpenRelativity shader:
 
-				float c = -dot(riw, riw); //first get position squared (position doted with position)
+				float c = dot(riw, mul(_Metric, riw)); //first get position squared (position doted with position)
 
-				float b = -(2 * dot(riw, viwScaled)); //next get position doted with velocity, should be only in the Z direction
+				float b = -(2 * dot(riw, mul(_Metric,viwScaled))); //next get position doted with velocity, should be only in the Z direction
 
-				float d = (_spdOfLight*_spdOfLight) - dot(viwScaled, viwScaled);
+				float d = _Metric._m33 * (_spdOfLight*_spdOfLight) + dot(viwScaled, mul(_Metric, viwScaled));
 
-				float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+				float tisw = 0;
+				if ((b * b) >= 4.0 * d * c)
+				{
+					tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+				}
 
 				//get the new position offset, based on the new time we just found
 				//Should only be in the Z direction

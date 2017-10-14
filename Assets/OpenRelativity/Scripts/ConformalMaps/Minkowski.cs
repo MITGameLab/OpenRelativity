@@ -6,6 +6,8 @@ namespace OpenRelativity.ConformalMaps
 {
     public class Minkowski : ConformalMap
     {
+        private Matrix4x4 metric;
+
         public void Awake() {
             metric = Matrix4x4.identity;
             metric[0, 0] = -1;
@@ -17,6 +19,11 @@ namespace OpenRelativity.ConformalMaps
         override public Matrix4x4 GetConformalFactor(Vector4 stpiw)
         {
             return Matrix4x4.identity;
+        }
+
+        override public Matrix4x4 GetMetric(Vector4 stpiw)
+        {
+            return metric;
         }
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace OpenRelativity
 {
     //Shader properties:
-    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 172)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 236)]
     public struct ShaderParams
     {
         //[FieldOffset(0)]
@@ -29,5 +29,6 @@ namespace OpenRelativity
         //public System.Single wrldTime; //current time in world
         //[FieldOffset(50)]
         //public System.Single strtTime; //starting time in world
+        public Matrix4x4 metric;
     }
 }

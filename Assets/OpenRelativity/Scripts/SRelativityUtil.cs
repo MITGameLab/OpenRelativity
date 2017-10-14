@@ -9,6 +9,10 @@ namespace OpenRelativity
         public static float c { get { return (float)srCamera.SpeedOfLight; } }
         public static float cSqrd { get { return (float)srCamera.SpeedOfLightSqrd; } }
         public static float maxVel { get { return (float)srCamera.MaxSpeed; } }
+        public static Matrix4x4 GetMetric(Vector4 stpiw)
+        {
+            return srCamera.conformalMap.GetMetric(stpiw);
+        }
 
         private static GameState _srCamera;
         private static GameState srCamera
@@ -164,6 +168,7 @@ namespace OpenRelativity
             float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
+            Vector4 velocity4Spatial = new Vector4(velocity.x, velocity.y, velocity.z, 0);
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 vr;
@@ -186,19 +191,25 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
+            Vector4 riw4Spatial = new Vector4(riw.x, riw.y, riw.z, 0);
 
             //Transform fails and is unecessary if relative speed is zero:
             if (speedr > divByZeroCutoff)
             {
                 //Here begins a rotation-free modification of the original OpenRelativity shader:
+                Matrix4x4 metric = GetMetric(piw);
 
-                float c = -riw.sqrMagnitude; //first get position squared (position doted with position)
+                float c = Vector4.Dot(riw4Spatial, metric * riw4Spatial);
 
-                float b = (2 * Vector3.Dot(riw, velocity)); //next get position doted with velocity, should be only in the Z direction
+                float b = -(2 * Vector3.Dot(riw, metric * velocity)); //next get position doted with velocity, should be only in the Z direction
 
-                float d = (spdOfLight * spdOfLight) - velocity.sqrMagnitude;
+                float d = metric.m33 * (spdOfLight * spdOfLight) + Vector3.Dot(velocity4Spatial, metric * velocity4Spatial);
 
-                float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                float tisw = 0;
+                if ((b * b) >= 4.0 * d * c)
+                {
+                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                }
 
                 //get the new position offset, based on the new time we just found
                 //Should only be in the Z direction
@@ -245,6 +256,7 @@ namespace OpenRelativity
             float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
+            Vector4 velocity4Spatial = new Vector4(velocity.x, velocity.y, velocity.z, 0);
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 vr;
@@ -267,6 +279,7 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
+            Vector4 riw4Spatial = new Vector4(riw.x, riw.y, riw.z, 0);
 
             //Transform fails and is unecessary if relative speed is zero:
             if (speedr > divByZeroCutoff)
@@ -279,13 +292,19 @@ namespace OpenRelativity
                     riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
                 }
 
-                float c = -riw.sqrMagnitude;
+                Matrix4x4 metric = GetMetric(piw);
 
-                float b = 2.0f * Vector3.Dot(velocity, riw);
+                float c = Vector4.Dot(riw4Spatial, metric * riw4Spatial);
 
-                float d = spdOfLight * spdOfLight - velocity.sqrMagnitude;
+                float b = -2.0f * Vector3.Dot(velocity, metric * riw);
 
-                float tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                float d = metric.m33 * spdOfLight * spdOfLight + Vector3.Dot(velocity4Spatial, metric * velocity4Spatial);
+
+                float tisw = 0;
+                if ((b * b) >= 4.0 * d * c)
+                {
+                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                }
 
                 newz = playerVelMag * tisw;
 

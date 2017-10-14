@@ -177,6 +177,12 @@ namespace OpenRelativity.Objects
                 Material quickSwapMaterial = Instantiate((tempRenderer as Renderer).materials[0]) as Material;
                 //Then, set the value that we want
                 quickSwapMaterial.SetFloat("_viw", 0);
+                Matrix4x4 minkowski = Matrix4x4.identity;
+                minkowski.m33 = 1;
+                minkowski.m00 = -1;
+                minkowski.m11 = -1;
+                minkowski.m22 = -1;
+                tempRenderer.materials[0].SetMatrix("_Metric", minkowski);
 
                 //And stick it back into our renderer. We'll do the SetVector thing every frame.
                 tempRenderer.materials[0] = quickSwapMaterial;
@@ -217,6 +223,12 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 tempViw = viw / (float)state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
+                    Matrix4x4 minkowski = Matrix4x4.identity;
+                    minkowski.m33 = 1;
+                    minkowski.m00 = -1;
+                    minkowski.m11 = -1;
+                    minkowski.m22 = -1;
+                    tempRenderer.materials[0].SetMatrix("_Metric", minkowski);
                 }
 
                 //As long as our object is actually alive, perform these calculations

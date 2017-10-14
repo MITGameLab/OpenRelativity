@@ -669,6 +669,12 @@ namespace OpenRelativity.Objects
             //Debug.Log("Initialized piw.");
             //colliderShaderParams.strtTime = startTime;
             //Debug.Log("Initialized mesh shader.");
+            Matrix4x4 minkowski = Matrix4x4.identity;
+            minkowski.m33 = 1;
+            minkowski.m00 = -1;
+            minkowski.m11 = -1;
+            minkowski.m22 = -1;
+            colliderShaderParams.metric = minkowski;
 
             checkSpeed();
 
@@ -689,7 +695,8 @@ namespace OpenRelativity.Objects
                     quickSwapMaterial.SetFloat("_viw", 0);
                     //quickSwapMaterial.SetFloat("_aviw", 0);
                     //quickSwapMaterial.SetFloat("_piw", 0);
-                    
+                    quickSwapMaterial.SetMatrix("_Metric", minkowski);
+
 
                     //And stick it back into our renderer. We'll do the SetVector thing every frame.
                     tempRenderer.materials[i] = quickSwapMaterial;
@@ -1115,11 +1122,14 @@ namespace OpenRelativity.Objects
                 colliderShaderParams.viw = tempViw;
                 //colliderShaderParams.aviw = tempAviw;
                 //colliderShaderParams.piw = tempPiw;
+                Matrix4x4 metric = GetMetric();
+                colliderShaderParams.metric = metric;
                 for (int i = 0; i < tempRenderer.materials.Length; i++)
                 {
                     tempRenderer.materials[i].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
                     //tempRenderer.materials[i].SetVector("_aviw", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
                     //tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
+                    tempRenderer.materials[i].SetMatrix("_Metric", metric);
                 }
             }
         }
