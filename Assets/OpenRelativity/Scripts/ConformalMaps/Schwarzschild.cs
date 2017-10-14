@@ -69,9 +69,18 @@ namespace OpenRelativity.ConformalMaps
                 //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
                 //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
                 // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
-                Matrix4x4 cf = jacobian.transpose * sphericalConformalFactor * jacobian;
-                return cf;
+                return jacobian.transpose * sphericalConformalFactor * jacobian;
             }
+        }
+
+        public override Vector3 OpticalToWorld(Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Vector3 WorldToOptical(Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
+        {
+            throw new NotImplementedException();
         }
     }
 }

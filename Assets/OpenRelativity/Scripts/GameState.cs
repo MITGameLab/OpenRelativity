@@ -130,7 +130,7 @@ namespace OpenRelativity
             //If the conformalMap parameter is null, default to Minkowski
             if (conformalMap == null)
             {
-                conformalMap = new ConformalMaps.Minkowski();
+                conformalMap = gameObject.AddComponent<ConformalMaps.Minkowski>();
             }
 
             //Initialize the player's speed to zero
