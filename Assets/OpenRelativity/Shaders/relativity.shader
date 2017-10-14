@@ -133,14 +133,15 @@ Shader "Relativity/Unlit/ColorShift"
 			if (speedr > divByZeroCutoff)
 			{
 				float4 viwScaled = _spdOfLight * viw;
+				float4 viwSpatial = float4(viwScaled.xyz, 0);
 
 				//Here begins a rotation-free modification of the original OpenRelativity shader:
 
 				float c = dot(riw, mul(_Metric, riw)); //first get position squared (position doted with position)
 
-				float b = -(2 * dot(riw, mul(_Metric,viwScaled))); //next get position doted with velocity, should be only in the Z direction
+				float b = -(2 * dot(riw, mul(_Metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
 
-				float d = _Metric._m33 * (_spdOfLight*_spdOfLight) + dot(viwScaled, mul(_Metric, viwScaled));
+				float d = _Metric._m33 + dot(viwSpatial, mul(_Metric, viwSpatial));
 
 				float tisw = 0;
 				if ((b * b) >= 4.0 * d * c)
@@ -151,7 +152,7 @@ Shader "Relativity/Unlit/ColorShift"
 				//get the new position offset, based on the new time we just found
 				//Should only be in the Z direction
 
-				riw = riw + (tisw * viwScaled);
+				riw = riw + (tisw * viwSpatial);
 
 				//Apply Lorentz transform
 				// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

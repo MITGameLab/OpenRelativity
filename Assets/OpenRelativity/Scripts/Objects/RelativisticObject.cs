@@ -352,7 +352,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw);
+            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
@@ -362,7 +362,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw);
+            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -661,7 +661,7 @@ namespace OpenRelativity.Objects
                 //Debug.Log("Initialized verts.");
             }
 
-            colliderShaderParams.viw = Vector3.zero;
+            colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
             //Debug.Log("Initialized viw.");
             //colliderShaderParams.aviw = Vector3.zero;
             //Debug.Log("Initialized aviw.");
@@ -692,7 +692,7 @@ namespace OpenRelativity.Objects
                     //It's the same as our old one, but now it's not connected to every other object with the same material
                     Material quickSwapMaterial = Instantiate(tempRenderer.materials[i]) as Material;
                     //Then, set the value that we want
-                    quickSwapMaterial.SetFloat("_viw", 0);
+                    quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 0));
                     //quickSwapMaterial.SetFloat("_aviw", 0);
                     //quickSwapMaterial.SetFloat("_piw", 0);
                     quickSwapMaterial.SetMatrix("_Metric", minkowski);
@@ -794,7 +794,7 @@ namespace OpenRelativity.Objects
         public void UpdateGravity()
         {
             Vector3 tempViw = viw.Gamma() * viw;
-            tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw));
+            tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
             tempViw = tempViw.RapidityToVelocity();
             float test = tempViw.x + tempViw.y + tempViw.z;
             if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
@@ -806,7 +806,7 @@ namespace OpenRelativity.Objects
         public void Update()
         {
 
-            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw) - 1.0);
+            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw.To4Viw()) - 1.0);
 
             EnforceCollision();
 
@@ -1116,7 +1116,7 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (tempRenderer != null)
             {
-                Vector3 tempViw = viw / (float)state.SpeedOfLight;
+                Vector4 tempViw = viw.To4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 colliderShaderParams.viw = tempViw;
@@ -1126,7 +1126,7 @@ namespace OpenRelativity.Objects
                 colliderShaderParams.metric = metric;
                 for (int i = 0; i < tempRenderer.materials.Length; i++)
                 {
-                    tempRenderer.materials[i].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
+                    tempRenderer.materials[i].SetVector("_viw", tempViw);
                     //tempRenderer.materials[i].SetVector("_aviw", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
                     //tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
                     tempRenderer.materials[i].SetMatrix("_Metric", metric);
@@ -1628,7 +1628,7 @@ namespace OpenRelativity.Objects
             //The relative contact point is the lever arm of the torque:
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw));
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
 
             //The change in rapidity on the line of action:
             Vector3 finalLinearRapidity = relVelGamma * myVel + impulse / mass * lineOfAction;
@@ -1843,7 +1843,7 @@ namespace OpenRelativity.Objects
             Vector3 angFac = Vector3.Cross(playerAngVel, myPos);
 
             //Diagonal terms:
-            metric[3, 3] = (float)(Math.Pow(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(-state.PlayerAccelerationVector, myPos), 2) - angFac.sqrMagnitude);
+            metric[3, 3] = (float)(Math.Pow(state.SpeedOfLightSqrd + Vector3.Dot(-state.PlayerAccelerationVector, myPos), 2) - angFac.sqrMagnitude);
             metric[0, 0] = -1;
             metric[1, 1] = -1;
             metric[2, 2] = -1;
@@ -1863,7 +1863,7 @@ namespace OpenRelativity.Objects
                 metric[0, 0] = -1;
                 metric[1, 1] = -1;
                 metric[2, 2] = -1;
-                metric[3, 3] = 1;
+                metric[3, 3] = (float)state.SpeedOfLightSqrd;
             }
 
             //Apply conformal map:
@@ -1880,12 +1880,11 @@ namespace OpenRelativity.Objects
                 if ((!state.MovementFrozen) && (mViwSqrMag > 0) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
                     Matrix4x4 metric = GetMetric();
-                    float myTimeFac = (float)Math.Sqrt(1 - mViw.sqrMagnitude / state.SpeedOfLightSqrd);
-                    Vector4 viw4 = new Vector4(-mViw.x, -mViw.y, -mViw.z, myTimeFac);
-                    viw4 = metric * viw4;
+                    Vector4 tempViw = viw.To4Viw();
+                    tempViw = metric * tempViw;
 
-                    float timeFac = (float)(viw4.w / state.SqrtOneMinusVSquaredCWDividedByCSquared);
-                    myRigidbody.velocity = (new Vector3(viw4.x, viw4.y, viw4.z)) * timeFac;
+                    float timeFac = -(float)((1 - tempViw.sqrMagnitude / state.SpeedOfLightSqrd) / (state.SqrtOneMinusVSquaredCWDividedByCSquared));
+                    myRigidbody.velocity = (new Vector3(tempViw.x, tempViw.y, tempViw.z)) * timeFac;
                     myRigidbody.angularVelocity = mAviw * timeFac;
                 }
                 else
@@ -1896,18 +1895,17 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public double GetTimeFactor(Vector3? mViw = null)
+        public double GetTimeFactor(Vector4? mViw = null)
         {
             if (mViw == null)
             {
-                mViw = viw;
+                mViw = viw.To4Viw();
             }
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {
                 Vector4 timeVec = GetMetric().GetRow(3);
-                Vector3 spaceVec = new Vector3(timeVec.x, timeVec.y, timeVec.z);
-                spaceVec.Scale(mViw.Value);
-                return (timeVec.w + spaceVec.magnitude) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                timeVec.Scale(mViw.Value);
+                return -(1 - timeVec.magnitude / state.SpeedOfLightSqrd) / (state.SqrtOneMinusVSquaredCWDividedByCSquared);
             }
             else
             {

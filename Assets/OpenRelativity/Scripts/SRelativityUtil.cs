@@ -168,7 +168,6 @@ namespace OpenRelativity
             float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
-            Vector4 velocity4Spatial = new Vector4(velocity.x, velocity.y, velocity.z, 0);
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 vr;
@@ -191,7 +190,6 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
-            Vector4 riw4Spatial = new Vector4(riw.x, riw.y, riw.z, 0);
 
             //Transform fails and is unecessary if relative speed is zero:
             if (speedr > divByZeroCutoff)
@@ -199,11 +197,11 @@ namespace OpenRelativity
                 //Here begins a rotation-free modification of the original OpenRelativity shader:
                 Matrix4x4 metric = GetMetric(piw);
 
-                float c = Vector4.Dot(riw4Spatial, metric * riw4Spatial);
+                float c = Vector4.Dot(riw, metric * riw);
 
                 float b = -(2 * Vector3.Dot(riw, metric * velocity)); //next get position doted with velocity, should be only in the Z direction
 
-                float d = metric.m33 * (spdOfLight * spdOfLight) + Vector3.Dot(velocity4Spatial, metric * velocity4Spatial);
+                float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
 
                 float tisw = 0;
                 if ((b * b) >= 4.0 * d * c)
@@ -256,7 +254,6 @@ namespace OpenRelativity
             float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector3 pos = piw - origin;
             Vector3 viw = velocity / spdOfLight;
-            Vector4 velocity4Spatial = new Vector4(velocity.x, velocity.y, velocity.z, 0);
 
             float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
             Vector3 vr;
@@ -279,7 +276,6 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
-            Vector4 riw4Spatial = new Vector4(riw.x, riw.y, riw.z, 0);
 
             //Transform fails and is unecessary if relative speed is zero:
             if (speedr > divByZeroCutoff)
@@ -294,11 +290,11 @@ namespace OpenRelativity
 
                 Matrix4x4 metric = GetMetric(piw);
 
-                float c = Vector4.Dot(riw4Spatial, metric * riw4Spatial);
+                float c = Vector4.Dot(riw, metric * riw);
 
                 float b = -2.0f * Vector3.Dot(velocity, metric * riw);
 
-                float d = metric.m33 * spdOfLight * spdOfLight + Vector3.Dot(velocity4Spatial, metric * velocity4Spatial);
+                float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
 
                 float tisw = 0;
                 if ((b * b) >= 4.0 * d * c)
@@ -478,6 +474,12 @@ namespace OpenRelativity
             }
 
             return new Vector4(radius, elevation, polar, outTime);
+        }
+
+        public static Vector4 To4Viw(this Vector3 viw)
+        {
+            //return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt(1 - viw.sqrMagnitude / cSqrd));
+            return viw;
         }
     }
 }

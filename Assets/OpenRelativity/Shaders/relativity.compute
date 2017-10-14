@@ -8,7 +8,7 @@ struct GlobalParams {
 	float4x4 ltwMatrix; //local-to-world transform matrix
 	float4x4 wtlMatrix; //world-to-local transform matrix
 	//float3 piw; //position of object in world
-	float3 viw; //velocity of object in world
+	float4 viw; //velocity of object in world
 	//float3 aviw; //angular velocity of object in inverse local scale
 	float3 vpc; //velocity of player
 	float3 playerOffset; //player position in world
@@ -38,7 +38,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
 	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
 	//float3 piw = glblPrms[0].piw;
-	float3 viw = glblPrms[0].viw;
+	float4 viw = glblPrms[0].viw;
 	//float3 aviw = glblPrms[0].aviw;
 	float3 vpc = glblPrms[0].vpc;
 	float3 playerOffset = glblPrms[0].playerOffset;
@@ -51,23 +51,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 	float3 pos = verts[id.x];
 	float4 tempPos = mul(ltwMatrix, float4(pos.x, pos.y, pos.z, 1.0f));
-	//pos = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w - piw;
-	//We relativistically add the tangential velocity to the translational.
-	//if (dot(aviw, aviw) != 0.0f) // If angular speed is zero, no need
-	//{
-	//	float siwSqr = dot(viw, viw); //speed of object in world, squared
-	//	float3 tv3 = -cross(aviw, pos) / spdOfLight; //tangential velocity in world
-	//	if (siwSqr > 0.0f) { //If the velocity of the object is not zero, we need the full transformation
-	//		float invGamma = sqrt(1.0f - siwSqr);
-	//		float vdtv = dot(viw, tv3); //velocity dotted with tangential velocity
-	//		viw = (1.0f / (1.0f + vdtv)) * (invGamma * tv3 + viw + (1.0f - invGamma) * vdtv / siwSqr * viw); //full velocity of point
-	//	}
-	//	else { //If the object has no speed, the velocity of the point is just the tangential velocity
-	//		viw = tv3;
-	//	}
-	//}
-	//pos = pos + piw - playerOffset; //Shift coordinates so player is at origin
-	//vw + vp/(1+vw*vp/c^2)
 	pos = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w - playerOffset;
 
 	float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
@@ -93,7 +76,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 	//riw = location in world, for reference
 	float4 riw = float4(pos, 0); //Position that will be used in the output
-	float4 viwScaled = spdOfLight * float4(viw, 0);
+	float4 viwScaled = spdOfLight * viw;
+	float4 viwSpatial = float4(viwScaled.xyz, 0);
 
 	//Transform fails and is unecessary if relative speed is zero:
 	if (speedr > divByZeroCutoff)
@@ -102,9 +86,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 		float c = dot(riw, mul(metric, riw)); //first get position squared (position doted with position)
 
-		float b = -(2 * dot(riw, mul(metric, viwScaled))); //next get position doted with velocity, should be only in the Z direction
+		float b = -(2 * dot(riw, mul(metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
 
-		float d = metric._m33 * (spdOfLight*spdOfLight) + dot(viwScaled, mul(metric, viwScaled));
+		float d = metric._m33 + dot(viwScaled, mul(metric, viwSpatial));
 
 		float tisw = 0;
 		if ((b * b) >= 4.0 * d * c)
@@ -114,7 +98,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 		//get the new position offset, based on the new time we just found
 
-		riw += (tisw * viwScaled);
+		riw += (tisw * viwSpatial);
 
 		//Apply Lorentz transform
 		//I had to break it up into steps, unity was getting order of operations wrong.	

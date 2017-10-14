@@ -41,7 +41,7 @@ namespace OpenRelativity.ConformalMaps
                 Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = 1 /schwarzFac;
+                sphericalConformalFactor[3, 3] = 1 / schwarzFac;
                 sphericalConformalFactor[0, 0] = schwarzFac;
                 sphericalConformalFactor[1, 1] = dist * dist;
                 sphericalConformalFactor[2, 2] = dist * dist * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2);
@@ -88,7 +88,7 @@ namespace OpenRelativity.ConformalMaps
             if (dist <= radiusCutoff)
             {
                 Matrix4x4 minkowski = Matrix4x4.identity;
-                minkowski.m33 = 1;
+                minkowski.m33 = SRelativityUtil.cSqrd;
                 minkowski.m00 = -1;
                 minkowski.m11 = -1;
                 minkowski.m22 = -1;
@@ -103,7 +103,7 @@ namespace OpenRelativity.ConformalMaps
                 Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = 1 / schwarzFac;
+                sphericalConformalFactor[3, 3] = 1 / schwarzFac * SRelativityUtil.cSqrd;
                 sphericalConformalFactor[0, 0] = -schwarzFac;
                 sphericalConformalFactor[1, 1] = -dist * dist;
                 sphericalConformalFactor[2, 2] = -dist * dist * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2);

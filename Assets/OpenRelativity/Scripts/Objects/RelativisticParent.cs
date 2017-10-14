@@ -176,7 +176,7 @@ namespace OpenRelativity.Objects
                 //It's the same as our old one, but now it's not connected to every other object with the same material
                 Material quickSwapMaterial = Instantiate((tempRenderer as Renderer).materials[0]) as Material;
                 //Then, set the value that we want
-                quickSwapMaterial.SetFloat("_viw", 0);
+                quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 0));
                 Matrix4x4 minkowski = Matrix4x4.identity;
                 minkowski.m33 = 1;
                 minkowski.m00 = -1;
@@ -221,8 +221,8 @@ namespace OpenRelativity.Objects
                 //Send our object's v/c (Velocity over the Speed of Light) to the shader
                 if (tempRenderer != null)
                 {
-                    Vector3 tempViw = viw / (float)state.SpeedOfLight;
-                    tempRenderer.materials[0].SetVector("_viw", new Vector4(tempViw.x, tempViw.y, tempViw.z, 0));
+                    Vector4 tempViw = viw.To4Viw() / (float)state.SpeedOfLight;
+                    tempRenderer.materials[0].SetVector("_viw", tempViw);
                     Matrix4x4 minkowski = Matrix4x4.identity;
                     minkowski.m33 = 1;
                     minkowski.m00 = -1;
