@@ -71,7 +71,6 @@ struct v2f
 		sampler2D _UVTex;
 		sampler2D _CameraDepthTexture;
 
-		float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player

@@ -76,37 +76,32 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float4 riw = float4(pos, 0); //Position that will be used in the output
 	float4 viwScaled = spdOfLight * viw;
 	float4 viwSpatial = float4(viwScaled.xyz, 0);
+	//Here begins a rotation-free modification of the original OpenRelativity shader:
 
-	//Transform fails and is unecessary if relative speed is zero:
-	if (speedr > divByZeroCutoff)
+	float c = dot(riw, mul(metric, riw)); //first get position squared (position doted with position)
+
+	float b = -(2 * dot(riw, mul(metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
+
+	float d = metric._m33 + dot(viwScaled, mul(metric, viwSpatial));
+
+	float tisw = 0;
+	if ((b * b) >= 4.0 * d * c)
 	{
-		//Here begins a rotation-free modification of the original OpenRelativity shader:
+		tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+	}
 
-		float c = dot(riw, mul(metric, riw)); //first get position squared (position doted with position)
+	//get the new position offset, based on the new time we just found
 
-		float b = -(2 * dot(riw, mul(metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
+	riw += (tisw * viwSpatial);
 
-		float d = metric._m33 + dot(viwScaled, mul(metric, viwSpatial));
+	//Apply Lorentz transform
+	//I had to break it up into steps, unity was getting order of operations wrong.	
+	float newz = (((float)speed*spdOfLight) * tisw);
 
-		float tisw = 0;
-		if ((b * b) >= 4.0 * d * c)
-		{
-			tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-		}
-
-		//get the new position offset, based on the new time we just found
-
-		riw += (tisw * viwSpatial);
-
-		//Apply Lorentz transform
-		//I had to break it up into steps, unity was getting order of operations wrong.	
-		float newz = (((float)speed*spdOfLight) * tisw);
-
-		if (speed > divByZeroCutoff) {
-			float4 vpcUnit = float4(vpc, 0) / speed;
-			newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-			riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
-		}
+	if (speed > divByZeroCutoff) {
+		float4 vpcUnit = float4(vpc, 0) / speed;
+		newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+		riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
 	}
 
 	riw += float4(playerOffset, 0);

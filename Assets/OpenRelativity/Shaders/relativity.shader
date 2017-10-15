@@ -129,41 +129,37 @@ Shader "Relativity/Unlit/ColorShift"
 #endif 
 			//riw = location in world, for reference
 			float4 riw = o.pos; //Position that will be used in the output
+			float4 viwScaled = _spdOfLight * viw;
+			float4 viwSpatial = float4(viwScaled.xyz, 0);
 
-			if (speedr > divByZeroCutoff)
+			//Here begins a rotation-free modification of the original OpenRelativity shader:
+
+			float c = dot(riw, mul(_Metric, riw)); //first get position squared (position doted with position)
+
+			float b = -(2 * dot(riw, mul(_Metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
+
+			float d = _Metric._m33 + dot(viwSpatial, mul(_Metric, viwSpatial));
+
+			float tisw = 0;
+			if ((b * b) >= 4.0 * d * c)
 			{
-				float4 viwScaled = _spdOfLight * viw;
-				float4 viwSpatial = float4(viwScaled.xyz, 0);
+				tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+			}
 
-				//Here begins a rotation-free modification of the original OpenRelativity shader:
+			//get the new position offset, based on the new time we just found
+			//Should only be in the Z direction
 
-				float c = dot(riw, mul(_Metric, riw)); //first get position squared (position doted with position)
+			riw = riw + (tisw * viwSpatial);
 
-				float b = -(2 * dot(riw, mul(_Metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
+			//Apply Lorentz transform
+			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+			//I had to break it up into steps, unity was getting order of operations wrong.	
+			float newz = (((float)speed*_spdOfLight) * tisw);
 
-				float d = _Metric._m33 + dot(viwSpatial, mul(_Metric, viwSpatial));
-
-				float tisw = 0;
-				if ((b * b) >= 4.0 * d * c)
-				{
-					tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-				}
-
-				//get the new position offset, based on the new time we just found
-				//Should only be in the Z direction
-
-				riw = riw + (tisw * viwSpatial);
-
-				//Apply Lorentz transform
-				// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-				//I had to break it up into steps, unity was getting order of operations wrong.	
-				float newz = (((float)speed*_spdOfLight) * tisw);
-
-				if (speed > divByZeroCutoff) {
-					float4 vpcUnit = _vpc / speed;
-					newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-					riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
-				}
+			if (speed > divByZeroCutoff) {
+				float4 vpcUnit = _vpc / speed;
+				newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
+				riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
 			}
 
 			riw += _playerOffset;

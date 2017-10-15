@@ -190,41 +190,36 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector3 riw = pos; //Position that will be used in the output
+            //Here begins a rotation-free modification of the original OpenRelativity shader:
+            Matrix4x4 metric = GetMetric(piw);
 
-            //Transform fails and is unecessary if relative speed is zero:
-            if (speedr > divByZeroCutoff)
+            float c = Vector4.Dot(riw, metric * riw);
+
+            float b = -(2 * Vector3.Dot(riw, metric * velocity)); //next get position doted with velocity, should be only in the Z direction
+
+            float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
+
+            float tisw = 0;
+            if ((b * b) >= 4.0 * d * c)
             {
-                //Here begins a rotation-free modification of the original OpenRelativity shader:
-                Matrix4x4 metric = GetMetric(piw);
+                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+            }
 
-                float c = Vector4.Dot(riw, metric * riw);
+            //get the new position offset, based on the new time we just found
+            //Should only be in the Z direction
 
-                float b = -(2 * Vector3.Dot(riw, metric * velocity)); //next get position doted with velocity, should be only in the Z direction
+            riw = riw + (tisw * velocity);
 
-                float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
+            //Apply Lorentz transform
+            // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+            //I had to break it up into steps, unity was getting order of operations wrong.	
+            float newz = (((float)speed * spdOfLight) * tisw);
 
-                float tisw = 0;
-                if ((b * b) >= 4.0 * d * c)
-                {
-                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-                }
-
-                //get the new position offset, based on the new time we just found
-                //Should only be in the Z direction
-
-                riw = riw + (tisw * velocity);
-
-                //Apply Lorentz transform
-                // float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                //I had to break it up into steps, unity was getting order of operations wrong.	
-                float newz = (((float)speed * spdOfLight) * tisw);
-
-                if (speed > divByZeroCutoff)
-                {
-                    Vector3 vpcUnit = -playerVel / playerVelMag;
-                    newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                    riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
-                }
+            if (speed > divByZeroCutoff)
+            {
+                Vector3 vpcUnit = -playerVel / playerVelMag;
+                newz = (Vector3.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
             }
 
             riw += origin;
@@ -278,40 +273,37 @@ namespace OpenRelativity
             Vector3 riw = pos; //Position that will be used in the output
 
             //Transform fails and is unecessary if relative speed is zero:
-            if (speedr > divByZeroCutoff)
+            float newz;
+            if (speed > divByZeroCutoff)
             {
-                float newz;
-                if (speed > divByZeroCutoff)
-                {
-                    Vector3 vpcUnit = -playerVel / playerVelMag;
-                    newz = Vector3.Dot(riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
-                    riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
-                }
-
-                Matrix4x4 metric = GetMetric(piw);
-
-                float c = Vector4.Dot(riw, metric * riw);
-
-                float b = -2.0f * Vector3.Dot(velocity, metric * riw);
-
-                float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
-
-                float tisw = 0;
-                if ((b * b) >= 4.0 * d * c)
-                {
-                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-                }
-
-                newz = playerVelMag * tisw;
-
-                if (speed > divByZeroCutoff)
-                {
-                    Vector3 vpcUnit = -playerVel / playerVelMag;
-                    riw = riw - newz * vpcUnit;
-                }
-
-                riw = riw - (tisw * velocity);
+                Vector3 vpcUnit = -playerVel / playerVelMag;
+                newz = Vector3.Dot(riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
+                riw = riw + (newz - Vector3.Dot(riw, vpcUnit)) * vpcUnit;
             }
+
+            Matrix4x4 metric = GetMetric(piw);
+
+            float c = Vector4.Dot(riw, metric * riw);
+
+            float b = -2.0f * Vector3.Dot(velocity, metric * riw);
+
+            float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
+
+            float tisw = 0;
+            if ((b * b) >= 4.0 * d * c)
+            {
+                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+            }
+
+            newz = playerVelMag * tisw;
+
+            if (speed > divByZeroCutoff)
+            {
+                Vector3 vpcUnit = -playerVel / playerVelMag;
+                riw = riw - newz * vpcUnit;
+            }
+
+            riw = riw - (tisw * velocity);
 
             riw += origin;
 

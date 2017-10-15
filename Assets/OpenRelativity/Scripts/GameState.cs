@@ -251,10 +251,6 @@ namespace OpenRelativity
 
                 //Send v/c to shader
                 Shader.SetGlobalVector("_vpc", new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c);
-                //Send player acceleration to shader
-                Shader.SetGlobalVector("_ap", new Vector4(playerAccelerationVector.x, playerAccelerationVector.y, playerAccelerationVector.z, 0) / (float)c);
-                //Send world time to shader
-                Shader.SetGlobalFloat("_wrldTime", (float)TotalTimeWorld);
 
                 /******************************
                 * PART TWO OF ALGORITHM
