@@ -468,9 +468,10 @@ namespace OpenRelativity
             return new Vector4(radius, elevation, polar, outTime);
         }
 
-        public static Vector4 To4Viw(this Vector3 viw, Vector4 stpiw)
+        public static Vector4 To4Viw(this Vector3 viw)
         {
-            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude)/ GetMetric(stpiw).m33));
+            //return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt(1 - viw.sqrMagnitude / cSqrd));
+            return viw;
         }
     }
 }
