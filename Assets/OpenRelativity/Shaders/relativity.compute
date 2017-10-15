@@ -10,8 +10,8 @@ struct GlobalParams {
 	//float3 piw; //position of object in world
 	float4 viw; //velocity of object in world
 	//float3 aviw; //angular velocity of object in inverse local scale
-	float3 vpc; //velocity of player
-	float3 playerOffset; //player position in world
+	float4 vpc; //velocity of player
+	float4 playerOffset; //player position in world
 	//float gtt; // 00 component of metric, due to player acceleration
 	float speed; //speed of player;
 	float spdOfLight; //current speed of light
@@ -40,8 +40,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	//float3 piw = glblPrms[0].piw;
 	float4 viw = glblPrms[0].viw;
 	//float3 aviw = glblPrms[0].aviw;
-	float3 vpc = glblPrms[0].vpc;
-	float3 playerOffset = glblPrms[0].playerOffset;
+	float4 vpc = glblPrms[0].vpc;
+	float4 playerOffset = glblPrms[0].playerOffset;
 	//float gtt = glblPrms[0].gtt;
 	float speed = glblPrms[0].speed;
 	float spdOfLight = glblPrms[0].spdOfLight;
@@ -49,42 +49,40 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	//float strtTime = glblPrms[0].strtTime;
 	float4x4 metric = glblPrms[0].metric;
 
-	float3 pos = verts[id.x];
+	float4 pos = float4(verts[id.x].xyz, 0);
 	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1.0f));
-	pos = tempPos.xyz / tempPos.w - playerOffset;
+	pos = float4(tempPos.xyz / tempPos.w - playerOffset.xyz, 0);
 
-	float vuDot = dot(vpc, viw.xyz); //Get player velocity dotted with velocity of the object.
-	float3 vr;
+	float vuDot = dot(vpc.xyz, viw.xyz); //Get player velocity dotted with velocity of the object.
+	float4 vr;
 	//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 	if (speed > divByZeroCutoff)
 	{
-		float3 uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
-		//Get the perpendicular component of our velocity, just by subtraction
-		float3 uperp = viw.xyz - uparra;
+		float3 uparra = (vuDot / (speed*speed)) * vpc.xyz; //Get the parallel component of the object's velocity
+															//Get the perpendicular component of our velocity, just by subtraction
+		float3 uperp = viw.xyz - uparra.xyz;
 		//relative velocity calculation
-		vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+		vr = float4((vpc.xyz - uparra.xyz - (sqrt(1 - speed*speed))*uperp.xyz) / (1 + vuDot), 0);
 	}
 	//If our speed is nearly zero, it could lead to infinities.
 	else
 	{
 		//relative velocity calculation
-		vr = -viw.xyz;
+		vr = float4(-viw.xyz, 0);
 	}
-
-	//relative speed
-	float speedr = sqrt(dot(vr, vr));
-
+	vr *= -1;
+	
 	//riw = location in world, for reference
-	float4 riw = float4(pos, 0); //Position that will be used in the output
+	float4 riw = float4(pos.xyz, 0); //Position that will be used in the output
 	float4 viwScaled = spdOfLight * viw;
-	float4 viwSpatial = float4(viwScaled.xyz, 0);
+
 	//Here begins a rotation-free modification of the original OpenRelativity shader:
 
 	float c = dot(riw, mul(metric, riw)); //first get position squared (position doted with position)
 
-	float b = -(2 * dot(riw, mul(metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
+	float b = -(2 * dot(riw, mul(metric, viwScaled))); //next get position doted with velocity, should be only in the Z direction
 
-	float d = spdOfLight * spdOfLight + dot(viwSpatial, mul(metric, viwSpatial));
+	float d = spdOfLight * spdOfLight;
 
 	float tisw = 0;
 	if ((b * b) >= 4.0 * d * c)
@@ -93,20 +91,22 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	}
 
 	//get the new position offset, based on the new time we just found
+	//Should only be in the Z direction
 
-	riw += (tisw * viwSpatial);
+	riw += tisw * float4(viwScaled.xyz, 0);
 
 	//Apply Lorentz transform
+	// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
 	//I had to break it up into steps, unity was getting order of operations wrong.	
-	float newz = (((float)speed*spdOfLight) * tisw);
+	float newz = speed * spdOfLight * tisw;
 
 	if (speed > divByZeroCutoff) {
-		float4 vpcUnit = float4(vpc, 0) / speed;
-		newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-		riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
+		float3 vpcUnit = vpc.xyz / speed;
+		newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+		riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 	}
 
-	riw += float4(playerOffset, 0);
+	riw += float4(playerOffset.xyz, 0);
 
 	//Transform the vertex back into local space for the mesh to use it
 	tempPos = mul(wtlMatrix, float4(riw.xyz, 1.0f));

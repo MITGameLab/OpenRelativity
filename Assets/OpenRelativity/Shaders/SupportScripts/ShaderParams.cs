@@ -4,7 +4,7 @@ using UnityEngine;
 namespace OpenRelativity
 {
     //Shader properties:
-    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 240)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 248)]
     public struct ShaderParams
     {
         //[FieldOffset(0)]
@@ -18,9 +18,9 @@ namespace OpenRelativity
         //[FieldOffset(38)]
         //public Vector3 aviw; //angular velocity of object
         //[FieldOffset(41)]
-        public Vector3 vpc; //velocity of player
+        public Vector4 vpc; //velocity of player
         //[FieldOffset(44)]
-        public Vector3 playerOffset; //player position in world
+        public Vector4 playerOffset; //player position in world
         //[FieldOffset(47)]
         public System.Single speed; //speed of player;
         //[FieldOffset(48)]

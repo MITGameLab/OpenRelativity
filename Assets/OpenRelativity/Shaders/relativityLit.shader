@@ -98,65 +98,62 @@ Shader "Relativity/VertexLit/ColorShift" {
 		{
 			v2f o;
 
-			float4 viw = float4(_viw.xyz, 0);
-			float4 vpc = float4(_vpc.xyz, 0);
-			float4 playerOffset = float4(_playerOffset.xyz, 0);
-
-			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
-			o.pos = float4(tempPos.xyz / tempPos.w, 0) - playerOffset;
-
 			o.uv1.xy = v.texcoord * _MainTex_ST.xy + _MainTex_ST.zw; //get the UV coordinate for the current vertex, will be passed to fragment shader
 			o.uv2 = float2(0, 0);
 #ifdef LIGHTMAP_ON
 			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
 #endif
+			//You need this otherwise the screen flips and weird stuff happens
+#ifdef SHADER_API_D3D9
+			if (_MainTex_TexelSize.y < 0)
+				o.uv1.y = 1.0 - o.uv1.y;
+#endif 
 
-			float speed = sqrt(dot(vpc, vpc));
+			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
+
+			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
+
+			float speed = length(_vpc.xyz);
 			//vw + vp/(1+vw*vp/c^2)
 
 
-			float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
+			float vuDot = dot(_vpc.xyz, _viw.xyz); //Get player velocity dotted with velocity of the object.
 			float4 vr;
 			//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 			if (speed > divByZeroCutoff)
 			{
-				float4 uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
-																//Get the perpendicular component of our velocity, just by subtraction
-				float4 uperp = viw - uparra;
+				float3 uparra = (vuDot / (speed*speed)) * _vpc.xyz; //Get the parallel component of the object's velocity
+																	//Get the perpendicular component of our velocity, just by subtraction
+				float3 uperp = _viw.xyz - uparra.xyz;
 				//relative velocity calculation
-				vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+				vr = float4((_vpc.xyz - uparra.xyz - (sqrt(1 - speed*speed))*uperp.xyz) / (1 + vuDot), 0);
 			}
 			//If our speed is nearly zero, it could lead to infinities.
 			else
 			{
 				//relative velocity calculation
-				vr = -viw;
+				vr = float4(-_viw.xyz, 0);
 			}
 
 			//set our relative velocity
 			o.vr = vr;
 			vr *= -1;
 			//relative speed
-			float speedr = sqrt(dot(vr, vr));
+			float speedr = sqrt(dot(vr.xyz, vr.xyz));
 			o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
-			//You need this otherwise the screen flips and weird stuff happens
-#ifdef SHADER_API_D3D9
-			if (_MainTex_TexelSize.y < 0)
-				o.uv1.y = 1.0 - o.uv1.y;
-#endif 
 			//riw = location in world, for reference
-			float4 riw = o.pos; //Position that will be used in the output
-			float4 viwScaled = _spdOfLight * viw;
-			float4 viwSpatial = float4(viwScaled.xyz, 0);
+			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
+			float4 viwScaled = _spdOfLight * _viw;
 
 			//Here begins a rotation-free modification of the original OpenRelativity shader:
 
 			float c = dot(riw, mul(_Metric, riw)); //first get position squared (position doted with position)
 
-			float b = -(2 * dot(riw, mul(_Metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
+			float b = -(2 * dot(riw, mul(_Metric, viwScaled))); //next get position doted with velocity, should be only in the Z direction
 
-			float d = _spdOfLight * _spdOfLight + dot(viwSpatial, mul(_Metric, viwSpatial));
+			float d = _spdOfLight * _spdOfLight;
 
 			float tisw = 0;
 			if ((b * b) >= 4.0 * d * c)
@@ -167,26 +164,26 @@ Shader "Relativity/VertexLit/ColorShift" {
 			//get the new position offset, based on the new time we just found
 			//Should only be in the Z direction
 
-			riw = riw + (tisw * viwSpatial);
+			riw += tisw * float4(viwScaled.xyz, 0);
 
 			//Apply Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
 			//I had to break it up into steps, unity was getting order of operations wrong.	
-			float newz = (((float)speed*_spdOfLight) * tisw);
+			float newz = speed * _spdOfLight * tisw;
 
 			if (speed > divByZeroCutoff) {
-				float4 vpcUnit = _vpc / speed;
-				newz = (dot(riw, vpcUnit) + newz) / (float)sqrt(1 - (speed*speed));
-				riw = riw + (newz - dot(riw, vpcUnit)) * vpcUnit;
+				float3 vpcUnit = _vpc.xyz / speed;
+				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 			}
 
-			riw += _playerOffset;
+			riw += float4(_playerOffset.xyz, 0);
 
 			//Transform the vertex back into local space for the mesh to use
-			tempPos = mul(unity_WorldToObject, float4(riw.x, riw.y, riw.z, 1.0f));
+			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1.0f));
 			o.pos = float4(tempPos.xyz / tempPos.w, 0);
 
-			o.pos2 = riw - playerOffset;
+			o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
 
 			o.pos = UnityObjectToClipPos(o.pos);
 

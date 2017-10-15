@@ -92,14 +92,16 @@ struct v2f
 		{
 			v2f o;
 
-			float4 viw = _viw;
+			float4 viw = float4(_viw.xyz, 0);
+			float4 vpc = float4(_vpc.xyz, 0);
+			float4 playerOffset = float4(_playerOffset.xyz, 0);
 
 			o.uv1.xy = v.texcoord; //get the UV coordinate for the current vertex, will be passed to fragment shade
 
-			float speed = sqrt(dot(_vpc, _vpc));
+			float speed = sqrt(dot(vpc, vpc));
 			//vw + vp/(1+vw*vp/c^2)
 
-			float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
+			float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
 			float4 vr;
 			//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 			if (speed > divByZeroCutoff)
@@ -108,7 +110,7 @@ struct v2f
 				//Get the perpendicular component of our velocity, just by subtraction
 				float4 uperp = viw - uparra;
 				//relative velocity calculation
-				vr = (_vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+				vr = (vpc - uparra - (sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
 			}
 			//If our speed is nearly zero, it could lead to infinities.
 			else
@@ -132,7 +134,7 @@ struct v2f
 
 			//For a color only shader, we don't relativistically transform the position
 			o.pos = UnityObjectToClipPos(v.vertex);
-			o.pos2 = v.vertex - _playerOffset;
+			o.pos2 = v.vertex - playerOffset;
 
 			return o;
 		}

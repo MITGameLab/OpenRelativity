@@ -112,6 +112,7 @@ namespace OpenRelativity
         public double MaxSpeed { get { return maxSpeed; } set { maxSpeed = value; } }
 
         public ConformalMaps.ConformalMap conformalMap;
+        public bool isMinkowski { get; set; }
 
         #endregion
 
@@ -131,6 +132,11 @@ namespace OpenRelativity
             if (conformalMap == null)
             {
                 conformalMap = gameObject.AddComponent<ConformalMaps.Minkowski>();
+                isMinkowski = true;
+            }
+            else
+            {
+                isMinkowski = false;
             }
 
             //Initialize the player's speed to zero
@@ -264,20 +270,17 @@ namespace OpenRelativity
                 //Set by Unity, time since last update
                 deltaTimePlayer = (double)Time.deltaTime;
                 //Get the total time passed of the player and world for display purposes
-                if (keyHit)
+                totalTimePlayer += deltaTimePlayer;
+                //if (!double.IsNaN(inverseAcceleratedGamma))
+                if (!double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                 {
-                    totalTimePlayer += deltaTimePlayer;
-                    //if (!double.IsNaN(inverseAcceleratedGamma))
-                    if (!double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
-                    {
-                        //Get the delta time passed for the world, changed by relativistic effects
-                        deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
-                        //NOTE: Dan says, there should also be a correction for acceleration in the 00 component of the metric tensor.
-                        // This correction is dependent on object position and needs to factored by the RelativisticObject itself.
-                        // (Pedagogical explanation at http://aether.lbl.gov/www/classes/p139/homework/eight.pdf.
-                        // See "The Metric for a Uniformly Accelerating System.")
-                        totalTimeWorld += deltaTimeWorld;
-                    }
+                    //Get the delta time passed for the world, changed by relativistic effects
+                    deltaTimeWorld = deltaTimePlayer / sqrtOneMinusVSquaredCWDividedByCSquared;
+                    //NOTE: Dan says, there should also be a correction for acceleration in the 00 component of the metric tensor.
+                    // This correction is dependent on object position and needs to factored by the RelativisticObject itself.
+                    // (Pedagogical explanation at http://aether.lbl.gov/www/classes/p139/homework/eight.pdf.
+                    // See "The Metric for a Uniformly Accelerating System.")
+                    totalTimeWorld += deltaTimeWorld;
                 }
 
                 //Set our rigidbody's velocity

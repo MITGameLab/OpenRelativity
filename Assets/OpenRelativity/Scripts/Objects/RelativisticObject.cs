@@ -277,16 +277,10 @@ namespace OpenRelativity.Objects
             //Set remaining global parameters:
             colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
             colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
-            //colliderShaderParams.piw = transform.position;
-            //colliderShaderParams.viw = viw / (float)state.SpeedOfLight;
-            //colliderShaderParams.aviw = aviw;
             colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
-            //colliderShaderParams.gtt = 
             colliderShaderParams.playerOffset = state.playerTransform.position;
             colliderShaderParams.speed = (float)(state.PlayerVelocity / state.SpeedOfLight);
             colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
-            //colliderShaderParams.wrldTime = (float)state.TotalTimeWorld;
-            //colliderShaderParams.strtTime = startTime;
 
             //Center of mass in local coordinates should be invariant,
             // but transforming the collider verts will change it,
@@ -683,6 +677,7 @@ namespace OpenRelativity.Objects
             //If we have a MeshRenderer on our object
             if (tempRenderer != null)
             {
+                float c = (float)state.SpeedOfLight;
                 //And if we have a texture on our material
                 for (int i = 0; i < tempRenderer.materials.Length; i++)
                 {
@@ -692,7 +687,7 @@ namespace OpenRelativity.Objects
                     //It's the same as our old one, but now it's not connected to every other object with the same material
                     Material quickSwapMaterial = Instantiate(tempRenderer.materials[i]) as Material;
                     //Then, set the value that we want
-                    quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 0));
+                    quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 1));
                     //quickSwapMaterial.SetFloat("_aviw", 0);
                     //quickSwapMaterial.SetFloat("_piw", 0);
                     quickSwapMaterial.SetMatrix("_Metric", minkowski);
@@ -805,8 +800,23 @@ namespace OpenRelativity.Objects
 
         public void Update()
         {
+            //Update co-moving position, if necessary:
+            double deltaTime = state.DeltaTimeWorld * GetTimeFactor(viw.To4Viw(piw));
+            Matrix4x4 metric = GetMetric();
+            //if (!(state.isMinkowski))
+            //{
+            //    Vector3 playerPos = state.playerTransform.position;
+            //    Vector3 playerVel = state.PlayerVelocityVector;
+            //    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
+            //    piw = (stpiw.WorldToOptical(viw, playerPos, playerVel, metric)).OpticalToWorld(viw, playerPos, playerVel, metric);
 
-            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw.To4Viw(piw)) - 1.0);
+            //    if (!nonrelativisticShader)
+            //    {
+            //        transform.position = piw;
+            //    }
+            //}
+
+            localTimeOffset += deltaTime - state.DeltaTimeWorld;
 
             EnforceCollision();
 
@@ -872,7 +882,7 @@ namespace OpenRelativity.Objects
                 #endregion
             }
 
-            UpdateShaderParams();
+            UpdateShaderParams(metric);
         }
 
         public float GetTisw(Vector3? playerPos = null)
@@ -1110,26 +1120,27 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void UpdateShaderParams()
+        private void UpdateShaderParams(Matrix4x4? metric = null)
         {
             Renderer tempRenderer = GetComponent<Renderer>();
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (tempRenderer != null)
             {
-                Vector4 tempViw = viw.To4Viw(piw) / (float)state.SpeedOfLight;
+                if (metric == null)
+                {
+                    metric = GetMetric();
+                }
+                Vector4 tempViw = viw.To4Viw(metric.Value) / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 colliderShaderParams.viw = tempViw;
-                //colliderShaderParams.aviw = tempAviw;
-                //colliderShaderParams.piw = tempPiw;
-                Matrix4x4 metric = GetMetric();
-                colliderShaderParams.metric = metric;
+                colliderShaderParams.metric = metric.Value;
                 for (int i = 0; i < tempRenderer.materials.Length; i++)
                 {
                     tempRenderer.materials[i].SetVector("_viw", tempViw);
                     //tempRenderer.materials[i].SetVector("_aviw", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
                     //tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
-                    tempRenderer.materials[i].SetMatrix("_Metric", metric);
+                    tempRenderer.materials[i].SetMatrix("_Metric", metric.Value);
                 }
             }
         }
