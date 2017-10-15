@@ -98,9 +98,12 @@ Shader "Relativity/VertexLit/ColorShift" {
 		{
 			v2f o;
 
-			float4 viw = _viw;
+			float4 viw = float4(_viw.xyz, 0);
+			float4 vpc = float4(_vpc.xyz, 0);
+			float4 playerOffset = float4(_playerOffset.xyz, 0);
 
-			o.pos = mul(unity_ObjectToWorld, v.vertex) - _playerOffset; //Shift coordinates so player is at origin
+			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+			o.pos = float4(tempPos.xyz / tempPos.w, 0) - playerOffset;
 
 			o.uv1.xy = v.texcoord * _MainTex_ST.xy + _MainTex_ST.zw; //get the UV coordinate for the current vertex, will be passed to fragment shader
 			o.uv2 = float2(0, 0);
@@ -108,20 +111,20 @@ Shader "Relativity/VertexLit/ColorShift" {
 			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
 #endif
 
-			float speed = sqrt(dot(_vpc, _vpc));
+			float speed = sqrt(dot(vpc, vpc));
 			//vw + vp/(1+vw*vp/c^2)
 
 
-			float vuDot = dot(_vpc, viw); //Get player velocity dotted with velocity of the object.
+			float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
 			float4 vr;
 			//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 			if (speed > divByZeroCutoff)
 			{
-				float4 uparra = (vuDot / (speed*speed)) * _vpc; //Get the parallel component of the object's velocity
+				float4 uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
 																//Get the perpendicular component of our velocity, just by subtraction
 				float4 uperp = viw - uparra;
 				//relative velocity calculation
-				vr = (_vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
+				vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
 			}
 			//If our speed is nearly zero, it could lead to infinities.
 			else
@@ -153,7 +156,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			float b = -(2 * dot(riw, mul(_Metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
 
-			float d = _Metric._m33 + dot(viwSpatial, mul(_Metric, viwSpatial));
+			float d = _spdOfLight * _spdOfLight + dot(viwSpatial, mul(_Metric, viwSpatial));
 
 			float tisw = 0;
 			if ((b * b) >= 4.0 * d * c)
@@ -179,10 +182,11 @@ Shader "Relativity/VertexLit/ColorShift" {
 
 			riw += _playerOffset;
 
-			//Transform the vertex back into local space for the mesh to use 
-			o.pos = mul(unity_WorldToObject*1.0, riw);
+			//Transform the vertex back into local space for the mesh to use
+			tempPos = mul(unity_WorldToObject, float4(riw.x, riw.y, riw.z, 1.0f));
+			o.pos = float4(tempPos.xyz / tempPos.w, 0);
 
-			o.pos2 = riw - _playerOffset;
+			o.pos2 = riw - playerOffset;
 
 			o.pos = UnityObjectToClipPos(o.pos);
 

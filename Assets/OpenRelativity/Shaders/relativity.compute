@@ -50,17 +50,17 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float4x4 metric = glblPrms[0].metric;
 
 	float3 pos = verts[id.x];
-	float4 tempPos = mul(ltwMatrix, float4(pos.x, pos.y, pos.z, 1.0f));
-	pos = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w - playerOffset;
+	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1.0f));
+	pos = tempPos.xyz / tempPos.w - playerOffset;
 
-	float vuDot = dot(vpc, viw); //Get player velocity dotted with velocity of the object.
+	float vuDot = dot(vpc, viw.xyz); //Get player velocity dotted with velocity of the object.
 	float3 vr;
 	//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
 	if (speed > divByZeroCutoff)
 	{
 		float3 uparra = (vuDot / (speed*speed)) * vpc; //Get the parallel component of the object's velocity
 		//Get the perpendicular component of our velocity, just by subtraction
-		float3 uperp = viw - uparra;
+		float3 uperp = viw.xyz - uparra;
 		//relative velocity calculation
 		vr = (vpc - uparra - (sqrt(1 - speed*speed))*uperp) / (1 + vuDot);
 	}
@@ -68,7 +68,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	else
 	{
 		//relative velocity calculation
-		vr = -viw;
+		vr = -viw.xyz;
 	}
 
 	//relative speed
@@ -84,7 +84,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 	float b = -(2 * dot(riw, mul(metric, viwSpatial))); //next get position doted with velocity, should be only in the Z direction
 
-	float d = metric._m33 + dot(viwScaled, mul(metric, viwSpatial));
+	float d = spdOfLight * spdOfLight + dot(viwSpatial, mul(metric, viwSpatial));
 
 	float tisw = 0;
 	if ((b * b) >= 4.0 * d * c)
@@ -109,6 +109,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	riw += float4(playerOffset, 0);
 
 	//Transform the vertex back into local space for the mesh to use it
-	tempPos = mul(wtlMatrix, float4(riw.x, riw.y, riw.z, 1.0f));
+	tempPos = mul(wtlMatrix, float4(riw.xyz, 1.0f));
 	verts[id.x] = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w;
 }

@@ -352,7 +352,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
+            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw(piw));
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (GetComponent<MeshRenderer>() != null)
                 GetComponent<MeshRenderer>().enabled = false;
@@ -362,7 +362,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((transform.position.WorldToOptical(viw, playerPos, state.PlayerVelocityVector) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
+            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw(piw));
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -794,7 +794,7 @@ namespace OpenRelativity.Objects
         public void UpdateGravity()
         {
             Vector3 tempViw = viw.Gamma() * viw;
-            tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
+            tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw(piw)));
             tempViw = tempViw.RapidityToVelocity();
             float test = tempViw.x + tempViw.y + tempViw.z;
             if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
@@ -806,7 +806,7 @@ namespace OpenRelativity.Objects
         public void Update()
         {
 
-            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw.To4Viw()) - 1.0);
+            localTimeOffset += state.DeltaTimeWorld * (GetTimeFactor(viw.To4Viw(piw)) - 1.0);
 
             EnforceCollision();
 
@@ -1116,7 +1116,7 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (tempRenderer != null)
             {
-                Vector4 tempViw = viw.To4Viw() / (float)state.SpeedOfLight;
+                Vector4 tempViw = viw.To4Viw(piw) / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 colliderShaderParams.viw = tempViw;
@@ -1628,7 +1628,7 @@ namespace OpenRelativity.Objects
             //The relative contact point is the lever arm of the torque:
             float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
 
-            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
+            float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw(piw)));
 
             //The change in rapidity on the line of action:
             Vector3 finalLinearRapidity = relVelGamma * myVel + impulse / mass * lineOfAction;
@@ -1838,12 +1838,13 @@ namespace OpenRelativity.Objects
             
             Vector3 playerPos = state.playerTransform.position;
             Vector3 playerVel = state.PlayerVelocityVector;
+            Vector3 playerAccel = state.PlayerAccelerationVector;
             Vector3 playerAngVel = state.PlayerAngularVelocityVector;
-            Vector3 myPos = transform.position.WorldToOptical(viw, playerPos, playerVel);
+            Vector3 myPos = piw.WorldToOptical(viw, playerPos, playerVel);
             Vector3 angFac = Vector3.Cross(playerAngVel, myPos);
 
             //Diagonal terms:
-            metric[3, 3] = (float)(Math.Pow(state.SpeedOfLightSqrd + Vector3.Dot(-state.PlayerAccelerationVector, myPos), 2) - angFac.sqrMagnitude);
+            metric[3, 3] = (float)(Math.Pow(state.SpeedOfLight + Vector3.Dot(-playerAccel, myPos), 2) - angFac.sqrMagnitude);
             metric[0, 0] = -1;
             metric[1, 1] = -1;
             metric[2, 2] = -1;
@@ -1880,11 +1881,10 @@ namespace OpenRelativity.Objects
                 if ((!state.MovementFrozen) && (mViwSqrMag > 0) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
                     Matrix4x4 metric = GetMetric();
-                    Vector4 tempViw = viw.To4Viw();
+                    Vector4 tempViw = new Vector4(mViw.x, mViw.y, mViw.z, (float)Math.Sqrt((state.SpeedOfLightSqrd - mViw.sqrMagnitude) / metric.m33));
                     tempViw = metric * tempViw;
-
-                    float timeFac = -(float)((1 - tempViw.sqrMagnitude / state.SpeedOfLightSqrd) / (state.SqrtOneMinusVSquaredCWDividedByCSquared));
-                    myRigidbody.velocity = (new Vector3(tempViw.x, tempViw.y, tempViw.z)) * timeFac;
+                    float timeFac = (float)(tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared));
+                    myRigidbody.velocity = mViw * timeFac;
                     myRigidbody.angularVelocity = mAviw * timeFac;
                 }
                 else
@@ -1899,13 +1899,14 @@ namespace OpenRelativity.Objects
         {
             if (mViw == null)
             {
-                mViw = viw.To4Viw();
+                mViw = viw.To4Viw(piw);
             }
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {
-                Vector4 timeVec = GetMetric().GetRow(3);
-                timeVec.Scale(mViw.Value);
-                return -(1 - timeVec.magnitude / state.SpeedOfLightSqrd) / (state.SqrtOneMinusVSquaredCWDividedByCSquared);
+                Matrix4x4 metric = GetMetric();
+                Vector4 tempViw = new Vector4(mViw.Value.x, mViw.Value.y, mViw.Value.z, (float)Math.Sqrt((state.SpeedOfLightSqrd - mViw.Value.sqrMagnitude) / metric.m33));
+                tempViw = metric * tempViw;
+                return tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared);
             }
             else
             {

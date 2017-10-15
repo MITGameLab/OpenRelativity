@@ -197,7 +197,7 @@ namespace OpenRelativity
 
             float b = -(2 * Vector3.Dot(riw, metric * velocity)); //next get position doted with velocity, should be only in the Z direction
 
-            float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
+            float d = spdOfLight * spdOfLight + Vector3.Dot(velocity, metric * velocity);
 
             float tisw = 0;
             if ((b * b) >= 4.0 * d * c)
@@ -287,7 +287,7 @@ namespace OpenRelativity
 
             float b = -2.0f * Vector3.Dot(velocity, metric * riw);
 
-            float d = metric.m33 + Vector3.Dot(velocity, metric * velocity);
+            float d = spdOfLight * spdOfLight + Vector3.Dot(velocity, metric * velocity);
 
             float tisw = 0;
             if ((b * b) >= 4.0 * d * c)
@@ -468,9 +468,9 @@ namespace OpenRelativity
             return new Vector4(radius, elevation, polar, outTime);
         }
 
-        public static Vector4 To4Viw(this Vector3 viw)
+        public static Vector4 To4Viw(this Vector3 viw, Vector4 stpiw)
         {
-            //return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt(1 - viw.sqrMagnitude / cSqrd));
+            //return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / GetMetric(stpiw).m33));
             return viw;
         }
     }
