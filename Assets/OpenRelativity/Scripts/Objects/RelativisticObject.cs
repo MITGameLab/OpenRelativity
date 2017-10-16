@@ -800,23 +800,6 @@ namespace OpenRelativity.Objects
 
         public void Update()
         {
-            double deltaTime = state.DeltaTimePlayer * GetTimeFactor(viw.To4Viw(piw));
-            localTimeOffset += deltaTime - state.DeltaTimeWorld;
-
-            //Update co-moving position, if necessary:
-            if (!(state.isMinkowski) && (deltaTime != 0))
-            {
-                Vector3 playerPos = state.playerTransform.position;
-                Vector3 playerVel = state.PlayerVelocityVector;
-                Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
-                piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel);
-
-                if (!nonrelativisticShader)
-                {
-                    transform.position = piw;
-                }
-            }
-
             EnforceCollision();
 
             //Update the rigidbody reference.
@@ -925,6 +908,23 @@ namespace OpenRelativity.Objects
 
             if (!state.MovementFrozen)
             {
+                //double deltaTime = state.DeltaTimePlayer * GetTimeFactor(viw.To4Viw(piw));
+                //localTimeOffset += deltaTime - state.DeltaTimeWorld;
+
+                ////Update co-moving position, if necessary:
+                //if (!(state.isMinkowski) && (deltaTime != 0))
+                //{
+                //    Vector3 playerPos = state.playerTransform.position;
+                //    Vector3 playerVel = state.PlayerVelocityVector;
+                //    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
+                //    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel);
+
+                //    if (!nonrelativisticShader)
+                //    {
+                //        transform.position = piw;
+                //    }
+                //}
+
                 if (meshFilter != null)
                 {
                     //As long as our object is actually alive, perform these calculations

@@ -38,7 +38,7 @@ namespace OpenRelativity.ConformalMaps
                 Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = SRelativityUtil.cSqrd;
+                sphericalConformalFactor[3, 3] = 1;
                 sphericalConformalFactor[0, 0] = -radius / dist;
                 sphericalConformalFactor[1, 1] = -dist * dist;
                 sphericalConformalFactor[2, 2] = -dist * dist * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2);
@@ -47,7 +47,9 @@ namespace OpenRelativity.ConformalMaps
                 // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
                 Matrix4x4 jacobian = Matrix4x4.identity;
                 jacobian.m00 = (float)(Math.Sqrt(dist / radius) / (1 - radius / dist));
-                jacobian.m03 = 1;
+                jacobian.m03 = SRelativityUtil.c;
+                jacobian.m30 = 1/SRelativityUtil.c;
+                jacobian.m33 = 1;
                 Matrix4x4 cf = jacobian.transpose * sphericalConformalFactor * jacobian;
 
                 jacobian = Matrix4x4.identity;
@@ -121,7 +123,9 @@ namespace OpenRelativity.ConformalMaps
                 // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
                 Matrix4x4 jacobian = Matrix4x4.identity;
                 jacobian.m00 = (float)(Math.Sqrt(dist / radius) / (1 - radius / dist));
-                jacobian.m03 = 1;
+                jacobian.m03 = SRelativityUtil.c;
+                jacobian.m30 = 1 / SRelativityUtil.c;
+                jacobian.m33 = 1;
                 Matrix4x4 metric = jacobian.transpose * sphericalMetric * jacobian;
 
                 jacobian = Matrix4x4.identity;

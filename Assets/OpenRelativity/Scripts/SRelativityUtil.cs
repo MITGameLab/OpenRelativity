@@ -315,8 +315,8 @@ namespace OpenRelativity
             if (speed > divByZeroCutoff)
             {
                 Vector4 vpcUnit = -(Vector4)playerVel / playerVelMag;
-                newz = Vector4.Dot(riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
+                newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
+                riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
             }
 
             if (metric == null)
@@ -324,13 +324,13 @@ namespace OpenRelativity
                 metric = GetMetric(stpiw);
             }
 
-            Vector4 velocity4 = velocity.To4Viw(metric.Value);
+            Vector4 pVel4 = (-playerVel).To4Viw(metric.Value);
 
-            float c = cSqrd;
+            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position doted with position)
 
-            float b = 2.0f * Vector4.Dot(velocity4, metric.Value * riw);
+            float b = -(2 * Vector4.Dot(riw, metric.Value * pVel4)); //next get position doted with velocity, should be only in the Z direction
 
-            float d = Vector4.Dot(riw, metric.Value * riw);
+            float d = cSqrd;
 
             float tisw = 0;
             if ((b * b) >= 4.0 * d * c)
