@@ -147,10 +147,10 @@ namespace OpenRelativity
 
 
         //This method converts the position of an object in the world to its position after the shader is applied.
-        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Matrix4x4? metric = null)
-        {
-            return ((Vector4)piw).WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric);
-        }
+        //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Matrix4x4? metric = null)
+        //{
+        //    return ((Vector4)piw).WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric);
+        //}
 
         //This method converts the position of an object in the world to its position after the shader is applied.
         public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null)
@@ -158,20 +158,20 @@ namespace OpenRelativity
             return stpiw.WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric);
         }
 
-        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
-        {
-            return ((Vector4)piw).WorldToOptical(velocity, origin, Vector3.zero, metric);
-        }
+        //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
+        //{
+        //    return ((Vector4)piw).WorldToOptical(velocity, origin, Vector3.zero, metric);
+        //}
 
         public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
         {
             return stpiw.WorldToOptical(velocity, origin, Vector3.zero, metric);
         }
 
-        public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
-        {
-            return ((Vector4)piw).WorldToOptical(velocity, origin, playerVel, metric);
-        }
+        //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
+        //{
+        //    return ((Vector4)piw).WorldToOptical(velocity, origin, playerVel, metric);
+        //}
 
         private const float divByZeroCutoff = 1e-8f;
 
@@ -253,30 +253,30 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Matrix4x4? metric = null)
-        {
-            return ((Vector4)piw).OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric);
-        }
+        //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Matrix4x4? metric = null)
+        //{
+        //    return ((Vector4)piw).OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric);
+        //}
 
         public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null)
         {
             return stpiw.OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric);
         }
 
-        public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
-        {
-            return ((Vector4)piw).OpticalToWorld(velocity, origin, Vector3.zero, metric);
-        }
+        //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
+        //{
+        //    return ((Vector4)piw).OpticalToWorld(velocity, origin, Vector3.zero, metric);
+        //}
 
         public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
         {
             return stpiw.OpticalToWorld(velocity, origin, Vector3.zero, metric);
         }
 
-        public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
-        {
-            return ((Vector4)piw).OpticalToWorld(velocity, origin, playerVel, metric);
-        }
+        //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
+        //{
+        //    return ((Vector4)piw).OpticalToWorld(velocity, origin, playerVel, metric);
+        //}
 
         public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
         {
@@ -354,10 +354,10 @@ namespace OpenRelativity
 
         }
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
-        {
-            return ((Vector4)piw).OpticalToWorldHighPrecision(velocity, origin, playerVel);
-        }
+        //public static Vector3 OpticalToWorldHighPrecision(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
+        //{
+        //    return ((Vector4)piw).OpticalToWorldHighPrecision(velocity, origin, playerVel);
+        //}
 
         public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
         {

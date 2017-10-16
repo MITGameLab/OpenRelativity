@@ -335,6 +335,22 @@ namespace OpenRelativity
             }
         }
 
+        private void FixedUpdate()
+        {
+            if (!state.MovementFrozen)
+            {
+                //Update co-moving position, if necessary:
+                double deltaTime = state.DeltaTimePlayer;
+                if (!(state.isMinkowski) && (deltaTime != 0))
+                {
+                    Vector3 playerPos = state.playerTransform.position;
+                    Vector3 playerVel = state.PlayerVelocityVector;
+                    Vector4 stpiw = new Vector4(0, 0, 0, (float)deltaTime);
+                    transform.position = transform.position + ((Vector4)(stpiw.WorldToOptical(Vector3.zero, playerPos, playerVel))).OpticalToWorldHighPrecision(Vector3.zero, playerPos, playerVel);
+                }
+            }
+        }
+
         void OnTriggerEnter(Collider collider)
         {
             OnTrigger(collider);
