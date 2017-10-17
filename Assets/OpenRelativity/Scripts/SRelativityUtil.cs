@@ -463,7 +463,22 @@ namespace OpenRelativity
             return go.AddComponent<T>().GetCopyOf(toAdd) as T;
         }
 
-        public static Vector4 SphericalToCartesian(this Vector4 spherical)
+        public static Vector3 SphericalToCartesian(this Vector3 spherical)
+        {
+            float radius = spherical.x;
+            float elevation = spherical.y;
+            float polar = spherical.z;
+            Vector3 outCart;
+
+            float a = radius * Mathf.Cos(elevation);
+            outCart.x = a * Mathf.Cos(polar);
+            outCart.y = radius * Mathf.Sin(elevation);
+            outCart.z = a * Mathf.Sin(polar);
+
+            return outCart;
+        }
+
+        public static Vector4 Spherical4ToCartesian4(this Vector4 spherical)
         {
             float radius = spherical.x;
             float elevation = spherical.y;
@@ -480,7 +495,41 @@ namespace OpenRelativity
             return outCart;
         }
 
-        public static Vector4 CartesianToSpherical(this Vector4 cartesian)
+        public static Vector3 CartesianToSpherical(this Vector3 cartesian)
+        {
+            float radius, polar, elevation;
+            radius = cartesian.magnitude;
+            if (radius == 0)
+            {
+                polar = 0;
+                elevation = 0;
+            }
+            else {
+                float sqrtXSqrYSqr = Mathf.Sqrt(cartesian.x * cartesian.x + cartesian.y * cartesian.y);
+                if ((cartesian.z == 0) && (sqrtXSqrYSqr == 0))
+                {
+                    elevation = 0;
+                }
+                else
+                {
+                    elevation = Mathf.Atan2(sqrtXSqrYSqr, cartesian.z);
+                }
+
+                if ((cartesian.y == 0) && (cartesian.x == 0))
+                {
+                    polar = 0;
+                }
+                else
+                {
+                    polar = Mathf.Atan2(cartesian.y, cartesian.x);
+                    
+                }
+            }
+
+            return new Vector3(radius, elevation, polar);
+        }
+
+        public static Vector4 Cartesian4ToSpherical4(this Vector4 cartesian)
         {
             float outTime = cartesian.w;
             float radius, polar, elevation;

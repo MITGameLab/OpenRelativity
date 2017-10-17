@@ -20,5 +20,10 @@ namespace OpenRelativity.ConformalMaps
             metric[3, 3] = SRelativityUtil.cSqrd;
             return metric;
         }
+
+        public override Vector3 GetComovingPseudoVelocity(Vector3 piw, Vector3 playerPos)
+        {
+            return Vector3.zero;
+        }
     }
 }

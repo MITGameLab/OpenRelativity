@@ -32,7 +32,6 @@ namespace OpenRelativity.Objects
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
                 piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel)).OpticalToWorldHighPrecision(value, playerPos, playerVel);
-                worldTimeSinceLastCoordinateChange = 0;
                 //test = test - piw.WorldToOptical(value, playerPos, playerVel);
                 if (!nonrelativisticShader)
                 {
@@ -191,8 +190,6 @@ namespace OpenRelativity.Objects
         //private int? oldParentID;
         //Store world position, mostly for a nonrelativistic shader:
         private Vector3 piw;
-        //Store time since last comoving coordinate change;
-        private double worldTimeSinceLastCoordinateChange;
 
         //We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
@@ -597,7 +594,6 @@ namespace OpenRelativity.Objects
             collidedWith = new List<RecentCollision>();
             wasKinematic = false;
             wasFrozen = false;
-            worldTimeSinceLastCoordinateChange = 0;
 
             staticResetPlayerSpeedSqr = (float)(state.SpeedOfLightSqrd * 0.005f * 0.005f);
 
@@ -916,25 +912,6 @@ namespace OpenRelativity.Objects
                 if (!double.IsInfinity(state.FixedDeltaTimeWorld))
                 {
                     localTimeOffset += deltaTime - state.FixedDeltaTimeWorld;
-                }
-
-                //Update co-moving position, if necessary:
-                if (!(state.isMinkowski) && (deltaTime != 0))
-                {
-                    worldTimeSinceLastCoordinateChange += deltaTime;
-                    Vector3 playerPos = state.playerTransform.position;
-                    Vector3 playerVel = state.PlayerVelocityVector;
-                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)worldTimeSinceLastCoordinateChange);
-                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel);
-                    if (piw != (Vector3)stpiw)
-                    {
-                        worldTimeSinceLastCoordinateChange = 0;
-                    }
-
-                    if (!nonrelativisticShader)
-                    {
-                        transform.position = piw;
-                    }
                 }
 
                 if (meshFilter != null)
@@ -1901,11 +1878,12 @@ namespace OpenRelativity.Objects
             if (myRigidbody != null)
             {
                 float mViwSqrMag = mViw.sqrMagnitude;
-                if ((!state.MovementFrozen) && (mViwSqrMag > 0) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
+                if ((!state.MovementFrozen) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
                     Matrix4x4 metric = GetMetric();
                     Vector4 tempViw = new Vector4(mViw.x, mViw.y, mViw.z, (float)Math.Sqrt((state.SpeedOfLightSqrd - mViw.sqrMagnitude) / metric.m33));
                     tempViw = metric * tempViw;
+                    mViw += state.conformalMap.GetComovingPseudoVelocity(piw, state.playerTransform.position);
                     float timeFac = (float)(tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared));
                     myRigidbody.velocity = mViw * timeFac;
                     myRigidbody.angularVelocity = mAviw * timeFac;
