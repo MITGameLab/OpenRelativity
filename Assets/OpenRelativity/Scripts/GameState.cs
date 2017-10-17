@@ -286,7 +286,7 @@ namespace OpenRelativity
                 //Set our rigidbody's velocity
                 if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                 {
-                    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1 * (playerVelocityVector / (float)sqrtOneMinusVSquaredCWDividedByCSquared);
+                    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1 * ((playerVelocityVector - conformalMap.GetComovingPseudoVelocity(playerTransform.position, playerTransform.position))/ (float)sqrtOneMinusVSquaredCWDividedByCSquared);
                 }
                 //But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
                 else
