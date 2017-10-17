@@ -17,42 +17,35 @@ namespace OpenRelativity.ConformalMaps
             //So, let's just convert to spherical to get the conformal factor:
             Vector4 cartesianPos = stpiw - origin;
             Vector4 sphericalPos = cartesianPos.CartesianToSpherical();
-            float dist = cartesianPos.magnitude;
-            //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
-            // so we need to cut-off the interior metric at some point, for numerical sanity:
+            //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
+            double rho = cartesianPos.magnitude;
+            double tau = cartesianPos.w;
 
-            if (dist <= radiusCutoff)
+            //Convert to usual Schwarzschild solution r:
+            double r = Math.Pow(Math.Pow(3.0 / 2.0 * (rho - tau), 2) * radius, 1.0 / 3.0);
+
+            //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
+            // so we need to cut-off the interior metric at some point, for numerical sanity
+            if (r <= radiusCutoff)
             {
                 return Matrix4x4.identity;
             }
             else
             {
-                //Lemaître coordinates, which "co-move" with the gravitational pull of the black hole:
-                double properTimeC = cartesianPos.w * SRelativityUtil.c;
-                //double rho = 2.0 / 3.0 * Math.Sqrt((Math.Pow(dist, 3) / radius));
-                double sqrtR = Math.Sqrt(dist);
-                double sqrtRs = Math.Sqrt(radius);
-                double rho = (float)(properTimeC + 2 * sqrtR / sqrtRs * (sqrtR * (dist + 3 * radius) - 3 * Math.Pow(sqrtR, 3.0) * Math.Atan2(sqrtR, sqrtRs)) / (3 * sqrtR));
+                double schwarzFac = 1 - radius / r;
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
                 Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = 1;
-                sphericalConformalFactor[0, 0] = -radius / dist;
-                sphericalConformalFactor[1, 1] = -dist * dist;
-                sphericalConformalFactor[2, 2] = -dist * dist * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2);
+                sphericalConformalFactor[3, 3] = (float)(schwarzFac);
+                sphericalConformalFactor[0, 0] = (float)(-1.0 / schwarzFac);
+                sphericalConformalFactor[1, 1] = (float)(-r * r);
+                sphericalConformalFactor[2, 2] = (float)(-r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
 
                 //A particular useful "tensor" (which we can think of loosely here as "just a matrix") called the "Jacobian"
                 // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
-                Matrix4x4 jacobian = Matrix4x4.identity;
-                jacobian.m00 = (float)(Math.Sqrt(dist / radius) / (1 - radius / dist));
-                jacobian.m03 = SRelativityUtil.c;
-                jacobian.m30 = 1/SRelativityUtil.c;
-                jacobian.m33 = 1;
-                Matrix4x4 cf = jacobian.transpose * sphericalConformalFactor * jacobian;
-
-                jacobian = Matrix4x4.identity;
+                Matrix4x4 jacobian  = Matrix4x4.identity;
                 double x = cartesianPos.x;
                 double y = cartesianPos.y;
                 double z = cartesianPos.z;
@@ -73,8 +66,7 @@ namespace OpenRelativity.ConformalMaps
                 //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
                 //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
                 // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
-                cf = jacobian.transpose * sphericalConformalFactor * jacobian;
-                return cf;
+                return jacobian.transpose * sphericalConformalFactor * jacobian;
             }
         }
 
@@ -87,11 +79,16 @@ namespace OpenRelativity.ConformalMaps
             //So, let's just convert to spherical to get the conformal factor:
             Vector4 cartesianPos = stpiw - origin;
             Vector4 sphericalPos = cartesianPos.CartesianToSpherical();
-            float dist = cartesianPos.magnitude;
-            //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
-            // so we need to cut-off the interior metric at some point, for numerical sanity:
+            //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
+            double rho = cartesianPos.magnitude;
+            double tau = cartesianPos.w;
 
-            if (dist <= radiusCutoff)
+            //Convert to usual Schwarzschild solution r:
+            double r = Math.Pow(Math.Pow(3.0 / 2.0 * (rho - tau), 2) * radius, 1.0 / 3.0);
+            
+            //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
+            // so we need to cut-off the interior metric at some point, for numerical sanity
+            if (r <= radiusCutoff)
             {
                 Matrix4x4 minkowski = Matrix4x4.identity;
                 minkowski.m33 = SRelativityUtil.cSqrd;
@@ -103,32 +100,20 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-                //Lemaître coordinates, which "co-move" with the gravitational pull of the black hole:
-                double properTimeC = cartesianPos.w * SRelativityUtil.c;
-                //double rho = 2.0 / 3.0 * Math.Sqrt((Math.Pow(dist, 3) / radius));
-                double sqrtR = Math.Sqrt(dist);
-                double sqrtRs = Math.Sqrt(radius);
-                double rho = (float)(properTimeC + 2 * sqrtR / sqrtRs * (sqrtR * (dist + 3 * radius) - 3 * Math.Pow(sqrtR, 3.0) * Math.Atan2(sqrtR, sqrtRs)) / (3 * sqrtR));
+                double schwarzFac = 1 - radius / r;
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
                 Matrix4x4 sphericalMetric = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalMetric[3, 3] = SRelativityUtil.cSqrd;
-                sphericalMetric[0, 0] = -radius / dist;
-                sphericalMetric[1, 1] = -dist * dist;
-                sphericalMetric[2, 2] = -dist * dist * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2);
+                sphericalMetric[3, 3] = (float)(SRelativityUtil.cSqrd * schwarzFac);
+                sphericalMetric[0, 0] = (float)(-1.0 / schwarzFac);
+                sphericalMetric[1, 1] = (float)(-r * r);
+                sphericalMetric[2, 2] = (float)(-r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
 
                 //A particular useful "tensor" (which we can think of loosely here as "just a matrix") called the "Jacobian"
                 // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
                 Matrix4x4 jacobian = Matrix4x4.identity;
-                jacobian.m00 = (float)(Math.Sqrt(dist / radius) / (1 - radius / dist));
-                jacobian.m03 = SRelativityUtil.c;
-                jacobian.m30 = 1 / SRelativityUtil.c;
-                jacobian.m33 = 1;
-                Matrix4x4 metric = jacobian.transpose * sphericalMetric * jacobian;
-
-                jacobian = Matrix4x4.identity;
                 double x = cartesianPos.x;
                 double y = cartesianPos.y;
                 double z = cartesianPos.z;
@@ -149,8 +134,7 @@ namespace OpenRelativity.ConformalMaps
                 //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
                 //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
                 // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
-                metric = jacobian.transpose * sphericalMetric * jacobian;
-                return metric;
+                return jacobian.transpose * sphericalMetric * jacobian;
             }
         }
     }
