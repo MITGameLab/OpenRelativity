@@ -1883,7 +1883,6 @@ namespace OpenRelativity.Objects
                     Matrix4x4 metric = GetMetric();
                     Vector4 tempViw = new Vector4(mViw.x, mViw.y, mViw.z, (float)Math.Sqrt((state.SpeedOfLightSqrd - mViw.sqrMagnitude) / metric.m33));
                     tempViw = metric * tempViw;
-                    mViw += state.conformalMap.GetComovingPseudoVelocity(piw, state.playerTransform.position);
                     float timeFac = (float)(tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared));
                     myRigidbody.velocity = mViw * timeFac;
                     myRigidbody.angularVelocity = mAviw * timeFac;
