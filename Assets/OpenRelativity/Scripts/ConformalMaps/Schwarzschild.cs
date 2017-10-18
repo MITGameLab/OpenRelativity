@@ -193,5 +193,35 @@ namespace OpenRelativity.ConformalMaps
                 return new Vector4(towardOrigin.x, towardOrigin.y, towardOrigin.z, cartesianAccel.w);
             }
         }
+
+        override public Vector3 GetPlayerComovingPseudoVelocity(Vector3 piw)
+        {
+            //We'll assume the player is close enough to being at rest with respect to the singularity at a great distance away, at first,
+            // so that we can ignore the player position, here.
+
+            Vector4 origin = transform.position;
+
+            //We assume all input space-time-position-in-world vectors are Cartesian.
+            //The Schwarzschild metric is most naturally expressed in spherical coordinates.
+            //So, let's just convert to spherical to get the conformal factor:
+            Vector3 cartesianPos = piw - (Vector3)origin;
+            //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
+            double rho = cartesianPos.magnitude;
+
+            //Convert to usual Schwarzschild solution r:
+            double r = Math.Pow(Math.Pow(3.0 / 2.0 * rho, 2) * radius, 1.0 / 3.0);
+
+            //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
+            // so we need to cut-off the interior metric at some point, for numerical sanity
+            if (r <= radiusCutoff)
+            {
+                return Vector3.zero;
+            }
+            else
+            {
+                float sphericalVel = (float)(-SRelativityUtil.c * Math.Pow(2.0 * radius / (3.0f * rho), 1.0 / 3.0));
+                return sphericalVel * cartesianPos.normalized;
+            }
+        }
     }
 }

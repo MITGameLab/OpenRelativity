@@ -25,5 +25,10 @@ namespace OpenRelativity.ConformalMaps
         {
             return Vector4.zero;
         }
+
+        public override Vector3 GetPlayerComovingPseudoVelocity(Vector3 piw)
+        {
+            return Vector3.zero;
+        }
     }
 }

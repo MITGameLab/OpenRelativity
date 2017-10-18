@@ -286,15 +286,7 @@ namespace OpenRelativity
                 //Set our rigidbody's velocity
                 if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                 {
-                    Vector3 vel = -playerVelocityVector;
-                    ////Update co-moving position, if necessary:
-                    //if (!(isMinkowski))
-                    //{
-                    //    Vector4 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
-                    //    vel = vel - ((Vector3)accel) * (float)deltaTimePlayer;
-                    //}
-
-                    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = vel / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
+                    
                 }
                 //But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
                 else
@@ -328,6 +320,30 @@ namespace OpenRelativity
                     deltaCameraAngle = 0;
                 }
                 oldCameraForward = cameraForward;
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            if (!MovementFrozen && !double.IsNaN(deltaTimePlayer) && sqrtOneMinusVSquaredCWDividedByCSquared > 0 && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
+            {
+                Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
+                Vector3 velocity = -playerVelocityVector;
+                //Set our rigidbody's geodesic acceleration, if necessary
+                if (!isMinkowski)
+                {
+                    //Vector4 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
+                    //Vector3 accel3 = ((Vector3)accel) * (float)(-(1 - accel.w / SpeedOfLight) / sqrtOneMinusVSquaredCWDividedByCSquared);
+                    //float test = accel3.sqrMagnitude;
+                    //if (!double.IsNaN(test) && !double.IsInfinity(test))
+                    //{
+                    //    playerRB.AddForce(accel3, ForceMode.Acceleration);
+                    //}
+
+                    velocity = (conformalMap.GetPlayerComovingPseudoVelocity(transform.position) - playerVelocityVector);
+                }
+
+                playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
             }
         }
         #region Matrix/Quat math

@@ -1148,12 +1148,12 @@ namespace OpenRelativity.Objects
                 Vector3 tempPiw = transform.position;
                 Vector4 tempAiw = GetWorldAcceleration(piw, state.playerTransform.position);
                 colliderShaderParams.viw = tempViw;
-
+                colliderShaderParams.aiw = tempAiw;
                 colliderShaderParams.metric = metric.Value;
                 for (int i = 0; i < tempRenderer.materials.Length; i++)
                 {
                     tempRenderer.materials[i].SetVector("_viw", tempViw);
-                    tempRenderer.materials[i].SetVector("_aiw", tempViw);
+                    tempRenderer.materials[i].SetVector("_aiw", tempAiw);
                     //tempRenderer.materials[i].SetVector("_aviw", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
                     //tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
                     tempRenderer.materials[i].SetMatrix("_Metric", metric.Value);
