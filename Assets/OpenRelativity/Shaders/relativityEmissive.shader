@@ -160,9 +160,9 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 		//Here begins a rotation-free modification of the original OpenRelativity shader:
 
-		float c = dot(riw, mul(_Metric, riw)); //first get position squared (position doted with position)
+		float c = dot(riw, mul(_Metric, riw)); //first get position squared (position dotted with position)
 
-		float b = -(2 * dot(riw, mul(_Metric, viwScaled))); //next get position doted with velocity, should be only in the Z direction
+		float b = -(2 * dot(riw, mul(_Metric, viwScaled))); //next get position dotted with velocity, should be only in the Z direction
 
 		float d = _spdOfLight * _spdOfLight;
 

@@ -10,6 +10,7 @@ namespace OpenRelativity.ConformalMaps
         abstract public Matrix4x4 GetMetric(Vector4 stpiw);
 
         //Properly, we want to satisfy the geodesic equations, using the Christoffel symbols.
-        abstract public Matrix4x4[] GetWorldChristoffelSymbols(Vector3 piw, Vector3 playerPos);
+        // This introduces a four acceleration.
+        abstract public Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos);
     }
 }

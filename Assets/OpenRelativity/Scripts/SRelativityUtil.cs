@@ -13,6 +13,10 @@ namespace OpenRelativity
         {
             return srCamera.conformalMap.GetMetric(stpiw);
         }
+        public static Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
+        {
+            return srCamera.conformalMap.GetWorldAcceleration(piw, playerPos);
+        }
 
         private static GameState _srCamera;
         private static GameState srCamera
@@ -153,9 +157,9 @@ namespace OpenRelativity
         //}
 
         //This method converts the position of an object in the world to its position after the shader is applied.
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null, Vector4? accel = null)
         {
-            return stpiw.WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric);
+            return stpiw.WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric, accel);
         }
 
         //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
@@ -163,9 +167,9 @@ namespace OpenRelativity
         //    return ((Vector4)piw).WorldToOptical(velocity, origin, Vector3.zero, metric);
         //}
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null, Vector4? accel = null)
         {
-            return stpiw.WorldToOptical(velocity, origin, Vector3.zero, metric);
+            return stpiw.WorldToOptical(velocity, origin, Vector3.zero, metric, accel);
         }
 
         //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
@@ -175,7 +179,7 @@ namespace OpenRelativity
 
         private const float divByZeroCutoff = 1e-8f;
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null, Vector4? accel = null)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -218,9 +222,9 @@ namespace OpenRelativity
 
             //Here begins a rotation-free modification of the original OpenRelativity shader:
 
-            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position doted with position)
+            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
 
-            float b = -(2 * Vector4.Dot(riw, metric.Value * velocity4)); //next get position doted with velocity, should be only in the Z direction
+            float b = -(2 * Vector4.Dot(riw, metric.Value * velocity4)); //next get position dotted with velocity, should be only in the Z direction
 
             float d = cSqrd;
 
@@ -232,7 +236,13 @@ namespace OpenRelativity
 
             //get the new position offset, based on the new time we just found
 
-            riw = (Vector3)riw + (tisw * velocity);
+            if (accel == null)
+            {
+                accel = GetWorldAcceleration(stpiw, origin);
+            }
+            Vector3 apparentAccel = ((Vector3)(accel.Value)) * (1.0f - accel.Value.w);
+
+            riw = (Vector3)riw + (tisw * velocity) + (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
 
             //Apply Lorentz transform
             //I had to break it up into steps, unity was getting order of operations wrong.	
@@ -258,9 +268,9 @@ namespace OpenRelativity
         //    return ((Vector4)piw).OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric);
         //}
 
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null)
+        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null, Vector4? accel = null)
         {
-            return stpiw.OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric);
+            return stpiw.OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric, accel);
         }
 
         //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
@@ -268,9 +278,9 @@ namespace OpenRelativity
         //    return ((Vector4)piw).OpticalToWorld(velocity, origin, Vector3.zero, metric);
         //}
 
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
+        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null, Vector4? accel = null)
         {
-            return stpiw.OpticalToWorld(velocity, origin, Vector3.zero, metric);
+            return stpiw.OpticalToWorld(velocity, origin, Vector3.zero, metric, accel);
         }
 
         //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
@@ -278,7 +288,7 @@ namespace OpenRelativity
         //    return ((Vector4)piw).OpticalToWorld(velocity, origin, playerVel, metric);
         //}
 
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
+        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null, Vector4? accel = null)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -326,9 +336,9 @@ namespace OpenRelativity
 
             Vector4 pVel4 = (-playerVel).To4Viw(metric.Value);
 
-            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position doted with position)
+            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
 
-            float b = -(2 * Vector4.Dot(riw, metric.Value * pVel4)); //next get position doted with velocity, should be only in the Z direction
+            float b = -(2 * Vector4.Dot(riw, metric.Value * pVel4)); //next get position dotted with velocity, should be only in the Z direction
 
             float d = cSqrd;
 
@@ -346,7 +356,13 @@ namespace OpenRelativity
                 riw = riw - newz * vpcUnit;
             }
 
-            riw = (Vector3)riw - (tisw * velocity);
+            if (accel == null)
+            {
+                accel = GetWorldAcceleration(stpiw, origin);
+            }
+            Vector3 apparentAccel = ((Vector3)(accel.Value)) * (1.0f - accel.Value.w);
+
+            riw = (Vector3)riw - (tisw * velocity) - (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
 
             riw = (Vector3)riw + origin;
 

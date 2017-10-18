@@ -21,20 +21,9 @@ namespace OpenRelativity.ConformalMaps
             return metric;
         }
 
-        //public override Vector3 GetComovingPseudoVelocity(Vector3 piw, Vector3 playerPos)
-        //{
-        //    return Vector3.zero;
-        //}
-
-        public override Matrix4x4[] GetWorldChristoffelSymbols(Vector3 piw, Vector3 playerPos)
+        public override Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
         {
-            Matrix4x4[] christoffels = new Matrix4x4[4];
-            for (int i = 0; i < christoffels.Length; i++)
-            {
-                christoffels[i] = Matrix4x4.zero;
-            }
-
-            return christoffels;
+            return Vector4.zero;
         }
     }
 }

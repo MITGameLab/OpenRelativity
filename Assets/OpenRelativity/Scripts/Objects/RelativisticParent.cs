@@ -265,9 +265,9 @@ namespace OpenRelativity.Objects
                     //Rotate that velocity!
                     Vector3 storedViw = rotateZ * viw;
 
-                    float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
+                    float c = -Vector3.Dot(riw, riw); //first get position squared (position dotted with position)
 
-                    float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position doted with velocity, should be only in the Z direction
+                    float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position dotted with velocity, should be only in the Z direction
 
                     float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
 

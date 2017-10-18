@@ -879,17 +879,26 @@ namespace OpenRelativity.Objects
                 riw = transform.position - playerPos.Value;
             }
             //Place the vertex to be changed in a new Vector3
-            
+
+            Matrix4x4 metric = GetMetric();
+
+            Vector4 velocity4 = viw.To4Viw(metric);
 
             //Here begins a rotation-free modification of the original OpenRelativity shader:
 
-            float c = -Vector3.Dot(riw, riw); //first get position squared (position doted with position)
+            float c = Vector4.Dot(riw, metric * riw); //first get position squared (position dotted with position)
 
-            float b = -(2 * Vector3.Dot(riw, viw)); //next get position doted with velocity, should be only in the Z direction
+            float b = -(2 * Vector4.Dot(riw, metric * velocity4)); //next get position dotted with velocity, should be only in the Z direction
 
-            float d = (float)(state.SpeedOfLightSqrd) - Vector3.Dot(viw, viw);
+            float d = (float)state.SpeedOfLightSqrd;
 
-            return (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2.0f * d);
+            float tisw = 0;
+            if ((b * b) >= 4.0 * d * c)
+            {
+                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+            }
+
+            return tisw;
         }
 
         void FixedUpdate() {
@@ -912,6 +921,20 @@ namespace OpenRelativity.Objects
                 if (!double.IsInfinity(state.FixedDeltaTimeWorld))
                 {
                     localTimeOffset += deltaTime - state.FixedDeltaTimeWorld;
+                }
+
+                //Update co-moving position, if necessary:
+                if (!(state.isMinkowski) && (deltaTime != 0) && !isStatic)
+                {
+                    Vector3 playerPos = state.playerTransform.position;
+                    Vector3 playerVel = state.PlayerVelocityVector;
+                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)(-deltaTime));
+                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel);
+
+                    if (!nonrelativisticShader)
+                    {
+                        transform.position = piw;
+                    }
                 }
 
                 if (meshFilter != null)
