@@ -287,12 +287,12 @@ namespace OpenRelativity
                 if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                 {
                     Vector3 vel = -playerVelocityVector;
-                    //Update co-moving position, if necessary:
-                    if (!(isMinkowski))
-                    {
-                        Vector4 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
-                        vel = vel - ((Vector3)accel) * (float)(1 - accel.w / SpeedOfLight);
-                    }
+                    ////Update co-moving position, if necessary:
+                    //if (!(isMinkowski))
+                    //{
+                    //    Vector4 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
+                    //    vel = vel - ((Vector3)accel) * (float)deltaTimePlayer;
+                    //}
 
                     GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = vel / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
                 }
