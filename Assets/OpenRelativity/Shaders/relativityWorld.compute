@@ -8,7 +8,7 @@ struct GlobalParams {
 	float4x4 ltwMatrix; //local-to-world transform matrix
 	float4x4 wtlMatrix; //world-to-local transform matrix
 	//float3 piw; //position of object in world
-	float4 viw; //velocity of object in world
+	float4 viw; //velocity of object in synchronous coordinates
 	//float3 aviw; //angular velocity of object in inverse local scale
 	float4 vpc; //velocity of player
 	float4 playerOffset; //player position in world
@@ -18,6 +18,7 @@ struct GlobalParams {
 	//float wrldTime; //current time in world
 	//float strtTime; //starting time in world
 	float4x4 metric;
+	float4 aiw; //acceleration of object in world coordinates
 };
 
 //struct VertDraw {
@@ -48,6 +49,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	//float wrldTime = glblPrms[0].wrldTime;
 	//float strtTime = glblPrms[0].strtTime;
 	float4x4 metric = glblPrms[0].metric;
+	float4 aiw = glblPrms[0].aiw;
 
 	float4 pos = float4(verts[id.x].xyz - playerOffset.xyz, 0);
 
@@ -89,9 +91,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	}
 
 	//get the new position offset, based on the new time we just found
-	//Should only be in the Z direction
-
-	riw += tisw * float4(viwScaled.xyz, 0);
+	float4 apparentAccel = float4(aiw.xyz * (1.0f - aiw.w / spdOfLight), 0);
+	riw += tisw * float4(viwScaled.xyz, 0) + (apparentAccel * abs(tisw) * tisw / 2.0f);
 
 	//Apply Lorentz transform
 	// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

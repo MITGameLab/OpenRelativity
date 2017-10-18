@@ -10,6 +10,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 		_IRTex("IR",2D) = "" {} //IR texture
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		_viw("viw", Vector) = (0,0,0,0)
+		_aiw("aiw", Vector) = (0,0,0,0)
 	}
 		CGINCLUDE
 
@@ -79,7 +80,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 		sampler2D _CameraDepthTexture;
 
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
-		float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
+		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
+		float4 _aiw = float4(0, 0, 0, 0);
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 										  //float _gtt = 1; //velocity of player
@@ -162,9 +164,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 			}
 
 			//get the new position offset, based on the new time we just found
-			//Should only be in the Z direction
-
-			riw += tisw * float4(viwScaled.xyz, 0);
+			float4 apparentAccel = float4(_aiw.xyz * (1.0f - _aiw.w / _spdOfLight), 0);
+			riw += tisw * float4(viwScaled.xyz, 0) + (apparentAccel * abs(tisw) * tisw / 2.0f);
 
 			//Apply Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

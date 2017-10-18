@@ -688,6 +688,7 @@ namespace OpenRelativity.Objects
                     Material quickSwapMaterial = Instantiate(tempRenderer.materials[i]) as Material;
                     //Then, set the value that we want
                     quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 1));
+                    quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
                     //quickSwapMaterial.SetFloat("_aviw", 0);
                     //quickSwapMaterial.SetFloat("_piw", 0);
                     quickSwapMaterial.SetMatrix("_Metric", minkowski);
@@ -1145,11 +1146,14 @@ namespace OpenRelativity.Objects
                 Vector4 tempViw = viw.To4Viw(metric.Value) / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
+                Vector4 tempAiw = GetWorldAcceleration(piw, state.playerTransform.position);
                 colliderShaderParams.viw = tempViw;
+
                 colliderShaderParams.metric = metric.Value;
                 for (int i = 0; i < tempRenderer.materials.Length; i++)
                 {
                     tempRenderer.materials[i].SetVector("_viw", tempViw);
+                    tempRenderer.materials[i].SetVector("_aiw", tempViw);
                     //tempRenderer.materials[i].SetVector("_aviw", new Vector4(tempAviw.x, tempAviw.y, tempAviw.z, 0));
                     //tempRenderer.materials[i].SetVector("_piw", new Vector4(tempPiw.x, tempPiw.y, tempPiw.z, 0));
                     tempRenderer.materials[i].SetMatrix("_Metric", metric.Value);
@@ -1894,6 +1898,11 @@ namespace OpenRelativity.Objects
             metric = state.conformalMap.GetConformalFactor(piw) * metric;
 
             return metric;
+        }
+
+        private Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
+        {
+            return state.conformalMap.GetWorldAcceleration(piw, playerPos);
         }
 
         private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)

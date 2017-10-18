@@ -286,7 +286,15 @@ namespace OpenRelativity
                 //Set our rigidbody's velocity
                 if (!double.IsNaN(deltaTimePlayer) && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared))
                 {
-                    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = -1 * playerVelocityVector/ (float)sqrtOneMinusVSquaredCWDividedByCSquared;
+                    Vector3 vel = -playerVelocityVector;
+                    //Update co-moving position, if necessary:
+                    if (!(isMinkowski))
+                    {
+                        Vector4 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
+                        vel = vel - ((Vector3)accel) * (float)(1 - accel.w / SpeedOfLight);
+                    }
+
+                    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = vel / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
                 }
                 //But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
                 else

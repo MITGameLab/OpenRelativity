@@ -177,6 +177,7 @@ namespace OpenRelativity.Objects
                 Material quickSwapMaterial = Instantiate((tempRenderer as Renderer).materials[0]) as Material;
                 //Then, set the value that we want
                 quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 0));
+                quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
                 Matrix4x4 minkowski = Matrix4x4.identity;
                 minkowski.m33 = 1;
                 minkowski.m00 = -1;
@@ -223,6 +224,8 @@ namespace OpenRelativity.Objects
                 {
                     Vector4 tempViw = viw.To4Viw(transform.position) / (float)state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", tempViw);
+                    Vector4 tempAiw = GetWorldAcceleration(transform.position, state.playerTransform.position);
+                    tempRenderer.materials[0].SetVector("_aiw", tempAiw);
                     Matrix4x4 minkowski = Matrix4x4.identity;
                     minkowski.m33 = 1;
                     minkowski.m00 = -1;
@@ -305,8 +308,11 @@ namespace OpenRelativity.Objects
 
                 }
             }
+        }
 
-
+        private Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
+        {
+            return state.conformalMap.GetWorldAcceleration(piw, playerPos);
         }
     }
 }

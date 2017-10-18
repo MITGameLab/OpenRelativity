@@ -10,11 +10,8 @@ Shader "Relativity/ColorOnly"
 		_MainTex("Base (RGB)", 2D) = "" {} //Visible Spectrum Texture ( RGB )
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_piw("piw", Vector) = (0,0,0,0) //Vector that represents object's position in world frame
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in world frame
-		_aviw("aviw", Vector) = (0,0,0,0) //Vector that represents object's angular velocity times the object's world scale
-		//_gtt("gtt", float) = 0 //float that represents 00 component of metric due to player acceleration
-		_strtTime("strtTime", float) = 0 //For moving objects, when they created, this variable is set to current world time
+		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
 

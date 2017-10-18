@@ -5,7 +5,8 @@ Shader "Relativity/Unlit/ColorShift"
 		_MainTex("Base (RGB)", 2D) = "" {} //Visible Spectrum Texture ( RGB )
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in world frame
+		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
+		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
 
@@ -67,6 +68,7 @@ Shader "Relativity/Unlit/ColorShift"
 
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
+		float4 _aiw = float4(0, 0, 0, 0); //velocity of object in world
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 		//float _gtt = 1; //velocity of player
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
@@ -144,9 +146,8 @@ Shader "Relativity/Unlit/ColorShift"
 			}
 
 			//get the new position offset, based on the new time we just found
-			//Should only be in the Z direction
-
-			riw += tisw * float4(viwScaled.xyz, 0);
+			float4 apparentAccel = float4(_aiw.xyz * (1.0f - _aiw.w / _spdOfLight), 0);
+			riw += tisw * float4(viwScaled.xyz, 0) + (apparentAccel * abs(tisw) * tisw / 2.0f);
 
 			//Apply Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
