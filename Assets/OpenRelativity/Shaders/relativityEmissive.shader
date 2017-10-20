@@ -386,15 +386,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 
 		float UV = tex2D(_UVTex, i.uv1).r;
 		float IR = tex2D(_IRTex, i.uv1).r;
-#ifdef POINT
-		float3 rgbEmission = 0;
-		float3 xyz, weights, rParam, gParam, bParam, UVParam, IRParam;
-		rParam.y = (float)615; rParam.z = (float)8;
-		gParam.y = (float)550; gParam.z = (float)4;
-		bParam.y = (float)463; bParam.z = (float)5;
-		UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
-		IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
-#else
+
 		float3 xyz = RGBToXYZC((tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor);
 		float3 weights = weightFromXYZCurves(xyz);
 		float3 rParam, gParam, bParam, UVParam, IRParam;
@@ -407,7 +399,6 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
 		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
 		float3 rgbEmission = XYZToRGBC(xyz);
-#endif
 
 		//The Doppler factor is squared for (diffuse or specular) reflected light.
 		//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
@@ -415,6 +406,7 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent. 
 
 		//Get initial color 
+
 		float4 data = tex2D(_MainTex, i.uv1).rgba;
 
 		//Apply lighting in world frame:
@@ -434,7 +426,8 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
 		float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
 
-#ifdef POINT
+#if defined(LIGHTMAP_ON)
+#elif defined(POINT)
 		float3 normalDirection = normalize(i.normal.xyz);
 		float3 lightDirection;
 		float attenuation;
@@ -489,7 +482,8 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 			Cull Off ZWrite On
 			ZTest LEqual
 			Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
-			Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" "LightMode" = "ForwardBase" }
+			Tags{ "LightMode" = "ForwardBase" }
+			LOD 200
 
 			AlphaTest Greater[_Cutoff]
 			Blend SrcAlpha OneMinusSrcAlpha
@@ -499,8 +493,6 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 			#pragma fragmentoption ARB_precision_hint_nicest
 
 			#pragma multi_compile_fwdbase
-			//#pragma multi_compile LIGHTMAP_ON VERTEXLIGHT_ON
-			//#pragma multi_compile FORWARD_BASE_PASS
 
 			#pragma vertex vert
 			#pragma fragment frag
@@ -512,7 +504,8 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 		Pass{
 			Tags{ "LightMode" = "ForwardAdd" }
 			// pass for additional light sources
-			Blend One One // additive blending 
+			Blend One One // additive blending
+			LOD 200
 
 			CGPROGRAM
 
@@ -533,21 +526,27 @@ Shader "Relativity/VertexLit/EmissiveColorShift" {
 			Cull Off
 			CGPROGRAM
 
-			//Per pixel shader, does color modifications
-			//Necessarily from static geometry, (so no Doppler shift).
-			fixed4 frag_custom_meta(v2f i) : SV_Target
+			sampler2D _GIAlbedoTex;
+			fixed4 _GIAlbedoColor;
+			float4 frag_meta2(v2f i) : SV_Target
 			{
+				// We're interested in diffuse & specular colors
+				// and surface roughness to produce final albedo.
+
+				FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.uv1.xy,0,0));
 				UnityMetaInput o;
 				UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
-				o.Albedo = tex2D(_MainTex, i.uv1).rgb;
+				fixed4 c = tex2D(_GIAlbedoTex, i.uv1);
 				o.Emission = (tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor;
+				o.Albedo = fixed3(c.rgb * _GIAlbedoColor.rgb) - o.Emission;
 				return UnityMetaFragment(o);
 			}
 
+			#pragma vertex vert_meta
+			#pragma fragment frag_meta2
 			#pragma shader_feature _EMISSION
-			#pragma vertex vert
-			#pragma fragment frag_custom_meta
-
+			#pragma shader_feature _METALLICGLOSSMAP
+			#pragma shader_feature ___ _DETAIL_MULX2
 			ENDCG
 		}
 	}

@@ -18,6 +18,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 #pragma glsl
 #include "UnityCG.cginc"
 #include "UnityLightingCommon.cginc" // for _LightColor0
+#include "UnityStandardMeta.cginc"
 
 //Color shift variables, used to make guassians for XYZ curves
 #define xla 0.39952807612909519
@@ -69,10 +70,10 @@ Shader "Relativity/VertexLit/ColorShift" {
 		//For the time being, we can only approximate by the value of the metric at the center of the object.
 		//Ideally, we'd have a differently numerical metric value for each vertex or fragment.
 
-		uniform float4 _Color;
+		//uniform float4 _Color;
 		//Variables that we use to access texture data
-		sampler2D _MainTex;
-		uniform float4 _MainTex_ST;
+		//sampler2D _MainTex;
+		//uniform float4 _MainTex_ST;
 		sampler2D _IRTex;
 		uniform float4 _IRTex_ST;
 		sampler2D _UVTex;
@@ -401,7 +402,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
 			float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
 
-#ifdef POINT
+#if defined(LIGHTMAP_ON)
+#elif defined(POINT)
 			float3 normalDirection = normalize(i.normal.xyz);
 			float3 lightDirection;
 			float attenuation;
@@ -454,7 +456,8 @@ Shader "Relativity/VertexLit/ColorShift" {
 				Cull Off ZWrite On
 				ZTest LEqual
 				Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
-				Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" "LightMode" = "ForwardBase" }
+				Tags{ "LightMode" = "ForwardBase" }
+				LOD 200
 
 				AlphaTest Greater[_Cutoff]
 				Blend SrcAlpha OneMinusSrcAlpha
@@ -464,8 +467,6 @@ Shader "Relativity/VertexLit/ColorShift" {
 				#pragma fragmentoption ARB_precision_hint_nicest
 
 				#pragma multi_compile_fwdbase
-				//#pragma multi_compile LIGHTMAP_ON VERTEXLIGHT_ON
-				//#pragma multi_compile FORWARD_BASE_PASS
 
 				#pragma vertex vert
 				#pragma fragment frag
@@ -478,6 +479,7 @@ Shader "Relativity/VertexLit/ColorShift" {
 				Tags{ "LightMode" = "ForwardAdd" }
 				// pass for additional light sources
 				Blend One One // additive blending 
+				LOD 200
 
 				CGPROGRAM
 
@@ -488,6 +490,36 @@ Shader "Relativity/VertexLit/ColorShift" {
 				#pragma fragment frag
 				#pragma target 3.0
 
+				ENDCG
+			}
+
+			Pass
+			{
+				Name "META"
+				Tags{ "LightMode" = "Meta" }
+				Cull Off
+				CGPROGRAM
+
+				sampler2D _GIAlbedoTex;
+				fixed4 _GIAlbedoColor;
+				float4 frag_meta2(v2f i) : SV_Target
+				{
+					// We're interested in diffuse & specular colors
+					// and surface roughness to produce final albedo.
+
+					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.uv1.xy,0,0));
+					UnityMetaInput o;
+					UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
+					fixed4 c = tex2D(_GIAlbedoTex, i.uv1);
+					o.Albedo = fixed3(c.rgb * _GIAlbedoColor.rgb);
+					o.Emission = 0;
+					return UnityMetaFragment(o);
+				}
+
+				#pragma vertex vert_meta
+				#pragma fragment frag_meta2
+				#pragma shader_feature _METALLICGLOSSMAP
+				#pragma shader_feature ___ _DETAIL_MULX2
 				ENDCG
 			}
 		}
