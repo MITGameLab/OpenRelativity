@@ -32,16 +32,22 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-                double schwarzFac = 1 - radius / r;
+                //double schwarzFac = 1 - radius / r;
+                double sqrtRDivRs = Math.Sqrt(r / radius);
+                double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs);
+                //double t = schwarzFac * tau;
+                //double expRDivRs = Math.Exp(r / radius);
+                //double coshCTDiv2Rs = Math.Cosh(SRelativityUtil.c * t / (2 * radius));
+                //double sqrtRDivRs = Math.Sqrt(r / radius);
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
                 Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = (float)(schwarzFac);
-                sphericalConformalFactor[0, 0] = (float)(-1.0 / schwarzFac);
-                sphericalConformalFactor[1, 1] = (float)(-r * r);
-                sphericalConformalFactor[2, 2] = (float)(-r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
+                sphericalConformalFactor[3, 3] = (float)((r - radius) / (radius * denomFac));
+                sphericalConformalFactor[0, 0] = (float)((r - radius) / (r * denomFac));
+                sphericalConformalFactor[1, 1] = (float)(r * r);
+                sphericalConformalFactor[2, 2] = (float)(r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
 
                 //A particular useful "tensor" (which we can think of loosely here as "just a matrix") called the "Jacobian"
                 // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
@@ -100,14 +106,20 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-                double schwarzFac = 1 - radius / r;
+                //double schwarzFac = 1 - radius / r;
+                double sqrtRDivRs = Math.Sqrt(r / radius);
+                double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs);
+                //double t = schwarzFac * tau;
+                //double sqrtRDivRs = Math.Sqrt(r / radius);
+                //double expFac = Math.Exp(3 * r / (2 * radius) * Math.Log(Math.Pow(radius, 6)));
+                //double coshCTDiv2Rs = Math.Cosh(SRelativityUtil.c * t / (2 * radius));
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
                 Matrix4x4 sphericalMetric = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalMetric[3, 3] = (float)(SRelativityUtil.cSqrd * schwarzFac);
-                sphericalMetric[0, 0] = (float)(-1.0 / schwarzFac);
+                sphericalMetric[3, 3] = (float)(SRelativityUtil.cSqrd * (r - radius) / (radius * denomFac));
+                sphericalMetric[0, 0] = (float)(-(r - radius) / (r * denomFac));
                 sphericalMetric[1, 1] = (float)(-r * r);
                 sphericalMetric[2, 2] = (float)(-r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
 
