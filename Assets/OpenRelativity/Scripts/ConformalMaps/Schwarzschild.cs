@@ -8,7 +8,7 @@ namespace OpenRelativity.ConformalMaps
         public float radius = 1;
         public float radiusCutoff = 1;
 
-        override public Matrix4x4 GetConformalFactor(Vector4 stpiw)
+        override public Matrix4x4 GetConformalFactor(Vector4 stpiw, Vector4 pstpiw)
         {
             Vector4 origin = transform.position;
 
@@ -32,20 +32,18 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-                //double schwarzFac = 1 - radius / r;
+                double schwarzFac = 1 - radius / r;
+                Vector3 playerPos = pstpiw - origin;
+                double playerSchwarzFac = 1 - radius / (playerPos.magnitude);
                 double sqrtRDivRs = Math.Sqrt(r / radius);
                 double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs);
-                //double t = schwarzFac * tau;
-                //double expRDivRs = Math.Exp(r / radius);
-                //double coshCTDiv2Rs = Math.Cosh(SRelativityUtil.c * t / (2 * radius));
-                //double sqrtRDivRs = Math.Sqrt(r / radius);
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
                 Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = (float)((r - radius) / (radius * denomFac));
-                sphericalConformalFactor[0, 0] = (float)((r - radius) / (r * denomFac));
+                sphericalConformalFactor[3, 3] = (float)(playerSchwarzFac * (r - radius) / (radius * denomFac));
+                sphericalConformalFactor[0, 0] = (float)(schwarzFac / (denomFac * playerSchwarzFac));
                 sphericalConformalFactor[1, 1] = (float)(r * r);
                 sphericalConformalFactor[2, 2] = (float)(r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
 
@@ -76,7 +74,7 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
-        override public Matrix4x4 GetMetric(Vector4 stpiw)
+        override public Matrix4x4 GetMetric(Vector4 stpiw, Vector4 pstpiw)
         {
             Vector4 origin = transform.position;
 
@@ -106,20 +104,18 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-                //double schwarzFac = 1 - radius / r;
+                double schwarzFac = 1 - radius / r;
+                Vector3 playerPos = pstpiw - origin;
+                double playerSchwarzFac = 1 - radius / (playerPos.magnitude);
                 double sqrtRDivRs = Math.Sqrt(r / radius);
-                double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs);
-                //double t = schwarzFac * tau;
-                //double sqrtRDivRs = Math.Sqrt(r / radius);
-                //double expFac = Math.Exp(3 * r / (2 * radius) * Math.Log(Math.Pow(radius, 6)));
-                //double coshCTDiv2Rs = Math.Cosh(SRelativityUtil.c * t / (2 * radius));
+                double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs) * playerSchwarzFac;
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
                 Matrix4x4 sphericalMetric = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
-                sphericalMetric[3, 3] = (float)(SRelativityUtil.cSqrd * (r - radius) / (radius * denomFac));
-                sphericalMetric[0, 0] = (float)(-(r - radius) / (r * denomFac));
+                sphericalMetric[3, 3] = (float)(SRelativityUtil.cSqrd * playerSchwarzFac * (r - radius) / (radius * denomFac));
+                sphericalMetric[0, 0] = (float)(-schwarzFac / (playerSchwarzFac * denomFac));
                 sphericalMetric[1, 1] = (float)(-r * r);
                 sphericalMetric[2, 2] = (float)(-r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
 
@@ -152,60 +148,61 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
         {
-            //We'll assume the player is close enough to being at rest with respect to the singularity at a great distance away, at first,
-            // so that we can ignore the player position, here.
+            return Vector4.zero;
+            ////We'll assume the player is close enough to being at rest with respect to the singularity at a great distance away, at first,
+            //// so that we can ignore the player position, here.
 
-            Vector4 origin = transform.position;
+            //Vector4 origin = transform.position;
 
-            //We assume all input space-time-position-in-world vectors are Cartesian.
-            //The Schwarzschild metric is most naturally expressed in spherical coordinates.
-            //So, let's just convert to spherical to get the conformal factor:
-            Vector3 cartesianPos = piw - (Vector3)origin;
-            Vector3 sphericalPos = cartesianPos.CartesianToSpherical();
-            //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
-            double rho = cartesianPos.magnitude;
-            double tau = 0;
+            ////We assume all input space-time-position-in-world vectors are Cartesian.
+            ////The Schwarzschild metric is most naturally expressed in spherical coordinates.
+            ////So, let's just convert to spherical to get the conformal factor:
+            //Vector3 cartesianPos = piw - (Vector3)origin;
+            //Vector3 sphericalPos = cartesianPos.CartesianToSpherical();
+            ////Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
+            //double rho = cartesianPos.magnitude;
+            //double tau = 0;
 
-            //Convert to usual Schwarzschild solution r:
-            double r = Math.Pow(Math.Pow(3.0 / 2.0 * (rho - SRelativityUtil.c * tau), 2) * radius, 1.0 / 3.0);
+            ////Convert to usual Schwarzschild solution r:
+            //double r = Math.Pow(Math.Pow(3.0 / 2.0 * (rho - SRelativityUtil.c * tau), 2) * radius, 1.0 / 3.0);
 
-            if (r <= radiusCutoff)
-            {
-                return Vector4.zero;
-            }
-            else
-            {
-                //Initialize the Christoffel output as zero:
-                Matrix4x4[] christoffels = new Matrix4x4[4];
-                for (int i = 0; i < christoffels.Length; i++)
-                {
-                    christoffels[i] = Matrix4x4.zero;
-                }
+            //if (r <= radiusCutoff)
+            //{
+            //    return Vector4.zero;
+            //}
+            //else
+            //{
+            //    //Initialize the Christoffel output as zero:
+            //    Matrix4x4[] christoffels = new Matrix4x4[4];
+            //    for (int i = 0; i < christoffels.Length; i++)
+            //    {
+            //        christoffels[i] = Matrix4x4.zero;
+            //    }
 
 
-                double sqrtR = Math.Sqrt(r);
-                double sqrtRs = Math.Sqrt(radius);
-                //double t = 2 * sqrtR / sqrtRs * (sqrtR * (r + 3 * radius) - 3 * Math.Pow(radius, 3.0 / 2.0) * Math.Atan2(sqrtR, sqrtRs)) / (2 * sqrtR);
+            //    double sqrtR = Math.Sqrt(r);
+            //    double sqrtRs = Math.Sqrt(radius);
+            //    //double t = 2 * sqrtR / sqrtRs * (sqrtR * (r + 3 * radius) - 3 * Math.Pow(radius, 3.0 / 2.0) * Math.Atan2(sqrtR, sqrtRs)) / (2 * sqrtR);
 
-                double sinTheta = Math.Sin(sphericalPos.y);
-                christoffels[3].m03 = (float)(radius / (2 * r * (r - radius)));
-                christoffels[3].m30 = (float)(radius / (2 * r * (r - radius)));
-                christoffels[0].m00 = -christoffels[3].m03;
-                christoffels[0].m33 = (float)(radius * (r - radius) / (2 * r * r * r));
-                christoffels[0].m22 = (float)(sinTheta * sinTheta * (radius - r));
-                christoffels[0].m11 = (float)(radius - r);
-                christoffels[1].m01 = (float)(1 / r);
-                christoffels[1].m10 = (float)(1 / r);
-                christoffels[2].m02 = (float)(1 / r);
-                christoffels[2].m20 = (float)(1 / r);
-                christoffels[1].m22 = (float)(-sinTheta * Math.Cos(sphericalPos.y));
-                christoffels[2].m12 = (float)(1 / Math.Tan(sphericalPos.y));
+            //    double sinTheta = Math.Sin(sphericalPos.y);
+            //    christoffels[3].m03 = (float)(radius / (2 * r * (r - radius)));
+            //    christoffels[3].m30 = (float)(radius / (2 * r * (r - radius)));
+            //    christoffels[0].m00 = -christoffels[3].m03;
+            //    christoffels[0].m33 = (float)(radius * (r - radius) / (2 * r * r * r));
+            //    christoffels[0].m22 = (float)(sinTheta * sinTheta * (radius - r));
+            //    christoffels[0].m11 = (float)(radius - r);
+            //    christoffels[1].m01 = (float)(1 / r);
+            //    christoffels[1].m10 = (float)(1 / r);
+            //    christoffels[2].m02 = (float)(1 / r);
+            //    christoffels[2].m20 = (float)(1 / r);
+            //    christoffels[1].m22 = (float)(-sinTheta * Math.Cos(sphericalPos.y));
+            //    christoffels[2].m12 = (float)(1 / Math.Tan(sphericalPos.y));
 
-                Vector4 fullDeriv = new Vector4((float)(-sqrtRs / (sqrtR * SRelativityUtil.c)), 0, 0, (float)(1 / (1 - radius / r)));
-                Vector4 sphericalAccel = new Vector4(Vector4.Dot(fullDeriv, christoffels[0] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[1] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[2] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[3] * fullDeriv));
-                Vector3 towardCenter = ((Vector3)sphericalAccel).magnitude * (cartesianPos - (Vector3)origin).normalized;
-                return new Vector4(towardCenter.x, towardCenter.y, towardCenter.z, sphericalAccel.w);
-            }
+            //    Vector4 fullDeriv = new Vector4((float)(-sqrtRs / (sqrtR * SRelativityUtil.c)), 0, 0, (float)(1 / (1 - radius / r)));
+            //    Vector4 sphericalAccel = new Vector4(Vector4.Dot(fullDeriv, christoffels[0] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[1] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[2] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[3] * fullDeriv));
+            //    Vector3 towardCenter = ((Vector3)sphericalAccel).magnitude * (cartesianPos - (Vector3)origin).normalized;
+            //    return new Vector4(towardCenter.x, towardCenter.y, towardCenter.z, sphericalAccel.w);
+            //}
         }
 
         override public Vector3 GetPlayerComovingPseudoVelocity(Vector3 piw)

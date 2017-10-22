@@ -925,18 +925,18 @@ namespace OpenRelativity.Objects
                 }
 
                 //Update co-moving position, if necessary:
-                if (!(state.isMinkowski) && (deltaTime != 0) && !isStatic)
-                {
-                    Vector3 playerPos = state.playerTransform.position;
-                    Vector3 playerVel = state.PlayerVelocityVector;
-                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
-                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel);
+                //if (!(state.isMinkowski) && (deltaTime != 0) && !isStatic)
+                //{
+                //    Vector3 playerPos = state.playerTransform.position;
+                //    Vector3 playerVel = state.PlayerVelocityVector;
+                //    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
+                //    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel);
 
-                    if (!nonrelativisticShader)
-                    {
-                        transform.position = piw;
-                    }
-                }
+                //    if (!nonrelativisticShader)
+                //    {
+                //        transform.position = piw;
+                //    }
+                //}
 
                 if (meshFilter != null)
                 {
@@ -1895,7 +1895,7 @@ namespace OpenRelativity.Objects
             }
 
             //Apply conformal map:
-            metric = state.conformalMap.GetConformalFactor(piw) * metric;
+            metric = state.conformalMap.GetConformalFactor(piw, playerPos) * metric;
 
             return metric;
         }

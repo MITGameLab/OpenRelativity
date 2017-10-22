@@ -9,9 +9,9 @@ namespace OpenRelativity
         public static float c { get { return (float)srCamera.SpeedOfLight; } }
         public static float cSqrd { get { return (float)srCamera.SpeedOfLightSqrd; } }
         public static float maxVel { get { return (float)srCamera.MaxSpeed; } }
-        public static Matrix4x4 GetMetric(Vector4 stpiw)
+        public static Matrix4x4 GetMetric(Vector4 stpiw, Vector4 pstpiw)
         {
-            return srCamera.conformalMap.GetMetric(stpiw);
+            return srCamera.conformalMap.GetMetric(stpiw, pstpiw);
         }
         public static Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
         {
@@ -215,7 +215,7 @@ namespace OpenRelativity
 
             if (metric == null)
             {
-                metric = GetMetric(stpiw);
+                metric = GetMetric(stpiw, origin);
             }
 
             Vector4 velocity4 = velocity.To4Viw(metric.Value);
@@ -331,7 +331,7 @@ namespace OpenRelativity
 
             if (metric == null)
             {
-                metric = GetMetric(stpiw);
+                metric = GetMetric(stpiw, origin);
             }
 
             Vector4 pVel4 = (-playerVel).To4Viw(metric.Value);
@@ -583,8 +583,14 @@ namespace OpenRelativity
 
         public static Vector4 To4Viw(this Vector3 viw, Vector4 stpiw)
         {
+            Vector4 playerPos = srCamera.playerTransform.position;
+            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / GetMetric(stpiw, playerPos).m33));
+        }
 
-            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / GetMetric(stpiw).m33));
+        public static Vector4 To4Viw(this Vector3 viw, Vector4 stpiw, Vector4 pstpiw)
+        {
+
+            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / GetMetric(stpiw, pstpiw).m33));
         }
 
         public static Vector4 To4Viw(this Vector3 viw, Matrix4x4 metric)
