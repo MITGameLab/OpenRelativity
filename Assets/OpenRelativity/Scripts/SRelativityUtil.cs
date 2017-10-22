@@ -177,7 +177,7 @@ namespace OpenRelativity
         //    return ((Vector4)piw).WorldToOptical(velocity, origin, playerVel, metric);
         //}
 
-        private const float divByZeroCutoff = 1e-8f;
+        public const float divByZeroCutoff = 1e-8f;
 
         public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null, Vector4? accel = null)
         {

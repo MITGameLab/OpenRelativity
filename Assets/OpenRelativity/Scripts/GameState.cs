@@ -330,20 +330,16 @@ namespace OpenRelativity
                 Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
                 Vector3 velocity = -playerVelocityVector;
                 //Set our rigidbody's geodesic acceleration, if necessary
+                playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
                 if (!isMinkowski)
                 {
-                    //Vector4 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
-                    //Vector3 accel3 = ((Vector3)accel) * (float)(-(1 - accel.w / SpeedOfLight) / sqrtOneMinusVSquaredCWDividedByCSquared);
-                    //float test = accel3.sqrMagnitude;
-                    //if (!double.IsNaN(test) && !double.IsInfinity(test))
-                    //{
-                    //    playerRB.AddForce(accel3, ForceMode.Acceleration);
-                    //}
-
-                    velocity = (conformalMap.GetPlayerComovingPseudoVelocity(transform.position) - playerVelocityVector);
+                    Vector3 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
+                    float test = accel.sqrMagnitude;
+                    if (!double.IsNaN(test) && !double.IsInfinity(test))
+                    {
+                        playerRB.AddForce(accel, ForceMode.Acceleration);
+                    }
                 }
-
-                playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
             }
         }
         #region Matrix/Quat math

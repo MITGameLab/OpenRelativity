@@ -33,8 +33,12 @@ namespace OpenRelativity.ConformalMaps
             else
             {
                 double schwarzFac = 1 - radius / r;
-                Vector3 playerPos = pstpiw - origin;
-                double playerSchwarzFac = 1 - radius / (playerPos.magnitude);
+                double playerR = ((Vector3)(pstpiw - origin)).magnitude;
+                double playerSchwarzFac = 1;
+                if (playerR > radiusCutoff)
+                {
+                    playerSchwarzFac = 1 - radius / playerR;
+                }
                 double sqrtRDivRs = Math.Sqrt(r / radius);
                 double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs);
 
@@ -105,8 +109,12 @@ namespace OpenRelativity.ConformalMaps
             else
             {
                 double schwarzFac = 1 - radius / r;
-                Vector3 playerPos = pstpiw - origin;
-                double playerSchwarzFac = 1 - radius / (playerPos.magnitude);
+                double playerR = ((Vector3)(pstpiw - origin)).magnitude;
+                double playerSchwarzFac = 1;
+                if (playerR > radiusCutoff)
+                {
+                    playerSchwarzFac = 1 - radius / playerR;
+                }
                 double sqrtRDivRs = Math.Sqrt(r / radius);
                 double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs) * playerSchwarzFac;
 
@@ -146,66 +154,7 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
-        override public Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
-        {
-            return Vector4.zero;
-            ////We'll assume the player is close enough to being at rest with respect to the singularity at a great distance away, at first,
-            //// so that we can ignore the player position, here.
-
-            //Vector4 origin = transform.position;
-
-            ////We assume all input space-time-position-in-world vectors are Cartesian.
-            ////The Schwarzschild metric is most naturally expressed in spherical coordinates.
-            ////So, let's just convert to spherical to get the conformal factor:
-            //Vector3 cartesianPos = piw - (Vector3)origin;
-            //Vector3 sphericalPos = cartesianPos.CartesianToSpherical();
-            ////Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
-            //double rho = cartesianPos.magnitude;
-            //double tau = 0;
-
-            ////Convert to usual Schwarzschild solution r:
-            //double r = Math.Pow(Math.Pow(3.0 / 2.0 * (rho - SRelativityUtil.c * tau), 2) * radius, 1.0 / 3.0);
-
-            //if (r <= radiusCutoff)
-            //{
-            //    return Vector4.zero;
-            //}
-            //else
-            //{
-            //    //Initialize the Christoffel output as zero:
-            //    Matrix4x4[] christoffels = new Matrix4x4[4];
-            //    for (int i = 0; i < christoffels.Length; i++)
-            //    {
-            //        christoffels[i] = Matrix4x4.zero;
-            //    }
-
-
-            //    double sqrtR = Math.Sqrt(r);
-            //    double sqrtRs = Math.Sqrt(radius);
-            //    //double t = 2 * sqrtR / sqrtRs * (sqrtR * (r + 3 * radius) - 3 * Math.Pow(radius, 3.0 / 2.0) * Math.Atan2(sqrtR, sqrtRs)) / (2 * sqrtR);
-
-            //    double sinTheta = Math.Sin(sphericalPos.y);
-            //    christoffels[3].m03 = (float)(radius / (2 * r * (r - radius)));
-            //    christoffels[3].m30 = (float)(radius / (2 * r * (r - radius)));
-            //    christoffels[0].m00 = -christoffels[3].m03;
-            //    christoffels[0].m33 = (float)(radius * (r - radius) / (2 * r * r * r));
-            //    christoffels[0].m22 = (float)(sinTheta * sinTheta * (radius - r));
-            //    christoffels[0].m11 = (float)(radius - r);
-            //    christoffels[1].m01 = (float)(1 / r);
-            //    christoffels[1].m10 = (float)(1 / r);
-            //    christoffels[2].m02 = (float)(1 / r);
-            //    christoffels[2].m20 = (float)(1 / r);
-            //    christoffels[1].m22 = (float)(-sinTheta * Math.Cos(sphericalPos.y));
-            //    christoffels[2].m12 = (float)(1 / Math.Tan(sphericalPos.y));
-
-            //    Vector4 fullDeriv = new Vector4((float)(-sqrtRs / (sqrtR * SRelativityUtil.c)), 0, 0, (float)(1 / (1 - radius / r)));
-            //    Vector4 sphericalAccel = new Vector4(Vector4.Dot(fullDeriv, christoffels[0] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[1] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[2] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[3] * fullDeriv));
-            //    Vector3 towardCenter = ((Vector3)sphericalAccel).magnitude * (cartesianPos - (Vector3)origin).normalized;
-            //    return new Vector4(towardCenter.x, towardCenter.y, towardCenter.z, sphericalAccel.w);
-            //}
-        }
-
-        override public Vector3 GetPlayerComovingPseudoVelocity(Vector3 piw)
+        override public Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPiw)
         {
             //We'll assume the player is close enough to being at rest with respect to the singularity at a great distance away, at first,
             // so that we can ignore the player position, here.
@@ -216,23 +165,88 @@ namespace OpenRelativity.ConformalMaps
             //The Schwarzschild metric is most naturally expressed in spherical coordinates.
             //So, let's just convert to spherical to get the conformal factor:
             Vector3 cartesianPos = piw - (Vector3)origin;
+            Vector3 sphericalPos = cartesianPos.CartesianToSpherical();
             //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
             double rho = cartesianPos.magnitude;
+            double tau = 0;
 
             //Convert to usual Schwarzschild solution r:
-            double r = Math.Pow(Math.Pow(3.0 / 2.0 * rho, 2) * radius, 1.0 / 3.0);
+            double r = Math.Pow(Math.Pow(3.0 / 2.0 * (rho - SRelativityUtil.c * tau), 2) * radius, 1.0 / 3.0);
 
-            //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
-            // so we need to cut-off the interior metric at some point, for numerical sanity
             if (r <= radiusCutoff)
             {
-                return Vector3.zero;
+                return Vector4.zero;
             }
             else
             {
-                float sphericalVel = (float)(-Math.Pow(2.0 * radius / (3.0f * rho), 1.0 / 3.0));
-                return sphericalVel * cartesianPos.normalized;
+                //Initialize the Christoffel output as zero:
+                Matrix4x4[] christoffels = new Matrix4x4[4];
+                for (int i = 0; i < christoffels.Length; i++)
+                {
+                    christoffels[i] = Matrix4x4.zero;
+                }
+
+
+                double sqrtR = Math.Sqrt(r);
+                double sqrtRs = Math.Sqrt(radius);
+                //double t = 2 * sqrtR / sqrtRs * (sqrtR * (r + 3 * radius) - 3 * Math.Pow(radius, 3.0 / 2.0) * Math.Atan2(sqrtR, sqrtRs)) / (2 * sqrtR);
+
+                double sinTheta = Math.Sin(sphericalPos.y);
+                christoffels[3].m03 = (float)(radius / (2 * r * (r - radius)));
+                christoffels[3].m30 = (float)(radius / (2 * r * (r - radius)));
+                christoffels[0].m00 = -christoffels[3].m03;
+                christoffels[0].m33 = (float)(radius * (r - radius) / (2 * r * r * r));
+                christoffels[0].m22 = (float)(sinTheta * sinTheta * (radius - r));
+                christoffels[0].m11 = (float)(radius - r);
+                christoffels[1].m01 = (float)(1 / r);
+                christoffels[1].m10 = (float)(1 / r);
+                christoffels[2].m02 = (float)(1 / r);
+                christoffels[2].m20 = (float)(1 / r);
+                christoffels[1].m22 = (float)(-sinTheta * Math.Cos(sphericalPos.y));
+                christoffels[2].m12 = (float)(1 / Math.Tan(sphericalPos.y));
+
+                Vector4 fullDeriv = new Vector4((float)(-sqrtRs / (sqrtR * SRelativityUtil.c)), 0, 0, (float)(1 / (1 - radius / r)));
+                Vector4 sphericalAccel = new Vector4(Vector4.Dot(fullDeriv, christoffels[0] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[1] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[2] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[3] * fullDeriv));
+                double playerR = (playerPiw - (Vector3)origin).magnitude;
+                double playerSchwarzFac = 1;
+                if (playerR > radiusCutoff)
+                {
+                    playerSchwarzFac = 1 - radius / playerR;
+                }
+                sphericalAccel = new Vector4((float)(sphericalAccel.x / playerSchwarzFac), sphericalAccel.y, sphericalAccel.z, (float)(sphericalAccel.w * playerSchwarzFac));
+                Vector3 towardCenter = ((Vector3)sphericalAccel).magnitude * (cartesianPos - (Vector3)origin).normalized;
+                return new Vector4(towardCenter.x, towardCenter.y, towardCenter.z, sphericalAccel.w);
             }
         }
+
+        //override public Vector3 GetPlayerComovingPseudoVelocity(Vector3 piw)
+        //{
+        //    //We'll assume the player is close enough to being at rest with respect to the singularity at a great distance away, at first,
+        //    // so that we can ignore the player position, here.
+
+        //    Vector4 origin = transform.position;
+
+        //    //We assume all input space-time-position-in-world vectors are Cartesian.
+        //    //The Schwarzschild metric is most naturally expressed in spherical coordinates.
+        //    //So, let's just convert to spherical to get the conformal factor:
+        //    Vector3 cartesianPos = piw - (Vector3)origin;
+        //    //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
+        //    double rho = cartesianPos.magnitude;
+
+        //    //Convert to usual Schwarzschild solution r:
+        //    double r = Math.Pow(Math.Pow(3.0 / 2.0 * rho, 2) * radius, 1.0 / 3.0);
+
+        //    //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
+        //    // so we need to cut-off the interior metric at some point, for numerical sanity
+        //    if (r <= radiusCutoff)
+        //    {
+        //        return Vector3.zero;
+        //    }
+        //    else
+        //    {
+        //        float sphericalVel = (float)(-SRelativityUtil.c * Math.Pow(2.0 * radius / (3.0f * rho), 1.0 / 3.0));
+        //        return sphericalVel * cartesianPos.normalized;
+        //    }
+        //}
     }
 }

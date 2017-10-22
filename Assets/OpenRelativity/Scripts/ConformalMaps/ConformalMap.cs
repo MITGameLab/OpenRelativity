@@ -12,6 +12,6 @@ namespace OpenRelativity.ConformalMaps
         //Properly, we want to satisfy the geodesic equations, using the Christoffel symbols.
         // This introduces a four acceleration.
         abstract public Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos);
-        abstract public Vector3 GetPlayerComovingPseudoVelocity(Vector3 piw);
+        //abstract public Vector3 GetPlayerComovingPseudoVelocity(Vector3 piw);
     }
 }
