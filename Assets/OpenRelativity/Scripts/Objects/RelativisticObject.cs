@@ -929,7 +929,7 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 playerPos = state.playerTransform.position;
                     Vector3 playerVel = state.PlayerVelocityVector;
-                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)(-deltaTime));
+                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
                     piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel);
 
                     if (!nonrelativisticShader)

@@ -189,20 +189,22 @@ namespace OpenRelativity.ConformalMaps
 
                 double sinTheta = Math.Sin(sphericalPos.y);
                 christoffels[3].m03 = (float)(radius / (2 * r * (r - radius)));
+                christoffels[3].m30 = (float)(radius / (2 * r * (r - radius)));
                 christoffels[0].m00 = -christoffels[3].m03;
                 christoffels[0].m33 = (float)(radius * (r - radius) / (2 * r * r * r));
                 christoffels[0].m22 = (float)(sinTheta * sinTheta * (radius - r));
                 christoffels[0].m11 = (float)(radius - r);
                 christoffels[1].m01 = (float)(1 / r);
                 christoffels[1].m10 = (float)(1 / r);
+                christoffels[2].m02 = (float)(1 / r);
+                christoffels[2].m20 = (float)(1 / r);
                 christoffels[1].m22 = (float)(-sinTheta * Math.Cos(sphericalPos.y));
                 christoffels[2].m12 = (float)(1 / Math.Tan(sphericalPos.y));
 
-                Vector3 fullDeriv = new Vector4((float)(1 / (1 - radius / r)), (float)(-SRelativityUtil.c * sqrtRs / sqrtR), 0, 0);
-                Vector4 sphericalaccel = new Vector4(Vector4.Dot(fullDeriv, christoffels[0] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[1] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[2] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[3] * fullDeriv));
-                Vector4 cartesianAccel = sphericalaccel.Spherical4ToCartesian4();
-                Vector3 towardOrigin = cartesianAccel.magnitude * cartesianPos.normalized;
-                return new Vector4(towardOrigin.x, towardOrigin.y, towardOrigin.z, cartesianAccel.w);
+                Vector4 fullDeriv = new Vector4((float)(-sqrtRs / (sqrtR * SRelativityUtil.c)), 0, 0, (float)(1 / (1 - radius / r)));
+                Vector4 sphericalAccel = new Vector4(Vector4.Dot(fullDeriv, christoffels[0] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[1] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[2] * fullDeriv), Vector4.Dot(fullDeriv, christoffels[3] * fullDeriv));
+                Vector3 towardCenter = ((Vector3)sphericalAccel).magnitude * (cartesianPos - (Vector3)origin).normalized;
+                return new Vector4(towardCenter.x, towardCenter.y, towardCenter.z, sphericalAccel.w);
             }
         }
 
@@ -231,7 +233,7 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-                float sphericalVel = (float)(-SRelativityUtil.c * Math.Pow(2.0 * radius / (3.0f * rho), 1.0 / 3.0));
+                float sphericalVel = (float)(-Math.Pow(2.0 * radius / (3.0f * rho), 1.0 / 3.0));
                 return sphericalVel * cartesianPos.normalized;
             }
         }

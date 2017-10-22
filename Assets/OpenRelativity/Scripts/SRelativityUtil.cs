@@ -240,7 +240,7 @@ namespace OpenRelativity
             {
                 accel = GetWorldAcceleration(stpiw, origin);
             }
-            Vector3 apparentAccel = ((Vector3)(accel.Value)) * (1.0f - accel.Value.w / SRelativityUtil.c);
+            Vector3 apparentAccel = -accel.Value;
 
             riw = (Vector3)riw + (tisw * velocity) + (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
 
@@ -360,7 +360,7 @@ namespace OpenRelativity
             {
                 accel = GetWorldAcceleration(stpiw, origin);
             }
-            Vector3 apparentAccel = ((Vector3)(accel.Value)) * (1.0f - accel.Value.w / SRelativityUtil.c);
+            Vector3 apparentAccel = -accel.Value;
 
             riw = (Vector3)riw - (tisw * velocity) - (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
 

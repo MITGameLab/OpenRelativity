@@ -146,7 +146,7 @@ Shader "Relativity/Unlit/ColorShift"
 			}
 
 			//get the new position offset, based on the new time we just found
-			float4 apparentAccel = float4(_aiw.xyz * (1.0f - _aiw.w / _spdOfLight), 0);
+			float4 apparentAccel = float4(_aiw.xyz, 0);
 			riw += tisw * float4(viwScaled.xyz, 0) + (apparentAccel * abs(tisw) * tisw / 2.0f);
 
 			//Apply Lorentz transform
