@@ -1146,7 +1146,7 @@ namespace OpenRelativity.Objects
                 Vector4 tempViw = viw.To4Viw(metric.Value) / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
-                Vector4 tempAiw = GetWorldAcceleration(piw, state.playerTransform.position);
+                Vector4 tempAiw = GetWorldAcceleration(piw);
                 colliderShaderParams.viw = tempViw;
                 colliderShaderParams.aiw = tempAiw;
                 colliderShaderParams.metric = metric.Value;
@@ -1900,8 +1900,9 @@ namespace OpenRelativity.Objects
             return metric;
         }
 
-        private Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
+        private Vector4 GetWorldAcceleration(Vector3 piw)
         {
+            Vector4 playerPos = state.playerTransform.position;
             return state.conformalMap.GetWorldAcceleration(piw, playerPos);
         }
 

@@ -333,7 +333,8 @@ namespace OpenRelativity
                 playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
                 if (!isMinkowski)
                 {
-                    Vector3 accel = conformalMap.GetWorldAcceleration(playerTransform.position, playerTransform.position);
+                    Vector3 playerPos = playerTransform.position;
+                    Vector3 accel = conformalMap.GetWorldAcceleration(playerPos, playerPos);
                     float test = accel.sqrMagnitude;
                     if (!double.IsNaN(test) && !double.IsInfinity(test))
                     {

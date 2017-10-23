@@ -59,22 +59,32 @@ namespace OpenRelativity.ConformalMaps
                 double z = cartesianPos.z;
                 rho = Math.Sqrt(x * x + y * y + z * z);
                 double sqrtXSqrYSqr = Math.Sqrt(x * x + y * y);
-                // This is the Jacobian from spherical to Cartesian coordinates:
-                jacobian.m00 = (float)(x / rho);
-                jacobian.m01 = (float)(y / rho);
-                jacobian.m02 = (float)(z / rho);
-                jacobian.m10 = (float)(x * z / (rho * rho * sqrtXSqrYSqr));
-                jacobian.m11 = (float)(y * z / (rho * rho * sqrtXSqrYSqr));
-                jacobian.m12 = (float)(-sqrtXSqrYSqr / (rho * rho));
-                jacobian.m20 = (float)(-y / (x * x + y * y));
-                jacobian.m21 = (float)(x / (x * x + y * y));
-                jacobian.m22 = 0;
-                jacobian.m33 = 1;
+                if (rho != 0 && sqrtXSqrYSqr != 0)
+                {
+                    // This is the Jacobian from spherical to Cartesian coordinates:
+                    jacobian.m00 = (float)(x / rho);
+                    jacobian.m01 = (float)(y / rho);
+                    jacobian.m02 = (float)(z / rho);
+                    jacobian.m10 = (float)(x * z / (rho * rho * sqrtXSqrYSqr));
+                    jacobian.m11 = (float)(y * z / (rho * rho * sqrtXSqrYSqr));
+                    jacobian.m20 = (float)(-y / (x * x + y * y));
+                    jacobian.m21 = (float)(x / (x * x + y * y));
+                    jacobian.m12 = (float)(-sqrtXSqrYSqr / (rho * rho));
+                    jacobian.m22 = 0;
+                    jacobian.m33 = 1;
 
-                //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
-                //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
-                // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
-                return jacobian.transpose * sphericalConformalFactor * jacobian;
+                    //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
+                    //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
+                    // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
+                    return jacobian.transpose * sphericalConformalFactor * jacobian;
+                }
+                else
+                {
+                    sphericalConformalFactor.m22 = sphericalConformalFactor.m00;
+                    sphericalConformalFactor.m00 = 1;
+                    sphericalConformalFactor.m11 = 1;
+                    return sphericalConformalFactor;
+                }
             }
         }
 
@@ -116,14 +126,14 @@ namespace OpenRelativity.ConformalMaps
                     playerSchwarzFac = 1 - radius / playerR;
                 }
                 double sqrtRDivRs = Math.Sqrt(r / radius);
-                double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs) * playerSchwarzFac;
+                double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs);
 
                 //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
                 Matrix4x4 sphericalMetric = Matrix4x4.zero;
                 //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
                 // either positive space and negative time, or negative time and positive space.)
                 sphericalMetric[3, 3] = (float)(SRelativityUtil.cSqrd * playerSchwarzFac * (r - radius) / (radius * denomFac));
-                sphericalMetric[0, 0] = (float)(-schwarzFac / (playerSchwarzFac * denomFac));
+                sphericalMetric[0, 0] = (float)(-schwarzFac / (denomFac * playerSchwarzFac));
                 sphericalMetric[1, 1] = (float)(-r * r);
                 sphericalMetric[2, 2] = (float)(-r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
 
@@ -135,22 +145,32 @@ namespace OpenRelativity.ConformalMaps
                 double z = cartesianPos.z;
                 rho = Math.Sqrt(x * x + y * y + z * z);
                 double sqrtXSqrYSqr = Math.Sqrt(x * x + y * y);
-                // This is the Jacobian from spherical to Cartesian coordinates:
-                jacobian.m00 = (float)(x / rho);
-                jacobian.m01 = (float)(y / rho);
-                jacobian.m02 = (float)(z / rho);
-                jacobian.m10 = (float)(x * z / (rho * rho * sqrtXSqrYSqr));
-                jacobian.m11 = (float)(y * z / (rho * rho * sqrtXSqrYSqr));
-                jacobian.m12 = (float)(-sqrtXSqrYSqr / (rho * rho));
-                jacobian.m20 = (float)(-y / (x * x + y * y));
-                jacobian.m21 = (float)(x / (x * x + y * y));
-                jacobian.m22 = 0;
-                jacobian.m33 = 1;
+                if (rho != 0 && sqrtXSqrYSqr != 0)
+                {
+                    // This is the Jacobian from spherical to Cartesian coordinates:
+                    jacobian.m00 = (float)(x / rho);
+                    jacobian.m01 = (float)(y / rho);
+                    jacobian.m02 = (float)(z / rho);
+                    jacobian.m10 = (float)(x * z / (rho * rho * sqrtXSqrYSqr));
+                    jacobian.m11 = (float)(y * z / (rho * rho * sqrtXSqrYSqr));
+                    jacobian.m20 = (float)(-y / (x * x + y * y));
+                    jacobian.m21 = (float)(x / (x * x + y * y));
+                    jacobian.m12 = (float)(-sqrtXSqrYSqr / (rho * rho));
+                    jacobian.m22 = 0;
+                    jacobian.m33 = 1;
 
-                //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
-                //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
-                // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
-                return jacobian.transpose * sphericalMetric * jacobian;
+                    //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
+                    //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
+                    // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
+                    return jacobian.transpose * sphericalMetric * jacobian;
+                }
+                else
+                {
+                    sphericalMetric.m22 = sphericalMetric.m00;
+                    sphericalMetric.m00 = 1;
+                    sphericalMetric.m11 = 1;
+                    return sphericalMetric;
+                }
             }
         }
 

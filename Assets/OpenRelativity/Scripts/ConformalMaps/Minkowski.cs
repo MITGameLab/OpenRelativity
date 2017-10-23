@@ -21,7 +21,7 @@ namespace OpenRelativity.ConformalMaps
             return metric;
         }
 
-        public override Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
+        public override Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPiw)
         {
             return Vector4.zero;
         }

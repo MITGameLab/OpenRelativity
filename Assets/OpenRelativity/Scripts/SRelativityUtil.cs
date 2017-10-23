@@ -13,6 +13,10 @@ namespace OpenRelativity
         {
             return srCamera.conformalMap.GetMetric(stpiw, pstpiw);
         }
+        public static Matrix4x4 GetConformalFactor(Vector4 stpiw, Vector4 pstpiw)
+        {
+            return srCamera.conformalMap.GetConformalFactor(stpiw, pstpiw);
+        }
         public static Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
         {
             return srCamera.conformalMap.GetWorldAcceleration(piw, playerPos);
@@ -584,13 +588,14 @@ namespace OpenRelativity
         public static Vector4 To4Viw(this Vector3 viw, Vector4 stpiw)
         {
             Vector4 playerPos = srCamera.playerTransform.position;
-            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / GetMetric(stpiw, playerPos).m33));
+            Matrix4x4 metric = GetMetric(stpiw, playerPos);
+            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / metric.m33));
         }
 
         public static Vector4 To4Viw(this Vector3 viw, Vector4 stpiw, Vector4 pstpiw)
         {
-
-            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / GetMetric(stpiw, pstpiw).m33));
+            Matrix4x4 metric = GetMetric(stpiw, pstpiw);
+            return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt((cSqrd - viw.sqrMagnitude) / metric.m33));
         }
 
         public static Vector4 To4Viw(this Vector3 viw, Matrix4x4 metric)
