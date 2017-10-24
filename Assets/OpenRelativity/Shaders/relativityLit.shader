@@ -17,7 +17,8 @@ Shader "Relativity/Lit/ColorShift" {
 #pragma exclude_renderers xbox360
 #pragma glsl
 #include "UnityCG.cginc"
-#include "UnityLightingCommon.cginc" // for _LightColor0
+#include "Lighting.cginc"
+#include "AutoLight.cginc"
 #include "UnityStandardMeta.cginc"
 
 //Color shift variables, used to make guassians for XYZ curves
@@ -64,6 +65,10 @@ Shader "Relativity/Lit/ColorShift" {
 			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD5; //normal in world
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+			float4 ambient : TEXCOORD6;
+			SHADOW_COORDS(7)
+#endif
 		};
 
 		float4x4 _Metric = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,-1 }; //The numerical value of the metric at piw
@@ -200,7 +205,11 @@ Shader "Relativity/Lit/ColorShift" {
 			// factor in the light color
 			o.diff = nl * _LightColor0;
 			// add ambient light
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
+#else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
+#endif
 
 			float4 lightPosition;
 			float3 vertexToLightSource, lightDirection, diffuseReflection;
@@ -234,8 +243,9 @@ Shader "Relativity/Lit/ColorShift" {
 				o.diff.rgb += diffuseReflection;
 			}
 #elif defined(LIGHTMAP_ON)
-			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
-			o.diff = float4((float3)lms, 0);
+			//half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
+			//o.diff = float4((float3)lms, 0);
+			o.diff = 0;
 #else 
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
@@ -244,11 +254,19 @@ Shader "Relativity/Lit/ColorShift" {
 			// factor in the light color
 			o.diff = nl * _LightColor0;
 			// add ambient light
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
+#else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
+#endif
 #endif
 //#else
 //		o.diff = 0;
 //#endif
+
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+			TRANSFER_SHADOW(o)
+#endif
 
 			return o;
 		}
@@ -403,6 +421,8 @@ Shader "Relativity/Lit/ColorShift" {
 			float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
 
 #if defined(LIGHTMAP_ON)
+			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
+			i.diff = float4((float3)lms, 0);
 #elif defined(POINT)
 			float3 normalDirection = normalize(i.normal.xyz);
 			float3 lightDirection;
@@ -426,7 +446,12 @@ Shader "Relativity/Lit/ColorShift" {
 #endif
 
 			//Apply lighting:
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+			fixed shadow = SHADOW_ATTENUATION(i);
+			rgbFinal *= (i.diff * shadow + i.ambient);
+#else
 			rgbFinal *= i.diff;
+#endif
 			//Doppler factor should be squared for reflected light:
 			xyz = RGBToXYZC(rgbFinal);
 			weights = weightFromXYZCurves(xyz);
@@ -457,7 +482,7 @@ Shader "Relativity/Lit/ColorShift" {
 				ZTest LEqual
 				Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
 				Tags{ "LightMode" = "ForwardBase" }
-				LOD 200
+				LOD 100
 
 				AlphaTest Greater[_Cutoff]
 				Blend SrcAlpha OneMinusSrcAlpha
@@ -520,6 +545,33 @@ Shader "Relativity/Lit/ColorShift" {
 				#pragma fragment frag_meta2
 				#pragma shader_feature _METALLICGLOSSMAP
 				#pragma shader_feature ___ _DETAIL_MULX2
+				ENDCG
+			}
+
+			Pass
+			{
+				Tags{ "LightMode" = "ShadowCaster" }
+
+				CGPROGRAM
+				#pragma vertex vertShadow
+				#pragma fragment fragShadow
+				#pragma multi_compile_shadowcaster
+
+				struct v2fShadow {
+					V2F_SHADOW_CASTER;
+				};
+
+				v2fShadow vertShadow(appdata_base v)
+				{
+					v2fShadow o;
+					TRANSFER_SHADOW_CASTER_NORMALOFFSET(o)
+						return o;
+				}
+
+				float4 fragShadow(v2fShadow i) : SV_Target
+				{
+					SHADOW_CASTER_FRAGMENT(i)
+				}
 				ENDCG
 			}
 		}
