@@ -1877,6 +1877,7 @@ namespace OpenRelativity.Objects
             metric[2, 2] = -1;
 
             //Off-diagonal terms:
+            angFac *= (float)state.SpeedOfLight;
             metric[0, 3] = metric[3, 0] = -2 * angFac.x;
             metric[1, 3] = metric[3, 1] = -2 * angFac.y;
             metric[2, 3] = metric[3, 2] = -2 * angFac.z;
