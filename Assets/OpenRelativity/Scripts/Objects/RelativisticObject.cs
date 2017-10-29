@@ -1914,7 +1914,8 @@ namespace OpenRelativity.Objects
                 if ((!state.MovementFrozen) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
                     Matrix4x4 metric = GetMetric();
-                    Vector4 tempViw = new Vector4(mViw.x, mViw.y, mViw.z, (float)Math.Sqrt((state.SpeedOfLightSqrd - mViw.sqrMagnitude) / metric.m33));
+                    //This works so long as our metric uses synchronous coordinates:
+                    Vector4 tempViw = new Vector4(mViw.x, mViw.y, mViw.z, (float)Math.Sqrt(1.0 - mViw.sqrMagnitude / state.SpeedOfLightSqrd));
                     tempViw = metric * tempViw;
                     float timeFac = (float)(tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared));
                     myRigidbody.velocity = mViw * timeFac;
@@ -1937,7 +1938,8 @@ namespace OpenRelativity.Objects
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {
                 Matrix4x4 metric = GetMetric();
-                Vector4 tempViw = new Vector4(mViw.Value.x, mViw.Value.y, mViw.Value.z, (float)Math.Sqrt((state.SpeedOfLightSqrd - mViw.Value.sqrMagnitude) / metric.m33));
+                //This works so long as our metric uses synchronous coordinates:
+                Vector4 tempViw = new Vector4(mViw.Value.x, mViw.Value.y, mViw.Value.z, (float)Math.Sqrt(1.0 - mViw.Value.sqrMagnitude / state.SpeedOfLightSqrd));
                 tempViw = metric * tempViw;
                 return tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared);
             }
