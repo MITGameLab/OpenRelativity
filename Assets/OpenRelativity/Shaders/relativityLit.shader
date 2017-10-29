@@ -181,7 +181,7 @@ Shader "Relativity/Lit/ColorShift" {
 
 				if (speed > divByZeroCutoff) {
 					float3 vpcUnit = _vpc.xyz / speed;
-					newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+					newz = (dot(riw.xyz, vpcUnit) + newz) * (float)sqrt(1 - (speed * speed));
 					riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 				}
 			}
