@@ -50,6 +50,7 @@ namespace OpenRelativity.Objects
         {
             piw = newPiw;
             _viw = newViw;
+            initialViw = newViw;
             if (nonrelativisticShader)
             {
                 newPiw = ((Vector4)newPiw).WorldToOptical(newViw, state.playerTransform.position, state.PlayerVelocityVector);
@@ -1871,7 +1872,7 @@ namespace OpenRelativity.Objects
             Vector3 angFac = Vector3.Cross(playerAngVel, myPos) / (float)state.SpeedOfLightSqrd;
 
             //Diagonal terms:
-            metric[3, 3] = (float)((Math.Pow(1 + Vector3.Dot(-playerAccel, myPos) / state.SpeedOfLightSqrd, 2) - angFac.sqrMagnitude) * state.SpeedOfLightSqrd);
+            metric[3, 3] = (float)((Math.Pow(1 + Vector3.Dot(playerAccel, myPos) / state.SpeedOfLightSqrd, 2) - angFac.sqrMagnitude) * state.SpeedOfLightSqrd);
             metric[0, 0] = -1;
             metric[1, 1] = -1;
             metric[2, 2] = -1;
