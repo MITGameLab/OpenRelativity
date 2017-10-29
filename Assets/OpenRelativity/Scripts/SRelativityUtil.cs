@@ -216,49 +216,50 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector4 riw = pos;//Position that will be used in the output
-
-            if (metric == null)
+            if (speedr > divByZeroCutoff)
             {
-                metric = GetMetric(stpiw, origin);
+                if (metric == null)
+                {
+                    metric = GetMetric(stpiw, origin);
+                }
+
+                Vector4 velocity4 = velocity.To4Viw(metric.Value);
+
+                //Here begins a rotation-free modification of the original OpenRelativity shader:
+
+                float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
+
+                float b = -(2 * Vector4.Dot(riw, metric.Value * velocity4)); //next get position dotted with velocity, should be only in the Z direction
+
+                float d = cSqrd;
+
+                float tisw = 0;
+                if ((b * b) >= 4.0 * d * c)
+                {
+                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                }
+
+                //get the new position offset, based on the new time we just found
+
+                if (accel == null)
+                {
+                    accel = GetWorldAcceleration(stpiw, origin);
+                }
+                Vector3 apparentAccel = -accel.Value;
+
+                riw = (Vector3)riw + (tisw * velocity) + (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
+
+                //Apply Lorentz transform
+                //I had to break it up into steps, unity was getting order of operations wrong.	
+                float newz = (((float)speed * spdOfLight) * tisw);
+
+                if (speed > divByZeroCutoff)
+                {
+                    Vector4 vpcUnit = vpc / speed;
+                    newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                    riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
+                }
             }
-
-            Vector4 velocity4 = velocity.To4Viw(metric.Value);
-
-            //Here begins a rotation-free modification of the original OpenRelativity shader:
-
-            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
-
-            float b = -(2 * Vector4.Dot(riw, metric.Value * velocity4)); //next get position dotted with velocity, should be only in the Z direction
-
-            float d = cSqrd;
-
-            float tisw = 0;
-            if ((b * b) >= 4.0 * d * c)
-            {
-                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-            }
-
-            //get the new position offset, based on the new time we just found
-
-            if (accel == null)
-            {
-                accel = GetWorldAcceleration(stpiw, origin);
-            }
-            Vector3 apparentAccel = -accel.Value;
-
-            riw = (Vector3)riw + (tisw * velocity) + (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
-
-            //Apply Lorentz transform
-            //I had to break it up into steps, unity was getting order of operations wrong.	
-            float newz = (((float)speed * spdOfLight) * tisw);
-
-            if (speed > divByZeroCutoff)
-            {
-                Vector4 vpcUnit = vpc / speed;
-                newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
-            }
-
             riw = (Vector3)riw + origin;
 
             return riw;
@@ -323,50 +324,52 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector4 riw = pos; //Position that will be used in the output
-
-            //Transform fails and is unecessary if relative speed is zero:
-            float newz;
-            if (speed > divByZeroCutoff)
+            if (speedr > divByZeroCutoff)
             {
-                Vector4 vpcUnit = -(Vector4)playerVel / playerVelMag;
-                newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
+                //Transform fails and is unecessary if relative speed is zero:
+                float newz;
+                if (speed > divByZeroCutoff)
+                {
+                    Vector4 vpcUnit = -(Vector4)playerVel / playerVelMag;
+                    newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
+                    riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
+                }
+
+                if (metric == null)
+                {
+                    metric = GetMetric(stpiw, origin);
+                }
+
+                Vector4 pVel4 = (-playerVel).To4Viw(metric.Value);
+
+                float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
+
+                float b = -(2 * Vector4.Dot(riw, metric.Value * pVel4)); //next get position dotted with velocity, should be only in the Z direction
+
+                float d = cSqrd;
+
+                float tisw = 0;
+                if ((b * b) >= 4.0 * d * c)
+                {
+                    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                }
+
+                newz = playerVelMag * tisw;
+
+                if (speed > divByZeroCutoff)
+                {
+                    Vector4 vpcUnit = -playerVel / playerVelMag;
+                    riw = riw - newz * vpcUnit;
+                }
+
+                if (accel == null)
+                {
+                    accel = GetWorldAcceleration(stpiw, origin);
+                }
+                Vector3 apparentAccel = -accel.Value;
+
+                riw = (Vector3)riw - (tisw * velocity) - (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
             }
-
-            if (metric == null)
-            {
-                metric = GetMetric(stpiw, origin);
-            }
-
-            Vector4 pVel4 = (-playerVel).To4Viw(metric.Value);
-
-            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
-
-            float b = -(2 * Vector4.Dot(riw, metric.Value * pVel4)); //next get position dotted with velocity, should be only in the Z direction
-
-            float d = cSqrd;
-
-            float tisw = 0;
-            if ((b * b) >= 4.0 * d * c)
-            {
-                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-            }
-
-            newz = playerVelMag * tisw;
-
-            if (speed > divByZeroCutoff)
-            {
-                Vector4 vpcUnit = -playerVel / playerVelMag;
-                riw = riw - newz * vpcUnit;
-            }
-
-            if (accel == null)
-            {
-                accel = GetWorldAcceleration(stpiw, origin);
-            }
-            Vector3 apparentAccel = -accel.Value;
-
-            riw = (Vector3)riw - (tisw * velocity) - (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
 
             riw = (Vector3)riw + origin;
 
