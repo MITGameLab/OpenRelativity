@@ -234,7 +234,7 @@ namespace OpenRelativity
             float tisw = 0;
             if ((b * b) >= 4.0 * d * c)
             {
-                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                tisw = (-b + (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
             }
 
             //get the new position offset, based on the new time we just found
@@ -347,7 +347,7 @@ namespace OpenRelativity
             float tisw = 0;
             if ((b * b) >= 4.0 * d * c)
             {
-                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+                tisw = (-b + (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
             }
 
             newz = playerVelMag * tisw;
