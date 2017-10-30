@@ -101,7 +101,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 	if (speed > divByZeroCutoff) {
 		float3 vpcUnit = vpc.xyz / speed;
-		newz = (dot(riw.xyz, vpcUnit) + newz) * (float)sqrt(1 - (speed * speed));
+		newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 		riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 	}
 	riw += float4(playerOffset.xyz, 0);

@@ -254,7 +254,7 @@ namespace OpenRelativity
             if (speed > divByZeroCutoff)
             {
                 Vector4 vpcUnit = vpc / speed;
-                newz = (Vector4.Dot(riw, vpcUnit) + newz) * Mathf.Sqrt(1 - (speed * speed));
+                newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
                 riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
             }
 
@@ -327,7 +327,7 @@ namespace OpenRelativity
             if (speed > divByZeroCutoff)
             {
                 Vector4 vpcUnit = -(Vector4)playerVel / playerVelMag;
-                newz = Vector4.Dot((Vector3)riw, vpcUnit) / Mathf.Sqrt(1 - (speed * speed));
+                newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
                 riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
             }
 
