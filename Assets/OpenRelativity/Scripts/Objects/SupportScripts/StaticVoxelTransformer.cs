@@ -9,6 +9,7 @@ namespace OpenRelativity.Objects
     public class StaticVoxelTransformer : MonoBehaviour
     {
         public bool forceCPU = true;
+        public bool takePriority = true;
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
@@ -253,7 +254,7 @@ namespace OpenRelativity.Objects
                 nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
-                    if (coroutineTimer.ElapsedMilliseconds > 8)
+                    if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                     {
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
@@ -279,12 +280,12 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < queuedColliders.Count; i++)
             {
                 Transform changeTransform = queuedColliders[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, playerPos, vpw));
+                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, playerPos, vpw, Vector4.zero));
                 nanInfTest = Vector3.Dot(newPos, newPos);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
                     //Change mesh:
-                    if (coroutineTimer.ElapsedMilliseconds > 8)
+                    if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                     {
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
@@ -313,7 +314,7 @@ namespace OpenRelativity.Objects
 
                 for (int i = 0; i < origPositionsList.Count; i++)
                 {
-                    distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, playerVel) - playerPos).sqrMagnitude;
+                    distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, playerVel, Vector4.zero) - playerPos).sqrMagnitude;
                     if (distSqr < cullingSqrDistance)
                     {
                         allColliders[i].enabled = true;

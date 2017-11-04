@@ -113,6 +113,7 @@ namespace OpenRelativity
 
         public ConformalMaps.ConformalMap conformalMap;
         public bool isMinkowski { get; set; }
+        public bool HasWorldGravity { get; set; }
 
         #endregion
 
@@ -149,7 +150,7 @@ namespace OpenRelativity
             playerAccelerationVector = Vector3.zero;
             
             //Set our constants
-            MaxSpeed = MAX_SPEED;
+            MaxSpeed = maxPlayerSpeed;
             pctOfSpdUsing = NORM_PERCENT_SPEED;
 
             c = totalC;

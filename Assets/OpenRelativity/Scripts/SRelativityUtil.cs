@@ -160,30 +160,9 @@ namespace OpenRelativity
         //    return ((Vector4)piw).WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric);
         //}
 
-        //This method converts the position of an object in the world to its position after the shader is applied.
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null, Vector4? accel = null)
-        {
-            return stpiw.WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric, accel);
-        }
-
-        //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
-        //{
-        //    return ((Vector4)piw).WorldToOptical(velocity, origin, Vector3.zero, metric);
-        //}
-
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null, Vector4? accel = null)
-        {
-            return stpiw.WorldToOptical(velocity, origin, Vector3.zero, metric, accel);
-        }
-
-        //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
-        //{
-        //    return ((Vector4)piw).WorldToOptical(velocity, origin, playerVel, metric);
-        //}
-
         public const float divByZeroCutoff = 1e-8f;
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null, Vector4? accel = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 accel, Matrix4x4? metric = null)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -199,7 +178,7 @@ namespace OpenRelativity
             if (speed > divByZeroCutoff)
             {
                 Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
-                                                                 //Get the perpendicular component of our velocity, just by subtraction
+                                                                  //Get the perpendicular component of our velocity, just by subtraction
                 Vector3 uperp = viw - uparra;
                 //relative velocity calculation
                 vr = (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
@@ -238,12 +217,7 @@ namespace OpenRelativity
             }
 
             //get the new position offset, based on the new time we just found
-
-            if (accel == null)
-            {
-                accel = GetWorldAcceleration(stpiw, origin);
-            }
-            Vector3 apparentAccel = -accel.Value;
+            Vector3 apparentAccel = -accel;
 
             riw = (Vector3)riw + (tisw * velocity) + (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
 
@@ -266,32 +240,7 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Matrix4x4? metric = null)
-        //{
-        //    return ((Vector4)piw).OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric);
-        //}
-
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Matrix4x4? metric = null, Vector4? accel = null)
-        {
-            return stpiw.OpticalToWorld(velocity, Vector3.zero, Vector3.zero, metric, accel);
-        }
-
-        //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
-        //{
-        //    return ((Vector4)piw).OpticalToWorld(velocity, origin, Vector3.zero, metric);
-        //}
-
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null, Vector4? accel = null)
-        {
-            return stpiw.OpticalToWorld(velocity, origin, Vector3.zero, metric, accel);
-        }
-
-        //public static Vector3 OpticalToWorld(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null)
-        //{
-        //    return ((Vector4)piw).OpticalToWorld(velocity, origin, playerVel, metric);
-        //}
-
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Matrix4x4? metric = null, Vector4? accel = null)
+        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 accel, Matrix4x4? metric = null)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -358,11 +307,7 @@ namespace OpenRelativity
                 riw = riw - newz * vpcUnit;
             }
 
-            if (accel == null)
-            {
-                accel = GetWorldAcceleration(stpiw, origin);
-            }
-            Vector3 apparentAccel = -accel.Value;
+            Vector3 apparentAccel = -accel;
 
             riw = (Vector3)riw - (tisw * velocity) - (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
 
@@ -377,25 +322,25 @@ namespace OpenRelativity
         //    return ((Vector4)piw).OpticalToWorldHighPrecision(velocity, origin, playerVel);
         //}
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 accel)
         {
             Vector4 startPoint = stpiw;
-            Vector3 est = stpiw.OpticalToWorld(velocity, origin, playerVel);
+            Vector3 est = stpiw.OpticalToWorld(velocity, origin, playerVel, accel);
             Vector3 newEst;
-            Vector3 offset = (Vector3)stpiw - ((Vector4)est).WorldToOptical(velocity, origin, playerVel);
+            Vector3 offset = (Vector3)stpiw - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, accel);
             float sqrError = offset.sqrMagnitude;
             float oldSqrError = sqrError + 1.0f;
             float iterations = 1;
-            while ( (iterations < defaultOpticalToWorldMaxIterations)
+            while ((iterations < defaultOpticalToWorldMaxIterations)
                 && (sqrError > defaultOpticalToWorldSqrErrorTolerance)
-                && (sqrError < oldSqrError) )
+                && (sqrError < oldSqrError))
             {
                 iterations++;
                 startPoint += (Vector4)offset / 2.0f;
-                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel);
-                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel);
+                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, accel);
+                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, accel);
                 oldSqrError = sqrError;
-                sqrError = ((Vector3)stpiw - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel)).sqrMagnitude;
+                sqrError = ((Vector3)stpiw - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, accel)).sqrMagnitude;
                 if (sqrError < oldSqrError)
                 {
                     est = newEst;
@@ -522,7 +467,8 @@ namespace OpenRelativity
                 polar = 0;
                 elevation = 0;
             }
-            else {
+            else
+            {
                 float sqrtXSqrYSqr = Mathf.Sqrt(cartesian.x * cartesian.x + cartesian.y * cartesian.y);
                 if ((cartesian.z == 0) && (sqrtXSqrYSqr == 0))
                 {
@@ -540,7 +486,7 @@ namespace OpenRelativity
                 else
                 {
                     polar = Mathf.Atan2(cartesian.y, cartesian.x);
-                    
+
                 }
             }
 
@@ -558,7 +504,8 @@ namespace OpenRelativity
                 polar = 0;
                 elevation = 0;
             }
-            else {
+            else
+            {
                 float sqrtXSqrYSqr = Mathf.Sqrt(cartesian.x * cartesian.x + cartesian.y * cartesian.y);
                 if ((cartesian.z == 0) && (sqrtXSqrYSqr == 0))
                 {
@@ -576,7 +523,7 @@ namespace OpenRelativity
                 else
                 {
                     polar = Mathf.Atan2(cartesian.y, cartesian.x);
-                    
+
                 }
             }
 
@@ -585,8 +532,8 @@ namespace OpenRelativity
 
         public static Vector4 To4Viw(this Vector3 viw)
         {
-
             return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt(1.0 - viw.sqrMagnitude / cSqrd));
         }
+
     }
 }
