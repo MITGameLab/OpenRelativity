@@ -256,7 +256,7 @@ namespace OpenRelativity
                 }
 
                 //Send v/c to shader
-                Shader.SetGlobalVector("_vpc", (-playerVelocityVector).To4Viw() / (float)c);
+                Shader.SetGlobalVector("_vpc", (Vector4)(-playerVelocityVector).To4Viw() / (float)c);
 
                 /******************************
                 * PART TWO OF ALGORITHM

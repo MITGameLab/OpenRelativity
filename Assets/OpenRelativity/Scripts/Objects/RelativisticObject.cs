@@ -193,7 +193,7 @@ namespace OpenRelativity.Objects
         private Vector3 contractorLocalScale;
         //private int? oldParentID;
         //Store world position, mostly for a nonrelativistic shader:
-        private Vector3 piw;
+        public Vector3 piw { get; private set; }
 
         //We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
@@ -936,10 +936,10 @@ namespace OpenRelativity.Objects
                 if (!state.isMinkowski && (deltaTime != 0) && !isStatic)
                 {
                     Vector3 playerPos = state.playerTransform.position;
-                    Vector3 playerVel = state.PlayerVelocityVector;
+                    //Vector3 playerVel = state.PlayerVelocityVector;
                     Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
                     Vector4 accel = GetWorldAcceleration(piw);
-                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, playerVel, accel))).OpticalToWorldHighPrecision(viw, playerPos, playerVel, accel);
+                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, accel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, accel);
 
                     if (!nonrelativisticShader)
                     {
@@ -1063,11 +1063,25 @@ namespace OpenRelativity.Objects
                         sleepFrameCounter++;
                         if (sleepFrameCounter >= sleepFrameDelay)
                         {
-                            sleepFrameCounter = sleepFrameDelay;
-                            Sleep();
                             if (useGravity)
                             {
-                                isRestingOnCollider = true;
+                                int myLayer = gameObject.layer;
+                                gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
+                                Ray down = new Ray(opticalWorldCenterOfMass, Vector3.down);
+                                float extentY = myColliders[0].bounds.extents.y;
+                                RaycastHit hitInfo;
+                                if (Physics.Raycast(down, out hitInfo, (transform.position - transform.TransformPoint(Vector3.down * extentY)).magnitude + 0.01f))
+                                {
+                                    sleepFrameCounter = sleepFrameDelay;
+                                    Sleep();
+                                    isRestingOnCollider = true;
+                                }
+                                gameObject.layer = myLayer;
+                            }
+                            else
+                            {
+                                sleepFrameCounter = sleepFrameDelay;
+                                Sleep();
                             }
                         }
                         else
@@ -1156,7 +1170,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void UpdateShaderParams(Matrix4x4? metric = null)
+        public void UpdateShaderParams(Matrix4x4? metric = null)
         {
             Renderer tempRenderer = GetComponent<Renderer>();
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
