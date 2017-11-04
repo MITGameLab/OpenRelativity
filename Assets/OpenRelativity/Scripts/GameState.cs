@@ -113,7 +113,6 @@ namespace OpenRelativity
 
         public ConformalMaps.ConformalMap conformalMap;
         public bool isMinkowski { get; set; }
-        public bool HasWorldGravity { get; set; }
 
         #endregion
 
@@ -257,7 +256,7 @@ namespace OpenRelativity
                 }
 
                 //Send v/c to shader
-                Shader.SetGlobalVector("_vpc", new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c);
+                Shader.SetGlobalVector("_vpc", (-playerVelocityVector).To4Viw() / (float)c);
 
                 /******************************
                 * PART TWO OF ALGORITHM

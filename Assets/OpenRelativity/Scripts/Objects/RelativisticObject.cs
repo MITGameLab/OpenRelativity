@@ -108,8 +108,10 @@ namespace OpenRelativity.Objects
         //This is a velocity we "sleep" the rigid body at:
         private const float sleepVelocity = 0.01f;
         //Gravity might keep the velocity above this, so we also check whether the position is changing:
-        private const float sleepDistance = 0.0001f;
+        private const float sleepDistance = 0.01f;
+        private const float sleepAngle = 6f;
         private Vector3 sleepOldPosition;
+        private Vector3 sleepOldOrientation;
         //Once we're below the sleep velocity threshold, this is how many frames we wait for
         // before sleeping the object:
         private const int sleepFrameDelay = 3;
@@ -279,7 +281,7 @@ namespace OpenRelativity.Objects
             //Set remaining global parameters:
             colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
             colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
-            colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
+            colliderShaderParams.vpc = (-state.PlayerVelocityVector).To4Viw() / (float)state.SpeedOfLight;
             colliderShaderParams.playerOffset = state.playerTransform.position;
             colliderShaderParams.speed = (float)(state.PlayerVelocity / state.SpeedOfLight);
             colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
@@ -791,13 +793,17 @@ namespace OpenRelativity.Objects
 
         public void UpdateGravity()
         {
-            Vector3 tempViw = viw.Gamma() * viw;
-            tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
-            tempViw = tempViw.RapidityToVelocity();
-            float test = tempViw.x + tempViw.y + tempViw.z;
-            if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
+            if (useGravity && !isRestingOnCollider && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
             {
-                viw = tempViw;
+                if (isSleeping) WakeUp();
+                Vector3 tempViw = viw.Gamma() * viw;
+                tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
+                tempViw = tempViw.RapidityToVelocity();
+                float test = tempViw.x + tempViw.y + tempViw.z;
+                if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
+                {
+                    viw = tempViw;
+                }
             }
         }
 
@@ -989,11 +995,7 @@ namespace OpenRelativity.Objects
                         piw += transform.position - contractor.position;
                     }
                     transform.localPosition = Vector3.zero;
-                    Vector4 accel = Vector4.zero;
-                    if (!isSleeping)
-                    {
-                        accel = GetWorldAcceleration(piw);
-                    }
+                    Vector4 accel = GetWorldAcceleration(piw);
                     contractor.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, accel);
                     ContractLength();
                 }
@@ -1018,8 +1020,8 @@ namespace OpenRelativity.Objects
                     float maxDist = 100f;
                     Ray downRay = new Ray()
                     {
-                        direction = Vector3.down,
-                        origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center) + extentY * Vector3.up
+                        direction = Physics.gravity.normalized,
+                        origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center + extentY * Vector3.up)
                     };
                     RaycastHit hitInfo;
                     if (Physics.Raycast(downRay, out hitInfo, maxDist, gameObject.layer))
@@ -1054,7 +1056,8 @@ namespace OpenRelativity.Objects
 
                     if (!isSleeping
                         && (((viw.sqrMagnitude < (sleepVelocity * sleepVelocity)) && (aviw.sqrMagnitude < (sleepVelocity * sleepVelocity)))
-                        //|| ((sleepOldPosition - transform.position).sqrMagnitude < (sleepDistance * sleepDistance))))
+                        || (((sleepOldPosition - piw).sqrMagnitude < (sleepDistance * sleepDistance))
+                            && (Vector3.Angle(sleepOldOrientation, transform.forward) < sleepAngle))
                         ))
                     {
                         sleepFrameCounter++;
@@ -1062,22 +1065,30 @@ namespace OpenRelativity.Objects
                         {
                             sleepFrameCounter = sleepFrameDelay;
                             Sleep();
+                            if (useGravity)
+                            {
+                                isRestingOnCollider = true;
+                            }
+                        }
+                        else
+                        {
+                            UpdateGravity();
                         }
                     }
                     else
                     {
                         sleepFrameCounter = 0;
-                    }
-
-                    if (useGravity && !isRestingOnCollider && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
-                    {
-                        if (isSleeping) WakeUp();
                         UpdateGravity();
                     }
 
-                    if ((sleepOldPosition - transform.position).sqrMagnitude >= (sleepDistance * sleepDistance))
+                    if ((sleepOldPosition - piw).sqrMagnitude >= (sleepDistance * sleepDistance))
                     {
-                        sleepOldPosition = transform.position;
+                        sleepOldPosition = piw;
+                    }
+
+                    if (Vector3.Angle(sleepOldOrientation, transform.forward) >= sleepAngle)
+                    {
+                        sleepOldOrientation = transform.forward;
                     }
                 }
             }
@@ -1122,8 +1133,7 @@ namespace OpenRelativity.Objects
                         {
                             BoxCollider collider = (BoxCollider)myColliders[i];
                             pos = transform.TransformPoint(colliderPiw[i]);
-                            Vector4 myAccel = GetWorldAcceleration(pos);
-                            collider.center = ((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, myAccel);
+                            collider.center = ((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, Vector4.zero);
                         }
                     }
                     else

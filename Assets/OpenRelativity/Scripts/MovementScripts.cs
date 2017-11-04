@@ -44,8 +44,6 @@ namespace OpenRelativity
 
             //grab Game State, we need it for many actions
             state = GetComponent<GameState>();
-            //If player uses gravity, everything should:
-            state.HasWorldGravity = useGravity;
             //Assume we are in free fall
             isFalling = true;
 
