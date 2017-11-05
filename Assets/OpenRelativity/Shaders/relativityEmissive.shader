@@ -190,7 +190,7 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 		{
 			parraSpeed = dot(viwScaled, apparentAccel / accelMag);
 			fullSpeed = length(viwScaled);
-			if (parraSpeed > divByZeroCutoff)
+			if (fullSpeed > divByZeroCutoff)
 			{
 				velUnit = vel3 / fullSpeed;
 			}

@@ -107,8 +107,6 @@ namespace OpenRelativity
                     //Get our angle between the velocity and the X axis. Get the angle in degrees (radians suck)
                     float rotationAroundX = DEGREE_TO_RADIAN_CONST * Mathf.Acos(Vector3.Dot(playerVelocityVector, Vector3.right) / playerVelocityVector.magnitude);
 
-
-
                     //Make a Quaternion from the angle, one to rotate, one to rotate back. 
                     Quaternion rotateX = Quaternion.AngleAxis(rotationAroundX, Vector3.Cross(playerVelocityVector, Vector3.right).normalized);
                     Quaternion unRotateX = Quaternion.AngleAxis(rotationAroundX, Vector3.Cross(Vector3.right, playerVelocityVector).normalized);
@@ -121,6 +119,7 @@ namespace OpenRelativity
                         rotateX = Quaternion.identity;
                         unRotateX = Quaternion.identity;
                     }
+
 
                     //Store our added velocity into temporary variable addedVelocity
                     Vector3 addedVelocity = Vector3.zero;
@@ -137,24 +136,18 @@ namespace OpenRelativity
 
                     float temp;
                     //Movement due to left/right input
-                    Vector3 acceleration = new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE);
-                    Vector3 totalAccel = acceleration;
-                    addedVelocity += acceleration * Time.deltaTime;
+                    addedVelocity += new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE) * Time.deltaTime;
                     if (temp != 0)
                     {
-
                         state.keyHit = true;
                     }
-                    acceleration = new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE, 0, 0);
-                    totalAccel += acceleration;
-                    addedVelocity += acceleration * Time.deltaTime;
+                    addedVelocity += new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE, 0, 0) * Time.deltaTime;
                     if (temp != 0)
                     {
                         state.keyHit = true;
                     }
 
                     //And rotate our added velocity by camera angle
-
                     addedVelocity = cameraRotation * addedVelocity;
 
                     //AUTO SLOW DOWN CODE BLOCK
@@ -162,27 +155,19 @@ namespace OpenRelativity
                     //If we are not adding velocity this round to our x direction, slow down
                     if (addedVelocity.x == 0)
                     {
-                        //find our current direction of movement and oppose it
-                        acceleration = new Vector3(-1 * SLOW_DOWN_RATE * playerVelocityVector.x, 0, 0);
-                        totalAccel += acceleration;
-                        addedVelocity += acceleration * Time.deltaTime;
+                        addedVelocity += new Vector3(-1 * SLOW_DOWN_RATE * playerVelocityVector.x, 0, 0) * Time.deltaTime;
                     }
                     //If we are not adding velocity this round to our z direction, slow down
                     if (addedVelocity.z == 0)
                     {
-                        acceleration = new Vector3(0, 0, -1 * SLOW_DOWN_RATE * playerVelocityVector.z);
-                        totalAccel += acceleration;
-                        addedVelocity += acceleration * Time.deltaTime;
+                        addedVelocity += new Vector3(0, 0, -1 * SLOW_DOWN_RATE * playerVelocityVector.z) * Time.deltaTime;
                     }
                     //If we are not adding velocity this round to our y direction, slow down
                     if (addedVelocity.y == 0)
                     {
-                        acceleration = new Vector3(0, -1 * SLOW_DOWN_RATE * playerVelocityVector.y, 0);
-                        totalAccel += acceleration;
-                        addedVelocity += acceleration * Time.deltaTime;
+                        addedVelocity += new Vector3(0, -1 * SLOW_DOWN_RATE * playerVelocityVector.y, 0) * Time.deltaTime;
                     }
 
-                    state.PlayerAccelerationVector = totalAccel;
                     /*
                      * IF you turn on this bit of code, you'll get head bob. It's a fun little effect, but if you make the magnitude of the cosine too large it gets sickening.
                     if (!double.IsNaN((float)(0.2 * Mathf.Cos((float)GetComponent<GameState>().TotalTimePlayer) * Time.deltaTime)) && frames > 2)
@@ -190,6 +175,8 @@ namespace OpenRelativity
                         addedVelocity.y += (float)(0.2 * Mathf.Cos((float)GetComponent<GameState>().TotalTimePlayer) * Time.deltaTime);
                     }
                     */
+
+                    Vector3 totalAccel = Vector3.zero;
                     //Add the velocities here. remember, this is the equation:
                     //vNew = (1/(1+vOld*vAddx/cSqrd))*(Vector3(vAdd.x+vOld.x,vAdd.y/Gamma,vAdd.z/Gamma))
                     if (addedVelocity.sqrMagnitude != 0 || useGravity)
@@ -212,6 +199,8 @@ namespace OpenRelativity
 
                         //Unrotate our new total velocity
                         rotatedVelocity = unRotateX * rotatedVelocity;
+                        totalAccel = (addedVelocity / Time.deltaTime);
+                        totalAccel = totalAccel.Gamma() * totalAccel;
 
                         //Set it, depending on gravity
                         if (!useGravity)

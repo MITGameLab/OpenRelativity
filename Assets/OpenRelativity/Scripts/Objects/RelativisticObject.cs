@@ -29,11 +29,10 @@ namespace OpenRelativity.Objects
 
                 Vector3 playerPos = state.playerTransform.position;
                 Vector3 playerVel = state.PlayerVelocityVector;
-                Vector3 playerAccel = GetPlayerAcceleration();
                 Vector4 myAccel = GetTotalAcceleration(piw);
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
-                piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, myAccel, playerAccel)).OpticalToWorldHighPrecision(value, playerPos, playerVel, myAccel, playerAccel);
+                piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, myAccel)).OpticalToWorldHighPrecision(value, playerPos, playerVel, myAccel);
                 //test = test - piw.WorldToOptical(value, playerPos, playerVel);
                 if (!nonrelativisticShader)
                 {
@@ -55,7 +54,7 @@ namespace OpenRelativity.Objects
             initialViw = newViw;
             if (nonrelativisticShader)
             {
-                newPiw = ((Vector4)newPiw).WorldToOptical(newViw, state.playerTransform.position, state.PlayerVelocityVector, GetTotalAcceleration(piw), GetPlayerAcceleration());
+                newPiw = ((Vector4)newPiw).WorldToOptical(newViw, state.playerTransform.position, state.PlayerVelocityVector, GetTotalAcceleration(piw));
             }
             transform.position = newPiw;
 
@@ -355,7 +354,7 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, GetTotalAcceleration(piw), GetPlayerAcceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (myRenderer != null)
@@ -365,7 +364,7 @@ namespace OpenRelativity.Objects
         public virtual void SetDeathTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, GetTotalAcceleration(piw), GetPlayerAcceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
@@ -733,7 +732,7 @@ namespace OpenRelativity.Objects
             //If the shader is nonrelativistic, map the object from world space to optical space and handle length contraction:
             if (nonrelativisticShader)
             {
-                transform.position = ((Vector4)(transform.position)).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, GetTotalAcceleration(piw), GetPlayerAcceleration());
+                transform.position = ((Vector4)(transform.position)).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, GetTotalAcceleration(piw));
                 if (contractor == null) SetUpContractor();
                 ContractLength();
             }
@@ -946,16 +945,15 @@ namespace OpenRelativity.Objects
                 {
                     viw += properAiw * (float)deltaTime;
                 }
-                
+
                 //Update co-moving position, if necessary:
                 if (!state.isMinkowski && (deltaTime != 0) && !isStatic)
                 {
                     Vector3 playerPos = state.playerTransform.position;
-                    //Vector3 playerVel = state.PlayerVelocityVector;
-                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)deltaTime);
+                    Vector3 playerVel = state.PlayerVelocityVector;
+                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)(-deltaTime));
                     Vector4 myAccel = GetTotalAcceleration(piw);
-                    Vector4 playerAccel = GetPlayerAcceleration();
-                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, myAccel, playerAccel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, myAccel, playerAccel);
+                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, myAccel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, myAccel);
 
                     if (!nonrelativisticShader)
                     {
@@ -1011,7 +1009,7 @@ namespace OpenRelativity.Objects
                         piw += transform.position - contractor.position;
                     }
                     transform.localPosition = Vector3.zero;
-                    contractor.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, GetTotalAcceleration(piw), GetPlayerAcceleration());
+                    contractor.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, GetTotalAcceleration(piw));
                     ContractLength();
                 }
                 else
@@ -1162,19 +1160,18 @@ namespace OpenRelativity.Objects
                         {
                             BoxCollider collider = (BoxCollider)myColliders[i];
                             pos = transform.TransformPoint(colliderPiw[i]);
-                            collider.center = ((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, Vector4.zero, Vector4.zero);
+                            collider.center = ((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, Vector4.zero);
                         }
                     }
                     else
                     {
                         Vector3 pos;
-                        Vector4 playerAccel = GetPlayerAcceleration();
                         for (int i = 0; i < myColliders.Length; i++)
                         {
                             BoxCollider collider = (BoxCollider)myColliders[i];
                             pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
                             Vector4 myAccel = GetTotalAcceleration(pos);
-                            collider.center = ((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, myAccel, playerAccel);
+                            collider.center = ((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, myAccel);
                         }
                     }
                 }
@@ -1501,44 +1498,43 @@ namespace OpenRelativity.Objects
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector4 myAccel = GetTotalAcceleration(piw);
-            Vector4 playerAccel = GetPlayerAcceleration();
             Vector3 myLocPoint, otLocPoint, contact, com;
             if (myColliderIsMesh)
             {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
+                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
                 myLocPoint = contact - com;
             }
             else if (nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
                 myLocPoint = (contact - com).InverseContractLengthBy(myVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
                 myLocPoint = (contact - com);
             }
 
             myAccel = GetTotalAcceleration(otherRO.piw);
             if (otherRO.myColliderIsMesh)
             {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
+                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
+                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
                 otLocPoint = contact - com;
             }
             else if (otherRO.nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
                 otLocPoint = (contact - com).InverseContractLengthBy(otherVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
                 otLocPoint = (contact - com);
             }
 
@@ -1651,44 +1647,43 @@ namespace OpenRelativity.Objects
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector4 myAccel = GetTotalAcceleration(piw);
-            Vector4 playerAccel = GetPlayerAcceleration();
             Vector3 myLocPoint, otLocPoint, contact, com;
             if (myColliderIsMesh)
             {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
+                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
                 myLocPoint = contact - com;
             }
             else if (nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
                 myLocPoint = (contact - com).InverseContractLengthBy(myVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, playerPos, playerVel, myAccel);
                 myLocPoint = (contact - com);
             }
 
             myAccel = GetTotalAcceleration(otherRO.piw);
             if (otherRO.myColliderIsMesh)
             {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
+                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
+                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
                 otLocPoint = contact - com;
             }
             else if (otherRO.nonrelativisticShader)
             {
                 contact = contactPoint.point;
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
                 otLocPoint = (contact - com).InverseContractLengthBy(otherVel);
             }
             else
             {
                 contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(otherVel, playerPos, playerVel, myAccel, playerAccel);
+                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(otherVel, playerPos, playerVel, myAccel);
                 otLocPoint = (contact - com);
             }
 
@@ -1945,7 +1940,7 @@ namespace OpenRelativity.Objects
             Vector3 playerAccel = state.PlayerAccelerationVector;
             Vector3 playerAngVel = state.PlayerAngularVelocityVector;
             Vector4 myAccel = GetTotalAcceleration(piw);
-            Vector3 myPos = ((Vector4)piw).WorldToOptical(viw, playerPos, playerVel, myAccel, playerAccel) - playerPos;
+            Vector3 myPos = ((Vector4)piw).WorldToOptical(viw, playerPos, playerVel, myAccel) - playerPos;
             Vector3 angFac = Vector3.Cross(playerAngVel, myPos) / (float)state.SpeedOfLightSqrd;
 
             //Diagonal terms:

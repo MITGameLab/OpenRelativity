@@ -103,7 +103,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	{
 		parraSpeed = dot(viwScaled, apparentAccel / accelMag);
 		fullSpeed = length(viwScaled);
-		if (parraSpeed > divByZeroCutoff)
+		if (fullSpeed > divByZeroCutoff)
 		{
 			velUnit = vel3 / fullSpeed;
 		}
