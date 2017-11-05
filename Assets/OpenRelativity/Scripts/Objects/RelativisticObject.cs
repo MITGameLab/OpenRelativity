@@ -29,6 +29,7 @@ namespace OpenRelativity.Objects
 
                 Vector3 playerPos = state.playerTransform.position;
                 Vector3 playerVel = state.PlayerVelocityVector;
+                //Vector4 playerAccel = GetVisualPlayerAcceleration();
                 Vector4 myAccel = GetTotalAcceleration(piw);
                 //Under instantaneous changes in velocity, the optical position should be invariant:
                 //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
@@ -951,6 +952,7 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 playerPos = state.playerTransform.position;
                     Vector3 playerVel = state.PlayerVelocityVector;
+                    //Vector4 playerAccel = GetVisualPlayerAcceleration();
                     Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)(-deltaTime));
                     Vector4 myAccel = GetTotalAcceleration(piw);
                     piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, myAccel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, myAccel);
@@ -1076,7 +1078,7 @@ namespace OpenRelativity.Objects
                         sleepFrameCounter++;
                         if (sleepFrameCounter >= sleepFrameDelay)
                         {
-                            if (useGravity)
+                            if (useGravity && myColliders != null && myColliders.Length > 0)
                             {
                                 int myLayer = gameObject.layer;
                                 gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
@@ -1153,6 +1155,7 @@ namespace OpenRelativity.Objects
                 //If we have a BoxCollider, transform its center to its optical position
                 else if (myColliderIsBox)
                 {
+                    //Vector4 playerAccel = GetVisualPlayerAcceleration();
                     if (isStatic || isSleeping)
                     {
                         Vector3 pos;
@@ -1196,7 +1199,7 @@ namespace OpenRelativity.Objects
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 Vector4 tempAiw = GetTotalAcceleration(piw);
-                Vector4 tempAcp = GetPlayerAcceleration();
+                //Vector4 tempApw = GetVisualPlayerAcceleration();
                 colliderShaderParams.viw = tempViw;
                 colliderShaderParams.aiw = tempAiw;
                 colliderShaderParams.metric = metric.Value;
@@ -1204,7 +1207,7 @@ namespace OpenRelativity.Objects
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
-                    myRenderer.materials[i].SetVector("_acp", tempAcp);
+                    //myRenderer.materials[i].SetVector("_apw", tempApw);
                     myRenderer.materials[i].SetMatrix("_Metric", metric.Value);
                 }
             }
@@ -1498,6 +1501,7 @@ namespace OpenRelativity.Objects
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector4 myAccel = GetTotalAcceleration(piw);
+            //Vector4 playerAccel = GetVisualPlayerAcceleration();
             Vector3 myLocPoint, otLocPoint, contact, com;
             if (myColliderIsMesh)
             {
@@ -1647,6 +1651,7 @@ namespace OpenRelativity.Objects
 
             //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
             Vector4 myAccel = GetTotalAcceleration(piw);
+            //Vector4 playerAccel = GetVisualPlayerAcceleration();
             Vector3 myLocPoint, otLocPoint, contact, com;
             if (myColliderIsMesh)
             {
@@ -1974,7 +1979,7 @@ namespace OpenRelativity.Objects
             return metric;
         }
 
-        private Vector4 GetTotalAcceleration(Vector3 piw)
+        public Vector4 GetTotalAcceleration(Vector3 piw)
         {
             Vector4 playerPos = state.playerTransform.position;
             Vector4 accel = state.conformalMap.GetWorldAcceleration(piw, playerPos);
@@ -1982,24 +1987,10 @@ namespace OpenRelativity.Objects
             {
                 accel += ((Vector4)(Physics.gravity));
             }
-            if (properAiw.sqrMagnitude != 0)
+            if (properAiw.sqrMagnitude > 0)
             {
                 accel += (Vector4)properAiw;
             }
-            return accel;
-        }
-
-        private Vector4 GetPlayerAcceleration()
-        {
-            Vector4 accel = Vector4.zero;
-            if (state.PlayerAccelerationVector.sqrMagnitude != 0)
-            {
-                accel += (Vector4)state.PlayerAccelerationVector;
-            }
-            //if (state.HasWorldGravity && (isStatic || (state.isMinkowski && viw.sqrMagnitude == 0)))
-            //{
-            //    accel += (Vector4)Physics.gravity;
-            //}
             return accel;
         }
 
@@ -2045,5 +2036,19 @@ namespace OpenRelativity.Objects
                 return 1;
             }
         }
+
+        //public Vector4 GetVisualPlayerAcceleration()
+        //{
+        //    Vector4 accel = Vector4.zero;
+        //    if (isStatic || isSleeping)
+        //    {
+        //        accel = Vector4.zero;
+        //    }
+        //    else
+        //    {
+        //        accel = state.PlayerVisualAccelerationVector;
+        //    }
+        //    return accel;
+        //}
     }
 }

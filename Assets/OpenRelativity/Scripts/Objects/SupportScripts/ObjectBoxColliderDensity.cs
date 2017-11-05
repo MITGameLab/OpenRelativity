@@ -200,6 +200,7 @@ namespace OpenRelativity.Objects
 
                 if (foundCollider)
                 {
+                    //Vector4 playerAccel = gameState.PlayerVisualAccelerationVector;
                     if (isStatic)
                     {
                         toUpdateBox.center = transform.InverseTransformPoint(
@@ -209,7 +210,7 @@ namespace OpenRelativity.Objects
                     else
                     {
                         toUpdateBox.center = transform.InverseTransformPoint(
-                            ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(myRO.viw, gameState.playerTransform.position, gameState.PlayerVelocityVector, Vector4.zero)
+                            ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(myRO.viw, gameState.playerTransform.position, gameState.PlayerVelocityVector, myRO.GetTotalAcceleration(myRO.piw))
                        );
                     }
                 }
@@ -239,20 +240,24 @@ namespace OpenRelativity.Objects
                 initCOM = myRB.centerOfMass;
             }
             Vector3 viw;
+            Vector4 aiw;
             if (isStatic) {
                 viw = Vector3.zero;
+                aiw = Vector4.zero;
             }
             else {
                 viw = myRO.viw;
+                aiw = myRO.GetTotalAcceleration(myRO.piw);
             }
 
             Vector3 playerPos = gameState.playerTransform.position;
             Vector3 vpw = gameState.PlayerVelocityVector;
             float nanInfTest;
+            //Vector4 playerAccel = gameState.PlayerVisualAccelerationVector;
             for (int i = 0; i < totalBoxCount; i++)
             {
                 Transform changeTransform = change[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(changeTransform.TransformPoint(origPositions[i]))).WorldToOptical(viw, playerPos, vpw, Vector4.zero));
+                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(changeTransform.TransformPoint(origPositions[i]))).WorldToOptical(viw, playerPos, vpw, aiw));
                 nanInfTest = Vector3.Dot(newPos, newPos);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
@@ -264,7 +269,7 @@ namespace OpenRelativity.Objects
                         yield return new WaitForFixedUpdate();
                         coroutineTimer.Start();
                     }
-                    change[i].center = changeTransform.InverseTransformPoint(((Vector4)(changeTransform.TransformPoint(origPositions[i]))).WorldToOptical(viw, playerPos, vpw, Vector4.zero));
+                    change[i].center = changeTransform.InverseTransformPoint(((Vector4)(changeTransform.TransformPoint(origPositions[i]))).WorldToOptical(viw, playerPos, vpw, aiw));
                 }
             }
             //Cache actual world center of mass, and then reset local (rest frame) center of mass:

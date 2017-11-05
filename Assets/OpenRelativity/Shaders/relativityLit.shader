@@ -175,7 +175,7 @@ Shader "Relativity/Lit/ColorShift" {
 			float4 vel3 = float4(viwScaled.xyz, 0);
 			float accelMag = length(apparentAccel);
 			float parraSpeed, fullSpeed;
-			float4 endVel, midVel, velUnit;
+			float4 endVel, velUnit;
 			if (accelMag > divByZeroCutoff)
 			{
 				parraSpeed = dot(viwScaled, apparentAccel / accelMag);
@@ -189,15 +189,11 @@ Shader "Relativity/Lit/ColorShift" {
 					velUnit = apparentAccel / accelMag;
 				}
 				endVel = (float)((_spdOfLight * _spdOfLight * log(cosh((accelMag * tisw) / _spdOfLight + (_spdOfLight * parraSpeed) / (_spdOfLight * _spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
-				midVel = (endVel + vel3) / 2;
-			}
-			else
-			{
-				midVel = vel3;
+				viwScaled = (endVel + vel3) / 2;
 			}
 
 			//get the new position offset, based on the new time we just found
-			riw += tisw * midVel;
+			riw += tisw * viwScaled;
 
 			//Apply Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

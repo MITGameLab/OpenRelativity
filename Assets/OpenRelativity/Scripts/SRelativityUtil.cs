@@ -153,45 +153,12 @@ namespace OpenRelativity
             return Quaternion.Inverse(rot) * rotInt;
         }
 
-
-        //This method converts the position of an object in the world to its position after the shader is applied.
-        //public static Vector3 WorldToOptical(this Vector3 piw, Vector3 velocity, Matrix4x4? metric = null)
-        //{
-        //    return ((Vector4)piw).WorldToOptical(velocity, Vector3.zero, Vector3.zero, metric);
-        //}
-
         public const float divByZeroCutoff = 1e-8f;
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw, Matrix4x4? metric = null)
+        public static float WorldToTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
         {
             float spdOfLight = SRelativityUtil.c;
-
-            Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
-            float playerVelMag = playerVel.magnitude;
-            float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
             Vector4 pos = stpiw - (Vector4)origin;
-            Vector3 viw = velocity / spdOfLight;
-
-            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
-            Vector3 vr;
-            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed > divByZeroCutoff)
-            {
-                Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
-                                                                  //Get the perpendicular component of our velocity, just by subtraction
-                Vector3 uperp = viw - uparra;
-                //relative velocity calculation
-                vr = (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
-            }
-            //If our speed is nearly zero, it could lead to infinities.
-            else
-            {
-                //relative velocity calculation
-                vr = -viw;
-            }
-
-            //relative speed
-            float speedr = vr.magnitude;
 
             //riw = location in world, for reference
             Vector4 riw = pos;//Position that will be used in the output
@@ -216,12 +183,45 @@ namespace OpenRelativity
                 tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
             }
 
+            return tisw;
+        }
+
+        //This method converts the position of an object in the world to its position after the shader is applied.
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw, Matrix4x4? metric = null)
+        {
+            float spdOfLight = SRelativityUtil.c;
+
+            Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+
+            //riw = location in world, for reference
+            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
+            if (metric == null)
+            {
+                metric = GetMetric(stpiw, origin);
+            }
+
+            Vector4 velocity4 = velocity.To4Viw();
+
+            //Rotation-free modification of the original OpenRelativity shader, with acceleration:
+
+            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
+
+            float b = -(2 * Vector4.Dot(riw, metric.Value * velocity4)); //next get position dotted with velocity, should be only in the Z direction
+
+            float d = cSqrd;
+
+            float tisw = 0;
+            if ((b * b) >= 4.0 * d * c)
+            {
+                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+            }
+
             //It's not simple to get the exact distance traversed with acceleration,
             // but it might be close enough, if we average the initial and final velocities:
-            Vector3 apparentAccel = aiw;
-            float accelMag = apparentAccel.magnitude;
-            float parraSpeed, fullSpeed;
-            Vector3 endVel, midVel, velUnit;
+            float accelMag, parraSpeed, fullSpeed;
+            Vector3 apparentAccel, endVel, velUnit;
+            apparentAccel = aiw;
+            accelMag = apparentAccel.magnitude;
             if (accelMag > divByZeroCutoff)
             {
                 parraSpeed = Vector3.Dot(velocity, apparentAccel / accelMag);
@@ -235,15 +235,31 @@ namespace OpenRelativity
                     velUnit = apparentAccel / accelMag;
                 }
                 endVel = (float)((spdOfLight * spdOfLight * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLight * spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
-                midVel = (endVel + velocity) / 2;
-            }
-            else
-            {
-                midVel = velocity;
+                velocity = (endVel + velocity) / 2;
             }
 
             //get the new position offset, based on the new time we just found
-            riw = (Vector3)riw + tisw * midVel;
+            riw = (Vector3)riw + tisw * velocity;
+
+            //apparentAccel = apw;
+            //accelMag = apparentAccel.magnitude;
+            //if (accelMag > divByZeroCutoff)
+            //{
+            //    parraSpeed = Vector3.Dot(playerVel, apparentAccel / accelMag);
+            //    fullSpeed = playerVel.magnitude;
+            //    if (fullSpeed > divByZeroCutoff)
+            //    {
+            //        velUnit = playerVel / fullSpeed;
+            //    }
+            //    else
+            //    {
+            //        velUnit = apparentAccel / accelMag;
+            //    }
+            //    endVel = (float)((spdOfLight * spdOfLight * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLight * spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
+            //    playerVel = (endVel + playerVel) / 2;
+            //    vpc = -playerVel / spdOfLight;
+            //}
+            float speed = vpc.sqrMagnitude;
 
             float newz = speed * spdOfLight * tisw;
 
@@ -262,73 +278,81 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw, Matrix4x4? metric = null)
+        //This method reverts the position of an object after the shader is applied back to its position in the world.
+        public static Vector3 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw)
         {
             float spdOfLight = SRelativityUtil.c;
 
             Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
-            float playerVelMag = playerVel.magnitude;
-            float speed = Mathf.Sqrt(Vector3.Dot(vpc, vpc)); // (float)srCamera.playerVelocity;
-            Vector4 pos = stpiw - (Vector4)origin;
-            Vector3 viw = velocity / spdOfLight;
-
-            float vuDot = Vector3.Dot(vpc, viw); //Get player velocity dotted with velocity of the object.
-            Vector3 vr;
-            //IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speed > divByZeroCutoff)
-            {
-                Vector3 uparra = (vuDot / (speed * speed)) * vpc; //Get the parallel component of the object's velocity
-                                                                  //Get the perpendicular component of our velocity, just by subtraction
-                Vector3 uperp = viw - uparra;
-                //relative velocity calculation
-                vr = (vpc - uparra - (Mathf.Sqrt(1 - speed * speed)) * uperp) / (1 + vuDot);
-            }
-            //If our speed is nearly zero, it could lead to infinities.
-            else
-            {
-                //relative velocity calculation
-                vr = -viw;
-            }
-            float speedr = vr.magnitude;
 
             //riw = location in world, for reference
-            Vector4 riw = pos; //Position that will be used in the output
+            Vector4 riw = opticalPos - (Vector4)origin; //Position that will be used in the output
+            Vector4 pos = (Vector3)riw;
             //Transform fails and is unecessary if relative speed is zero:
             float newz;
+
+            //if (speed > divByZeroCutoff)
+            //{
+            //    Vector4 vpcUnit = vpc / speed;
+            //    newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
+            //    riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
+            //}
+
+            //if (metric == null)
+            //{
+            //    metric = GetMetric(opticalPos, origin);
+            //}
+
+            //Vector4 pVel4 = (-playerVel).To4Viw();
+
+            //float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
+
+            //float b = -(2 * Vector4.Dot(riw, metric.Value * pVel4)); //next get position dotted with velocity, should be only in the Z direction
+
+            //float d = cSqrd;
+
+            //float tisw = 0;
+            //if ((b * b) >= 4.0 * d * c)
+            //{
+            //    tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+            //}
+
+            float tisw = -pos.magnitude / spdOfLight;
+
+            float accelMag, parraSpeed, fullSpeed;
+            Vector3 apparentAccel, endVel, velUnit;
+            //apparentAccel = apw;
+            //accelMag = apparentAccel.magnitude;
+            //if (accelMag > divByZeroCutoff)
+            //{
+            //    parraSpeed = Vector3.Dot(playerVel, apparentAccel / accelMag);
+            //    fullSpeed = playerVel.magnitude;
+            //    if (fullSpeed > divByZeroCutoff)
+            //    {
+            //        velUnit = playerVel / fullSpeed;
+            //    }
+            //    else
+            //    {
+            //        velUnit = apparentAccel / accelMag;
+            //    }
+            //    endVel = (float)((spdOfLight * spdOfLight * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLight * spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
+            //    playerVel = (endVel + playerVel) / 2;
+            //    vpc = -playerVel / spdOfLight;
+            //}
+            float speed = vpc.magnitude;
+
             if (speed > divByZeroCutoff)
             {
-                Vector4 vpcUnit = -(Vector4)playerVel / playerVelMag;
+                Vector4 vpcUnit = vpc / speed;
                 newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
                 riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
             }
 
-            if (metric == null)
-            {
-                metric = GetMetric(stpiw, origin);
-            }
-
-            Vector4 pVel4 = (-playerVel).To4Viw();
-
-            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
-
-            float b = -(2 * Vector4.Dot(riw, metric.Value * pVel4)); //next get position dotted with velocity, should be only in the Z direction
-
-            float d = cSqrd;
-
-            float tisw = 0;
-            if ((b * b) >= 4.0 * d * c)
-            {
-                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-            }
-
             newz = speed * spdOfLight * tisw;
-
-            Vector3 apparentAccel, endVel, midVel, velUnit;
-            float accelMag, parraSpeed, fullSpeed;
 
             if (speed > divByZeroCutoff)
             {
-                Vector4 vpcUnit = -playerVel / playerVelMag;
+                Vector4 vpcUnit = vpc / speed;
                 riw = riw - newz * vpcUnit;
             }
 
@@ -347,25 +371,16 @@ namespace OpenRelativity
                     velUnit = apparentAccel / accelMag;
                 }
                 endVel = (float)((spdOfLight * spdOfLight * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLight * spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
-                midVel = (endVel + velocity) / 2;
-            }
-            else
-            {
-                midVel = velocity;
+                velocity = (endVel + velocity) / 2;
             }
 
-            riw = (Vector3)riw - (tisw * midVel);
+            riw = (Vector3)riw - (tisw * velocity);
 
             riw = (Vector3)riw + origin;
 
             return riw;
 
         }
-
-        //public static Vector3 OpticalToWorldHighPrecision(this Vector3 piw, Vector3 velocity, Vector3 origin, Vector3 playerVel)
-        //{
-        //    return ((Vector4)piw).OpticalToWorldHighPrecision(velocity, origin, playerVel);
-        //}
 
         public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw)
         {
@@ -579,6 +594,5 @@ namespace OpenRelativity
         {
             return new Vector4(viw.x, viw.y, viw.z, (float)Math.Sqrt(1.0 - viw.sqrMagnitude / cSqrd));
         }
-
     }
 }

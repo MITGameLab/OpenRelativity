@@ -276,6 +276,7 @@ namespace OpenRelativity.Objects
             coroutineTimer.Start();
             Vector3 playerPos = gameState.playerTransform.position;
             Vector3 vpw = gameState.PlayerVelocityVector;
+            //Vector4 apw = gameState.PlayerVisualAccelerationVector;
             float nanInfTest;
             for (int i = 0; i < queuedColliders.Count; i++)
             {
@@ -310,6 +311,7 @@ namespace OpenRelativity.Objects
                 queuedColliders.Clear();
                 Vector3 playerPos = gameState.playerTransform.position;
                 Vector3 playerVel = gameState.PlayerVelocityVector;
+                //Vector4 apw = gameState.PlayerVisualAccelerationVector;
                 float distSqr;
 
                 for (int i = 0; i < origPositionsList.Count; i++)
