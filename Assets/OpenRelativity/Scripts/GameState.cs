@@ -113,6 +113,7 @@ namespace OpenRelativity
 
         public ConformalMaps.ConformalMap conformalMap;
         public bool isMinkowski { get; set; }
+        public bool HasWorldGravity { get; set; }
 
         #endregion
 

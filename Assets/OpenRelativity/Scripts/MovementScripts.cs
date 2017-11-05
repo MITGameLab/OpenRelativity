@@ -46,6 +46,8 @@ namespace OpenRelativity
             state = GetComponent<GameState>();
             //Assume we are in free fall
             isFalling = true;
+            //If we have gravity, this factors into transforming to optical space.
+            if (useGravity) state.HasWorldGravity = true;
 
             //grab Game State, we need it for many actions
             state = GetComponent<GameState>();
@@ -225,7 +227,7 @@ namespace OpenRelativity
                                     rotatedVelocity.y = 0.0f;
                                 }
                                 state.PlayerVelocityVector = rotatedVelocity;
-                                totalAccel += Physics.gravity;
+                                totalAccel -= Physics.gravity;
                             }
                             else
                             {
