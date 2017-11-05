@@ -179,9 +179,35 @@ Shader "Relativity/Lit/EmissiveColorShift" {
 			tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 		}
 
-		//get the new position offset, based on the new time we just found
+		//It's not simple to get the exact distance traversed with acceleration,
+		// but it might be close enough, if we average the initial and final velocities:
 		float4 apparentAccel = float4(_aiw.xyz, 0);
-		riw += tisw * float4(viwScaled.xyz, 0) + (apparentAccel * abs(tisw) * tisw / 2.0f);
+		float4 vel3 = float4(viwScaled.xyz, 0);
+		float accelMag = length(apparentAccel);
+		float parraSpeed, fullSpeed;
+		float4 endVel, midVel, velUnit;
+		if (accelMag > divByZeroCutoff)
+		{
+			parraSpeed = dot(viwScaled, apparentAccel / accelMag);
+			fullSpeed = length(viwScaled);
+			if (parraSpeed > divByZeroCutoff)
+			{
+				velUnit = vel3 / fullSpeed;
+			}
+			else
+			{
+				velUnit = apparentAccel / accelMag;
+			}
+			endVel = (float)((_spdOfLight * _spdOfLight * log(cosh((accelMag * tisw) / _spdOfLight + (_spdOfLight * parraSpeed) / (_spdOfLight * _spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
+			midVel = (endVel + vel3) / 2;
+		}
+		else
+		{
+			midVel = vel3;
+		}
+
+		//get the new position offset, based on the new time we just found
+		riw += tisw * midVel;
 
 		//Apply Lorentz transform
 		// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

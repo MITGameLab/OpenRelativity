@@ -162,7 +162,7 @@ namespace OpenRelativity
 
         public const float divByZeroCutoff = 1e-8f;
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 accel, Matrix4x4? metric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw, Vector4 acp, Matrix4x4? metric = null)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -216,14 +216,60 @@ namespace OpenRelativity
                 tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
             }
 
-            //get the new position offset, based on the new time we just found
-            Vector3 apparentAccel = -accel;
+            //It's not simple to get the exact distance traversed with acceleration,
+            // but it might be close enough, if we average the initial and final velocities:
+            Vector3 apparentAccel = aiw;
+            float accelMag = apparentAccel.magnitude;
+            float parraSpeed, fullSpeed;
+            Vector3 endVel, midVel, velUnit;
+            if (accelMag > divByZeroCutoff)
+            {
+                parraSpeed = Vector3.Dot(velocity, apparentAccel / accelMag);
+                fullSpeed = velocity.magnitude;
+                if (parraSpeed > divByZeroCutoff)
+                {
+                    velUnit = velocity / fullSpeed;
+                }
+                else
+                {
+                    velUnit = apparentAccel / accelMag;
+                }
+                endVel = (float)((spdOfLight * spdOfLight * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLight * spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
+                midVel = (endVel + velocity) / 2;
+            }
+            else
+            {
+                midVel = velocity;
+            }
 
-            riw = (Vector3)riw + (tisw * velocity) + (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
+            //get the new position offset, based on the new time we just found
+            riw = (Vector3)riw + tisw * midVel;
 
             //Apply Lorentz transform
-            //I had to break it up into steps, unity was getting order of operations wrong.	
-            float newz = (((float)speed * spdOfLight) * tisw);
+            //apparentAccel = -acp;
+            //accelMag = apparentAccel.magnitude;
+            //if (accelMag > divByZeroCutoff)
+            //{
+            //    parraSpeed = Vector3.Dot(spdOfLight * vpc, apparentAccel / accelMag);
+            //    fullSpeed = speed * spdOfLight;
+            //    if (parraSpeed > divByZeroCutoff)
+            //    {
+            //        velUnit = spdOfLight * vpc / fullSpeed;
+            //    }
+            //    else
+            //    {
+            //        velUnit = apparentAccel / accelMag;
+            //    }
+            //    endVel = (float)((spdOfLightSqrd * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLightSqrd - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
+            //    midVel = (endVel + spdOfLight * vpc) / 2;
+            //    fullSpeed = midVel.magnitude;
+            //}
+            //else
+            //{
+            //    fullSpeed = speed * spdOfLight;
+            //}
+            //float newz = fullSpeed * tisw;
+            float newz = speed * spdOfLight * tisw;
 
             if (speed > divByZeroCutoff)
             {
@@ -240,7 +286,7 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 accel, Matrix4x4? metric = null)
+        public static Vector3 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw, Vector4 acp, Matrix4x4? metric = null)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -299,7 +345,35 @@ namespace OpenRelativity
                 tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
             }
 
+            //Apply Lorentz transform
+            //Vector3 apparentAccel = -acp;
+            //float accelMag = apparentAccel.magnitude;
+            //float parraSpeed, fullSpeed;
+            //Vector3 endVel, midVel, velUnit;
+            //if (accelMag > divByZeroCutoff)
+            //{
+            //    parraSpeed = Vector3.Dot(spdOfLight * vpc, apparentAccel / accelMag);
+            //    fullSpeed = speed * spdOfLight;
+            //    if (parraSpeed > divByZeroCutoff)
+            //    {
+            //        velUnit = spdOfLight * vpc / fullSpeed;
+            //    }
+            //    else
+            //    {
+            //        velUnit = apparentAccel / accelMag;
+            //    }
+            //    endVel = (float)((spdOfLightSqrd * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLightSqrd - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
+            //    midVel = (endVel + spdOfLight * vpc) / 2;
+            //    fullSpeed = midVel.magnitude;
+            //}
+            //else
+            //{
+            //    newz = playerVelMag * tisw;
+            //}
+            //newz = fullSpeed * tisw;
             newz = playerVelMag * tisw;
+            Vector3 apparentAccel, velUnit, endVel, midVel;
+            float accelMag, parraSpeed, fullSpeed;
 
             if (speed > divByZeroCutoff)
             {
@@ -307,9 +381,29 @@ namespace OpenRelativity
                 riw = riw - newz * vpcUnit;
             }
 
-            Vector3 apparentAccel = -accel;
+            apparentAccel = aiw;
+            accelMag = apparentAccel.magnitude;
+            if (accelMag > divByZeroCutoff)
+            {
+                parraSpeed = Vector3.Dot(velocity, apparentAccel / accelMag);
+                fullSpeed = velocity.magnitude;
+                if (parraSpeed > divByZeroCutoff)
+                {
+                    velUnit = velocity / fullSpeed;
+                }
+                else
+                {
+                    velUnit = apparentAccel / accelMag;
+                }
+                endVel = (float)((spdOfLight * spdOfLight * Math.Log(Math.Cosh((accelMag * tisw) / spdOfLight + (spdOfLight * parraSpeed) / (spdOfLight * spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
+                midVel = (endVel + velocity) / 2;
+            }
+            else
+            {
+                midVel = velocity;
+            }
 
-            riw = (Vector3)riw - (tisw * velocity) - (apparentAccel * Mathf.Abs(tisw) * tisw / 2.0f);
+            riw = (Vector3)riw - (tisw * midVel);
 
             riw = (Vector3)riw + origin;
 
@@ -322,12 +416,12 @@ namespace OpenRelativity
         //    return ((Vector4)piw).OpticalToWorldHighPrecision(velocity, origin, playerVel);
         //}
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 accel)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 aiw, Vector4 acp)
         {
             Vector4 startPoint = stpiw;
-            Vector3 est = stpiw.OpticalToWorld(velocity, origin, playerVel, accel);
+            Vector3 est = stpiw.OpticalToWorld(velocity, origin, playerVel, aiw, acp);
             Vector3 newEst;
-            Vector3 offset = (Vector3)stpiw - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, accel);
+            Vector3 offset = (Vector3)stpiw - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, aiw, acp);
             float sqrError = offset.sqrMagnitude;
             float oldSqrError = sqrError + 1.0f;
             float iterations = 1;
@@ -337,10 +431,10 @@ namespace OpenRelativity
             {
                 iterations++;
                 startPoint += (Vector4)offset / 2.0f;
-                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, accel);
-                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, accel);
+                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, aiw, acp);
+                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, aiw, acp);
                 oldSqrError = sqrError;
-                sqrError = ((Vector3)stpiw - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, accel)).sqrMagnitude;
+                sqrError = ((Vector3)stpiw - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, aiw, acp)).sqrMagnitude;
                 if (sqrError < oldSqrError)
                 {
                     est = newEst;
