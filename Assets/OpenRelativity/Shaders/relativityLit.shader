@@ -2,7 +2,7 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Lit/ColorShift" {
+Shader "Relativity/Lit/Inertial/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -87,7 +87,6 @@ Shader "Relativity/Lit/ColorShift" {
 
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
-		float4 _aiw = float4(0, 0, 0, 0);
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 										  //float _gtt = 1; //velocity of player
@@ -167,29 +166,6 @@ Shader "Relativity/Lit/ColorShift" {
 			if ((b * b) >= 4.0 * d * c)
 			{
 				tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-			}
-
-			//It's not simple to get the exact distance traversed with acceleration,
-			// but it might be close enough, if we average the initial and final velocities:
-			float4 apparentAccel = float4(_aiw.xyz, 0);
-			float4 vel3 = float4(viwScaled.xyz, 0);
-			float accelMag = length(apparentAccel);
-			float parraSpeed, fullSpeed;
-			float4 endVel, velUnit;
-			if (accelMag > divByZeroCutoff)
-			{
-				parraSpeed = dot(viwScaled, apparentAccel / accelMag);
-				fullSpeed = length(viwScaled);
-				if (fullSpeed > divByZeroCutoff)
-				{
-					velUnit = vel3 / fullSpeed;
-				}
-				else
-				{
-					velUnit = apparentAccel / accelMag;
-				}
-				endVel = (float)((_spdOfLight * _spdOfLight * log(cosh((accelMag * tisw) / _spdOfLight + (_spdOfLight * parraSpeed) / (_spdOfLight * _spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
-				viwScaled = (endVel + vel3) / 2;
 			}
 
 			//get the new position offset, based on the new time we just found

@@ -222,7 +222,7 @@ namespace OpenRelativity.Objects
                 //Send our object's v/c (Velocity over the Speed of Light) to the shader
                 if (tempRenderer != null)
                 {
-                    Vector4 tempViw = viw.To4Viw() / (float)state.SpeedOfLight;
+                    Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", tempViw);
                     Vector4 tempAiw = GetWorldAcceleration(transform.position);
                     tempRenderer.materials[0].SetVector("_aiw", tempAiw);

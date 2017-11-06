@@ -287,7 +287,7 @@ namespace OpenRelativity.Objects
             //Set remaining global parameters:
             colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
             colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
-            colliderShaderParams.vpc = (-state.PlayerVelocityVector).To4Viw() / (float)state.SpeedOfLight;
+            colliderShaderParams.vpc = (-state.PlayerVelocityVector).ToMinkowski4Viw() / (float)state.SpeedOfLight;
             colliderShaderParams.playerOffset = state.playerTransform.position;
             colliderShaderParams.speed = (float)(state.PlayerVelocity / state.SpeedOfLight);
             colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
@@ -356,7 +356,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
+            timeDelayToPlayer *= (float)GetTimeFactor(viw.ToMinkowski4Viw());
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (myRenderer != null)
                 myRenderer.enabled = false;
@@ -366,7 +366,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw.To4Viw());
+            timeDelayToPlayer *= (float)GetTimeFactor(viw.ToMinkowski4Viw());
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -806,7 +806,7 @@ namespace OpenRelativity.Objects
             {
                 if (isSleeping) WakeUp();
                 Vector3 tempViw = viw.Gamma() * viw;
-                tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
+                tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.ToMinkowski4Viw()));
                 tempViw = tempViw.RapidityToVelocity();
                 float test = tempViw.x + tempViw.y + tempViw.z;
                 if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
@@ -900,7 +900,7 @@ namespace OpenRelativity.Objects
 
             Matrix4x4 metric = GetMetric();
 
-            Vector4 velocity4 = viw.To4Viw();
+            Vector4 velocity4 = viw.ToMinkowski4Viw();
 
             //Here begins a rotation-free modification of the original OpenRelativity shader:
 
@@ -935,7 +935,7 @@ namespace OpenRelativity.Objects
 
             if (!state.MovementFrozen)
             {
-                double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw());
+                double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor(viw.ToMinkowski4Viw());
                 if (!double.IsInfinity(state.FixedDeltaTimeWorld))
                 {
                     localTimeOffset += deltaTime - state.FixedDeltaTimeWorld;
@@ -1195,7 +1195,7 @@ namespace OpenRelativity.Objects
                 {
                     metric = GetMetric();
                 }
-                Vector4 tempViw = viw.To4Viw() / (float)state.SpeedOfLight;
+                Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 Vector4 tempAiw = GetTotalAcceleration(piw);
@@ -1725,7 +1725,7 @@ namespace OpenRelativity.Objects
             Vector3 finalTanRapidity;
             if (penDist > 0)
             {
-                float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw.To4Viw()));
+                float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw.ToMinkowski4Viw()));
 
                 Vector3 tanNorm = Vector3.Cross(Vector3.Cross(lineOfAction, relVel), lineOfAction).normalized;
                 Vector3 frictionChange = combFriction * impulse * tanNorm;
@@ -2021,7 +2021,7 @@ namespace OpenRelativity.Objects
         {
             if (mViw == null)
             {
-                mViw = viw.To4Viw();
+                mViw = viw.ToMinkowski4Viw();
             }
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {
