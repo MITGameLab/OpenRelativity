@@ -182,7 +182,7 @@ namespace OpenRelativity.Objects
                     minkowski.m00 = -1;
                     minkowski.m11 = -1;
                     minkowski.m22 = -1;
-                    tempRenderer.materials[0].SetMatrix("_Metric", minkowski);
+                    tempRenderer.materials[0].SetMatrix("_MixedMetric", minkowski);
                 }
 
                 //As long as our object is actually alive, perform these calculations

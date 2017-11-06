@@ -678,7 +678,7 @@ namespace OpenRelativity.Objects
             minkowski.m00 = -1;
             minkowski.m11 = -1;
             minkowski.m22 = -1;
-            colliderShaderParams.metric = minkowski;
+            colliderShaderParams.mixedMetric = minkowski;
 
             checkSpeed();
 
@@ -704,7 +704,7 @@ namespace OpenRelativity.Objects
                     quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
                     //quickSwapMaterial.SetFloat("_aviw", 0);
                     //quickSwapMaterial.SetFloat("_piw", 0);
-                    quickSwapMaterial.SetMatrix("_Metric", minkowski);
+                    quickSwapMaterial.SetMatrix("_MixedMetric", minkowski);
 
 
                     //And stick it back into our renderer. We'll do the SetVector thing every frame.
@@ -1193,22 +1193,25 @@ namespace OpenRelativity.Objects
             {
                 if (metric == null)
                 {
-                    metric = GetMetric();
+                    metric = state.conformalMap.GetConformalFactor(piw, state.playerTransform.position);
                 }
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 Vector4 tempAiw = GetTotalAcceleration(piw);
-                //Vector4 tempApw = GetVisualPlayerAcceleration();
+                Vector4 tempApw = state.PlayerAccelerationVector;
+                Vector4 tempAvp = state.PlayerAngularVelocityVector;
                 colliderShaderParams.viw = tempViw;
-                colliderShaderParams.aiw = tempAiw;
-                colliderShaderParams.metric = metric.Value;
+                colliderShaderParams.apw = tempApw;
+                colliderShaderParams.avp = tempAvp;
+                colliderShaderParams.mixedMetric = metric.Value;
                 for (int i = 0; i < myRenderer.materials.Length; i++)
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
-                    //myRenderer.materials[i].SetVector("_apw", tempApw);
-                    myRenderer.materials[i].SetMatrix("_Metric", metric.Value);
+                    myRenderer.materials[i].SetVector("_apw", tempApw);
+                    myRenderer.materials[i].SetVector("_avp", tempAvp);
+                    myRenderer.materials[i].SetMatrix("_MixedMetric", metric.Value);
                 }
             }
         }
@@ -1944,8 +1947,8 @@ namespace OpenRelativity.Objects
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector3 playerAccel = state.PlayerAccelerationVector;
             Vector3 playerAngVel = state.PlayerAngularVelocityVector;
-            Vector4 myAccel = GetTotalAcceleration(piw);
-            Vector3 myPos = ((Vector4)piw).WorldToOptical(viw, playerPos, playerVel, myAccel) - playerPos;
+            //Vector4 myAccel = GetTotalAcceleration(piw);
+            Vector3 myPos = piw - playerPos;
             Vector3 angFac = Vector3.Cross(playerAngVel, myPos) / (float)state.SpeedOfLightSqrd;
 
             //Diagonal terms:

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace OpenRelativity
 {
     //Shader properties:
-    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 264)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 280)]
     public struct ShaderParams
     {
         //[FieldOffset(0)]
@@ -23,8 +23,10 @@ namespace OpenRelativity
         //[FieldOffset(49)]
         public System.Single spdOfLight; //current speed of light
         //[FieldOffset(50)]
-        public Matrix4x4 metric;
-        //[FieldOffset(66)}
-        public Vector4 aiw;
+        public Matrix4x4 mixedMetric;
+        //[FieldOffset(66)]
+        public Vector4 apw;
+        //[FieldOffset(82)]
+        public Vector4 avp;
     }
 }

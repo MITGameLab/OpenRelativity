@@ -7,18 +7,14 @@
 struct GlobalParams {
 	float4x4 ltwMatrix; //local-to-world transform matrix
 	float4x4 wtlMatrix; //world-to-local transform matrix
-	//float3 piw; //position of object in world
 	float4 viw; //velocity of object in synchronous coordinates
-	//float3 aviw; //angular velocity of object in inverse local scale
 	float4 vpc; //velocity of player
 	float4 playerOffset; //player position in world
-	//float gtt; // 00 component of metric, due to player acceleration
 	float speed; //speed of player;
 	float spdOfLight; //current speed of light
-	//float wrldTime; //current time in world
-	//float strtTime; //starting time in world
-	float4x4 metric;
-	float4 aiw; //acceleration of object in world coordinates
+	float4x4 mixedMetric;
+	float4 apw; //acceleration of player in world coordinates
+	float4 avp; //angular velocity of player in world coordinates
 };
 
 //struct VertDraw {
@@ -38,23 +34,36 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 {
 	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
 	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
-	//float3 piw = glblPrms[0].piw;
 	float4 viw = glblPrms[0].viw;
-	//float3 aviw = glblPrms[0].aviw;
 	float4 vpc = glblPrms[0].vpc;
 	float4 playerOffset = glblPrms[0].playerOffset;
-	//float gtt = glblPrms[0].gtt;
 	float speed = glblPrms[0].speed;
 	float spdOfLight = glblPrms[0].spdOfLight;
-	//float wrldTime = glblPrms[0].wrldTime;
-	//float strtTime = glblPrms[0].strtTime;
-	float4x4 metric = glblPrms[0].metric;
-	float4 aiw = glblPrms[0].aiw;
+	float4x4 mixedMetric = glblPrms[0].mixedMetric;
+	float4 apw = glblPrms[0].apw;
+	float4 avp = glblPrms[0].avp;
 
 	float4 pos = float4(verts[id.x].xyz - playerOffset.xyz, 0);
 
 	//riw = location in world, for reference
 	float4 riw = float4(pos.xyz, 0); //Position that will be used in the output
+
+									 //Find metric based on player acceleration:
+	float4 angFac = -2 * float4(cross(avp.xyz, riw.xyz), 0) / (spdOfLight * spdOfLight);
+	float linFac = dot(apw.xyz, riw.xyz) / (spdOfLight * spdOfLight);
+	linFac = (((1 + linFac) * (1 + linFac) - length(angFac)) * spdOfLight * spdOfLight);
+	angFac *= spdOfLight;
+
+	float4x4 metric = {
+		-1, 0, 0, angFac.x,
+		0, -1, 0, angFac.y,
+		0, 0, -1, angFac.z,
+		angFac.x, angFac.y, angFac.z, linFac
+	};
+
+	//Apply conformal map:
+	metric = mul(mixedMetric, metric);
+
 	float4 viwScaled = spdOfLight * viw;
 
 	//Here begins a rotation-free modification of the original OpenRelativity shader:

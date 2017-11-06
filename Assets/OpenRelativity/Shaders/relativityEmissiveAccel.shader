@@ -75,7 +75,7 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 #endif
 	};
 
-	float4x4 _Metric = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,-1 }; //The numerical value of the metric at piw
+	float4x4 _MixedMetric; //The mixed index metric ("conformal map") at piw
 	//For the time being, we can only approximate by the value of the metric at the center of the object.
 	//Ideally, we'd have a differently numerical metric value for each vertex or fragment.
 
@@ -98,7 +98,8 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 	float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-									  //float _gtt = 1; //velocity of player
+	float4 _apw = float4(0, 0, 0, 0); //acceleration of player
+	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 	float _spdOfLight = 100; //current speed of light
 	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
@@ -163,13 +164,30 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 
 		//riw = location in world, for reference
 		float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
+
+		//Find metric based on player acceleration:
+		float4 angFac = -2 * float4(cross(_avp.xyz, riw.xyz), 0) / (_spdOfLight * _spdOfLight);
+		float linFac = dot(_apw.xyz, riw.xyz) / (_spdOfLight * _spdOfLight);
+		linFac = (((1 + linFac) * (1 + linFac) - length(angFac)) * _spdOfLight * _spdOfLight);
+		angFac *= _spdOfLight;
+
+		float4x4 metric = {
+			-1, 0, 0, angFac.x,
+			0, -1, 0, angFac.y,
+			0, 0, -1, angFac.z,
+			angFac.x, angFac.y, angFac.z, linFac
+		};
+
+		//Apply conformal map:
+		metric = mul(_MixedMetric, metric);
+
 		float4 viwScaled = _spdOfLight * _viw;
 
 		//Here begins a rotation-free modification of the original OpenRelativity shader:
 
-		float c = dot(riw, mul(_Metric, riw)); //first get position squared (position dotted with position)
+		float c = dot(riw, mul(metric, riw)); //first get position squared (position dotted with position)
 
-		float b = -(2 * dot(riw, mul(_Metric, viwScaled))); //next get position dotted with velocity, should be only in the Z direction
+		float b = -(2 * dot(riw, mul(metric, viwScaled))); //next get position dotted with velocity, should be only in the Z direction
 
 		float d = _spdOfLight * _spdOfLight;
 
