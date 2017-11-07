@@ -172,15 +172,23 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 
 			float4 viwScaled = _spdOfLight * _viw;
 
-			//Here begins a rotation-free modification of the original OpenRelativity shader:
+			//Remember that relativity is time-translation invariant.
+			//The above metric is correct if the time coordinate of riw is zero,
+			//(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
+			//We are free to translate our position in time such that this is the case,
+			//and then translate back. To translate, we subtract the time coordinate from our position to get
+			//zero in the "riw" time coordinate. (We've already done this.)
+
+			//(When we "dot" four-vectors, always do it with the metric that point in space-time, like we do so here.)
 
 			float c = dot(riw, mul(metric, riw)); //first get position squared (position dotted with position)
 
-			float b = -(2 * dot(riw, mul(metric, viwScaled))); //next get position dotted with velocity, should be only in the Z direction
+			float b = -(2 * dot(riw, mul(metric, viwScaled))); //next get position dotted with velocity
 
-			float d = _spdOfLight * _spdOfLight;
+			float d = _spdOfLight * _spdOfLight; //this is actually the four-velocity dotted with the velocity, always equal to +/- the speed of light squared
 
-			float tisw = 0;
+			//This is where we translate back in time, by adding back in the "riw" time coordinate:
+			float tisw = o.pos.w;
 			if ((b * b) >= 4.0 * d * c)
 			{
 				tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
