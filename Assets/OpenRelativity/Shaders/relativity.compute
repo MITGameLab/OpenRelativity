@@ -15,22 +15,15 @@ struct GlobalParams {
 	float4x4 mixedMetric;
 	float4 apw; //acceleration of player in world coordinates
 	float4 avp; //angular velocity of player in world coordinates
+	float4 aiw; //acceleration of object in world coordinates
 };
 
-//struct VertDraw {
-//	float3 vert;
-//	float draw;
-//};
-
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
 StructuredBuffer<GlobalParams> glblPrms;
 RWStructuredBuffer<float3> verts;
-//RWStructuredBuffer<float> drawBools;
 
 [numthreads(256, 1, 1)]
 //[numthreads(64,1,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+void CSMain(uint3 id : SV_DispatchThreadID)
 {
 	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
 	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
@@ -42,6 +35,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float4x4 mixedMetric = glblPrms[0].mixedMetric;
 	float4 apw = glblPrms[0].apw;
 	float4 avp = glblPrms[0].avp;
+	float4 aiw = glblPrms[0].aiw;
 
 	float4 pos = float4(verts[id.x].xyz, 0);
 	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1.0f));

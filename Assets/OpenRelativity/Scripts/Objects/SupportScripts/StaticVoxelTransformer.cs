@@ -276,12 +276,13 @@ namespace OpenRelativity.Objects
             coroutineTimer.Start();
             Vector3 playerPos = gameState.playerTransform.position;
             Vector3 vpw = gameState.PlayerVelocityVector;
-            //Vector4 apw = gameState.PlayerVisualAccelerationVector;
+            Vector4 apw = gameState.PlayerAccelerationVector;
+            Vector3 avp = gameState.PlayerAngularVelocityVector;
             float nanInfTest;
             for (int i = 0; i < queuedColliders.Count; i++)
             {
                 Transform changeTransform = queuedColliders[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, playerPos, vpw, Vector4.zero));
+                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, playerPos, vpw, apw, avp, Vector4.zero));
                 nanInfTest = Vector3.Dot(newPos, newPos);
                 if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                 {
@@ -310,13 +311,14 @@ namespace OpenRelativity.Objects
                 queuedOrigPositionsList.Clear();
                 queuedColliders.Clear();
                 Vector3 playerPos = gameState.playerTransform.position;
-                Vector3 playerVel = gameState.PlayerVelocityVector;
-                //Vector4 apw = gameState.PlayerVisualAccelerationVector;
+                Vector3 vpw = gameState.PlayerVelocityVector;
+                Vector4 apw = gameState.PlayerAccelerationVector;
+                Vector3 avp = gameState.PlayerAngularVelocityVector;
                 float distSqr;
 
                 for (int i = 0; i < origPositionsList.Count; i++)
                 {
-                    distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, playerVel, Vector4.zero) - playerPos).sqrMagnitude;
+                    distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, apw, avp, Vector4.zero) - playerPos).sqrMagnitude;
                     if (distSqr < cullingSqrDistance)
                     {
                         allColliders[i].enabled = true;
