@@ -174,7 +174,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 
 			//We'll also Lorentz transform the vectors:
 			float beta = length(_viw.xyz);
-			float gamma = 1.0f / sqrt(1 - beta);
+			float gamma = 1.0f / sqrt(1 - beta * beta);
 			float4x4 lorentzMatrix = {
 				gamma, 0, 0, 0,
 				0, gamma, 0, 0,
@@ -189,12 +189,13 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			aiwTransformed = mul(lorentzMatrix, aiwTransformed);
 
 			//We need these values:
-			float riwDotRiw = dot(riwTransformed, mul(metric, riwTransformed));
-			float aiwDotAiw = dot(aiwTransformed, mul(metric, aiwTransformed));
-			float riwDotAiw = dot(riwTransformed, mul(metric, aiwTransformed));
+			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
+			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
+			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
 			float cSqrdMinusRiwDotAiw = _spdOfLight * _spdOfLight - riwDotAiw;
-			float denom = -_spdOfLight * _spdOfLight * aiwDotAiw;
+			float denom = _spdOfLight * _spdOfLight * aiwDotAiw;
 
+			float4 viwScaled = _spdOfLight * _viw;
 			float tisw = 0;
 			if (abs(denom) > divByZeroCutoff) {
 				tisw = -sqrt((2 * riwDotAiw * cSqrdMinusRiwDotAiw
@@ -208,13 +209,14 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			else {
 				tisw = -sqrt(-4.0f * riwDotRiw) / (2 * _spdOfLight);
 			}
-			float4 viwScaled = _spdOfLight * _viw;
+			
+			riwTransformed.w = tisw;
 			//Inverse Lorentz transform the position:
 			lorentzMatrix._m23_m32 = -lorentzMatrix._m23_m32;
 			riwTransformed = mul(lorentzMatrix, riwTransformed);
 			riw = float4(rotate(inverse(viwToZRot), riwTransformed.xyz), 0);
 			tisw = riwTransformed.w;
-			riw.xyz = riw.xyz + tisw * viwScaled.xyz;
+			riw.xyz += tisw * viwScaled.xyz;
 			
 			//Apply player Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

@@ -148,9 +148,7 @@ Shader "Relativity/Unlit/Inertial/ColorShift"
 			//Remember that relativity is time-translation invariant.
 			//The above metric gives the numerically correct result if the time coordinate of riw is zero,
 			//(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
-			//We are free to translate our position in time such that this is the case,
-			//and then translate back. To translate, we subtract the time coordinate from our position to get
-			//zero in the "riw" time coordinate. (We've already done this.)
+			//We are free to translate our position in time such that this is the case.
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 
@@ -160,10 +158,8 @@ Shader "Relativity/Unlit/Inertial/ColorShift"
 
 			float d = _spdOfLight * _spdOfLight; //this is actually the four-velocity dotted with the four-velocity, always equal to +/- the speed of light squared
 
-			//This is where we translate back in time, by adding back in the "riw" time coordinate:
-			float tisw = o.pos.w;
 			//Now, get the time delay where the spacetime interval is "null," or "light-like," between the object and the camera:
-			tisw += (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
 			//get the new position offset, based on the new time we just found
 			riw += tisw * viwScaled;
