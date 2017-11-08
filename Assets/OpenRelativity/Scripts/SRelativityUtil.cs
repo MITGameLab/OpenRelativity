@@ -250,6 +250,22 @@ namespace OpenRelativity
             Vector3 apwTransformed = viwToZRot * apw;
             Vector3 aiwTransformed = viwToZRot * aiw;
 
+            //We'll also Lorentz transform the vectors:
+            float beta = viw.magnitude;
+            float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+            Matrix4x4 lorentzMatrix = new Matrix4x4(
+                new Vector4(gamma, 0, 0, 0),
+                new Vector4(0, gamma, 0, 0),
+                new Vector4(0, 0, gamma, -gamma * beta),
+                new Vector4(0, 0, -gamma * beta, gamma)
+            );
+
+            //Apply Lorentz transform;
+            //metric = lorentzMatrix.transpose * metric * lorentzMatrix;
+            riwTransformed = lorentzMatrix * riwTransformed;
+            avpTransformed = lorentzMatrix * avpTransformed;
+            aiwTransformed = lorentzMatrix * aiwTransformed;
+
             //Find metric based on player acceleration:
             Vector3 angFac = -2 * Vector3.Cross(avpTransformed, riwTransformed) / (spdOfLight * spdOfLight);
             float linFac = Vector3.Dot(apwTransformed, riwTransformed) / (spdOfLight * spdOfLight);
@@ -271,35 +287,21 @@ namespace OpenRelativity
             //Apply conformal map:
             metric = mixedMetric.Value * metric;
 
-            //We'll also Lorentz transform the vectors:
-            float beta = viw.magnitude;
-            float gamma = 1.0f / Mathf.Sqrt(1 - beta);
-            Matrix4x4 lorentzMatrix = new Matrix4x4(
-                new Vector4(gamma, 0, 0, 0),
-                new Vector4(0, gamma, 0, 0),
-                new Vector4(0, 0, gamma, -gamma * beta),
-                new Vector4(0, 0, -gamma * beta, gamma)
-            );
-
-            //Apply Lorentz transform;
-            //metric = lorentzMatrix.transpose * metric * lorentzMatrix;
-            riwTransformed = lorentzMatrix * riwTransformed;
-            avpTransformed = lorentzMatrix * avpTransformed;
-            aiwTransformed = lorentzMatrix * aiwTransformed;
-
             //We need these values:
+            float tisw = riwTransformed.w;
+            riwTransformed.w = 0.0f;
+            //aiwTransformed.w = 0;
             float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
             float cSqrdMinusRiwDotAiw = spdOfLight * spdOfLight - riwDotAiw;
             float denom = spdOfLight * spdOfLight * aiwDotAiw;
-
-            float tisw = 0;
+            
             if (Mathf.Abs(denom) > divByZeroCutoff)
             {
-                tisw = -Mathf.Sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
+                tisw -= Mathf.Sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
                     + aiwDotAiw * riwDotRiw
-                    - 2 * Mathf.Sqrt(cSqrdMinusRiwDotAiw * cSqrdMinusRiwDotAiw * (riwDotAiw * riwDotAiw + aiwDotAiw * riwDotRiw)))
+                    + 2 * Mathf.Sqrt(cSqrdMinusRiwDotAiw * cSqrdMinusRiwDotAiw * (riwDotAiw * riwDotAiw + aiwDotAiw * riwDotRiw)))
                     / denom);
                 float aiwMag = aiwTransformed.magnitude;
                 //add the position offset due to acceleration
@@ -307,8 +309,9 @@ namespace OpenRelativity
             }
             else
             {
-                tisw = Mathf.Sqrt(4.0f * riwDotRiw) / (2 * spdOfLight);
+                tisw -= Mathf.Sqrt(4.0f * riwDotRiw) / (2 * spdOfLight);
             }
+            riwTransformed.w = tisw;
             //Inverse Lorentz transform the position:
             lorentzMatrix.m23 = -lorentzMatrix.m23;
             lorentzMatrix.m32 = -lorentzMatrix.m32;
