@@ -113,15 +113,16 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float cSqrdMinusRiwDotAiw = spdOfLight * spdOfLight - riwDotAiw;
 	float denom = spdOfLight * spdOfLight * aiwDotAiw;
 
-	float4 viwScaled = spdOfLight * viw;	
+	float4 viwScaled = spdOfLight * viw;
 	if (abs(denom) > divByZeroCutoff) {
-		tisw -= sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
+		float t2 = sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
 			+ aiwDotAiw * riwDotRiw
 			+ 2 * sqrt(cSqrdMinusRiwDotAiw * cSqrdMinusRiwDotAiw * (riwDotAiw * riwDotAiw + aiwDotAiw * riwDotRiw)))
 			/ denom);
 		float aiwMag = length(aiwTransformed);
 		//add the position offset due to acceleration
-		riwTransformed -= aiwTransformed / aiwMag * spdOfLight * spdOfLight * (sqrt(1 + (aiwMag * tisw / spdOfLight) * (aiwMag * tisw / spdOfLight)) - 1);
+		riwTransformed -= aiwTransformed / aiwMag * spdOfLight * spdOfLight * (sqrt(1 + (aiwMag * t2 / spdOfLight) * (aiwMag * t2 / spdOfLight)) - 1);
+		tisw += t2;
 	}
 	else {
 		tisw -= sqrt(4.0f * riwDotRiw) / (2 * spdOfLight);

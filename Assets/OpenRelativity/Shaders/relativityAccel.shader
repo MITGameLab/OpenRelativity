@@ -200,13 +200,14 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 
 			float4 viwScaled = _spdOfLight * _viw;
 			if (abs(denom) > divByZeroCutoff) {
-				tisw -= sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
+				float t2 = sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
 					+ aiwDotAiw * riwDotRiw
 					+ 2 * sqrt(cSqrdMinusRiwDotAiw * cSqrdMinusRiwDotAiw * (riwDotAiw * riwDotAiw + aiwDotAiw * riwDotRiw)))
 					/ denom);
 				float aiwMag = length(aiwTransformed);
 				//add the position offset due to acceleration
-				riwTransformed -= aiwTransformed / aiwMag * _spdOfLight * _spdOfLight * (sqrt(1 + (aiwMag * tisw / _spdOfLight) * (aiwMag * tisw / _spdOfLight)) - 1);
+				riwTransformed -= aiwTransformed / aiwMag * _spdOfLight * _spdOfLight * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+				tisw += t2;
 			}
 			else {
 				tisw -= sqrt(4.0f * riwDotRiw) / (2 * _spdOfLight);

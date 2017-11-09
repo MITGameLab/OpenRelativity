@@ -155,39 +155,7 @@ namespace OpenRelativity
 
         public const float divByZeroCutoff = 1e-8f;
 
-        public static float WorldToTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Matrix4x4? metric = null)
-        {
-            float spdOfLight = SRelativityUtil.c;
-            Vector4 pos = stpiw - (Vector4)origin;
-
-            //riw = location in world, for reference
-            Vector4 riw = pos;//Position that will be used in the output
-            if (metric == null)
-            {
-                metric = GetMetric(stpiw, origin);
-            }
-
-            Vector4 velocity4 = velocity.ToMinkowski4Viw();
-
-            //Here begins a rotation-free modification of the original OpenRelativity shader:
-
-            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
-
-            float b = -(2 * Vector4.Dot(riw, metric.Value * velocity4)); //next get position dotted with velocity, should be only in the Z direction
-
-            float d = cSqrd;
-
-            float tisw = 0;
-            if ((b * b) >= 4.0 * d * c)
-            {
-                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-            }
-
-            return tisw;
-        }
-
-        //This method converts the position of an object in the world to its position after the shader is applied.
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp, Matrix4x4? metric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp, Matrix4x4? mixedMetric = null)
         {
             float spdOfLight = SRelativityUtil.c;
 
@@ -195,18 +163,35 @@ namespace OpenRelativity
 
             //riw = location in world, for reference
             Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
-            if (metric == null)
+
+            //Find metric based on player acceleration:
+            Vector3 angFac = -2 * Vector3.Cross(avp, riw) / (spdOfLight * spdOfLight);
+            float linFac = Vector3.Dot(apw, apw) / (spdOfLight * spdOfLight);
+            linFac = (((1 + linFac) * (1 + linFac) - angFac.magnitude) * spdOfLight * spdOfLight);
+            angFac *= spdOfLight;
+
+            Matrix4x4 metric = new Matrix4x4(
+                new Vector4(-1, 0, 0, angFac.x),
+                new Vector4(0, -1, 0, angFac.y),
+                new Vector4(0, 0, -1, angFac.z),
+                new Vector4(angFac.x, angFac.y, angFac.z, linFac)
+            );
+
+
+            if (mixedMetric == null)
             {
-                metric = GetMetric(stpiw, origin);
+                mixedMetric = GetConformalFactor(stpiw, origin);
             }
+
+            metric = mixedMetric.Value * metric;
 
             Vector4 velocity4 = velocity.ToMinkowski4Viw();
 
             //Rotation-free modification of the original OpenRelativity shader, with acceleration:
 
-            float c = Vector4.Dot(riw, metric.Value * riw); //first get position squared (position dotted with position)
+            float c = Vector4.Dot(riw, metric * riw); //first get position squared (position dotted with position)
 
-            float b = -(2 * Vector4.Dot(riw, metric.Value * velocity4)); //next get position dotted with velocity, should be only in the Z direction
+            float b = -(2 * Vector4.Dot(riw, metric * velocity4)); //next get position dotted with velocity, should be only in the Z direction
 
             float d = cSqrd;
 
@@ -289,23 +274,24 @@ namespace OpenRelativity
 
             //We need these values:
             float tisw = riwTransformed.w;
-            riwTransformed.w = 0.0f;
+            riwTransformed.w = 0;
             //aiwTransformed.w = 0;
             float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
             float cSqrdMinusRiwDotAiw = spdOfLight * spdOfLight - riwDotAiw;
             float denom = spdOfLight * spdOfLight * aiwDotAiw;
-            
+
             if (Mathf.Abs(denom) > divByZeroCutoff)
             {
-                tisw -= Mathf.Sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
+                float t2 = -Mathf.Sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
                     + aiwDotAiw * riwDotRiw
                     + 2 * Mathf.Sqrt(cSqrdMinusRiwDotAiw * cSqrdMinusRiwDotAiw * (riwDotAiw * riwDotAiw + aiwDotAiw * riwDotRiw)))
                     / denom);
                 float aiwMag = aiwTransformed.magnitude;
                 //add the position offset due to acceleration
-                riwTransformed = (Vector3)riwTransformed - aiwTransformed / aiwMag * spdOfLight * spdOfLight * (Mathf.Sqrt(1 + (aiwMag * tisw / c) * (aiwMag * tisw / spdOfLight)) - 1);
+                riwTransformed = (Vector3)riwTransformed - aiwTransformed / aiwMag * spdOfLight * spdOfLight * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / spdOfLight)) - 1);
+                tisw += t2;
             }
             else
             {
@@ -427,6 +413,7 @@ namespace OpenRelativity
             Vector3 viw = velocity / spdOfLight;
             Quaternion viwToZRot = Quaternion.FromToRotation(viw, Vector3.forward);
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
+            riwTransformed.w = tisw;
             Vector3 avpTransformed = viwToZRot * avp;
             Vector3 aiwTransformed = viwToZRot * aiw;
 
@@ -436,16 +423,17 @@ namespace OpenRelativity
             Matrix4x4 lorentzMatrix = new Matrix4x4(
                 new Vector4(gamma, 0, 0, 0),
                 new Vector4(0, gamma, 0, 0),
-                new Vector4(0, 0, gamma, gamma * beta),
-                new Vector4(0, 0, gamma * beta, gamma)
+                new Vector4(0, 0, gamma, -gamma * beta),
+                new Vector4(0, 0, -gamma * beta, gamma)
             );
-            
 
             //Apply Lorentz transform;
             //metric = lorentzMatrix.transpose * metric * lorentzMatrix;
             riwTransformed = lorentzMatrix * riwTransformed;
             avpTransformed = lorentzMatrix * avpTransformed;
             aiwTransformed = lorentzMatrix * aiwTransformed;
+
+            tisw = riwTransformed.w;
 
             if (aiw.sqrMagnitude > divByZeroCutoff)
             {
@@ -465,12 +453,12 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp)
         {
-            Vector4 startPoint = stpiw;
+            Vector4 startPoint = opticalPos;
             Vector3 est, offset, newEst;
-            est = stpiw.OpticalToWorld(velocity, origin, playerVel);
-            offset = (Vector3)stpiw - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, apw, avp);
+            est = opticalPos.OpticalToWorld(velocity, origin, playerVel);
+            offset = (Vector3)opticalPos - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, apw, avp);
 
             float sqrError = offset.sqrMagnitude;
             float oldSqrError = sqrError + 1.0f;
@@ -484,7 +472,7 @@ namespace OpenRelativity
                 newEst = startPoint.OpticalToWorld(velocity, origin, playerVel);
                 offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, apw, avp);
                 oldSqrError = sqrError;
-                sqrError = ((Vector3)stpiw - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, apw, avp)).sqrMagnitude;
+                sqrError = ((Vector3)opticalPos - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, apw, avp)).sqrMagnitude;
                 if (sqrError < oldSqrError)
                 {
                     est = newEst;
@@ -494,12 +482,12 @@ namespace OpenRelativity
             return est;
         }
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp, Vector4 aiw)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp, Vector4 aiw)
         {
-            Vector4 startPoint = stpiw;
+            Vector4 startPoint = opticalPos;
             Vector3 est, offset, newEst;
-            est = stpiw.OpticalToWorld(velocity, origin, playerVel);
-            offset = (Vector3)stpiw - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, apw, avp, aiw);
+            est = opticalPos.OpticalToWorld(velocity, origin, playerVel);
+            offset = (Vector3)opticalPos - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, apw, avp, aiw);
 
             float sqrError = offset.sqrMagnitude;
             float oldSqrError = sqrError + 1.0f;
@@ -513,7 +501,7 @@ namespace OpenRelativity
                 newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, apw, avp, aiw);
                 offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, apw, avp, aiw);
                 oldSqrError = sqrError;
-                sqrError = ((Vector3)stpiw - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, apw, avp, aiw)).sqrMagnitude;
+                sqrError = ((Vector3)opticalPos - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, apw, avp, aiw)).sqrMagnitude;
                 if (sqrError < oldSqrError)
                 {
                     est = newEst;

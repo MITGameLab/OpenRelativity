@@ -49,7 +49,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public void SetViwAndPosition(Vector3 newViw, Vector3 newPiw, Matrix4x4? metric = null)
+        public void SetViwAndPosition(Vector3 newViw, Vector3 newPiw, Matrix4x4? mixedMetric = null)
         {
             piw = newPiw;
             _viw = newViw;
@@ -73,7 +73,7 @@ namespace OpenRelativity.Objects
             //Also update the Rigidbody, if any
             UpdateRigidbodyVelocity(newViw, aviw);
 
-            UpdateShaderParams(metric);
+            UpdateShaderParams(mixedMetric);
         }
 
         //Store this object's angular velocity here.
@@ -1189,14 +1189,14 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void UpdateShaderParams(Matrix4x4? metric = null)
+        private void UpdateShaderParams(Matrix4x4? mixedMetric = null)
         {
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null)
             {
-                if (metric == null)
+                if (mixedMetric == null)
                 {
-                    metric = state.conformalMap.GetConformalFactor(piw, state.playerTransform.position);
+                    mixedMetric = state.conformalMap.GetConformalFactor(piw, state.playerTransform.position);
                 }
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
@@ -1208,14 +1208,14 @@ namespace OpenRelativity.Objects
                 colliderShaderParams.apw = tempApw;
                 colliderShaderParams.avp = tempAvp;
                 colliderShaderParams.aiw = tempAiw;
-                colliderShaderParams.mixedMetric = metric.Value;
+                colliderShaderParams.mixedMetric = mixedMetric.Value;
                 for (int i = 0; i < myRenderer.materials.Length; i++)
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
                     myRenderer.materials[i].SetVector("_apw", tempApw);
                     myRenderer.materials[i].SetVector("_avp", tempAvp);
-                    myRenderer.materials[i].SetMatrix("_MixedMetric", metric.Value);
+                    myRenderer.materials[i].SetMatrix("_MixedMetric", mixedMetric.Value);
                 }
             }
         }
