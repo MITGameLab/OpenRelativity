@@ -156,22 +156,6 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			float4 apwTransformed = float4(rotate(viwToZRot, _apw.xyz), _apw.w);
 			float4 aiwTransformed = float4(rotate(viwToZRot, _aiw.xyz), _aiw.w);
 
-			//We'll also Lorentz transform the vectors:
-			float beta = length(_viw.xyz);
-			float gamma = 1.0f / sqrt(1 - beta * beta);
-			float4x4 lorentzMatrix = {
-				gamma, 0, 0, 0,
-				0, gamma, 0, 0,
-				0, 0, gamma, -gamma * beta,
-				0, 0, -gamma * beta, gamma
-			};
-
-			//Apply Lorentz transform;
-			//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
-			riwTransformed = mul(lorentzMatrix, riwTransformed);
-			avpTransformed = mul(lorentzMatrix, avpTransformed);
-			aiwTransformed = mul(lorentzMatrix, aiwTransformed);
-
 			//Find metric based on player acceleration:
 			float4 angFac = -2 * float4(cross(avpTransformed.xyz, riwTransformed.xyz), 0) / (_spdOfLight * _spdOfLight);
 			float linFac = dot(apwTransformed.xyz, riwTransformed.xyz) / (_spdOfLight * _spdOfLight);
@@ -188,8 +172,24 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			//Apply conformal map:
 			metric = mul(_MixedMetric, metric);
 
+			//We'll also Lorentz transform the vectors:
+			float beta = length(_viw.xyz);
+			float gamma = 1.0f / sqrt(1 - beta * beta);
+			float4x4 lorentzMatrix = {
+				gamma, 0, 0, 0,
+				0, gamma, 0, 0,
+				0, 0, gamma, -gamma * beta,
+				0, 0, -gamma * beta, gamma
+			};
+
+			//Apply Lorentz transform;
+			//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
+			riwTransformed = mul(lorentzMatrix, riwTransformed);
+			avpTransformed = mul(lorentzMatrix, avpTransformed);
+			aiwTransformed = mul(lorentzMatrix, aiwTransformed);
+
 			//We need these values:
-			float tisw = riwTransformed.w;
+			float tisw = -riwTransformed.w;
 			riwTransformed.w = 0;
 			aiwTransformed.w = 0;
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
@@ -197,14 +197,13 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
 			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
-			float t2 = -sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / (spdOfLightSqrd - riwDotAiw));
+			float t2 = -sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw)));
 			float aiwMag = length(aiwTransformed);
 			//add the position offset due to acceleration
 			if (aiwMag > divByZeroCutoff) {
 				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLight * _spdOfLight * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
 			}
 			tisw += t2;
-			
 			riwTransformed.w = tisw;
 			//Inverse Lorentz transform the position:
 			lorentzMatrix._m23_m32 = -lorentzMatrix._m23_m32;
