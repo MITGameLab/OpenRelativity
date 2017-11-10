@@ -280,24 +280,16 @@ namespace OpenRelativity
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
             float spdOfLightSqrd = spdOfLight * spdOfLight;
-            float c2PlusRDA = spdOfLightSqrd + riwDotAiw;
-            float c4MinRDA2 = spdOfLightSqrd * spdOfLightSqrd - riwDotAiw * riwDotAiw;
-            float denom = 2 * spdOfLightSqrd * aiwDotAiw;
 
-            if (Mathf.Abs(denom) > divByZeroCutoff)
+            float t2 = -Mathf.Sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / (spdOfLightSqrd - riwDotAiw));
+            float aiwMag = aiwTransformed.magnitude;
+            //add the position offset due to acceleration
+            if (aiwMag > divByZeroCutoff)
             {
-                float t2 = -Mathf.Sqrt((-c4MinRDA2 + aiwDotAiw * riwDotRiw
-                    + Mathf.Sqrt(c4MinRDA2 * c4MinRDA2 + 2 * aiwDotAiw * c2PlusRDA * c2PlusRDA * riwDotRiw))
-                    / denom);
-                float aiwMag = aiwTransformed.magnitude;
-                //add the position offset due to acceleration
-                riwTransformed = (Vector3)riwTransformed - aiwTransformed / aiwMag * spdOfLight * spdOfLight * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / spdOfLight)) - 1);
-                tisw += t2;
+                riwTransformed = (Vector3)riwTransformed - aiwTransformed / aiwMag * spdOfLight * spdOfLight * (Mathf.Sqrt(1 + (aiwMag * t2 / spdOfLight) * (aiwMag * t2 / spdOfLight)) - 1);
             }
-            else
-            {
-                tisw -= Mathf.Sqrt(4.0f * riwDotRiw) / (2 * spdOfLight);
-            }
+            tisw += t2;
+
             riwTransformed.w = tisw;
             //Inverse Lorentz transform the position:
             lorentzMatrix.m23 = -lorentzMatrix.m23;
@@ -305,7 +297,6 @@ namespace OpenRelativity
             riwTransformed = lorentzMatrix * riwTransformed;
             riw = Quaternion.Inverse(viwToZRot) * riwTransformed;
             tisw = riwTransformed.w + stpiw.w;
-            riw = (Vector3)riw + tisw * velocity;
 
             float speed = vpc.sqrMagnitude;
 
