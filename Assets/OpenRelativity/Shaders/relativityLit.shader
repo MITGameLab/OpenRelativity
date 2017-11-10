@@ -185,7 +185,7 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 
 			float d = _spdOfLight * _spdOfLight; //this is actually the four-velocity dotted with the four-velocity, always equal to +/- the speed of light squared
 
-			//Now, get the time delay where the spacetime interval is "null," or "light-like," between the object and the camera:
+												 //Now, get the time delay where the spacetime interval is "null," or "light-like," between the object and the camera:
 			float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
 			//get the new position offset, based on the new time we just found
@@ -201,6 +201,8 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 			}
+
+			riw += float4(_playerOffset.xyz, 0);
 
 			//Transform the vertex back into local space for the mesh to use
 			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1.0f));

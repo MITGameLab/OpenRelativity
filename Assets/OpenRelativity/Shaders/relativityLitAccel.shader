@@ -47,6 +47,26 @@ Shader "Relativity/Lit/Accelerated/ColorShift" {
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
 
+#define quaternion float4
+
+		inline quaternion fromToRotation(float3 from, float3 to) {
+			quaternion rotation;
+			rotation.xyz = cross(from, to);
+			rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
+			return normalize(rotation);
+		}
+
+		//See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
+		inline float3 rotate(quaternion rot, float3 vec) {
+			float3 temp;
+			temp = 2 * cross(rot.xyz, vec.xyz);
+			return vec + rot.w * temp + cross(rot.xyz, temp);
+		}
+
+		inline quaternion inverse(quaternion q) {
+			return quaternion(-q.xyz, q.w) / length(q);
+		}
+
 		struct appdata {
 			float4 vertex : POSITION;
 			float4 texcoord : TEXCOORD0; // main uses 1st uv
@@ -155,9 +175,16 @@ Shader "Relativity/Lit/Accelerated/ColorShift" {
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
+											   //Rotate all our vectors so that velocity is entirely along z direction:
+			quaternion viwToZRot = fromToRotation(_viw.xyz, float3(0, 0, 1));
+			float4 riwTransformed = float4(rotate(viwToZRot, riw.xyz), riw.w);
+			float4 avpTransformed = float4(rotate(viwToZRot, _avp.xyz), _avp.w);
+			float4 apwTransformed = float4(rotate(viwToZRot, _apw.xyz), _apw.w);
+			float4 aiwTransformed = float4(rotate(viwToZRot, _aiw.xyz), _aiw.w);
+
 			//Find metric based on player acceleration:
-			float4 angFac = -2 * float4(cross(_avp.xyz, riw.xyz), 0) / (_spdOfLight * _spdOfLight);
-			float linFac = dot(_apw.xyz, riw.xyz) / (_spdOfLight * _spdOfLight);
+			float4 angFac = -2 * float4(cross(avpTransformed.xyz, riwTransformed.xyz), 0) / (_spdOfLight * _spdOfLight);
+			float linFac = dot(apwTransformed.xyz, riwTransformed.xyz) / (_spdOfLight * _spdOfLight);
 			linFac = (((1 + linFac) * (1 + linFac) - length(angFac)) * _spdOfLight * _spdOfLight);
 			angFac *= _spdOfLight;
 
@@ -171,49 +198,47 @@ Shader "Relativity/Lit/Accelerated/ColorShift" {
 			//Apply conformal map:
 			metric = mul(_MixedMetric, metric);
 
-			float4 viwScaled = _spdOfLight * _viw;
+			//We'll also Lorentz transform the vectors:
+			float beta = length(_viw.xyz);
+			float gamma = 1.0f / sqrt(1 - beta * beta);
+			float4x4 lorentzMatrix = {
+				gamma, 0, 0, 0,
+				0, gamma, 0, 0,
+				0, 0, gamma, -gamma * beta,
+				0, 0, -gamma * beta, gamma
+			};
 
-			//Here begins a rotation-free modification of the original OpenRelativity shader:
+			//Apply Lorentz transform;
+			//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
+			riwTransformed = mul(lorentzMatrix, riwTransformed);
+			avpTransformed = mul(lorentzMatrix, avpTransformed);
+			aiwTransformed = mul(lorentzMatrix, aiwTransformed);
 
-			float c = dot(riw, mul(metric, riw)); //first get position squared (position dotted with position)
+			//We need these values:
+			float tisw = riwTransformed.w;
+			riwTransformed.w = 0;
+			aiwTransformed.w = 0;
+			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
+			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
+			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
+			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
-			float b = -(2 * dot(riw, mul(metric, viwScaled))); //next get position dotted with velocity, should be only in the Z direction
-
-			float d = _spdOfLight * _spdOfLight;
-
-			float tisw = 0;
-			if ((b * b) >= 4.0 * d * c)
-			{
-				tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
+			float t2 = -sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw)));
+			float aiwMag = length(aiwTransformed);
+			//add the position offset due to acceleration
+			if (aiwMag > divByZeroCutoff) {
+				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLight * _spdOfLight * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
 			}
+			tisw += t2;
+			riwTransformed.w = tisw;
+			//Inverse Lorentz transform the position:
+			lorentzMatrix._m23_m32 = -lorentzMatrix._m23_m32;
+			riwTransformed = mul(lorentzMatrix, riwTransformed);
+			riw = float4(rotate(inverse(viwToZRot), riwTransformed.xyz), 0);
+			tisw = riwTransformed.w;
+			riw.xyz += tisw * _spdOfLight * _viw.xyz;
 
-			//It's not simple to get the exact distance traversed with acceleration,
-			// but it might be close enough, if we average the initial and final velocities:
-			float4 apparentAccel = float4(_aiw.xyz, 0);
-			float4 vel3 = float4(viwScaled.xyz, 0);
-			float accelMag = length(apparentAccel);
-			float parraSpeed, fullSpeed;
-			float4 endVel, velUnit;
-			if (accelMag > divByZeroCutoff)
-			{
-				parraSpeed = dot(viwScaled, apparentAccel / accelMag);
-				fullSpeed = length(viwScaled);
-				if (fullSpeed > divByZeroCutoff)
-				{
-					velUnit = vel3 / fullSpeed;
-				}
-				else
-				{
-					velUnit = apparentAccel / accelMag;
-				}
-				endVel = (float)((_spdOfLight * _spdOfLight * log(cosh((accelMag * tisw) / _spdOfLight + (_spdOfLight * parraSpeed) / (_spdOfLight * _spdOfLight - fullSpeed * fullSpeed)))) / accelMag) * velUnit;
-				viwScaled = (endVel + vel3) / 2;
-			}
-
-			//get the new position offset, based on the new time we just found
-			riw += tisw * viwScaled;
-
-			//Apply Lorentz transform
+			//Apply player Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
 			//I had to break it up into steps, unity was getting order of operations wrong.	
 			float newz = speed * _spdOfLight * tisw;

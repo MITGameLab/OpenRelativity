@@ -164,7 +164,7 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		//riw = location in world, for reference
 		float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-										   //Find metric based on player acceleration:
+		//Find metric based on player acceleration:
 		float4 angFac = -2 * float4(cross(_avp.xyz, riw.xyz), 0) / (_spdOfLight * _spdOfLight);
 		float linFac = dot(_apw.xyz, riw.xyz) / (_spdOfLight * _spdOfLight);
 		linFac = (((1 + linFac) * (1 + linFac) - length(angFac)) * _spdOfLight * _spdOfLight);
@@ -195,7 +195,7 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 
 		float d = _spdOfLight * _spdOfLight; //this is actually the four-velocity dotted with the four-velocity, always equal to +/- the speed of light squared
 
-		//Now, get the time delay where the spacetime interval is "null," or "light-like," between the object and the camera:
+											 //Now, get the time delay where the spacetime interval is "null," or "light-like," between the object and the camera:
 		float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
 
 		//get the new position offset, based on the new time we just found
