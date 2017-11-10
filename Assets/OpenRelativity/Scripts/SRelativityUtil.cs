@@ -273,7 +273,7 @@ namespace OpenRelativity
             aiwTransformed = lorentzMatrix * aiwTransformed;
 
             //We need these values:
-            float tisw = -riwTransformed.w;
+            float tisw = riwTransformed.w;
             riwTransformed.w = 0;
             //aiwTransformed.w = 0;
             float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
@@ -296,6 +296,7 @@ namespace OpenRelativity
             riwTransformed = lorentzMatrix * riwTransformed;
             riw = Quaternion.Inverse(viwToZRot) * riwTransformed;
             tisw = riwTransformed.w;
+            riw = (Vector3)riw + tisw * velocity;
 
             float speed = vpc.sqrMagnitude;
 

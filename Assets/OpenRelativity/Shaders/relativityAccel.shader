@@ -189,7 +189,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			aiwTransformed = mul(lorentzMatrix, aiwTransformed);
 
 			//We need these values:
-			float tisw = -riwTransformed.w;
+			float tisw = riwTransformed.w;
 			riwTransformed.w = 0;
 			aiwTransformed.w = 0;
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
@@ -210,6 +210,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			riwTransformed = mul(lorentzMatrix, riwTransformed);
 			riw = float4(rotate(inverse(viwToZRot), riwTransformed.xyz), 0);
 			tisw = riwTransformed.w;
+			riw.xyz += tisw * _spdOfLight * _viw.xyz;
 			
 			//Apply player Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
