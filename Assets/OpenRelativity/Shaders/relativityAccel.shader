@@ -195,14 +195,15 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
 			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
-			float cSqrdMinusRiwDotAiw = _spdOfLight * _spdOfLight - riwDotAiw;
-			float denom = _spdOfLight * _spdOfLight * aiwDotAiw;
+			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
+			float c2PlusRDA = spdOfLightSqrd + riwDotAiw;
+			float c4MinRDA2 = spdOfLightSqrd * spdOfLightSqrd - riwDotAiw * riwDotAiw;
+			float denom = 2 * spdOfLightSqrd * aiwDotAiw;
 
-			float4 viwScaled = _spdOfLight * _viw;
-			if (abs(denom) > divByZeroCutoff) {
-				float t2 = sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
-					+ aiwDotAiw * riwDotRiw
-					+ 2 * sqrt(cSqrdMinusRiwDotAiw * cSqrdMinusRiwDotAiw * (riwDotAiw * riwDotAiw + aiwDotAiw * riwDotRiw)))
+			if (abs(denom) > divByZeroCutoff)
+			{
+				float t2 = -sqrt((-c4MinRDA2 + aiwDotAiw * riwDotRiw
+					+ sqrt(c4MinRDA2 * c4MinRDA2 + 2 * aiwDotAiw * c2PlusRDA * c2PlusRDA * riwDotRiw))
 					/ denom);
 				float aiwMag = length(aiwTransformed);
 				//add the position offset due to acceleration
@@ -218,7 +219,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			riwTransformed = mul(lorentzMatrix, riwTransformed);
 			riw = float4(rotate(inverse(viwToZRot), riwTransformed.xyz), 0);
 			tisw = riwTransformed.w;
-			riw.xyz += tisw * viwScaled.xyz;
+			riw.xyz += tisw * _spdOfLight * _viw.xyz;
 			
 			//Apply player Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

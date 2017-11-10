@@ -279,14 +279,15 @@ namespace OpenRelativity
             float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
-            float cSqrdMinusRiwDotAiw = spdOfLight * spdOfLight - riwDotAiw;
-            float denom = spdOfLight * spdOfLight * aiwDotAiw;
+            float spdOfLightSqrd = spdOfLight * spdOfLight;
+            float c2PlusRDA = spdOfLightSqrd + riwDotAiw;
+            float c4MinRDA2 = spdOfLightSqrd * spdOfLightSqrd - riwDotAiw * riwDotAiw;
+            float denom = 2 * spdOfLightSqrd * aiwDotAiw;
 
             if (Mathf.Abs(denom) > divByZeroCutoff)
             {
-                float t2 = -Mathf.Sqrt((-2 * riwDotAiw * cSqrdMinusRiwDotAiw
-                    + aiwDotAiw * riwDotRiw
-                    + 2 * Mathf.Sqrt(cSqrdMinusRiwDotAiw * cSqrdMinusRiwDotAiw * (riwDotAiw * riwDotAiw + aiwDotAiw * riwDotRiw)))
+                float t2 = -Mathf.Sqrt((-c4MinRDA2 + aiwDotAiw * riwDotRiw
+                    + Mathf.Sqrt(c4MinRDA2 * c4MinRDA2 + 2 * aiwDotAiw * c2PlusRDA * c2PlusRDA * riwDotRiw))
                     / denom);
                 float aiwMag = aiwTransformed.magnitude;
                 //add the position offset due to acceleration
