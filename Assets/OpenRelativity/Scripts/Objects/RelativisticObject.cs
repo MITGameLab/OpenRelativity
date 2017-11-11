@@ -888,36 +888,14 @@ namespace OpenRelativity.Objects
 
         public float GetTisw(Vector3? playerPos = null)
         {
-            Vector3 riw;
-            if (playerPos == null)
-            {
-                riw = transform.position - state.playerTransform.position;
-            }
-            else
-            {
-                riw = transform.position - playerPos.Value;
-            }
-            //Place the vertex to be changed in a new Vector3
-
-            Matrix4x4 metric = GetMetric();
-
-            Vector4 velocity4 = viw.ToMinkowski4Viw();
-
-            //Here begins a rotation-free modification of the original OpenRelativity shader:
-
-            float c = Vector4.Dot(riw, metric * riw); //first get position squared (position dotted with position)
-
-            float b = -(2 * Vector4.Dot(riw, metric * velocity4)); //next get position dotted with velocity, should be only in the Z direction
-
-            float d = (float)state.SpeedOfLightSqrd;
-
-            float tisw = 0;
-            if ((b * b) >= 4.0 * d * c)
-            {
-                tisw = (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-            }
-
-            return tisw;
+            return ((Vector4)piw).GetTisw(
+                viw,
+                state.playerTransform.position,
+                state.PlayerVelocityVector,
+                state.PlayerAccelerationVector,
+                state.PlayerAngularVelocityVector,
+                properAiw
+            );
         }
 
         void FixedUpdate() {
@@ -1944,43 +1922,17 @@ namespace OpenRelativity.Objects
         // while it is considered to be "upwards" when they are at rest under the effects of gravity, so they don't fall through the surface they're feeling pushed into.)
         // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
         public Matrix4x4 GetMetric()
-        {
-            Matrix4x4 metric = Matrix4x4.zero;
-            
+        {   
             Vector3 playerPos = state.playerTransform.position;
-            Vector3 playerVel = state.PlayerVelocityVector;
-            Vector3 playerAccel = state.PlayerAccelerationVector;
-            Vector3 playerAngVel = state.PlayerAngularVelocityVector;
-            //Vector4 myAccel = GetTotalAcceleration(piw);
-            Vector3 myPos = piw - playerPos;
-            Vector3 angFac = Vector3.Cross(playerAngVel, myPos) / (float)state.SpeedOfLightSqrd;
 
-            //Diagonal terms:
-            metric[3, 3] = (float)((Math.Pow(1 + Vector3.Dot(playerAccel, myPos) / state.SpeedOfLightSqrd, 2) - angFac.sqrMagnitude) * state.SpeedOfLightSqrd);
-            metric[0, 0] = -1;
-            metric[1, 1] = -1;
-            metric[2, 2] = -1;
+            Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
+                viw,
+                playerPos,
+                state.PlayerVelocityVector,
+                state.PlayerAccelerationVector,
+                state.PlayerAngularVelocityVector
+            );
 
-            //Off-diagonal terms:
-            angFac *= (float)state.SpeedOfLight;
-            metric[0, 3] = metric[3, 0] = -2 * angFac.x;
-            metric[1, 3] = metric[3, 1] = -2 * angFac.y;
-            metric[2, 3] = metric[3, 2] = -2 * angFac.z;
-
-            float test = Vector3.Dot((new Vector4(1.0f, 1.0f, 1.0f, 1.0f)), metric * (new Vector4(1.0f, 1.0f, 1.0f, 1.0f)));
-
-            if (float.IsInfinity(test) || float.IsNaN(test) || (metric[3, 3] <= 0))
-            {
-                //Return Minkowski metric as default:
-                metric = Matrix4x4.zero;
-
-                metric[0, 0] = -1;
-                metric[1, 1] = -1;
-                metric[2, 2] = -1;
-                metric[3, 3] = (float)state.SpeedOfLightSqrd;
-            }
-
-            //Apply conformal map:
             metric = state.conformalMap.GetConformalFactor(piw, playerPos) * metric;
 
             return metric;
@@ -2008,11 +1960,16 @@ namespace OpenRelativity.Objects
                 float mViwSqrMag = mViw.sqrMagnitude;
                 if ((!state.MovementFrozen) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
-                    Matrix4x4 metric = GetMetric();
                     //This works so long as our metric uses synchronous coordinates:
-                    Vector4 tempViw = new Vector4(mViw.x, mViw.y, mViw.z, (float)Math.Sqrt(1.0 - mViw.sqrMagnitude / state.SpeedOfLightSqrd));
-                    tempViw = metric * tempViw;
-                    float timeFac = (float)(tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared));
+                    Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
+                        viw,
+                        state.playerTransform.position,
+                        state.PlayerVelocityVector,
+                        state.PlayerAccelerationVector,
+                        state.PlayerAngularVelocityVector
+                    );
+                    Vector4 tempViw = mViw;
+                    float timeFac = (float)((state.SpeedOfLight - Vector4.Dot(tempViw, metric * tempViw)) / state.SpeedOfLight);
                     myRigidbody.velocity = mViw * timeFac;
                     myRigidbody.angularVelocity = mAviw * timeFac;
                 }
@@ -2024,7 +1981,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public double GetTimeFactor(Vector4? mViw = null)
+        public double GetTimeFactor(Vector3? mViw = null)
         {
             if (mViw == null)
             {
@@ -2032,11 +1989,18 @@ namespace OpenRelativity.Objects
             }
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {
-                Matrix4x4 metric = GetMetric();
                 //This works so long as our metric uses synchronous coordinates:
-                Vector4 tempViw = new Vector4(mViw.Value.x, mViw.Value.y, mViw.Value.z, (float)Math.Sqrt(1.0 - mViw.Value.sqrMagnitude / state.SpeedOfLightSqrd));
-                tempViw = metric * tempViw;
-                return tempViw.w / (state.SpeedOfLightSqrd * state.SqrtOneMinusVSquaredCWDividedByCSquared);
+                //This works so long as our metric uses synchronous coordinates:
+                Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
+                    viw,
+                    state.playerTransform.position,
+                    state.PlayerVelocityVector,
+                    state.PlayerAccelerationVector,
+                    state.PlayerAngularVelocityVector
+                );
+                Vector4 tempViw = mViw.Value;
+                float timeFac = (float)((state.SpeedOfLight - Vector4.Dot(tempViw, metric * tempViw)) / state.SpeedOfLight);
+                return timeFac;
             }
             else
             {

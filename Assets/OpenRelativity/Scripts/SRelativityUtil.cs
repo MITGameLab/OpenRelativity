@@ -155,6 +155,170 @@ namespace OpenRelativity
 
         public const float divByZeroCutoff = 1e-8f;
 
+        public static Matrix4x4 GetLocalMetric(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp)
+        {
+            float spdOfLight = SRelativityUtil.c;
+
+            Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+
+            //riw = location in world, for reference
+            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
+
+            //Boost to rest frame of player:
+            float speed = vpc.magnitude;
+            float beta = speed;
+            float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+            Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
+            if (beta > 0)
+            {
+                Vector4 vpcTransUnit = -vpc / beta;
+                vpcTransUnit.w = 1;
+                Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
+                spatialComp.w = -gamma * beta;
+                Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+                tComp.Scale(vpcTransUnit);
+                vpcLorentzMatrix.SetColumn(3, tComp);
+                vpcLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
+                vpcLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
+                vpcLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
+                vpcLorentzMatrix.m00 += 1;
+                vpcLorentzMatrix.m11 += 1;
+                vpcLorentzMatrix.m22 += 1;
+            }
+
+            Vector4 riwForMetric = vpcLorentzMatrix * riw;
+
+            //Find metric based on player acceleration and rest frame:
+            Vector3 angFac = Vector3.Cross(avp, riwForMetric) / spdOfLight;
+            float linFac = Vector3.Dot(apw, riwForMetric) / (spdOfLight * spdOfLight);
+            linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLight * spdOfLight;
+            angFac *= -2;
+
+            Matrix4x4 metric = new Matrix4x4(
+                new Vector4(-1, 0, 0, angFac.x),
+                new Vector4(0, -1, 0, angFac.y),
+                new Vector4(0, 0, -1, angFac.z),
+                new Vector4(angFac.x, angFac.y, angFac.z, linFac)
+            );
+
+            //Lorentz boost back to world frame;
+            Vector4 transComp = vpcLorentzMatrix.GetColumn(3);
+            transComp.w = -(transComp.w);
+            vpcLorentzMatrix.SetColumn(3, -transComp);
+            vpcLorentzMatrix.SetRow(3, -transComp);
+            metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
+
+            return metric;
+        }
+
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp, Vector4 aiw, Matrix4x4? mixedMetric = null)
+        {
+            float spdOfLight = SRelativityUtil.c;
+            float spdOfLightSqrd = spdOfLight * spdOfLight;
+
+            Vector3 vpc = -playerVel / spdOfLight;
+            Vector3 viw = velocity / spdOfLight;
+
+            //riw = location in world, for reference
+            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
+
+            //Boost to rest frame of player:
+            float speed = vpc.magnitude;
+            float beta = speed;
+            float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+            Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
+            if (beta > 0)
+            {
+                Vector4 vpcTransUnit = -vpc / beta;
+                vpcTransUnit.w = 1;
+                Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
+                spatialComp.w = -gamma * beta;
+                Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+                tComp.Scale(vpcTransUnit);
+                vpcLorentzMatrix.SetColumn(3, tComp);
+                vpcLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
+                vpcLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
+                vpcLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
+                vpcLorentzMatrix.m00 += 1;
+                vpcLorentzMatrix.m11 += 1;
+                vpcLorentzMatrix.m22 += 1;
+            }
+
+            Vector4 riwForMetric = vpcLorentzMatrix * riw;
+
+            //Find metric based on player acceleration and rest frame:
+            Vector3 angFac = Vector3.Cross(avp, riwForMetric) / spdOfLight;
+            float linFac = Vector3.Dot(apw, riwForMetric) / spdOfLightSqrd;
+            linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLightSqrd;
+            angFac *= -2;
+
+            Matrix4x4 metric = new Matrix4x4(
+                new Vector4(-1, 0, 0, angFac.x),
+                new Vector4(0, -1, 0, angFac.y),
+                new Vector4(0, 0, -1, angFac.z),
+                new Vector4(angFac.x, angFac.y, angFac.z, linFac)
+            );
+
+            //Lorentz boost back to world frame;
+            Vector4 transComp = vpcLorentzMatrix.GetColumn(3);
+            transComp.w = -(transComp.w);
+            vpcLorentzMatrix.SetColumn(3, -transComp);
+            vpcLorentzMatrix.SetRow(3, -transComp);
+            metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
+
+            if (mixedMetric == null)
+            {
+                mixedMetric = GetConformalFactor(stpiw, origin);
+            }
+
+            //Apply conformal map:
+            metric = mixedMetric.Value * metric;
+
+            //We'll also Lorentz transform the vectors:
+            beta = viw.magnitude;
+            gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+            Matrix4x4 lorentzMatrix = Matrix4x4.identity;
+            if (beta > 0)
+            {
+                Vector4 viwTransUnit = viw / beta;
+                viwTransUnit.w = 1;
+                Vector4 spatialComp = (gamma - 1) * viwTransUnit;
+                spatialComp.w = -gamma * beta;
+                Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+                tComp.Scale(viwTransUnit);
+                vpcLorentzMatrix.SetColumn(3, tComp);
+                vpcLorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
+                vpcLorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
+                vpcLorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
+                vpcLorentzMatrix.m00 += 1;
+                vpcLorentzMatrix.m11 += 1;
+                vpcLorentzMatrix.m22 += 1;
+            }
+
+            //Apply Lorentz transform;
+            //metric = lorentzMatrix.transpose * metric * lorentzMatrix;
+            Vector4 riwTransformed = lorentzMatrix * riw;
+            Vector4 aiwTransformed = lorentzMatrix * aiw;
+
+            //We need these values:
+            float tisw = riwTransformed.w;
+            riwTransformed.w = 0;
+            aiwTransformed.w = 0;
+            float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
+            float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
+            float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
+
+            float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
+            float t2 = 0;
+            if (sqrtArg > 0)
+            {
+                t2 = -Mathf.Sqrt(sqrtArg);
+            }
+            tisw += t2;
+
+            return tisw;
+        }
+
         public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp, Matrix4x4? mixedMetric = null)
         {
             float spdOfLight = SRelativityUtil.c;
@@ -171,7 +335,7 @@ namespace OpenRelativity
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
             if (beta > 0)
             {
-                Vector4 vpcTransUnit = vpc / beta;
+                Vector4 vpcTransUnit = -vpc / beta;
                 vpcTransUnit.w = 1;
                 Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
                 spatialComp.w = -gamma * beta;
@@ -263,7 +427,7 @@ namespace OpenRelativity
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
             if (beta > 0)
             {
-                Vector4 vpcTransUnit = vpc / beta;
+                Vector4 vpcTransUnit = -vpc / beta;
                 vpcTransUnit.w = 1;
                 Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
                 spatialComp.w = -gamma * beta;
@@ -343,7 +507,11 @@ namespace OpenRelativity
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
 
             float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
-            float t2 = -Mathf.Sqrt(sqrtArg);
+            float t2 = 0;
+            if (sqrtArg > 0)
+            {
+                t2 = -Mathf.Sqrt(sqrtArg);
+            }
             float aiwMag = aiwTransformed.magnitude;
             //add the position offset due to acceleration
             if (aiwMag > 0)
