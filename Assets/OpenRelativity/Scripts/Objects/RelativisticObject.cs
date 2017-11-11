@@ -356,7 +356,7 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= (float)GetTimeFactor(viw.ToMinkowski4Viw());
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (myRenderer != null)
@@ -366,7 +366,7 @@ namespace OpenRelativity.Objects
         public virtual void SetDeathTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)(transform.position)).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= (float)GetTimeFactor(viw.ToMinkowski4Viw());
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
@@ -734,7 +734,7 @@ namespace OpenRelativity.Objects
             //If the shader is nonrelativistic, map the object from world space to optical space and handle length contraction:
             if (nonrelativisticShader)
             {
-                transform.position = ((Vector4)(transform.position)).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw));
+                transform.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw));
                 if (contractor == null) SetUpContractor();
                 ContractLength();
             }
@@ -1166,7 +1166,7 @@ namespace OpenRelativity.Objects
                         {
                             BoxCollider collider = (BoxCollider)myColliders[i];
                             pos = transform.TransformPoint(colliderPiw[i]);
-                            collider.center = ((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, playerAccel, playerAngVel, Vector4.zero);
+                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, playerAccel, playerAngVel, Vector4.zero));
                         }
                     }
                     else
@@ -1177,7 +1177,7 @@ namespace OpenRelativity.Objects
                             BoxCollider collider = (BoxCollider)myColliders[i];
                             pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
                             Vector4 myAccel = GetTotalAcceleration(pos);
-                            collider.center = ((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel);
+                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel));
                         }
                     }
                 }
@@ -2028,7 +2028,7 @@ namespace OpenRelativity.Objects
         {
             if (mViw == null)
             {
-                mViw = viw.ToMinkowski4Viw();
+                mViw = viw;
             }
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {

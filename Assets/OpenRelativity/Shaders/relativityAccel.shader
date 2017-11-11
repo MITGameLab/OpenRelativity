@@ -42,25 +42,25 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
 
-#define quaternion float4
-
-		inline quaternion fromToRotation(float3 from, float3 to) {
-			quaternion rotation;
-			rotation.xyz = cross(from, to);
-			rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
-			return normalize(rotation);
-		}
-
-		//See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
-		inline float3 rotate(quaternion rot, float3 vec) {
-			float3 temp;
-			temp = 2 * cross(rot.xyz, vec.xyz);
-			return vec + rot.w * temp + cross(rot.xyz, temp);
-		}
-
-		inline quaternion inverse(quaternion q) {
-			return quaternion(-q.xyz, q.w) / length(q);
-		}
+//#define quaternion float4
+//
+//		inline quaternion fromToRotation(float3 from, float3 to) {
+//			quaternion rotation;
+//			rotation.xyz = cross(from, to);
+//			rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
+//			return normalize(rotation);
+//		}
+//
+//		//See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
+//		inline float3 rotate(quaternion rot, float3 vec) {
+//			float3 temp;
+//			temp = 2 * cross(rot.xyz, vec.xyz);
+//			return vec + rot.w * temp + cross(rot.xyz, temp);
+//		}
+//
+//		inline quaternion inverse(quaternion q) {
+//			return quaternion(-q.xyz, q.w) / length(q);
+//		}
 
 		//This is the data sent from the vertex shader to the fragment shader
 		struct v2f
@@ -118,9 +118,9 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 
 			float speed = length(_vpc.xyz);
+			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
+
 			//vw + vp/(1+vw*vp/c^2)
-
-
 			float vuDot = dot(_vpc.xyz, _viw.xyz); //Get player velocity dotted with velocity of the object.
 			float4 vr;
 			//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
@@ -149,18 +149,34 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-			//Rotate all our vectors so that velocity is entirely along z direction:
-			quaternion viwToZRot = fromToRotation(_viw.xyz, float3(0, 0, 1));
-			float4 riwTransformed = float4(rotate(viwToZRot, riw.xyz), riw.w);
-			float4 avpTransformed = float4(rotate(viwToZRot, _avp.xyz), _avp.w);
-			float4 apwTransformed = float4(rotate(viwToZRot, _apw.xyz), _apw.w);
-			float4 aiwTransformed = float4(rotate(viwToZRot, _aiw.xyz), _aiw.w);
+			//Boost to rest frame of player:
+			float beta = speed;
+			float gamma = 1.0f / sqrt(1 - beta * beta);
+			float4x4 vpcLorentzMatrix = {
+				1, 0, 0, 0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
+			};
+			if (beta > 0)
+			{
+				float4 vpcTransUnit = float4(_vpc.xyz / beta, 1);
+				float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
+				float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
+				vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
+				vpcLorentzMatrix._m00_m01_m02_m03 = vpcTransUnit.x * spatialComp;
+				vpcLorentzMatrix._m10_m11_m12_m13 = vpcTransUnit.y * spatialComp;
+				vpcLorentzMatrix._m20_m21_m22_m23 = vpcTransUnit.z * spatialComp;
+				vpcLorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
+			}
 
-			//Find metric based on player acceleration:
-			float4 angFac = -2 * float4(cross(avpTransformed.xyz, riwTransformed.xyz), 0) / (_spdOfLight * _spdOfLight);
-			float linFac = dot(apwTransformed.xyz, riwTransformed.xyz) / (_spdOfLight * _spdOfLight);
-			linFac = (((1 + linFac) * (1 + linFac) - length(angFac)) * _spdOfLight * _spdOfLight);
-			angFac *= _spdOfLight;
+			float4 riwForMetric = mul(vpcLorentzMatrix, riw);
+
+			//Find metric based on player acceleration and rest frame:
+			float3 angFac = cross(_avp.xyz, riwForMetric.xyz) / _spdOfLight;
+			float linFac = dot(_apw.xyz, riwForMetric.xyz) / spdOfLightSqrd;
+			linFac = ((1 + linFac) * (1 + linFac) - dot(angFac, angFac)) * spdOfLightSqrd;
+			angFac *= -2;
 
 			float4x4 metric = {
 				-1, 0, 0, angFac.x,
@@ -169,24 +185,42 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 				angFac.x, angFac.y, angFac.z, linFac
 			};
 
+			//Lorentz boost back to world frame;
+			float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
+			transComp.w = -(transComp.w);
+			vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
+			vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
+			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
+
 			//Apply conformal map:
 			metric = mul(_MixedMetric, metric);
 
 			//We'll also Lorentz transform the vectors:
-			float beta = length(_viw.xyz);
-			float gamma = 1.0f / sqrt(1 - beta * beta);
+			beta = length(_viw.xyz);
+			gamma = 1.0f / sqrt(1 - beta * beta);
 			float4x4 lorentzMatrix = {
-				gamma, 0, 0, 0,
-				0, gamma, 0, 0,
-				0, 0, gamma, -gamma * beta,
-				0, 0, -gamma * beta, gamma
+				1, 0, 0, 0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
 			};
+			if (beta > 0)
+			{
+				float4 vpcTransUnit = float4(_vpc.xyz / beta, 1);
+				float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
+				float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
+				vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
+				vpcLorentzMatrix._m00_m01_m02_m03 = vpcTransUnit.x * spatialComp;
+				vpcLorentzMatrix._m10_m11_m12_m13 = vpcTransUnit.y * spatialComp;
+				vpcLorentzMatrix._m20_m21_m22_m23 = vpcTransUnit.z * spatialComp;
+				vpcLorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
+			}
 
 			//Apply Lorentz transform;
 			//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
-			riwTransformed = mul(lorentzMatrix, riwTransformed);
-			avpTransformed = mul(lorentzMatrix, avpTransformed);
-			aiwTransformed = mul(lorentzMatrix, aiwTransformed);
+			float4 riwTransformed = mul(lorentzMatrix, riw);
+			float4 avpTransformed = mul(lorentzMatrix, _avp);
+			float4 aiwTransformed = mul(lorentzMatrix, _aiw);
 
 			//We need these values:
 			float tisw = riwTransformed.w;
@@ -195,22 +229,25 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
 			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
-			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
-			float t2 = -sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw)));
+			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
+			float t2 = 0;
+			if (sqrtArg > 0)
+			{
+				t2 = -sqrt(sqrtArg);
+			}
 			float aiwMag = length(aiwTransformed);
 			//add the position offset due to acceleration
 			if (aiwMag > divByZeroCutoff) {
-				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLight * _spdOfLight * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
 			}
 			tisw += t2;
 			riwTransformed.w = tisw;
 			//Inverse Lorentz transform the position:
 			lorentzMatrix._m23_m32 = -lorentzMatrix._m23_m32;
-			riwTransformed = mul(lorentzMatrix, riwTransformed);
-			riw = float4(rotate(inverse(viwToZRot), riwTransformed.xyz), 0);
-			tisw = riwTransformed.w;
-			riw.xyz += tisw * _spdOfLight * _viw.xyz;
+			riw = mul(lorentzMatrix, riwTransformed);
+			tisw = riw.w;
+			riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 			
 			//Apply player Lorentz transform
 			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
