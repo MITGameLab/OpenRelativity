@@ -971,5 +971,15 @@ namespace OpenRelativity
         {
             return new Vector4(viw.x, viw.y, viw.z, (float)(Math.Sqrt(c - viw.sqrMagnitude) / c));
         }
+
+        public static Vector4 ProperToWorldAccel(this Vector3 propAccel, Vector3 viw)
+        {
+            float gammaSqrd = viw.Gamma();
+            gammaSqrd *= gammaSqrd;
+            float gammaFourthADotVDivCSqrd = Vector3.Dot(propAccel, viw) * gammaSqrd * gammaSqrd / cSqrd;
+            Vector4 fourAccel = gammaSqrd * (Vector3)propAccel + gammaFourthADotVDivCSqrd * viw;
+            fourAccel.w = gammaFourthADotVDivCSqrd * c;
+            return fourAccel;
+        }
     }
 }

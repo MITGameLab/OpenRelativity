@@ -1967,16 +1967,16 @@ namespace OpenRelativity.Objects
         public Vector4 GetTotalAcceleration(Vector3 piw)
         {
             Vector4 playerPos = state.playerTransform.position;
-            Vector4 accel = state.conformalMap.GetWorldAcceleration(piw, playerPos);
+            Vector3 propAccel = Vector4.zero;
             if (useGravity && !isStatic && !isSleeping)
             {
-                accel += ((Vector4)(Physics.gravity));
+                propAccel += Physics.gravity;
             }
             if (properAiw.sqrMagnitude > 0)
             {
-                accel += (Vector4)properAiw;
+                propAccel += properAiw;
             }
-            return accel;
+            return propAccel.ProperToWorldAccel(viw) + state.conformalMap.GetWorldAcceleration(piw, playerPos);
         }
 
         private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)
