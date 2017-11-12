@@ -1189,7 +1189,7 @@ namespace OpenRelativity.Objects
                 float beta = tempViw.magnitude;
                 float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
                 Matrix4x4 viwLorentzMatrix = Matrix4x4.identity;
-                if (beta > 0)
+                if (beta > SRelativityUtil.divByZeroCutoff)
                 {
                     Vector4 viwTransUnit = tempViw / beta;
                     viwTransUnit.w = 1;

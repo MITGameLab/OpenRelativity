@@ -33,8 +33,8 @@ struct GlobalParams {
 	float speed; //speed of player;
 	float spdOfLight; //current speed of light
 	float4x4 mixedMetric;
-	float4 pap; //acceleration of player in world coordinates
-	float4 avp; //angular velocity of player in world coordinates
+	float4 pap; //proper acceleration of player
+	float4 avp; //angular velocity of player in translational velocity rest frame
 	float4 aiw; //acceleration of object in world coordinates
 	float4x4 vpcLorentzMatrix; //Lorentz transform between world and player
 	float4x4 viwLorentzMatrix; //Lorentz transform between world and object

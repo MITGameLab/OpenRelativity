@@ -29,7 +29,7 @@ namespace OpenRelativity
         private Vector3 playerVelocityVector;
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
-        //We use this to update the player acceleration vector:
+        //Lorentz transformation matrix between world and player rest frame
         private Matrix4x4 playerLorentzMatrix;
 
         //grab the player's transform so that we can use it
@@ -267,7 +267,7 @@ namespace OpenRelativity
                 float beta = speed;
                 float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
                 playerLorentzMatrix = Matrix4x4.identity;
-                if (beta > 0)
+                if (beta > SRelativityUtil.divByZeroCutoff)
                 {
                     Vector4 vpcTransUnit = -vpc / beta;
                     vpcTransUnit.w = 1;
