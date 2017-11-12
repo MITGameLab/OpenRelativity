@@ -36,7 +36,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	float4 apw = glblPrms[0].apw;
 	float4 avp = glblPrms[0].avp;
 	float4 aiw = glblPrms[0].aiw;
-
 	float spdOfLightSqrd = spdOfLight * spdOfLight;
 
 	float4 pos = float4(verts[id.x].xyz, 0);
@@ -83,11 +82,11 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	};
 
 	//Lorentz boost back to world frame;
-	float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
+	/*float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
 	transComp.w = -(transComp.w);
 	vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 	vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
-	metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
+	metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));*/
 
 	//Apply conformal map:
 	metric = mul(mixedMetric, metric);

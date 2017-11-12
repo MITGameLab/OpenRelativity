@@ -127,7 +127,7 @@ Shader "Relativity/Unlit/Inertial/ColorShift"
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-			//Boost to rest frame of player:
+											   //Boost to rest frame of player:
 			float beta = speed;
 			float gamma = 1.0f / sqrt(1 - beta * beta);
 			float4x4 vpcLorentzMatrix = {
@@ -138,7 +138,7 @@ Shader "Relativity/Unlit/Inertial/ColorShift"
 			};
 			if (beta > 0)
 			{
-				float4 vpcTransUnit = float4(-_vpc.xyz / beta, 1);
+				float4 vpcTransUnit = float4(_vpc.xyz / beta, 1);
 				float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
 				float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
 				vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
@@ -154,7 +154,7 @@ Shader "Relativity/Unlit/Inertial/ColorShift"
 			float3 angFac = cross(_avp.xyz, riwForMetric.xyz) / _spdOfLight;
 			float linFac = dot(_apw.xyz, riwForMetric.xyz) / spdOfLightSqrd;
 			linFac = ((1 + linFac) * (1 + linFac) - dot(angFac, angFac)) * spdOfLightSqrd;
-			angFac *= -2;
+			angFac *= -2 * _spdOfLight;
 
 			float4x4 metric = {
 				-1, 0, 0, angFac.x,
@@ -164,14 +164,14 @@ Shader "Relativity/Unlit/Inertial/ColorShift"
 			};
 
 			//Lorentz boost back to world frame;
-			float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
+			/*float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
 			transComp.w = -(transComp.w);
 			vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 			vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
-			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
+			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));*/
 
 			//Apply conformal map:
-			metric = mul(_MixedMetric, metric);
+			metric = _MixedMetric * metric;
 
 			float4 viwScaled = _spdOfLight * _viw;
 

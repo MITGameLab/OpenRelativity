@@ -56,7 +56,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float4 apw = glblPrms[0].apw;
 	float4 avp = glblPrms[0].avp;
 	float4 aiw = glblPrms[0].aiw;
-
 	float spdOfLightSqrd = spdOfLight * spdOfLight;
 
 	float4 pos = float4(verts[id.x].xyz, 0);
@@ -77,7 +76,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	};
 	if (beta > 0)
 	{
-		float4 vpcTransUnit = float4(-vpc.xyz / beta, 1);
+		float4 vpcTransUnit = float4(vpc.xyz / beta, 1);
 		float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
 		float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
 		vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
@@ -104,10 +103,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
 	//Lorentz boost back to world frame;
 	float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
-	transComp.w = -(transComp.w);
+	/*transComp.w = -(transComp.w);
 	vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 	vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
-	metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
+	metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));*/
 
 	//Apply conformal map:
 	metric = mul(mixedMetric, metric);
@@ -136,7 +135,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	//Apply Lorentz transform;
 	//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
 	float4 riwTransformed = mul(lorentzMatrix, riw);
-	float4 avpTransformed = mul(lorentzMatrix, avp);
 	float4 aiwTransformed = mul(lorentzMatrix, aiw);
 
 	//We need these values:
@@ -147,12 +145,23 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
 	float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
 
-	float t2 = -sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw)));
+	float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
+	float aiwMag = length(aiwTransformed.xyz);
+	float t2 = 0;
+	if (sqrtArg > 0)
+	{
+		t2 = -sqrt(sqrtArg);
+	}
+	//else
+	//{
+	//	//Unruh effect?
+	//	//Seems to happen with points behind the player.
+	//}
 	tisw += t2;
 	//add the position offset due to acceleration
-	float aiwMag = length(aiwTransformed);
-	if (aiwMag > 0) {
-		riwTransformed.xyz -= t2 / abs(t2) * aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / spdOfLight) * (aiwMag * t2 / spdOfLight)) - 1);
+	if (aiwMag > 0)
+	{
+		riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / spdOfLight) * (aiwMag * t2 / spdOfLight)) - 1);
 	}
 	riwTransformed.w = tisw;
 	//Inverse Lorentz transform the position:
@@ -164,12 +173,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	tisw = riw.w;
 	riw = float4(riw.xyz + tisw * spdOfLight * viw.xyz, 0);
 
-	//Apply player Lorentz transform
-	// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-	//I had to break it up into steps, unity was getting order of operations wrong.	
 	float newz = speed * spdOfLight * tisw;
 
-	if (speed > divByZeroCutoff) {
+	if (speed > 0) {
 		float3 vpcUnit = vpc.xyz / speed;
 		newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 		riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);

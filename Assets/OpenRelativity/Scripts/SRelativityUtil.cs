@@ -427,7 +427,7 @@ namespace OpenRelativity
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
             if (beta > 0)
             {
-                Vector4 vpcTransUnit = -vpc / beta;
+                Vector4 vpcTransUnit = vpc / beta;
                 vpcTransUnit.w = 1;
                 Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
                 spatialComp.w = -gamma * beta;
@@ -515,6 +515,8 @@ namespace OpenRelativity
             }
             else
             {
+                //Unruh effect?
+                //Seems to happen with points behind the player.
                 bool putBreakPointHere = true;
             }
             tisw += t2;

@@ -160,7 +160,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			};
 			if (beta > 0)
 			{
-				float4 vpcTransUnit = float4(-_vpc.xyz / beta, 1);
+				float4 vpcTransUnit = float4(_vpc.xyz / beta, 1);
 				float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
 				float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
 				vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
@@ -187,13 +187,13 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 
 			//Lorentz boost back to world frame;
 			float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
-			transComp.w = -(transComp.w);
+			/*transComp.w = -(transComp.w);
 			vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 			vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
-			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
+			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));*/
 
 			//Apply conformal map:
-			metric = mul(_MixedMetric, metric);
+			metric = _MixedMetric * metric;
 
 			//We'll also Lorentz transform the vectors:
 			beta = length(_viw.xyz);
@@ -219,7 +219,6 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			//Apply Lorentz transform;
 			//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
 			float4 riwTransformed = mul(lorentzMatrix, riw);
-			float4 avpTransformed = mul(lorentzMatrix, _avp);
 			float4 aiwTransformed = mul(lorentzMatrix, _aiw);
 
 			//We need these values:
@@ -230,12 +229,23 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
 			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
 
-			float t2 = -sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw)));
+			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
+			float aiwMag = length(aiwTransformed.xyz);
+			float t2 = 0;
+			if (sqrtArg > 0)
+			{
+				t2 = -sqrt(sqrtArg);
+			}
+			//else
+			//{
+			//	//Unruh effect?
+			//	//Seems to happen with points behind the player.
+			//}
 			tisw += t2;
 			//add the position offset due to acceleration
-			float aiwMag = length(aiwTransformed);
-			if (aiwMag > 0) {
-				riwTransformed.xyz -= t2 / abs(t2) * aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+			if (aiwMag > 0)
+			{
+				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
 			}
 			riwTransformed.w = tisw;
 			//Inverse Lorentz transform the position:
@@ -246,13 +256,10 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			riw = mul(lorentzMatrix, riwTransformed);
 			tisw = riw.w;
 			riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
-			
-			//Apply player Lorentz transform
-			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-			//I had to break it up into steps, unity was getting order of operations wrong.	
+
 			float newz = speed * _spdOfLight * tisw;
 
-			if (speed > divByZeroCutoff) {
+			if (speed > 0) {
 				float3 vpcUnit = _vpc.xyz / speed;
 				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);

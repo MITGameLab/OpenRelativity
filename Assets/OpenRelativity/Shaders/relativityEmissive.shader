@@ -133,9 +133,9 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
 
 		float speed = length(_vpc.xyz);
+		float spdOfLightSqrd = _spdOfLight * _spdOfLight;
+
 		//vw + vp/(1+vw*vp/c^2)
-
-
 		float vuDot = dot(_vpc.xyz, _viw.xyz); //Get player velocity dotted with velocity of the object.
 		float4 vr;
 		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
@@ -164,11 +164,34 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		//riw = location in world, for reference
 		float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-		//Find metric based on player acceleration:
-		float4 angFac = -2 * float4(cross(_avp.xyz, riw.xyz), 0) / (_spdOfLight * _spdOfLight);
-		float linFac = dot(_apw.xyz, riw.xyz) / (_spdOfLight * _spdOfLight);
-		linFac = (((1 + linFac) * (1 + linFac) - length(angFac)) * _spdOfLight * _spdOfLight);
-		angFac *= _spdOfLight;
+		//Boost to rest frame of player:
+		float beta = speed;
+		float gamma = 1.0f / sqrt(1 - beta * beta);
+		float4x4 vpcLorentzMatrix = {
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1
+		};
+		if (beta > 0)
+		{
+			float4 vpcTransUnit = float4(_vpc.xyz / beta, 1);
+			float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
+			float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
+			vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
+			vpcLorentzMatrix._m00_m01_m02_m03 = vpcTransUnit.x * spatialComp;
+			vpcLorentzMatrix._m10_m11_m12_m13 = vpcTransUnit.y * spatialComp;
+			vpcLorentzMatrix._m20_m21_m22_m23 = vpcTransUnit.z * spatialComp;
+			vpcLorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
+		}
+
+		float4 riwForMetric = mul(vpcLorentzMatrix, riw);
+
+		//Find metric based on player acceleration and rest frame:
+		float3 angFac = cross(_avp.xyz, riwForMetric.xyz) / _spdOfLight;
+		float linFac = dot(_apw.xyz, riwForMetric.xyz) / spdOfLightSqrd;
+		linFac = ((1 + linFac) * (1 + linFac) - dot(angFac, angFac)) * spdOfLightSqrd;
+		angFac *= -2 * _spdOfLight;
 
 		float4x4 metric = {
 			-1, 0, 0, angFac.x,
@@ -177,8 +200,15 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 			angFac.x, angFac.y, angFac.z, linFac
 		};
 
+		//Lorentz boost back to world frame;
+		/*float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
+		transComp.w = -(transComp.w);
+		vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
+		vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
+		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));*/
+
 		//Apply conformal map:
-		metric = mul(_MixedMetric, metric);
+		metric = _MixedMetric * metric;
 
 		float4 viwScaled = _spdOfLight * _viw;
 
