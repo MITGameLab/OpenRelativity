@@ -4,7 +4,7 @@ using UnityEngine;
 namespace OpenRelativity
 {
     //Shader properties:
-    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 296)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 424)]
     public struct ShaderParams
     {
         //[FieldOffset(0)]
@@ -25,10 +25,14 @@ namespace OpenRelativity
         //[FieldOffset(50)]
         public Matrix4x4 mixedMetric;
         //[FieldOffset(66)]
-        public Vector4 apw;
+        public Vector4 pap;
         //[FieldOffset(82)]
         public Vector4 avp;
         //[FieldOffset(98)]
         public Vector4 aiw;
+        //[FieldOffset(114)]
+        public Matrix4x4 vpcLorentzMatrix;
+        //[FieldOffset(178)]
+        public Matrix4x4 viwLorentzMatrix;
     }
 }

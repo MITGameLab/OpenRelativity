@@ -292,6 +292,7 @@ namespace OpenRelativity.Objects
             colliderShaderParams.playerOffset = state.playerTransform.position;
             colliderShaderParams.speed = (float)(state.PlayerVelocity / state.SpeedOfLight);
             colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
+            colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
 
             //Center of mass in local coordinates should be invariant,
             // but transforming the collider verts will change it,
@@ -1180,20 +1181,45 @@ namespace OpenRelativity.Objects
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 Vector4 tempAiw = GetTotalAcceleration(piw);
-                Vector4 tempApw = state.PlayerAccelerationVector;
+                Vector4 tempPap = state.PlayerAccelerationVector;
                 Vector4 tempAvp = state.PlayerAngularVelocityVector;
+
+                //Velocity of object Lorentz transforms are the same for all points in an object,
+                // so it saves redundant GPU time to calculate them beforehand.
+                float beta = tempViw.magnitude;
+                float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+                Matrix4x4 viwLorentzMatrix = Matrix4x4.identity;
+                if (beta > 0)
+                {
+                    Vector4 viwTransUnit = tempViw / beta;
+                    viwTransUnit.w = 1;
+                    Vector4 spatialComp = (gamma - 1) * viwTransUnit;
+                    spatialComp.w = -gamma * beta;
+                    Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+                    tComp.Scale(viwTransUnit);
+                    viwLorentzMatrix.SetColumn(3, tComp);
+                    viwLorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
+                    viwLorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
+                    viwLorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
+                    viwLorentzMatrix.m00 += 1;
+                    viwLorentzMatrix.m11 += 1;
+                    viwLorentzMatrix.m22 += 1;
+                }
+
                 colliderShaderParams.viw = tempViw;
-                colliderShaderParams.apw = tempApw;
+                colliderShaderParams.pap = tempPap;
                 colliderShaderParams.avp = tempAvp;
                 colliderShaderParams.aiw = tempAiw;
                 colliderShaderParams.mixedMetric = mixedMetric.Value;
+                colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
                 for (int i = 0; i < myRenderer.materials.Length; i++)
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
-                    myRenderer.materials[i].SetVector("_apw", tempApw);
+                    myRenderer.materials[i].SetVector("_pap", tempPap);
                     myRenderer.materials[i].SetVector("_avp", tempAvp);
                     myRenderer.materials[i].SetMatrix("_MixedMetric", mixedMetric.Value);
+                    myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                 }
             }
         }

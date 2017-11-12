@@ -79,6 +79,11 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 	//For the time being, we can only approximate by the value of the metric at the center of the object.
 	//Ideally, we'd have a differently numerical metric value for each vertex or fragment.
 
+	//Lorentz transforms from player to world and from object to world are the same for all points in an object,
+	// so it saves redundant GPU time to calculate them beforehand.
+	float4x4 _vpcLorentzMatrix;
+	float4x4 _viwLorentzMatrix;
+
 	//uniform float4 _Color;
 	//Variables that we use to access texture data
 	//sampler2D _MainTex;
@@ -97,7 +102,7 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 	float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-	float4 _apw = float4(0, 0, 0, 0); //acceleration of player
+	float4 _pap = float4(0, 0, 0, 0); //acceleration of player
 	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 	float _spdOfLight = 100; //current speed of light
@@ -165,31 +170,12 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
 		//Boost to rest frame of player:
-		float beta = speed;
-		float gamma = 1.0f / sqrt(1 - beta * beta);
-		float4x4 vpcLorentzMatrix = {
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1
-		};
-		if (beta > 0)
-		{
-			float4 vpcTransUnit = float4(-_vpc.xyz / beta, 1);
-			float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
-			float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
-			vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
-			vpcLorentzMatrix._m00_m01_m02_m03 = vpcTransUnit.x * spatialComp;
-			vpcLorentzMatrix._m10_m11_m12_m13 = vpcTransUnit.y * spatialComp;
-			vpcLorentzMatrix._m20_m21_m22_m23 = vpcTransUnit.z * spatialComp;
-			vpcLorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
-		}
-
+		float4x4 vpcLorentzMatrix = _vpcLorentzMatrix;
 		float4 riwForMetric = mul(vpcLorentzMatrix, riw);
 
 		//Find metric based on player acceleration and rest frame:
 		float3 angFac = cross(_avp.xyz, riwForMetric.xyz) / _spdOfLight;
-		float linFac = dot(_apw.xyz, riwForMetric.xyz) / spdOfLightSqrd;
+		float linFac = dot(_pap.xyz, riwForMetric.xyz) / spdOfLightSqrd;
 		linFac = ((1 + linFac) * (1 + linFac) - dot(angFac, angFac)) * spdOfLightSqrd;
 		angFac *= -2 * _spdOfLight;
 
@@ -211,25 +197,7 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		metric = _MixedMetric * metric;
 
 		//We'll also Lorentz transform the vectors:
-		beta = length(_viw.xyz);
-		gamma = 1.0f / sqrt(1 - beta * beta);
-		float4x4 lorentzMatrix = {
-			1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 1, 0,
-			0, 0, 0, 1
-		};
-		if (beta > 0)
-		{
-			float4 viwTransUnit = float4(_viw.xyz / beta, 1);
-			float4 spatialComp = float4((gamma - 1) * viwTransUnit.xyz, -gamma * beta);
-			float4 tComp = -gamma * float4(beta, beta, beta, -1) * viwTransUnit;
-			lorentzMatrix._m30_m31_m32_m33 = tComp;
-			lorentzMatrix._m00_m01_m02_m03 = viwTransUnit.x * spatialComp;
-			lorentzMatrix._m10_m11_m12_m13 = viwTransUnit.y * spatialComp;
-			lorentzMatrix._m20_m21_m22_m23 = viwTransUnit.z * spatialComp;
-			lorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
-		}
+		float4x4 viwLorentzMatrix = _viwLorentzMatrix;
 
 		//Remember that relativity is time-translation invariant.
 		//The above metric gives the numerically correct result if the time coordinate of riw is zero,
@@ -237,21 +205,21 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		//We are free to translate our position in time such that this is the case.
 
 		//Apply Lorentz transform;
-		//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
-		float4 riwTransformed = mul(lorentzMatrix, riw);
+		//metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
+		float4 riwTransformed = mul(viwLorentzMatrix, riw);
 		//Translate in time:
 		float tisw = riwTransformed.w;
 		riwForMetric.w = 0;
 		riw = mul(vpcLorentzMatrix, riwForMetric);
-		riwTransformed = mul(lorentzMatrix, riw);
+		riwTransformed = mul(viwLorentzMatrix, riw);
 		riwTransformed.w = 0;
 
 		//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 		float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 
-		float sqrtArg = riwDotRiw / (spdOfLightSqrd);
+		float sqrtArg = riwDotRiw / spdOfLightSqrd;
 		float t2 = 0;
-		if (sqrtArg > 0)
+		if (sqrtArg > divByZeroCutoff)
 		{
 			t2 = -sqrt(sqrtArg);
 		}
@@ -262,11 +230,11 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		//}
 		tisw += t2;
 		//Inverse Lorentz transform the position:
-		transComp = lorentzMatrix._m30_m31_m32_m33;
+		transComp = viwLorentzMatrix._m30_m31_m32_m33;
 		transComp.w = -(transComp.w);
-		lorentzMatrix._m30_m31_m32_m33 = -transComp;
-		lorentzMatrix._m03_m13_m23_m33 = -transComp;
-		riw = mul(lorentzMatrix, riwTransformed);
+		viwLorentzMatrix._m30_m31_m32_m33 = -transComp;
+		viwLorentzMatrix._m03_m13_m23_m33 = -transComp;
+		riw = mul(viwLorentzMatrix, riwTransformed);
 		tisw = riw.w;
 		riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 

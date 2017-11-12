@@ -30,7 +30,7 @@ namespace OpenRelativity
         //Player's acceleration in vector format
         private Vector3 playerAccelerationVector;
         //We use this to update the player acceleration vector:
-        //private Vector3 oldPlayerVelocityVector;
+        private Matrix4x4 playerLorentzMatrix;
 
         //grab the player's transform so that we can use it
         public Transform playerTransform;
@@ -93,6 +93,7 @@ namespace OpenRelativity
         public Vector3 PlayerVelocityVector { get { return playerVelocityVector; } set { playerVelocityVector = value; } }
         public Vector3 PlayerAccelerationVector { get { return playerAccelerationVector; } set { playerAccelerationVector = value; } }
         public Vector3 PlayerAngularVelocityVector { get { if (deltaTimePlayer == 0) { return Vector3.zero; } else { return (float)(deltaCameraAngle * Mathf.Deg2Rad / deltaTimePlayer) * playerTransform.up; } } }
+        public Matrix4x4 PlayerLorentzMatrix { get { return playerLorentzMatrix; } }
 
         public double PctOfSpdUsing { get { return pctOfSpdUsing; } set { pctOfSpdUsing = value; } }
         public double PlayerVelocity { get { return playerVelocity; } }
@@ -257,7 +258,33 @@ namespace OpenRelativity
                 }
 
                 //Send v/c to shader
-                Shader.SetGlobalVector("_vpc", (Vector4)(-playerVelocityVector).ToMinkowski4Viw() / (float)c);
+                Vector4 vpc = new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c;
+                Shader.SetGlobalVector("_vpc", vpc);
+
+                //Lorentz transforms are the same for all points in an object,
+                // so it saves redundant GPU time to calculate them beforehand.
+                float speed = vpc.magnitude;
+                float beta = speed;
+                float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+                playerLorentzMatrix = Matrix4x4.identity;
+                if (beta > 0)
+                {
+                    Vector4 vpcTransUnit = -vpc / beta;
+                    vpcTransUnit.w = 1;
+                    Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
+                    spatialComp.w = -gamma * beta;
+                    Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+                    tComp.Scale(vpcTransUnit);
+                    playerLorentzMatrix.SetColumn(3, tComp);
+                    playerLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
+                    playerLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
+                    playerLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
+                    playerLorentzMatrix.m00 += 1;
+                    playerLorentzMatrix.m11 += 1;
+                    playerLorentzMatrix.m22 += 1;
+                }
+
+                Shader.SetGlobalMatrix("_vpcLorentzMatrix", playerLorentzMatrix);
 
                 /******************************
                 * PART TWO OF ALGORITHM
