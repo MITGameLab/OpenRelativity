@@ -201,35 +201,74 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		};
 
 		//Lorentz boost back to world frame;
-		/*float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
+		float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
 		transComp.w = -(transComp.w);
 		vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 		vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
-		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));*/
+		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
 
 		//Apply conformal map:
 		metric = _MixedMetric * metric;
 
-		float4 viwScaled = _spdOfLight * _viw;
+		//We'll also Lorentz transform the vectors:
+		beta = length(_viw.xyz);
+		gamma = 1.0f / sqrt(1 - beta * beta);
+		float4x4 lorentzMatrix = {
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1
+		};
+		if (beta > 0)
+		{
+			float4 viwTransUnit = float4(_viw.xyz / beta, 1);
+			float4 spatialComp = float4((gamma - 1) * viwTransUnit.xyz, -gamma * beta);
+			float4 tComp = -gamma * float4(beta, beta, beta, -1) * viwTransUnit;
+			lorentzMatrix._m30_m31_m32_m33 = tComp;
+			lorentzMatrix._m00_m01_m02_m03 = viwTransUnit.x * spatialComp;
+			lorentzMatrix._m10_m11_m12_m13 = viwTransUnit.y * spatialComp;
+			lorentzMatrix._m20_m21_m22_m23 = viwTransUnit.z * spatialComp;
+			lorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
+		}
 
 		//Remember that relativity is time-translation invariant.
 		//The above metric gives the numerically correct result if the time coordinate of riw is zero,
 		//(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
 		//We are free to translate our position in time such that this is the case.
 
+		//Apply Lorentz transform;
+		//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
+		float4 riwTransformed = mul(lorentzMatrix, riw);
+		//Translate in time:
+		float tisw = riwTransformed.w;
+		riwForMetric.w = 0;
+		riw = mul(vpcLorentzMatrix, riwForMetric);
+		riwTransformed = mul(lorentzMatrix, riw);
+		riwTransformed.w = 0;
+
 		//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
+		float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 
-		float c = dot(riw, mul(metric, riw)); //first get position squared (position dotted with position)
-
-		float b = -(2 * dot(riw, mul(metric, viwScaled))); //next get position dotted with velocity
-
-		float d = _spdOfLight * _spdOfLight; //this is actually the four-velocity dotted with the four-velocity, always equal to +/- the speed of light squared
-
-											 //Now, get the time delay where the spacetime interval is "null," or "light-like," between the object and the camera:
-		float tisw = (-b - (sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-
-		//get the new position offset, based on the new time we just found
-		riw += tisw * viwScaled;
+		float sqrtArg = riwDotRiw / (spdOfLightSqrd);
+		float t2 = 0;
+		if (sqrtArg > 0)
+		{
+			t2 = -sqrt(sqrtArg);
+		}
+		//else
+		//{
+		//	//Unruh effect?
+		//	//Seems to happen with points behind the player.
+		//}
+		tisw += t2;
+		//Inverse Lorentz transform the position:
+		transComp = lorentzMatrix._m30_m31_m32_m33;
+		transComp.w = -(transComp.w);
+		lorentzMatrix._m30_m31_m32_m33 = -transComp;
+		lorentzMatrix._m03_m13_m23_m33 = -transComp;
+		riw = mul(lorentzMatrix, riwTransformed);
+		tisw = riw.w;
+		riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 
 		//Apply Lorentz transform
 		// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;

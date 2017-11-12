@@ -185,7 +185,7 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 		//riw = location in world, for reference
 		float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-										   //Boost to rest frame of player:
+		//Boost to rest frame of player:
 		float beta = speed;
 		float gamma = 1.0f / sqrt(1 - beta * beta);
 		float4x4 vpcLorentzMatrix = {
@@ -223,10 +223,10 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 
 		//Lorentz boost back to world frame;
 		float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
-		/*transComp.w = -(transComp.w);
+		transComp.w = -(transComp.w);
 		vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 		vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
-		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));*/
+		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
 
 		//Apply conformal map:
 		metric = _MixedMetric * metric;
@@ -252,15 +252,24 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 			lorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
 		}
 
+		//Remember that relativity is time-translation invariant.
+		//The above metric gives the numerically correct result if the time coordinate of riw is zero,
+		//(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
+		//We are free to translate our position in time such that this is the case.
+
 		//Apply Lorentz transform;
 		//metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
-		float4 riwTransformed = mul(lorentzMatrix, riw);
 		float4 aiwTransformed = mul(lorentzMatrix, _aiw);
-
-		//We need these values:
-		float tisw = riwTransformed.w;
-		riwTransformed.w = 0;
 		aiwTransformed.w = 0;
+		float4 riwTransformed = mul(lorentzMatrix, riw);
+		//Translate in time:
+		float tisw = riwTransformed.w;
+		riwForMetric.w = 0;
+		riw = mul(vpcLorentzMatrix, riwForMetric);
+		riwTransformed = mul(lorentzMatrix, riw);
+		riwTransformed.w = 0;
+
+		//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 		float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 		float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
 		float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));

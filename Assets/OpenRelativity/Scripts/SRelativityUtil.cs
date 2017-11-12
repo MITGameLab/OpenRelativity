@@ -322,8 +322,10 @@ namespace OpenRelativity
         public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 apw, Vector3 avp, Matrix4x4? mixedMetric = null)
         {
             float spdOfLight = SRelativityUtil.c;
+            float spdOfLightSqrd = SRelativityUtil.cSqrd;
 
             Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            Vector3 viw = velocity / spdOfLight;
 
             //riw = location in world, for reference
             Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
@@ -372,28 +374,66 @@ namespace OpenRelativity
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
-            if (mixedMetric == null)
+            //We'll also Lorentz transform the vectors:
+            beta = viw.magnitude;
+            gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+            Matrix4x4 lorentzMatrix = Matrix4x4.identity;
+            if (beta > 0)
             {
-                mixedMetric = GetConformalFactor(stpiw, origin);
+                Vector4 viwTransUnit = viw / beta;
+                viwTransUnit.w = 1;
+                Vector4 spatialComp = (gamma - 1) * viwTransUnit;
+                spatialComp.w = -gamma * beta;
+                Vector4 tComp = -gamma * new Vector4(beta, beta, beta, -1);
+                tComp.Scale(viwTransUnit);
+                lorentzMatrix.SetColumn(3, tComp);
+                lorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
+                lorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
+                lorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
+                lorentzMatrix.m00 += 1;
+                lorentzMatrix.m11 += 1;
+                lorentzMatrix.m22 += 1;
             }
 
-            //Apply conformal map:
-            metric = mixedMetric.Value * metric;
+            //Remember that relativity is time-translation invariant.
+            //The above metric gives the numerically correct result if the time coordinate of riw is zero,
+            //(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
+            //We are free to translate our position in time such that this is the case.
 
-            Vector4 velocity4 = velocity.ToMinkowski4Viw();
+            //Apply Lorentz transform;
+            //metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
+            Vector4 riwTransformed = lorentzMatrix * riw;
+            //Translate in time:
+            float tisw = riwTransformed.w;
+            riwForMetric.w = 0;
+            riw = vpcLorentzMatrix * riwForMetric;
+            riwTransformed = lorentzMatrix * riw;
+            riwTransformed.w = 0;
 
-            //Rotation-free modification of the original OpenRelativity shader, with acceleration:
+            //(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
+            float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
 
-            float c = Vector4.Dot(riw, metric * riw); //first get position squared (position dotted with position)
-
-            float b = -(2 * Vector4.Dot(riw, metric * velocity4)); //next get position dotted with velocity, should be only in the Z direction
-
-            float d = cSqrd;
-
-            float tisw = stpiw.w + (-b - (Mathf.Sqrt((b * b) - 4.0f * d * c))) / (2 * d);
-
-            //get the new position offset, based on the new time we just found
-            riw = (Vector3)riw + tisw * velocity;
+            float sqrtArg = riwDotRiw / (spdOfLightSqrd);
+            float t2 = 0;
+            if (sqrtArg > 0)
+            {
+                t2 = -Mathf.Sqrt(sqrtArg);
+            }
+            //else
+            //{
+            //	//Unruh effect?
+            //	//Seems to happen with points behind the player.
+            //}
+            tisw += t2;
+            //Inverse Lorentz transform the position:
+            transComp = lorentzMatrix.GetColumn(3);
+            transComp.w = -(transComp.w);
+            lorentzMatrix.SetColumn(3, -transComp);
+            lorentzMatrix.SetRow(3, -transComp);
+            metric = lorentzMatrix.transpose * metric * lorentzMatrix;
+            riw = lorentzMatrix * riwTransformed;
+            tisw = riw.w;
+            riw = (Vector3)riw + tisw * spdOfLight * viw;
 
             float newz = speed * spdOfLight * tisw;
 
@@ -493,15 +533,24 @@ namespace OpenRelativity
                 lorentzMatrix.m22 += 1;
             }
 
-            //Apply Lorentz transform;
-            //metric = lorentzMatrix.transpose * metric * lorentzMatrix;
-            Vector4 riwTransformed = lorentzMatrix * riw;
-            Vector4 aiwTransformed = lorentzMatrix * aiw;
+            //Remember that relativity is time-translation invariant.
+            //The above metric gives the numerically correct result if the time coordinate of riw is zero,
+            //(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
+            //We are free to translate our position in time such that this is the case.
 
-            //We need these values:
-            float tisw = riwTransformed.w;
-            riwTransformed.w = 0;
+            //Apply Lorentz transform;
+            //metric = mul(transpose(lorentzMatrix), mul(metric, lorentzMatrix));
+            Vector4 aiwTransformed = lorentzMatrix * aiw;
             aiwTransformed.w = 0;
+            Vector4 riwTransformed = lorentzMatrix * riw;
+            //Translate in time:
+            float tisw = riwTransformed.w;
+            riwForMetric.w = 0;
+            riw = vpcLorentzMatrix * riwForMetric;
+            riwTransformed = lorentzMatrix * riw;
+            riwTransformed.w = 0;
+
+            //(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
             float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
