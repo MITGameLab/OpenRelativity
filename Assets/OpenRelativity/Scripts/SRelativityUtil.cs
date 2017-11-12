@@ -286,13 +286,13 @@ namespace OpenRelativity
                 spatialComp.w = -gamma * beta;
                 Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
                 tComp.Scale(viwTransUnit);
-                vpcLorentzMatrix.SetColumn(3, tComp);
-                vpcLorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
-                vpcLorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
-                vpcLorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
-                vpcLorentzMatrix.m00 += 1;
-                vpcLorentzMatrix.m11 += 1;
-                vpcLorentzMatrix.m22 += 1;
+                lorentzMatrix.SetColumn(3, tComp);
+                lorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
+                lorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
+                lorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
+                lorentzMatrix.m00 += 1;
+                lorentzMatrix.m11 += 1;
+                lorentzMatrix.m22 += 1;
             }
 
             //Apply Lorentz transform;
@@ -448,7 +448,7 @@ namespace OpenRelativity
             Vector3 angFac = Vector3.Cross(avp, riwForMetric) / spdOfLight;
             float linFac = Vector3.Dot(apw, riwForMetric) / spdOfLightSqrd;
             linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLightSqrd;
-            angFac *= -2;
+            angFac *= -2 * spdOfLight;
 
             Matrix4x4 metric = new Matrix4x4(
                 new Vector4(-1, 0, 0, angFac.x),
@@ -484,13 +484,13 @@ namespace OpenRelativity
                 spatialComp.w = -gamma * beta;
                 Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
                 tComp.Scale(viwTransUnit);
-                vpcLorentzMatrix.SetColumn(3, tComp);
-                vpcLorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
-                vpcLorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
-                vpcLorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
-                vpcLorentzMatrix.m00 += 1;
-                vpcLorentzMatrix.m11 += 1;
-                vpcLorentzMatrix.m22 += 1;
+                lorentzMatrix.SetColumn(3, tComp);
+                lorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
+                lorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
+                lorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
+                lorentzMatrix.m00 += 1;
+                lorentzMatrix.m11 += 1;
+                lorentzMatrix.m22 += 1;
             }
 
             //Apply Lorentz transform;
@@ -507,23 +507,28 @@ namespace OpenRelativity
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
 
             float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
+            float aiwMag = aiwTransformed.magnitude;
             float t2 = 0;
             if (sqrtArg > 0)
             {
                 t2 = -Mathf.Sqrt(sqrtArg);
             }
-            float aiwMag = aiwTransformed.magnitude;
+            else
+            {
+                bool putBreakPointHere = true;
+            }
+            tisw += t2;
             //add the position offset due to acceleration
             if (aiwMag > 0)
             {
                 riwTransformed = riwTransformed - aiwTransformed / aiwMag * spdOfLightSqrd * (Mathf.Sqrt(1 + (aiwMag * t2 / spdOfLight) * (aiwMag * t2 / spdOfLight)) - 1);
-                riwTransformed.w = 0;
             }
-            tisw += t2;
             riwTransformed.w = tisw;
             //Inverse Lorentz transform the position:
-            lorentzMatrix.m23 = -lorentzMatrix.m23;
-            lorentzMatrix.m32 = -lorentzMatrix.m32;
+            transComp = lorentzMatrix.GetColumn(3);
+            transComp.w = -(transComp.w);
+            lorentzMatrix.SetColumn(3, -transComp);
+            lorentzMatrix.SetRow(3, -transComp);
             riw = lorentzMatrix * riwTransformed;
             tisw = riw.w;
             riw = (Vector3)riw + tisw * velocity;

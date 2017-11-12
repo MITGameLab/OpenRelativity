@@ -160,7 +160,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			};
 			if (beta > 0)
 			{
-				float4 vpcTransUnit = float4(_vpc.xyz / beta, 1);
+				float4 vpcTransUnit = float4(-_vpc.xyz / beta, 1);
 				float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
 				float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
 				vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
@@ -176,7 +176,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			float3 angFac = cross(_avp.xyz, riwForMetric.xyz) / _spdOfLight;
 			float linFac = dot(_apw.xyz, riwForMetric.xyz) / spdOfLightSqrd;
 			linFac = ((1 + linFac) * (1 + linFac) - dot(angFac, angFac)) * spdOfLightSqrd;
-			angFac *= -2;
+			angFac *= -2 * _spdOfLight;
 
 			float4x4 metric = {
 				-1, 0, 0, angFac.x,
@@ -206,14 +206,14 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			};
 			if (beta > 0)
 			{
-				float4 vpcTransUnit = float4(-_vpc.xyz / beta, 1);
-				float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
-				float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
-				vpcLorentzMatrix._m30_m31_m32_m33 = tComp;
-				vpcLorentzMatrix._m00_m01_m02_m03 = vpcTransUnit.x * spatialComp;
-				vpcLorentzMatrix._m10_m11_m12_m13 = vpcTransUnit.y * spatialComp;
-				vpcLorentzMatrix._m20_m21_m22_m23 = vpcTransUnit.z * spatialComp;
-				vpcLorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
+				float4 viwTransUnit = float4(_viw.xyz / beta, 1);
+				float4 spatialComp = float4((gamma - 1) * viwTransUnit.xyz, -gamma * beta);
+				float4 tComp = -gamma * float4(beta, beta, beta, -1) * viwTransUnit;
+				lorentzMatrix._m30_m31_m32_m33 = tComp;
+				lorentzMatrix._m00_m01_m02_m03 = viwTransUnit.x * spatialComp;
+				lorentzMatrix._m10_m11_m12_m13 = viwTransUnit.y * spatialComp;
+				lorentzMatrix._m20_m21_m22_m23 = viwTransUnit.z * spatialComp;
+				lorentzMatrix._m00_m11_m22 += float3(1, 1, 1);
 			}
 
 			//Apply Lorentz transform;
@@ -230,21 +230,19 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
 			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
 
-			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
-			float t2 = 0;
-			if (sqrtArg > 0)
-			{
-				t2 = -sqrt(sqrtArg);
-			}
-			float aiwMag = length(aiwTransformed);
-			//add the position offset due to acceleration
-			if (aiwMag > divByZeroCutoff) {
-				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
-			}
+			float t2 = -sqrt(riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw)));
 			tisw += t2;
+			//add the position offset due to acceleration
+			float aiwMag = length(aiwTransformed);
+			if (aiwMag > 0) {
+				riwTransformed.xyz -= t2 / abs(t2) * aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+			}
 			riwTransformed.w = tisw;
 			//Inverse Lorentz transform the position:
-			lorentzMatrix._m23_m32 = -lorentzMatrix._m23_m32;
+			transComp = lorentzMatrix._m30_m31_m32_m33;
+			transComp.w = -(transComp.w);
+			lorentzMatrix._m30_m31_m32_m33 = -transComp;
+			lorentzMatrix._m03_m13_m23_m33 = -transComp;
 			riw = mul(lorentzMatrix, riwTransformed);
 			tisw = riw.w;
 			riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
