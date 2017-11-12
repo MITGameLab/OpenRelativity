@@ -160,7 +160,7 @@ Shader "Relativity/Unlit/Accelerated/ColorShift"
 			};
 			if (beta > 0)
 			{
-				float4 vpcTransUnit = float4(_vpc.xyz / beta, 1);
+				float4 vpcTransUnit = float4(-_vpc.xyz / beta, 1);
 				float4 spatialComp = float4((gamma - 1) * vpcTransUnit.xyz, -gamma * beta);
 				float4 tComp = -gamma * float4(beta, beta, beta, -1) * vpcTransUnit;
 				vpcLorentzMatrix._m30_m31_m32_m33 = tComp;

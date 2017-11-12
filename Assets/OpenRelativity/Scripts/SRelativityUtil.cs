@@ -467,7 +467,7 @@ namespace OpenRelativity
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
             if (beta > 0)
             {
-                Vector4 vpcTransUnit = vpc / beta;
+                Vector4 vpcTransUnit = -vpc / beta;
                 vpcTransUnit.w = 1;
                 Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
                 spatialComp.w = -gamma * beta;
