@@ -257,9 +257,11 @@ namespace OpenRelativity
                     //shaderParams.colorShift = 1.0f;
                 }
 
-                //Send v/c to shader
+                //Send velocities and acceleration to shader
                 Vector4 vpc = new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c;
                 Shader.SetGlobalVector("_vpc", vpc);
+                Shader.SetGlobalVector("_pap", playerAccelerationVector);
+                Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
 
                 //Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.

@@ -261,7 +261,7 @@ namespace OpenRelativity.Objects
             //Debug.Log("Updating mesh collider.");
 
             //Freeze the physics if the global state is frozen.
-            if (state.MovementFrozen)
+            if (state.MovementFrozen || viw.sqrMagnitude >= state.SpeedOfLightSqrd || state.SqrtOneMinusVSquaredCWDividedByCSquared <= 0)
             {
                 if (!wasFrozen)
                 {
@@ -289,6 +289,8 @@ namespace OpenRelativity.Objects
             colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
             colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
             colliderShaderParams.vpc = (-state.PlayerVelocityVector).ToMinkowski4Viw() / (float)state.SpeedOfLight;
+            colliderShaderParams.pap = state.PlayerAccelerationVector;
+            colliderShaderParams.avp = state.PlayerAngularVelocityVector;
             colliderShaderParams.playerOffset = state.playerTransform.position;
             colliderShaderParams.speed = (float)(state.PlayerVelocity / state.SpeedOfLight);
             colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
@@ -704,9 +706,8 @@ namespace OpenRelativity.Objects
                     //Then, set the value that we want
                     quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 1));
                     quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
-                    //quickSwapMaterial.SetFloat("_aviw", 0);
-                    //quickSwapMaterial.SetFloat("_piw", 0);
                     quickSwapMaterial.SetMatrix("_MixedMetric", minkowski);
+                    quickSwapMaterial.SetMatrix("_viwLorentzMatrix", Matrix4x4.identity);
 
 
                     //And stick it back into our renderer. We'll do the SetVector thing every frame.
@@ -1181,8 +1182,6 @@ namespace OpenRelativity.Objects
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
                 Vector4 tempAiw = GetTotalAcceleration(piw);
-                Vector4 tempPap = state.PlayerAccelerationVector;
-                Vector4 tempAvp = state.PlayerAngularVelocityVector;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
@@ -1207,8 +1206,6 @@ namespace OpenRelativity.Objects
                 }
 
                 colliderShaderParams.viw = tempViw;
-                colliderShaderParams.pap = tempPap;
-                colliderShaderParams.avp = tempAvp;
                 colliderShaderParams.aiw = tempAiw;
                 colliderShaderParams.mixedMetric = mixedMetric.Value;
                 colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
@@ -1216,8 +1213,6 @@ namespace OpenRelativity.Objects
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
-                    myRenderer.materials[i].SetVector("_pap", tempPap);
-                    myRenderer.materials[i].SetVector("_avp", tempAvp);
                     myRenderer.materials[i].SetMatrix("_MixedMetric", mixedMetric.Value);
                     myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                 }
