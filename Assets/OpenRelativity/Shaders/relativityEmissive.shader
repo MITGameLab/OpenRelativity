@@ -102,8 +102,8 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 	float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-	float4 _pap = float4(0, 0, 0, 0); //proper acceleration of player
-	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player in translational velocity rest frame
+	float4 _pap = float4(0, 0, 0, 0); //acceleration of player
+	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 	float _spdOfLight = 100; //current speed of light
 	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
@@ -166,10 +166,10 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		float speedr = sqrt(dot(vr.xyz, vr.xyz));
 		o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
-		//riw = location in world, for reference
+										   //riw = location in world, for reference
 		float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-		//Boost to rest frame of player:
+										   //Boost to rest frame of player:
 		float4x4 vpcLorentzMatrix = _vpcLorentzMatrix;
 		float4 riwForMetric = mul(vpcLorentzMatrix, riw);
 
@@ -194,7 +194,7 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
 
 		//Apply conformal map:
-		metric = _MixedMetric * metric;
+		metric = mul(_MixedMetric, metric);
 
 		//We'll also Lorentz transform the vectors:
 		float4x4 viwLorentzMatrix = _viwLorentzMatrix;
@@ -219,16 +219,12 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 
 		float sqrtArg = riwDotRiw / spdOfLightSqrd;
 		float t2 = 0;
-		if (sqrtArg > divByZeroCutoff)
+		if (sqrtArg > 0)
 		{
 			t2 = -sqrt(sqrtArg);
 		}
-		//else
-		//{
-		//	//Unruh effect?
-		//	//Seems to happen with points behind the player.
-		//}
 		tisw += t2;
+		riwTransformed.w = tisw;
 		//Inverse Lorentz transform the position:
 		transComp = viwLorentzMatrix._m30_m31_m32_m33;
 		transComp.w = -(transComp.w);
@@ -238,12 +234,11 @@ Shader "Relativity/Lit/Inertial/EmissiveColorShift" {
 		tisw = riw.w;
 		riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 
-		//Apply Lorentz transform
-		// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-		//I had to break it up into steps, unity was getting order of operations wrong.	
-		float newz = speed * _spdOfLight * tisw;
-
 		if (speed > divByZeroCutoff) {
+			//Apply Lorentz transform
+			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+			//I had to break it up into steps, unity was getting order of operations wrong.	
+			float newz = speed * _spdOfLight * tisw;
 			float3 vpcUnit = _vpc.xyz / speed;
 			newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 			riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);

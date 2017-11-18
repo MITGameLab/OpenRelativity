@@ -38,7 +38,7 @@ namespace OpenRelativity.Objects
 
         private bool finishedCoroutine;
         private bool dispatchedShader;
-        private bool wasFrozen;
+        //private bool wasFrozen;
 
         private ShaderParams colliderShaderParams;
 
@@ -68,8 +68,17 @@ namespace OpenRelativity.Objects
             cullingFrameCount = 0;
             finishedCoroutine = true;
             dispatchedShader = false;
-            wasFrozen = false;
+            //wasFrozen = false;
             coroutineTimer = new System.Diagnostics.Stopwatch();
+
+            if (forceCPU || colliderShader == null)
+            {
+                CPUUpdatePositions();
+            }
+            else
+            {
+                GPUUpdatePositions();
+            }
         }
         void Init()
         {
@@ -166,7 +175,7 @@ namespace OpenRelativity.Objects
                         finishedCoroutine = false;
                         StartCoroutine("GPUUpdatePositions");
                     }
-                    else //if (finishedCoroutine)
+                    else
                     {
                         finishedCoroutine = false;
                         StartCoroutine("CPUUpdatePositions");
@@ -181,8 +190,8 @@ namespace OpenRelativity.Objects
                 queuedOrigPositionsList.AddRange(origPositionsList);
                 queuedOrigPositions = queuedOrigPositionsList.ToArray();
                 cullingFrameCount = cullingFrameInterval;
-                if (!wasFrozen)
-                {
+                //if (!wasFrozen)
+                //{
                     if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
                     {
                         finishedCoroutine = false;
@@ -193,8 +202,8 @@ namespace OpenRelativity.Objects
                         finishedCoroutine = false;
                         StartCoroutine("CPUUpdatePositions");
                     }
-                }
-                wasFrozen = true;
+                //}
+                //wasFrozen = true;
             }
         }
 
@@ -278,24 +287,19 @@ namespace OpenRelativity.Objects
             Vector3 vpw = gameState.PlayerVelocityVector;
             Vector4 pap = gameState.PlayerAccelerationVector;
             Vector3 avp = gameState.PlayerAngularVelocityVector;
-            float nanInfTest;
+            Matrix4x4 vpcLorentz = gameState.PlayerLorentzMatrix;
             for (int i = 0; i < queuedColliders.Count; i++)
             {
-                Transform changeTransform = queuedColliders[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero));
-                nanInfTest = Vector3.Dot(newPos, newPos);
-                if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
+                Vector3 newPos = queuedColliders[i].transform.InverseTransformPoint(((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero, vpcLorentz, Matrix4x4.identity));
+                //Change mesh:
+                if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                 {
-                    //Change mesh:
-                    if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
-                    {
-                        coroutineTimer.Stop();
-                        coroutineTimer.Reset();
-                        yield return null;
-                        coroutineTimer.Start();
-                    }
-                    queuedColliders[i].center = newPos;
+                    coroutineTimer.Stop();
+                    coroutineTimer.Reset();
+                    yield return null;
+                    coroutineTimer.Start();
                 }
+                queuedColliders[i].center = newPos;
             }
 
             finishedCoroutine = true;
@@ -314,11 +318,12 @@ namespace OpenRelativity.Objects
                 Vector3 vpw = gameState.PlayerVelocityVector;
                 Vector4 pap = gameState.PlayerAccelerationVector;
                 Vector3 avp = gameState.PlayerAngularVelocityVector;
+                Matrix4x4 vpcLorentz = gameState.PlayerLorentzMatrix;
                 float distSqr;
 
                 for (int i = 0; i < origPositionsList.Count; i++)
                 {
-                    distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero) - playerPos).sqrMagnitude;
+                    distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero, vpcLorentz, Matrix4x4.identity) - playerPos).sqrMagnitude;
                     if (distSqr < cullingSqrDistance)
                     {
                         allColliders[i].enabled = true;

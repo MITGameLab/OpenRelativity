@@ -68,8 +68,8 @@ Shader "Relativity/Unlit/Inertial/ColorOnly"
 
 	float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-	float4 _pap = float4(0, 0, 0, 0); //proper acceleration of player
-	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player in translational velocity rest frame
+	float4 _pap = float4(0, 0, 0, 0); //acceleration of player
+	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 	float _spdOfLight = 100; //current speed of light
 	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 

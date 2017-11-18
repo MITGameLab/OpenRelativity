@@ -24,30 +24,35 @@ namespace OpenRelativity.Objects
             // (This keeps the optical and Minkowski position fixed.)
             set
             {
-                //This makes instantiation cleaner:
-                initialViw = value;
-
-                Vector3 playerPos = state.playerTransform.position;
-                Vector3 playerVel = state.PlayerVelocityVector;
-                Vector4 playerAccel = state.PlayerAccelerationVector;
-                Vector3 playerAngVel = state.PlayerAngularVelocityVector;
-                Vector4 myAccel = GetTotalAcceleration(piw);
-                //Under instantaneous changes in velocity, the optical position should be invariant:
-                //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
-                piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel)).OpticalToWorldHighPrecision(value, playerPos, playerVel, playerAccel, playerAngVel, myAccel);
-                //test = test - piw.WorldToOptical(value, playerPos, playerVel);
-                if (!nonrelativisticShader)
+                if (!isStatic)
                 {
-                    transform.position = piw;
-                }
-                _viw = value;
-                //Also update the Rigidbody, if any
-                UpdateRigidbodyVelocity(value, aviw);
+                    //This makes instantiation cleaner:
+                    initialViw = value;
 
-                //Update the shader parameters if necessary
-                UpdateShaderParams();
+                    Vector3 playerPos = state.playerTransform.position;
+                    Vector3 playerVel = state.PlayerVelocityVector;
+                    Vector4 playerAccel = state.PlayerAccelerationVector;
+                    Vector3 playerAngVel = state.PlayerAngularVelocityVector;
+                    Vector4 myAccel = GetTotalAcceleration(piw);
+                    Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
+                    //Under instantaneous changes in velocity, the optical position should be invariant:
+                    //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
+                    piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz)).OpticalToWorldHighPrecision(value, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz);
+                    //test = test - piw.WorldToOptical(value, playerPos, playerVel);
+                    if (!nonrelativisticShader)
+                    {
+                        transform.position = piw;
+                    }
+                    _viw = value;
+                    //Also update the Rigidbody, if any
+                    UpdateRigidbodyVelocity(value, aviw);
+
+                    //Update the shader parameters if necessary
+                    UpdateShaderParams();
+                }
             }
         }
+        public Matrix4x4 viwLorentz { get; private set; }
 
         public void SetViwAndPosition(Vector3 newViw, Vector3 newPiw, Matrix4x4? mixedMetric = null)
         {
@@ -71,7 +76,10 @@ namespace OpenRelativity.Objects
             MarkStaticColliderPos();
 
             //Also update the Rigidbody, if any
-            UpdateRigidbodyVelocity(newViw, aviw);
+            if (!isStatic)
+            {
+                UpdateRigidbodyVelocity(newViw, aviw);
+            }
 
             UpdateShaderParams(mixedMetric);
         }
@@ -87,9 +95,12 @@ namespace OpenRelativity.Objects
             }
             set
             {
-                initialAviw = value;
-                _aviw = value;
-                UpdateRigidbodyVelocity(viw, value);
+                if (!isStatic)
+                {
+                    initialAviw = value;
+                    _aviw = value;
+                    UpdateRigidbodyVelocity(viw, value);
+                }
             }
         }
 
@@ -353,6 +364,8 @@ namespace OpenRelativity.Objects
         {
             //Get the player's GameState, use it later for general information
             FetchState();
+
+            viwLorentz = Matrix4x4.identity;
         }
 
         // Get the start time of our object, so that we know where not to draw it
@@ -937,7 +950,7 @@ namespace OpenRelativity.Objects
                     Vector3 playerAngVel = state.PlayerAngularVelocityVector;
                     Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)(-deltaTime));
                     Vector4 myAccel = GetTotalAcceleration(piw);
-                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel);
+                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel, state.PlayerLorentzMatrix, viwLorentz);
 
                     if (!nonrelativisticShader)
                     {
@@ -993,7 +1006,7 @@ namespace OpenRelativity.Objects
                         piw += transform.position - contractor.position;
                     }
                     transform.localPosition = Vector3.zero;
-                    contractor.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw));
+                    contractor.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
                     ContractLength();
                 }
                 else
@@ -1037,7 +1050,7 @@ namespace OpenRelativity.Objects
                     gameObject.layer = myLayer;
                 }
 
-                if (myRigidbody != null)
+                if (!isStatic && myRigidbody != null)
                 {
                     //update our viw and set the rigid body proportionally
                     //Dragging probably happens intrinsically in the rest frame,
@@ -1117,6 +1130,7 @@ namespace OpenRelativity.Objects
             Vector3 playerVel = state.PlayerVelocityVector;
             Vector4 playerAccel = state.PlayerAccelerationVector;
             Vector3 playerAngVel = state.PlayerAngularVelocityVector;
+            Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
 
             if (myColliderIsVoxel)
             {
@@ -1146,7 +1160,7 @@ namespace OpenRelativity.Objects
                         {
                             BoxCollider collider = (BoxCollider)myColliders[i];
                             pos = transform.TransformPoint(colliderPiw[i]);
-                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, playerAccel, playerAngVel, Vector4.zero));
+                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, playerAccel, playerAngVel, Vector4.zero, vpcLorentz, Matrix4x4.identity));
                         }
                     }
                     else
@@ -1157,7 +1171,7 @@ namespace OpenRelativity.Objects
                             BoxCollider collider = (BoxCollider)myColliders[i];
                             pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
                             Vector4 myAccel = GetTotalAcceleration(pos);
-                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel));
+                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz));
                         }
                     }
                 }
@@ -1188,7 +1202,7 @@ namespace OpenRelativity.Objects
                 float beta = tempViw.magnitude;
                 float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
                 Matrix4x4 viwLorentzMatrix = Matrix4x4.identity;
-                if (beta > SRelativityUtil.divByZeroCutoff)
+                if (beta > 0)
                 {
                     Vector4 viwTransUnit = tempViw / beta;
                     viwTransUnit.w = 1;
@@ -1204,6 +1218,7 @@ namespace OpenRelativity.Objects
                     viwLorentzMatrix.m11 += 1;
                     viwLorentzMatrix.m22 += 1;
                 }
+                viwLorentz = viwLorentzMatrix;
 
                 colliderShaderParams.viw = tempViw;
                 colliderShaderParams.aiw = tempAiw;
@@ -1991,8 +2006,16 @@ namespace OpenRelativity.Objects
                     );
                     Vector4 tempViw = mViw;
                     float timeFac = (float)((state.SpeedOfLight - Vector4.Dot(tempViw, metric * tempViw)) / state.SpeedOfLight);
-                    myRigidbody.velocity = mViw * timeFac;
-                    myRigidbody.angularVelocity = mAviw * timeFac;
+                    if (!float.IsNaN(timeFac))
+                    {
+                        myRigidbody.velocity = mViw * timeFac;
+                        myRigidbody.angularVelocity = mAviw * timeFac;
+                    }
+                    else
+                    {
+                        myRigidbody.velocity = Vector3.zero;
+                        myRigidbody.angularVelocity = Vector3.zero;
+                    }
                 }
                 else
                 {

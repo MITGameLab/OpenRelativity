@@ -123,8 +123,8 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 	float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-	float4 _pap = float4(0, 0, 0, 0); //proper acceleration of player
-	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player in translational velocity rest frame
+	float4 _pap = float4(0, 0, 0, 0); //acceleration of player
+	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 	float _spdOfLight = 100; //current speed of light
 	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
@@ -215,7 +215,7 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
 
 		//Apply conformal map:
-		metric = _MixedMetric * metric;
+		metric = mul(_MixedMetric, metric);
 
 		//We'll also Lorentz transform the vectors:
 		float4x4 viwLorentzMatrix = _viwLorentzMatrix;
@@ -272,7 +272,7 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 
 		float newz = speed * _spdOfLight * tisw;
 
-		if (speed > 0) {
+		if (speed > divByZeroCutoff) {
 			float3 vpcUnit = _vpc.xyz / speed;
 			newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 			riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);

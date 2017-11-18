@@ -169,7 +169,7 @@ namespace OpenRelativity
             float beta = speed;
             float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
-            if (beta > divByZeroCutoff)
+            if (beta > 0)
             {
                 Vector4 vpcTransUnit = -vpc / beta;
                 vpcTransUnit.w = 1;
@@ -266,13 +266,15 @@ namespace OpenRelativity
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
-            if (mixedMetric == null)
+            if (!srCamera.isMinkowski)
             {
-                mixedMetric = GetConformalFactor(stpiw, origin);
+                if (mixedMetric == null)
+                {
+                    mixedMetric = GetConformalFactor(stpiw, origin);
+                }
+                //Apply conformal map:
+                metric = mixedMetric.Value * metric;
             }
-
-            //Apply conformal map:
-            metric = mixedMetric.Value * metric;
 
             //We'll also Lorentz transform the vectors:
             beta = viw.magnitude;
@@ -374,6 +376,16 @@ namespace OpenRelativity
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
+            if (!srCamera.isMinkowski)
+            {
+                if (mixedMetric == null)
+                {
+                    mixedMetric = GetConformalFactor(stpiw, origin);
+                }
+                //Apply conformal map:
+                metric = mixedMetric.Value * metric;
+            }
+
             //We'll also Lorentz transform the vectors:
             beta = viw.magnitude;
             gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
@@ -413,7 +425,7 @@ namespace OpenRelativity
             //(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
             float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
 
-            float sqrtArg = riwDotRiw / (spdOfLightSqrd);
+            float sqrtArg = riwDotRiw / spdOfLightSqrd;
             float t2 = 0;
             if (sqrtArg > 0)
             {
@@ -449,7 +461,7 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? mixedMetric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null, Matrix4x4? mixedMetric = null)
         {
             float spdOfLight = SRelativityUtil.c;
             float spdOfLightSqrd = spdOfLight * spdOfLight;
@@ -462,24 +474,33 @@ namespace OpenRelativity
 
             //Boost to rest frame of player:
             float speed = vpc.magnitude;
-            float beta = speed;
-            float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
-            Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
-            if (beta > 0)
+            Matrix4x4 vpcLorentzMatrix;
+            float beta, gamma;
+            if (vpcLorentz != null)
             {
-                Vector4 vpcTransUnit = -vpc / beta;
-                vpcTransUnit.w = 1;
-                Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
-                spatialComp.w = -gamma * beta;
-                Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
-                tComp.Scale(vpcTransUnit);
-                vpcLorentzMatrix.SetColumn(3, tComp);
-                vpcLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
-                vpcLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
-                vpcLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
-                vpcLorentzMatrix.m00 += 1;
-                vpcLorentzMatrix.m11 += 1;
-                vpcLorentzMatrix.m22 += 1;
+                vpcLorentzMatrix = vpcLorentz.Value;
+            }
+            else
+            {
+                beta = speed;
+                gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+                vpcLorentzMatrix = Matrix4x4.identity;
+                if (beta > 0)
+                {
+                    Vector4 vpcTransUnit = -vpc / beta;
+                    vpcTransUnit.w = 1;
+                    Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
+                    spatialComp.w = -gamma * beta;
+                    Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+                    tComp.Scale(vpcTransUnit);
+                    vpcLorentzMatrix.SetColumn(3, tComp);
+                    vpcLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
+                    vpcLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
+                    vpcLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
+                    vpcLorentzMatrix.m00 += 1;
+                    vpcLorentzMatrix.m11 += 1;
+                    vpcLorentzMatrix.m22 += 1;
+                }
             }
 
             Vector4 riwForMetric = vpcLorentzMatrix * riw;
@@ -504,33 +525,43 @@ namespace OpenRelativity
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
-            if (mixedMetric == null)
+            if (!srCamera.isMinkowski)
             {
-                mixedMetric = GetConformalFactor(stpiw, origin);
+                if (mixedMetric == null)
+                {
+                    mixedMetric = GetConformalFactor(stpiw, origin);
+                }
+                //Apply conformal map:
+                metric = mixedMetric.Value * metric;
             }
 
-            //Apply conformal map:
-            metric = mixedMetric.Value * metric;
-
             //We'll also Lorentz transform the vectors:
-            beta = viw.magnitude;
-            gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
-            Matrix4x4 viwLorentzMatrix = Matrix4x4.identity;
-            if (beta > 0)
+            Matrix4x4 viwLorentzMatrix;
+            if (viwLorentz != null)
             {
-                Vector4 viwTransUnit = viw / beta;
-                viwTransUnit.w = 1;
-                Vector4 spatialComp = (gamma - 1) * viwTransUnit;
-                spatialComp.w = -gamma * beta;
-                Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
-                tComp.Scale(viwTransUnit);
-                viwLorentzMatrix.SetColumn(3, tComp);
-                viwLorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
-                viwLorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
-                viwLorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
-                viwLorentzMatrix.m00 += 1;
-                viwLorentzMatrix.m11 += 1;
-                viwLorentzMatrix.m22 += 1;
+                viwLorentzMatrix = viwLorentz.Value;
+            }
+            else
+            {
+                beta = viw.magnitude;
+                gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+                viwLorentzMatrix = Matrix4x4.identity;
+                if (beta > 0)
+                {
+                    Vector4 viwTransUnit = viw / beta;
+                    viwTransUnit.w = 1;
+                    Vector4 spatialComp = (gamma - 1) * viwTransUnit;
+                    spatialComp.w = -gamma * beta;
+                    Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+                    tComp.Scale(viwTransUnit);
+                    viwLorentzMatrix.SetColumn(3, tComp);
+                    viwLorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
+                    viwLorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
+                    viwLorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
+                    viwLorentzMatrix.m00 += 1;
+                    viwLorentzMatrix.m11 += 1;
+                    viwLorentzMatrix.m22 += 1;
+                }
             }
 
             //Remember that relativity is time-translation invariant.
@@ -562,12 +593,12 @@ namespace OpenRelativity
             {
                 t2 = -Mathf.Sqrt(sqrtArg);
             }
-            else
-            {
-                //Unruh effect?
-                //Seems to happen with points behind the player.
-                bool putBreakPointHere = true;
-            }
+            //else
+            //{
+            //    //Unruh effect?
+            //    //Seems to happen with points behind the player.
+            //    bool putBreakPointHere = true;
+            //}
             tisw += t2;
             //add the position offset due to acceleration
             if (aiwMag > divByZeroCutoff)
@@ -584,10 +615,10 @@ namespace OpenRelativity
             tisw = riw.w;
             riw = (Vector3)riw + tisw * velocity;
 
-            float newz = speed * spdOfLight * tisw;
-
-            if (speed > divByZeroCutoff)
+            
+            if (speed > 0)
             {
+                float newz = speed * spdOfLight * tisw;
                 Vector4 vpcUnit = vpc / speed;
                 newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
                 riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
@@ -758,12 +789,12 @@ namespace OpenRelativity
             return est;
         }
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
         {
             Vector4 startPoint = opticalPos;
             Vector3 est, offset, newEst;
             est = opticalPos.OpticalToWorld(velocity, origin, playerVel);
-            offset = (Vector3)opticalPos - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw);
+            offset = (Vector3)opticalPos - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
 
             float sqrError = offset.sqrMagnitude;
             float oldSqrError = sqrError + 1.0f;
@@ -775,9 +806,9 @@ namespace OpenRelativity
                 iterations++;
                 startPoint += (Vector4)offset / 2.0f;
                 newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw);
-                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw);
+                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
                 oldSqrError = sqrError;
-                sqrError = ((Vector3)opticalPos - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw)).sqrMagnitude;
+                sqrError = ((Vector3)opticalPos - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz)).sqrMagnitude;
                 if (sqrError < oldSqrError)
                 {
                     est = newEst;
