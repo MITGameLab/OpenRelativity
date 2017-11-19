@@ -1066,8 +1066,8 @@ namespace OpenRelativity.Objects
 
                     if (!isSleeping
                         && (((viw.sqrMagnitude < (sleepVelocity * sleepVelocity)) && (aviw.sqrMagnitude < (sleepVelocity * sleepVelocity)))
-                        || (((sleepOldPosition - piw).sqrMagnitude < (sleepDistance * sleepDistance))
-                            && (Vector3.Angle(sleepOldOrientation, transform.forward) < sleepAngle))
+                        //|| (((sleepOldPosition - piw).sqrMagnitude < (sleepDistance * sleepDistance))
+                        //    && (Vector3.Angle(sleepOldOrientation, transform.forward) < sleepAngle))
                         ))
                     {
                         sleepFrameCounter++;
@@ -1996,17 +1996,18 @@ namespace OpenRelativity.Objects
                 float mViwSqrMag = mViw.sqrMagnitude;
                 if ((!state.MovementFrozen) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
+                    Vector3 pVel = state.PlayerVelocityVector;
                     //This works so long as our metric uses synchronous coordinates:
                     Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
                         viw,
                         state.playerTransform.position,
-                        state.PlayerVelocityVector,
+                        pVel,
                         state.PlayerAccelerationVector,
                         state.PlayerAngularVelocityVector
                     );
-                    Vector4 tempViw = mViw;
-                    float timeFac = (float)((state.SpeedOfLight - Vector4.Dot(tempViw, metric * tempViw)) / state.SpeedOfLight);
-                    if (!float.IsNaN(timeFac))
+                    
+                    float timeFac = (float)((state.SpeedOfLightSqrd - Mathf.Abs(Vector4.Dot(pVel, metric * pVel))) / state.SpeedOfLightSqrd);
+                    if (timeFac > 0)
                     {
                         myRigidbody.velocity = mViw * timeFac;
                         myRigidbody.angularVelocity = mAviw * timeFac;

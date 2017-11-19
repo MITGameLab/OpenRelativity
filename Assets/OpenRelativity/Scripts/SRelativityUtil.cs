@@ -158,8 +158,10 @@ namespace OpenRelativity
         public static Matrix4x4 GetLocalMetric(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
         {
             float spdOfLight = SRelativityUtil.c;
+            float spdOfLightSqrd = SRelativityUtil.cSqrd;
 
             Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
+            Vector3 viw = velocity / spdOfLight;
 
             //riw = location in world, for reference
             Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
@@ -190,8 +192,8 @@ namespace OpenRelativity
 
             //Find metric based on player acceleration and rest frame:
             Vector3 angFac = Vector3.Cross(avp, riwForMetric) / spdOfLight;
-            float linFac = Vector3.Dot(pap, riwForMetric) / (spdOfLight * spdOfLight);
-            linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLight * spdOfLight;
+            float linFac = Vector3.Dot(pap, riwForMetric) / spdOfLightSqrd;
+            linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLightSqrd;
             angFac *= -2;
 
             Matrix4x4 metric = new Matrix4x4(
