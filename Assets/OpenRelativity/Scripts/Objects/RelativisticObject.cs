@@ -2006,7 +2006,7 @@ namespace OpenRelativity.Objects
                         state.PlayerAngularVelocityVector
                     );
                     
-                    float timeFac = (float)((state.SpeedOfLightSqrd - Mathf.Abs(Vector4.Dot(pVel, metric * pVel))) / state.SpeedOfLightSqrd);
+                    float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
                     if (timeFac > 0)
                     {
                         myRigidbody.velocity = mViw * timeFac;
@@ -2034,17 +2034,21 @@ namespace OpenRelativity.Objects
             }
             if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
             {
-                //This works so long as our metric uses synchronous coordinates:
+                Vector3 pVel = state.PlayerVelocityVector;
                 //This works so long as our metric uses synchronous coordinates:
                 Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
                     viw,
                     state.playerTransform.position,
-                    state.PlayerVelocityVector,
+                    pVel,
                     state.PlayerAccelerationVector,
                     state.PlayerAngularVelocityVector
                 );
-                Vector4 tempViw = mViw.Value;
-                float timeFac = (float)((state.SpeedOfLight - Vector4.Dot(tempViw, metric * tempViw)) / state.SpeedOfLight);
+
+                float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
+                if (timeFac < 0)
+                {
+                    timeFac = 0;
+                }
                 return timeFac;
             }
             else
