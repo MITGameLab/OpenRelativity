@@ -259,9 +259,6 @@ namespace OpenRelativity
 
                 //Send velocities and acceleration to shader
                 Vector4 vpc = new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c;
-                Shader.SetGlobalVector("_vpc", vpc);
-                Shader.SetGlobalVector("_pap", playerAccelerationVector);
-                Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
 
                 //Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
@@ -269,6 +266,7 @@ namespace OpenRelativity
                 float beta = speed;
                 float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
                 playerLorentzMatrix = Matrix4x4.identity;
+                //Round very small velocities to zero, to avoid annoying visual jitter.
                 if (beta > SRelativityUtil.divByZeroCutoff)
                 {
                     Vector4 vpcTransUnit = -vpc / beta;
@@ -284,8 +282,16 @@ namespace OpenRelativity
                     playerLorentzMatrix.m00 += 1;
                     playerLorentzMatrix.m11 += 1;
                     playerLorentzMatrix.m22 += 1;
+                    Shader.SetGlobalVector("_vpc", vpc);
+
+                }
+                else
+                {
+                    Shader.SetGlobalVector("_vpc", Vector4.zero);
                 }
 
+                Shader.SetGlobalVector("_pap", playerAccelerationVector);
+                Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
                 Shader.SetGlobalMatrix("_vpcLorentzMatrix", playerLorentzMatrix);
 
                 /******************************
