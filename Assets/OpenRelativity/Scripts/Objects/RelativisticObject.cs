@@ -1006,8 +1006,13 @@ namespace OpenRelativity.Objects
                         piw += transform.position - contractor.position;
                     }
                     transform.localPosition = Vector3.zero;
-                    contractor.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
-                    ContractLength();
+                    Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
+                    float testMag = testPos.sqrMagnitude;
+                    if (!float.IsNaN(testMag) && !float.IsInfinity(testMag))
+                    {
+                        contractor.position = testPos;
+                        ContractLength();
+                    }
                 }
                 else
                 {
@@ -1153,25 +1158,38 @@ namespace OpenRelativity.Objects
                 //If we have a BoxCollider, transform its center to its optical position
                 else if (myColliderIsBox)
                 {
+                    Vector3 pos;
+                    BoxCollider collider;
+                    Vector3 testPos;
+                    float testMag;
                     if (isStatic || isSleeping)
                     {
-                        Vector3 pos;
+                        
                         for (int i = 0; i < myColliders.Length; i++)
                         {
-                            BoxCollider collider = (BoxCollider)myColliders[i];
+                            collider = (BoxCollider)myColliders[i];
                             pos = transform.TransformPoint(colliderPiw[i]);
-                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, playerAccel, playerAngVel, Vector4.zero, vpcLorentz, Matrix4x4.identity));
+                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, playerAccel, playerAngVel, Vector4.zero, vpcLorentz, Matrix4x4.identity));
+                            testMag = testPos.sqrMagnitude;
+                            if (!float.IsNaN(testMag) && !float.IsInfinity(testMag))
+                            {
+                                collider.center = testPos;
+                            }
                         }
                     }
                     else
                     {
-                        Vector3 pos;
                         for (int i = 0; i < myColliders.Length; i++)
                         {
-                            BoxCollider collider = (BoxCollider)myColliders[i];
+                            collider = (BoxCollider)myColliders[i];
                             pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
                             Vector4 myAccel = GetTotalAcceleration(pos);
-                            collider.center = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz));
+                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz));
+                            testMag = testPos.sqrMagnitude;
+                            if (!float.IsNaN(testMag) && !float.IsInfinity(testMag))
+                            {
+                                collider.center = testPos;
+                            }
                         }
                     }
                 }
@@ -1881,21 +1899,18 @@ namespace OpenRelativity.Objects
 
         private void SetUpContractor()
         {
-            if (contractor == null)
-            {
-                GameObject contractorGO = new GameObject();
-                contractorGO.name = gameObject.name + " Contractor";
-                contractor = contractorGO.transform;
-                contractor.parent = transform.parent;
-            }
-            else
+            if (contractor != null)
             {
                 Transform prnt = contractor.parent;
                 contractor.parent = null;
-                transform.parent = null;
                 contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-                contractor.parent = prnt;
+                transform.parent = null;
+                Destroy(contractor.gameObject);
             }
+            GameObject contractorGO = new GameObject();
+            contractorGO.name = gameObject.name + " Contractor";
+            contractor = contractorGO.transform;
+            contractor.parent = transform.parent;
             contractor.position = transform.position;
             transform.parent = contractor;
             transform.localPosition = Vector3.zero;
@@ -1908,10 +1923,10 @@ namespace OpenRelativity.Objects
             Vector3 relVel = viw.RelativeVelocityTo(playerVel);
             float relVelMag = relVel.sqrMagnitude;
 
-            if (relVelMag > (state.SpeedOfLightSqrd * 0.95f))
+            if (relVelMag > (state.MaxSpeed))
             {
                 relVel.Normalize();
-                relVelMag = (float)(state.SpeedOfLightSqrd * 0.95f);
+                relVelMag = (float)state.MaxSpeed;
                 relVel = relVelMag * relVel;
             }
 

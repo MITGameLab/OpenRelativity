@@ -13,16 +13,16 @@ namespace OpenRelativity
         List<Vector3> newVerts = new List<Vector3>();
         List<Vector2> newUV = new List<Vector2>();
         //state array contains information on splitting
-        public bool state;
+        public bool state { get; set; }
         //These store the original and split mesh
-        public Mesh change;
-        public Mesh original;
+        public Mesh change { get; set; }
+        public Mesh original { get; set; }
 
         public ComputeShader colliderShader;
 
 
         //This constant determines triangle size. We subdivide meshes until all their triangles have less than this area.
-        private double constant = 2;
+        private double constant = 8;
 
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
