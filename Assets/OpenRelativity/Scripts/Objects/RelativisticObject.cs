@@ -373,7 +373,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw.ToMinkowski4Viw());
+            timeDelayToPlayer *= (float)GetTimeFactor();
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (myRenderer != null)
                 myRenderer.enabled = false;
@@ -383,7 +383,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor(viw.ToMinkowski4Viw());
+            timeDelayToPlayer *= (float)GetTimeFactor();
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -822,7 +822,7 @@ namespace OpenRelativity.Objects
             {
                 if (isSleeping) WakeUp();
                 Vector3 tempViw = viw.Gamma() * viw;
-                tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor(viw.ToMinkowski4Viw()));
+                tempViw += Physics.gravity * (float)(state.FixedDeltaTimePlayer * GetTimeFactor());
                 tempViw = tempViw.RapidityToVelocity();
                 float test = tempViw.x + tempViw.y + tempViw.z;
                 if (!float.IsNaN(test) && !float.IsInfinity(test) && (tempViw.sqrMagnitude < ((state.MaxSpeed - .01) * (state.MaxSpeed - .01))))
@@ -929,7 +929,7 @@ namespace OpenRelativity.Objects
 
             if (!state.MovementFrozen)
             {
-                double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor(viw.ToMinkowski4Viw());
+                double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
                 if (!double.IsInfinity(state.FixedDeltaTimeWorld))
                 {
                     localTimeOffset += deltaTime - state.FixedDeltaTimeWorld;
@@ -1023,7 +1023,6 @@ namespace OpenRelativity.Objects
                 {
                     UpdateColliderPosition();
                 }
-                MarkStaticColliderPos();
 
                 //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
                 if (myColliderIsBox && isSleeping && isRestingOnCollider)
@@ -1764,7 +1763,7 @@ namespace OpenRelativity.Objects
             Vector3 finalTanRapidity;
             if (penDist > 0)
             {
-                float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor(viw.ToMinkowski4Viw()));
+                float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor());
 
                 Vector3 tanNorm = Vector3.Cross(Vector3.Cross(lineOfAction, relVel), lineOfAction).normalized;
                 Vector3 frictionChange = combFriction * impulse * tanNorm;
@@ -2008,8 +2007,7 @@ namespace OpenRelativity.Objects
         {
             if (myRigidbody != null)
             {
-                float mViwSqrMag = mViw.sqrMagnitude;
-                if ((!state.MovementFrozen) && (mViwSqrMag < state.SpeedOfLightSqrd) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
+                if ((!state.MovementFrozen) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
                 {
                     Vector3 pVel = state.PlayerVelocityVector;
                     //This works so long as our metric uses synchronous coordinates:
@@ -2041,13 +2039,9 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public double GetTimeFactor(Vector3? mViw = null)
+        public double GetTimeFactor()
         {
-            if (mViw == null)
-            {
-                mViw = viw;
-            }
-            if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0 && mViw.Value.sqrMagnitude < state.SqrtOneMinusVSquaredCWDividedByCSquared)
+            if (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0)
             {
                 Vector3 pVel = state.PlayerVelocityVector;
                 //This works so long as our metric uses synchronous coordinates:
