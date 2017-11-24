@@ -10,6 +10,7 @@ namespace OpenRelativity.Objects
     {
         //If a large number of voxels are static with respect to world coordinates, we can batch them and gain performance:
         public bool isStatic = true;
+        public float oversizePercent = 0.1f;
         private bool wasStatic;
         private Guid staticQueueNumber;
 
@@ -417,6 +418,9 @@ namespace OpenRelativity.Objects
 
             Vector3 newColliderPos = new Vector3();
             Vector3 newColliderSize = new Vector3(origSize.x / xCount, origSize.y / yCount, origSize.z / zCount);
+            if (xCount > 1) newColliderSize.x = newColliderSize.x * (1 + oversizePercent);
+            if (yCount > 1) newColliderSize.y = newColliderSize.y * (1 + oversizePercent);
+            if (zCount > 1) newColliderSize.z = newColliderSize.z * (1 + oversizePercent);
             for (int i = 0; i < xCount; i++)
             {
                 newColliderPos.x = xNear + ((xFar - xNear) * i / xCount) + newColliderSize.x /2.0f;
