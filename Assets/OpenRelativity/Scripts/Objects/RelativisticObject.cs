@@ -209,7 +209,7 @@ namespace OpenRelativity.Objects
         private Vector3 contractorLocalScale;
         //private int? oldParentID;
         //Store world position, mostly for a nonrelativistic shader:
-        public Vector3 piw { get; private set; }
+        public Vector3 piw { get; set; }
 
         //We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
@@ -1976,7 +1976,6 @@ namespace OpenRelativity.Objects
             Vector3 playerPos = state.playerTransform.position;
 
             Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
-                viw,
                 playerPos,
                 state.PlayerVelocityVector,
                 state.PlayerAccelerationVector,
@@ -2012,7 +2011,6 @@ namespace OpenRelativity.Objects
                     Vector3 pVel = state.PlayerVelocityVector;
                     //This works so long as our metric uses synchronous coordinates:
                     Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
-                        viw,
                         state.playerTransform.position,
                         pVel,
                         state.PlayerAccelerationVector,
@@ -2046,7 +2044,6 @@ namespace OpenRelativity.Objects
                 Vector3 pVel = state.PlayerVelocityVector;
                 //This works so long as our metric uses synchronous coordinates:
                 Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
-                    viw,
                     state.playerTransform.position,
                     pVel,
                     state.PlayerAccelerationVector,

@@ -155,13 +155,13 @@ namespace OpenRelativity
 
         public const float divByZeroCutoff = 1e-8f;
 
-        public static Matrix4x4 GetLocalMetric(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
+        public static Matrix4x4 GetLocalMetric(this Vector4 stpiw, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
         {
             float spdOfLight = SRelativityUtil.c;
             float spdOfLightSqrd = SRelativityUtil.cSqrd;
 
             Vector3 vpc = -playerVel / spdOfLight;// srCamera.PlayerVelocityVector;
-            Vector3 viw = velocity / spdOfLight;
+            //Vector3 viw = velocity / spdOfLight;
 
             //riw = location in world, for reference
             Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
