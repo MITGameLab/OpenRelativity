@@ -164,6 +164,8 @@ namespace OpenRelativity
 
             playerRotation = Vector3.zero;
             deltaRotation = Vector3.zero;
+
+            playerLorentzMatrix = Matrix4x4.identity;
         }
         public void reset()
         {

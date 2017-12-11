@@ -1,4 +1,4 @@
-Shader "Relativity/Unlit/Inertial/ColorOnly"
+Shader "Relativity/Unlit/ColorOnly"
 {
 	Properties
 	{
