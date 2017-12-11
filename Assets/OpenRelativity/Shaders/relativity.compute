@@ -1,0 +1,127 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+//Prevent NaN and Inf
+#define divByZeroCutoff 1e-8f
+
+struct GlobalParams {
+	float4x4 ltwMatrix; //local-to-world transform matrix
+	float4x4 wtlMatrix; //world-to-local transform matrix
+	float4 viw; //velocity of object in synchronous coordinates
+	float4 vpc; //velocity of player
+	float4 playerOffset; //player position in world
+	float speed; //speed of player;
+	float spdOfLight; //current speed of light
+	float4x4 mixedMetric;
+	float4 pap; //acceleration of player in world coordinates
+	float4 avp; //angular velocity of player in world coordinates
+	float4 aiw; //acceleration of object in world coordinates
+	float4x4 vpcLorentzMatrix; //Lorentz transform between world and player
+	float4x4 viwLorentzMatrix; //Lorentz transform between world and object
+};
+
+StructuredBuffer<GlobalParams> glblPrms;
+RWStructuredBuffer<float3> verts;
+
+[numthreads(256, 1, 1)]
+//[numthreads(64,1,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
+	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
+	float4 viw = glblPrms[0].viw;
+	float4 vpc = glblPrms[0].vpc;
+	float4 playerOffset = glblPrms[0].playerOffset;
+	float speed = glblPrms[0].speed;
+	float spdOfLight = glblPrms[0].spdOfLight;
+	float4x4 mixedMetric = glblPrms[0].mixedMetric;
+	float4 pap = glblPrms[0].pap;
+	float4 avp = glblPrms[0].avp;
+	float4 aiw = glblPrms[0].aiw;
+	float4x4 vpcLorentzMatrix = glblPrms[0].vpcLorentzMatrix;
+	float4x4 viwLorentzMatrix = glblPrms[0].viwLorentzMatrix;
+	float spdOfLightSqrd = spdOfLight * spdOfLight;
+
+	float4 pos = float4(verts[id.x].xyz, 0);
+	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1.0f));
+	pos = float4(tempPos.xyz / tempPos.w - playerOffset.xyz, 0);
+	
+	//riw = location in world, for reference
+	float4 riw = float4(pos.xyz, 0); //Position that will be used in the output
+
+	float4 riwForMetric = mul(vpcLorentzMatrix, riw);
+
+	//Find metric based on player acceleration and rest frame:
+	float3 angFac = cross(avp.xyz, riwForMetric.xyz) / spdOfLight;
+	float linFac = dot(pap.xyz, riwForMetric.xyz) / spdOfLightSqrd;
+	linFac = ((1 + linFac) * (1 + linFac) - dot(angFac, angFac)) * spdOfLightSqrd;
+	angFac *= -2 * spdOfLight;
+
+	float4x4 metric = {
+		-1, 0, 0, angFac.x,
+		0, -1, 0, angFac.y,
+		0, 0, -1, angFac.z,
+		angFac.x, angFac.y, angFac.z, linFac
+	};
+
+	//Lorentz boost back to world frame;
+	float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
+	transComp.w = -(transComp.w);
+	vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
+	vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
+	metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
+
+	//Apply conformal map:
+	metric = mul(mixedMetric, metric);
+
+	//Remember that relativity is time-translation invariant.
+	//The above metric gives the numerically correct result if the time coordinate of riw is zero,
+	//(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
+	//We are free to translate our position in time such that this is the case.
+
+	//Apply Lorentz transform;
+	//metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
+	float4 riwTransformed = mul(viwLorentzMatrix, riw);
+	//Translate in time:
+	float tisw = riwTransformed.w;
+	riwForMetric.w = 0;
+	riw = mul(vpcLorentzMatrix, riwForMetric);
+	riwTransformed = mul(viwLorentzMatrix, riw);
+	riwTransformed.w = 0;
+
+	//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
+	float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
+
+	float sqrtArg = riwDotRiw / spdOfLightSqrd;
+	float t2 = 0;
+	if (sqrtArg > 0)
+	{
+		t2 = -sqrt(sqrtArg);
+	}
+	tisw += t2;
+	riwTransformed.w = tisw;
+	//Inverse Lorentz transform the position:
+	transComp = viwLorentzMatrix._m30_m31_m32_m33;
+	transComp.w = -(transComp.w);
+	viwLorentzMatrix._m30_m31_m32_m33 = -transComp;
+	viwLorentzMatrix._m03_m13_m23_m33 = -transComp;
+	riw = mul(viwLorentzMatrix, riwTransformed);
+	tisw = riw.w;
+	riw = float4(riw.xyz + tisw * spdOfLight * viw.xyz, 0);
+
+	if (speed > divByZeroCutoff) {
+		//Apply Lorentz transform
+		// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+		//I had to break it up into steps, unity was getting order of operations wrong.	
+		float newz = speed * spdOfLight * tisw;
+		float3 vpcUnit = vpc.xyz / speed;
+		newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+		riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
+	}
+
+	riw += float4(playerOffset.xyz, 0);
+
+	//Transform the vertex back into local space for the mesh to use it
+	tempPos = mul(wtlMatrix, float4(riw.xyz, 1.0f));
+	verts[id.x] = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w;
+}
