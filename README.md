@@ -33,7 +33,7 @@ To most accurately simulate the effects of special relativity using our toolkit,
 
 We have set up this project with a few basic settings that are meant to make our code base work smoothly. First, under Render Settings, we have the skybox's shader. This shader is slightly different from the one on every other object, and it also determines the basic texture of the sky. We do not work with anything other than solid colors, but if you would like to experiment with a more interesting texture on the skybox, feel free to do so. Next, under the Project Settings/Tags, we have a custom tag of "Playermesh" and a custom layer "Player." The Playermesh tag is used to access the top level player object, which contains the player's mesh and physical information. The Player layer is used to denote which objects should collide with the player. We currently have the Project Settings/Physics collision layers set up so that objects collide only with objects denoted "Player" and not with other objects in the scene. There is one exception to this, in the Receiver object, but that will be covered later. Apart from this, the scene is as it should be normally.
 
-###The Player
+### The Player
 
 The player is already set up with our movement code, game state code, and a quick script that puts the speed of light and player speed on the screen. It is set up as a nested object. The player mesh is the parent object, which has the physical aspects of the player. It has a mesh renderer, a collider, and a rigidbody. Each of these components is necessary for our code base. Any of these attributes can be modified, but if the rigidbody's drag, gravity, or frozen rotation settings are changed, the project will no longer adhere to the rules of special relativity and it may react unpredictably with our code, so please don't change these settings unless you know what you're doing. If you wish to change the player's mesh, that won't cause any problems, but keep in mind that this framework was meant to provide a first-person view of relativity, and anything but a first person view will no longer be physically accurate.
 
@@ -41,7 +41,7 @@ At the second level, we have the Player gameobject, which is where we keep the c
 
 Finally, we have the camera. The camera does not have any scripts on it, but is affected by Movement Scripts and must be attached to the player or else the perspective will be off.
 
-###Other Objects
+### Other Objects
 
 By a few simple steps, any object can be added to the scene of Open Relativity. These steps mostly consist of adding the following components to your new object.
 
