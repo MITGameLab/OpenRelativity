@@ -1,3 +1,7 @@
+// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+// Upgrade NOTE: replaced '_World2Object' with 'unity_WorldToObject'
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
 Shader "Relativity/ColorShift" 
 {
 	Properties 
@@ -80,7 +84,7 @@ Shader "Relativity/ColorShift"
 	{
 		v2f o;
 
-		o.pos = mul(_Object2World, v.vertex); //get position in world frame	
+		o.pos = mul(unity_ObjectToWorld, v.vertex); //get position in world frame	
 		o.pos -= _playerOffset; //Shift such that we use a coordinate system where the player is at 0,0,0
 		
 
@@ -91,17 +95,10 @@ Shader "Relativity/ColorShift"
 	
 	
 		float vuDot = (_vpc.x*_viw.x + _vpc.y*_viw.y + _vpc.z*_viw.z); //Get player velocity dotted with velocity of the object.
-		float4 uparra;
-		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if ( speed != 0 )
-		{
-			uparra = (vuDot/(speed*speed)) * _vpc; //Get the parallel component of the object's velocity
-		}
-		//If our speed is zero, set parallel velocity to zero
-		else
-		{
-			uparra = 0; 
-		}
+
+		float4 uparra = (vuDot / (speed * speed)) * _vpc;
+		uparra = !(isnan(uparra) || isinf(uparra)) ? uparra : 0;
+
 		//Get the perpendicular component of our velocity, just by subtraction
 		float4 uperp = _viw - uparra;
 		//relative velocity calculation
@@ -229,13 +226,13 @@ Shader "Relativity/ColorShift"
 		riw += _playerOffset;
 	
         //Transform the vertex back into local space for the mesh to use it
-		o.pos = mul(_World2Object*1.0,riw);
+		o.pos = mul(unity_WorldToObject*1.0,riw);
 
-		o.pos2 = mul(_Object2World, o.pos );
+		o.pos2 = mul(unity_ObjectToWorld, o.pos );
 		o.pos2 -= _playerOffset;
 		
 
-		o.pos = mul(UNITY_MATRIX_MVP, o.pos);
+		o.pos = UnityObjectToClipPos(o.pos);
 	   
 
 		return o;

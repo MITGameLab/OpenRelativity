@@ -1,3 +1,5 @@
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
 Shader "Colors/Desaturate" {
 	Properties {
 		_MainTex ("Base (RGB)", 2D) = "" {}
@@ -78,7 +80,7 @@ Shader "Colors/Desaturate" {
 	v2f vert( appdata_img v ) {
 		v2f o;
 		
-		o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
+		o.pos = UnityObjectToClipPos(v.vertex);
 		o.uv1.xy = v.texcoord;
 		
 		//You need this otherwise the screen flips and weird stuff happens

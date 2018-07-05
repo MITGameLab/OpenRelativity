@@ -1,3 +1,7 @@
+// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+// Upgrade NOTE: replaced '_World2Object' with 'unity_WorldToObject'
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
 Shader "Relativity/SkyboxShift" {
 	Properties {
 		_MainTex ("Base (RGB)", 2D) = "" {}
@@ -72,8 +76,8 @@ Shader "Relativity/SkyboxShift" {
 		v2f o;
 	   
 		
-		o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
-		o.pos2 = mul(_Object2World, v.vertex);
+		o.pos = UnityObjectToClipPos(v.vertex);
+		o.pos2 = mul(unity_ObjectToWorld, v.vertex);
 		
 		o.pos2 -= _playerOffset;
 
@@ -220,7 +224,7 @@ Shader "Relativity/SkyboxShift" {
 		float3 rgbFinal = XYZToRGBC(xf,yf,zf);
 		//rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z);
 
-  		float4x4 temp  = mul(1.0*_Object2World, _World2Object);
+  		float4x4 temp  = mul(1.0*unity_ObjectToWorld, unity_WorldToObject);
 		float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1));
 		//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1);
 		return temp2; 
