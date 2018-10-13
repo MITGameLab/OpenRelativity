@@ -343,7 +343,6 @@ namespace OpenRelativity.Objects
 
                 for (int i = 0; i < origPositionsList.Count; i++)
                 {
-                    allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
                     // Don't cull anything (spherically) close to the player.
                     Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero, vpcLorentz, Matrix4x4.identity);
                     distSqr = (colliderPos - playerPos).sqrMagnitude;
@@ -353,6 +352,7 @@ namespace OpenRelativity.Objects
                         queuedOrigPositionsList.Add(origPositionsList[i]);
                     } else
                     {
+                        bool didCull = true;
                         // The object isn't close to the player, but remote RelativisticObjects still need their own active collider spheres, if they're colliding far away.
                         for (int j = 0; j < rosPiw.Count; j++)
                         {
@@ -361,8 +361,15 @@ namespace OpenRelativity.Objects
                             {
                                 queuedColliders.Add(allColliders[i]);
                                 queuedOrigPositionsList.Add(origPositionsList[i]);
+                                didCull = false;
                                 break;
                             }
+                        }
+
+                        // If the transform is culled, reset it.
+                        if (didCull)
+                        {
+                            allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
                         }
                     }
                 }
