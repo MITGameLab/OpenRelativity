@@ -131,6 +131,11 @@ namespace OpenRelativity.Objects
                     {
                         int size = batchSizeDict[qn];
 
+                        for (int j = startIndex; j < (startIndex + size); j++)
+                        {
+                            allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
+                        }
+
                         origPositionsList.RemoveRange(startIndex, size);
                         allColliders.RemoveRange(startIndex, size);
 
@@ -338,6 +343,7 @@ namespace OpenRelativity.Objects
 
                 for (int i = 0; i < origPositionsList.Count; i++)
                 {
+                    allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
                     // Don't cull anything (spherically) close to the player.
                     Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero, vpcLorentz, Matrix4x4.identity);
                     distSqr = (colliderPos - playerPos).sqrMagnitude;
