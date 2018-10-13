@@ -13,7 +13,7 @@ namespace OpenRelativity.Objects
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
-        private const int cullingSqrDistance = 178 * 178;
+        private const int cullingSqrDistance = 64 * 64;
         private const int cullingFrameInterval = 10;
         private int cullingFrameCount;
 
@@ -38,7 +38,7 @@ namespace OpenRelativity.Objects
 
         private bool finishedCoroutine;
         private bool dispatchedShader;
-        //private bool wasFrozen;
+        private bool wasFrozen;
 
         private ShaderParams colliderShaderParams;
 
@@ -182,28 +182,31 @@ namespace OpenRelativity.Objects
                     }
                 }
             }
-            else
+            else if (!wasFrozen)
             {
                 queuedColliders.Clear();
                 queuedColliders.AddRange(allColliders);
                 queuedOrigPositionsList.Clear();
                 queuedOrigPositionsList.AddRange(origPositionsList);
                 queuedOrigPositions = queuedOrigPositionsList.ToArray();
-                cullingFrameCount = cullingFrameInterval;
-                //if (!wasFrozen)
+                cullingFrameCount = 0;
+                //for (int i = 0; i < allColliders.Count; i++)
                 //{
-                    if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
-                    {
-                        finishedCoroutine = false;
-                        StartCoroutine("GPUUpdatePositions");
-                    }
-                    else //if (finishedCoroutine)
-                    {
-                        finishedCoroutine = false;
-                        StartCoroutine("CPUUpdatePositions");
-                    }
+                //    allColliders[i].enabled = true;
                 //}
-                //wasFrozen = true;
+                if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
+                {
+                    finishedCoroutine = false;
+                    StopCoroutine("GPUUpdatePositions");
+                    StartCoroutine("GPUUpdatePositions");
+                }
+                else //if (finishedCoroutine)
+                {
+                    finishedCoroutine = false;
+                    StopCoroutine("CPUUpdatePositions");
+                    StartCoroutine("CPUUpdatePositions");
+                }
+                wasFrozen = true;
             }
         }
 
@@ -310,7 +313,7 @@ namespace OpenRelativity.Objects
         private void Cull()
         {
             Init();
-            if (sphericalCulling)
+            if (sphericalCulling && !gameState.MovementFrozen)
             {
                 queuedOrigPositionsList.Clear();
                 queuedColliders.Clear();
@@ -326,14 +329,14 @@ namespace OpenRelativity.Objects
                     distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero, vpcLorentz, Matrix4x4.identity) - playerPos).sqrMagnitude;
                     if (distSqr < cullingSqrDistance)
                     {
-                        allColliders[i].enabled = true;
+                        //allColliders[i].enabled = true;
                         queuedColliders.Add(allColliders[i]);
                         queuedOrigPositionsList.Add(origPositionsList[i]);
                     }
-                    else
-                    {
-                        allColliders[i].enabled = false;
-                    }
+                    //else
+                    //{
+                    //    allColliders[i].enabled = false;
+                    //}
                 }
             }
             else
