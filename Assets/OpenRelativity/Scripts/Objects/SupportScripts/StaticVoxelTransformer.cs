@@ -315,6 +315,18 @@ namespace OpenRelativity.Objects
             Init();
             if (sphericalCulling && !gameState.MovementFrozen)
             {
+                RelativisticObject[] ros = FindObjectsOfType<RelativisticObject>();
+                List<Vector3> rosPiw = new List<Vector3>();
+                for (int i = 0; i < ros.Length; i++)
+                {
+                    if (ros[i].GetComponent<Rigidbody>() != null) {
+                        Collider roC = ros[i].GetComponent<Collider>();
+                        if ((roC != null) && roC.enabled)
+                        {
+                            rosPiw.Add(ros[i].piw);
+                        }
+                    }
+                }
                 queuedOrigPositionsList.Clear();
                 queuedColliders.Clear();
                 Vector3 playerPos = gameState.playerTransform.position;
@@ -326,17 +338,27 @@ namespace OpenRelativity.Objects
 
                 for (int i = 0; i < origPositionsList.Count; i++)
                 {
-                    distSqr = (((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero, vpcLorentz, Matrix4x4.identity) - playerPos).sqrMagnitude;
+                    // Don't cull anything (spherically) close to the player.
+                    Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, playerPos, vpw, pap, avp, Vector4.zero, vpcLorentz, Matrix4x4.identity);
+                    distSqr = (colliderPos - playerPos).sqrMagnitude;
                     if (distSqr < cullingSqrDistance)
                     {
-                        //allColliders[i].enabled = true;
                         queuedColliders.Add(allColliders[i]);
                         queuedOrigPositionsList.Add(origPositionsList[i]);
+                    } else
+                    {
+                        // The object isn't close to the player, but remote RelativisticObjects still need their own active collider spheres, if they're colliding far away.
+                        for (int j = 0; j < rosPiw.Count; j++)
+                        {
+                            distSqr = (colliderPos - rosPiw[j]).sqrMagnitude;
+                            if (distSqr < cullingSqrDistance)
+                            {
+                                queuedColliders.Add(allColliders[i]);
+                                queuedOrigPositionsList.Add(origPositionsList[i]);
+                                break;
+                            }
+                        }
                     }
-                    //else
-                    //{
-                    //    allColliders[i].enabled = false;
-                    //}
                 }
             }
             else
