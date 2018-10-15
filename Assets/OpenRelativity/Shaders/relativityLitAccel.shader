@@ -19,7 +19,7 @@ Shader "Relativity/Lit/Accelerated/ColorShift" {
 #include "UnityCG.cginc"
 #include "Lighting.cginc"
 #include "AutoLight.cginc"
-#include "UnityStandardMeta.cginc"
+#include "UnityStandardCore.cginc"
 
 //Color shift variables, used to make guassians for XYZ curves
 #define xla 0.39952807612909519
@@ -608,6 +608,8 @@ Shader "Relativity/Lit/Accelerated/ColorShift" {
 				Tags{ "LightMode" = "Meta" }
 				Cull Off
 				CGPROGRAM
+
+				#include "UnityStandardMeta.cginc"
 
 				sampler2D _GIAlbedoTex;
 				fixed4 _GIAlbedoColor;
