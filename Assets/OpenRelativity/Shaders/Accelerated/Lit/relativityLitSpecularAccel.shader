@@ -2,12 +2,14 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Lit/Inertial/ColorShift" {
+Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
+		_MetallicMap("Metallic", 2D) = "white" {} //Specular texture
+		_Metallic("Metallic", Range(0, 1)) = 0
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		_viw("viw", Vector) = (0,0,0,0)
 		_aiw("aiw", Vector) = (0,0,0,0)
@@ -46,6 +48,26 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
+
+//#define quaternion float4
+//
+//		inline quaternion fromToRotation(float3 from, float3 to) {
+//			quaternion rotation;
+//			rotation.xyz = cross(from, to);
+//			rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
+//			return normalize(rotation);
+//		}
+//
+//		//See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
+//		inline float3 rotate(quaternion rot, float3 vec) {
+//			float3 temp;
+//			temp = 2 * cross(rot.xyz, vec.xyz);
+//			return vec + rot.w * temp + cross(rot.xyz, temp);
+//		}
+//
+//		inline quaternion inverse(quaternion q) {
+//			return quaternion(-q.xyz, q.w) / length(q);
+//		}
 
 		struct appdata {
 			float4 vertex : POSITION;
@@ -89,9 +111,11 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 		sampler2D _UVTex;
 		uniform float4 _UVTex_ST;
 		sampler2D _CameraDepthTexture;
+		sampler2D _MetallicMap;
 
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
+		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 		float4 _pap = float4(0, 0, 0, 0); //acceleration of player
@@ -156,10 +180,10 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 			float speedr = sqrt(dot(vr.xyz, vr.xyz));
 			o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
-											   //riw = location in world, for reference
+			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-											   //Boost to rest frame of player:
+			//Boost to rest frame of player:
 			float4x4 vpcLorentzMatrix = _vpcLorentzMatrix;
 			float4 riwForMetric = mul(vpcLorentzMatrix, riw);
 
@@ -196,6 +220,8 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 
 			//Apply Lorentz transform;
 			//metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
+			float4 aiwTransformed = mul(viwLorentzMatrix, _aiw);
+			aiwTransformed.w = 0;
 			float4 riwTransformed = mul(viwLorentzMatrix, riw);
 			//Translate in time:
 			float tisw = riwTransformed.w;
@@ -206,14 +232,27 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
+			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
+			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
 
-			float sqrtArg = riwDotRiw / spdOfLightSqrd;
+			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
+			float aiwMag = length(aiwTransformed.xyz);
 			float t2 = 0;
 			if (sqrtArg > 0)
 			{
 				t2 = -sqrt(sqrtArg);
 			}
+			//else
+			//{
+			//	//Unruh effect?
+			//	//Seems to happen with points behind the player.
+			//}
 			tisw += t2;
+			//add the position offset due to acceleration
+			if (aiwMag > divByZeroCutoff)
+			{
+				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+			}
 			riwTransformed.w = tisw;
 			//Inverse Lorentz transform the position:
 			transComp = viwLorentzMatrix._m30_m31_m32_m33;
@@ -224,11 +263,9 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 			tisw = riw.w;
 			riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 
+			float newz = speed * _spdOfLight * tisw;
+
 			if (speed > divByZeroCutoff) {
-				//Apply Lorentz transform
-				// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
-				//I had to break it up into steps, unity was getting order of operations wrong.	
-				float newz = speed * _spdOfLight * tisw;
 				float3 vpcUnit = _vpc.xyz / speed;
 				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
@@ -310,9 +347,6 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 #endif
 #endif
-//#else
-//		o.diff = 0;
-//#endif
 
 #if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			TRANSFER_SHADOW(o)
@@ -356,12 +390,13 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 			//Re-use memory to save per-vertex operations:
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
+			float paramYShift = param.y * shift;
 
-			float top1 = param.x * xla * exp(-((((param.y * shift) - xlb) * ((param.y * shift) - xlb))
+			float top1 = param.x * xla * exp(-(((paramYShift - xlb) * (paramYShift - xlb))
 				/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
 			float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
 
-			float top2 = param.x * xha * exp(-((((param.y * shift) - xhb) * ((param.y * shift) - xhb))
+			float top2 = param.x * xha * exp(-(((paramYShift - xhb) * (paramYShift - xhb))
 				/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
 			bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
 
@@ -408,7 +443,7 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 			w = (w < b) ? w : b;
 			w = -w;
 
-			if (w > divByZeroCutoff) {
+			if (w > 0) {
 				r += w;  g += w; b += w;
 			}
 			w = r;
@@ -429,6 +464,18 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 
 		};
 
+		float3 BoxProjection(
+			float3 direction, float3 position,
+			float4 cubemapPosition, float3 boxMin, float3 boxMax
+		) {
+			UNITY_BRANCH
+			if (cubemapPosition.w > 0) {
+				float3 factors = ((direction > 0 ? boxMax : boxMin) - position) / direction;
+				float scalar = min(min(factors.x, factors.y), factors.z);
+				return direction * scalar + (position - cubemapPosition);
+			}
+		}
+
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
@@ -448,7 +495,25 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 			//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent.
 
 			//Get initial color 
+#if defined(FORWARD_BASE_PASS)
+			float3 viewDir = _WorldSpaceCameraPos.xyz - i.pos2.xyz;
+			float3 reflDir = reflect(-viewDir, i.normal);
+			envData.reflUVW = BoxProjection(
+				reflDir, i.pos2,
+				unity_SpecCube0_ProbePosition,
+				unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
+			);
+			float4 envSample = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, i.reflDir);
+#if defined(_METALLIC_MAP)
+			float metallicFactor = tex2D(_MetallicMap, i.uv.xy).r;
+#else
+			float metallicFactor = _Metallic;
+#endif
+			float4 data = tex2D(_MainTex, i.uv1).rgba + metallicFactor * DecodeHDR(envSample, unity_SpecCube0_HDR);
+#else
 			float4 data = tex2D(_MainTex, i.uv1).rgba;
+#endif
+			
 			float UV = tex2D(_UVTex, i.uv1).r;
 			float IR = tex2D(_IRTex, i.uv1).r;
 
@@ -542,6 +607,7 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 				#pragma fragmentoption ARB_precision_hint_nicest
 
 				#pragma multi_compile_fwdbase
+				#pragma multi_compile _ _METALLIC_MAP
 
 				#pragma vertex vert
 				#pragma fragment frag
@@ -560,6 +626,7 @@ Shader "Relativity/Lit/Inertial/ColorShift" {
 
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdadd
+				#pragma multi_compile _ _METALLIC_MAP
 
 				#pragma vertex vert
 				#pragma fragment frag

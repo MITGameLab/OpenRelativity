@@ -15,7 +15,14 @@ namespace OpenRelativity
         }
         public static Matrix4x4 GetConformalFactor(Vector4 stpiw, Vector4 pstpiw)
         {
-            return srCamera.conformalMap.GetConformalFactor(stpiw, pstpiw);
+            if (srCamera == null || srCamera.conformalMap == null)
+            {
+                return Matrix4x4.identity;
+            }
+            else
+            {
+                return srCamera.conformalMap.GetConformalFactor(stpiw, pstpiw);
+            }
         }
         public static Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
         {

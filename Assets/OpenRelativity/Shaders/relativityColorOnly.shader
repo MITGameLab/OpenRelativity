@@ -1,4 +1,4 @@
-Shader "Relativity/Unlit/ColorOnly"
+Shader "Relativity/ColorOnly"
 {
 	Properties
 	{
@@ -174,12 +174,13 @@ Shader "Relativity/Unlit/ColorOnly"
 		//Re-use memory to save per-vertex operations:
 		float bottom2 = param.z * shift;
 		bottom2 *= bottom2;
+		float paramYShift = param.y * shift;
 
-		float top1 = param.x * xla * exp(-((((param.y * shift) - xlb) * ((param.y * shift) - xlb))
+		float top1 = param.x * xla * exp(-(((paramYShift - xlb) * (paramYShift - xlb))
 			/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
 		float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
 
-		float top2 = param.x * xha * exp(-((((param.y * shift) - xhb) * ((param.y * shift) - xhb))
+		float top2 = param.x * xha * exp(-(((paramYShift - xhb) * (paramYShift - xhb))
 			/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
 		bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
 
