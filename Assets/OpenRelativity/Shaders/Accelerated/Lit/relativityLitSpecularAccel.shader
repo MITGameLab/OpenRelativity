@@ -12,7 +12,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		_viw("viw", Vector) = (0,0,0,0)
 		_aiw("aiw", Vector) = (0,0,0,0)
-		_Cube("Reflection Map", CUBE) = "" {}
 	}
 		CGINCLUDE
 
@@ -129,7 +128,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 		uniform float4 _MainTex_TexelSize;
 		uniform float4 _CameraDepthTexture_ST;
 
-		samplerCUBE _Cube;
 		float _Specular;
 
 		//Per vertex operations
