@@ -8,7 +8,7 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 		_MainTex("Albedo", 2D) = "white" {}
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_Specular("Specular", Range(0, 1)) = 0
+		_Specular("Normal Reflectance", Range(0, 1)) = 0
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		_viw("viw", Vector) = (0,0,0,0)
 		_aiw("aiw", Vector) = (0,0,0,0)
@@ -515,6 +515,7 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 
 			//Get initial color 
 			float3 viewDir = i.pos2.xyz - _WorldSpaceCameraPos.xyz;
+			i.normal /= length(i.normal);
 			float3 reflDir = reflect(viewDir, i.normal);
 			reflDir = BoxProjection(
 				reflDir, i.pos2,
@@ -522,8 +523,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 				unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
 			);
 			float4 envSample = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, reflDir);
-			float specFactor = _Specular;
-			float3 specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
 			float4 data = tex2D(_MainTex, i.uv1).rgba;
 			float UV = tex2D(_UVTex, i.uv1).r;
 			float IR = tex2D(_IRTex, i.uv1).r;
@@ -531,6 +530,28 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			//Apply lighting in world frame:
 			float3 rgb = data.xyz;
 			float3 rgbFinal = DopplerShift(rgb, UV, IR, shift);
+
+			//Apply specular reflectance
+			//(Assume surrounding medium has an index of refraction of 1)
+			float specFactor;
+			if (_Specular >= 1.0) {
+				specFactor = 1.0;
+			}
+			else {
+				float indexRefrac = sqrt(_Specular);
+				indexRefrac = (1.0 + indexRefrac) / (1.0 - indexRefrac);
+				float angle = acos(dot(viewDir, i.normal) / length(viewDir));
+				float cosAngle = cos(angle);
+				float sinFac = sin(angle) / indexRefrac;
+				sinFac *= sinFac;
+				sinFac = sqrt(1 - sinFac);
+				float reflecS = (cosAngle - indexRefrac * sinFac) / (cosAngle + indexRefrac * sinFac);
+				reflecS *= reflecS;
+				float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
+				reflecP *= reflecP;
+				specFactor = (reflecS + reflecP) / 2;
+			}
+			float3 specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
 			float3 specFinal = DopplerShift(specRgb, 0, 0, shift);
 
 #if defined(LIGHTMAP_ON)
