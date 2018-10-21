@@ -537,6 +537,9 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			if (_Specular >= 1.0) {
 				specFactor = 1.0;
 			}
+			else if (_Specular <= 0.0) {
+				specFactor = 0.0;
+			}
 			else {
 				float indexRefrac = sqrt(_Specular);
 				indexRefrac = (1.0 + indexRefrac) / (1.0 - indexRefrac);
@@ -588,7 +591,9 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 #endif
 
 			// Specular reflection is added after lightmap and shadow
-			rgbFinal += specFinal;
+			if (specFactor > 0.0) {
+				rgbFinal += specFinal;
+			}
 
 			//Doppler factor should be squared for reflected light:
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
