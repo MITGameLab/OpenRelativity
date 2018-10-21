@@ -554,8 +554,15 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 				reflecP *= reflecP;
 				specFactor = (reflecS + reflecP) / 2;
 			}
-			float3 specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
-			float3 specFinal = DopplerShift(specRgb, 0, 0, shift);
+			float3 specRgb, specFinal;
+			if (specFactor > 0.0) {
+				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
+				specFinal = DopplerShift(specRgb, 0, 0, shift);
+			}
+			else {
+				specRgb = 0;
+				specFinal = 0;
+			}
 
 #if defined(LIGHTMAP_ON)
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
