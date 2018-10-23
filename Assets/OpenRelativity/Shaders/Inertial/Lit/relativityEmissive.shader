@@ -2,7 +2,7 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
+Shader "Relativity/Inertial/Lit/Emissive/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -49,26 +49,6 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 
 		//Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
-
-//#define quaternion float4
-//
-//		inline quaternion fromToRotation(float3 from, float3 to) {
-//			quaternion rotation;
-//			rotation.xyz = cross(from, to);
-//			rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
-//			return normalize(rotation);
-//		}
-//
-//		//See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
-//		inline float3 rotate(quaternion rot, float3 vec) {
-//			float3 temp;
-//			temp = 2 * cross(rot.xyz, vec.xyz);
-//			return vec + rot.w * temp + cross(rot.xyz, temp);
-//		}
-//
-//		inline quaternion inverse(quaternion q) {
-//			return quaternion(-q.xyz, q.w) / length(q);
-//		}
 
 	struct appdata {
 		float4 vertex : POSITION;
@@ -120,7 +100,6 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 
 	//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 	float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
-	float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 	float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 	float4 _pap = float4(0, 0, 0, 0); //acceleration of player
@@ -187,10 +166,10 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 		float speedr = sqrt(dot(vr.xyz, vr.xyz));
 		o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
-		//riw = location in world, for reference
+										   //riw = location in world, for reference
 		float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
-		//Boost to rest frame of player:
+										   //Boost to rest frame of player:
 		float4x4 vpcLorentzMatrix = _vpcLorentzMatrix;
 		float4 riwForMetric = mul(vpcLorentzMatrix, riw);
 
@@ -227,8 +206,6 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 
 		//Apply Lorentz transform;
 		//metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
-		float4 aiwTransformed = mul(viwLorentzMatrix, _aiw);
-		aiwTransformed.w = 0;
 		float4 riwTransformed = mul(viwLorentzMatrix, riw);
 		//Translate in time:
 		float tisw = riwTransformed.w;
@@ -239,27 +216,14 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 
 		//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 		float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-		float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
-		float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
 
-		float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
-		float aiwMag = length(aiwTransformed.xyz);
+		float sqrtArg = riwDotRiw / spdOfLightSqrd;
 		float t2 = 0;
 		if (sqrtArg > 0)
 		{
 			t2 = -sqrt(sqrtArg);
 		}
-		//else
-		//{
-		//	//Unruh effect?
-		//	//Seems to happen with points behind the player.
-		//}
 		tisw += t2;
-		//add the position offset due to acceleration
-		if (aiwMag > divByZeroCutoff)
-		{
-			riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
-		}
 		riwTransformed.w = tisw;
 		//Inverse Lorentz transform the position:
 		transComp = viwLorentzMatrix._m30_m31_m32_m33;
@@ -270,9 +234,11 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 		tisw = riw.w;
 		riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 
-		float newz = speed * _spdOfLight * tisw;
-
 		if (speed > divByZeroCutoff) {
+			//Apply Lorentz transform
+			// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+			//I had to break it up into steps, unity was getting order of operations wrong.	
+			float newz = speed * _spdOfLight * tisw;
 			float3 vpcUnit = _vpc.xyz / speed;
 			newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 			riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
@@ -400,12 +366,13 @@ Shader "Relativity/Lit/Accelerated/EmissiveColorShift" {
 		//Re-use memory to save per-vertex operations:
 		float bottom2 = param.z * shift;
 		bottom2 *= bottom2;
+		float paramYShift = param.y * shift;
 
-		float top1 = param.x * xla * exp(-((((param.y * shift) - xlb) * ((param.y * shift) - xlb))
+		float top1 = param.x * xla * exp(-(((paramYShift - xlb) * (paramYShift - xlb))
 			/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
 		float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
 
-		float top2 = param.x * xha * exp(-((((param.y * shift) - xhb) * ((param.y * shift) - xhb))
+		float top2 = param.x * xha * exp(-(((paramYShift - xhb) * (paramYShift - xhb))
 			/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
 		bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
 
