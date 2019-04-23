@@ -34,6 +34,10 @@ namespace OpenRelativity.Objects
                     Vector4 playerAccel = state.PlayerAccelerationVector;
                     Vector3 playerAngVel = state.PlayerAngularVelocityVector;
                     Vector4 myAccel = GetTotalAcceleration(piw);
+
+                    //Consider the acceleration in this set operation to happen over the course of one fixed update frame:
+                    myAccel += (Vector4)((value - _viw) * (float)GetTimeFactor() * Time.fixedDeltaTime);
+
                     Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
                     //Under instantaneous changes in velocity, the optical position should be invariant:
                     //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
@@ -229,7 +233,7 @@ namespace OpenRelativity.Objects
         //If we have a Rigidbody, we cache it here
         private Rigidbody myRigidbody;
         //If we have a Renderer, we cache it, too.
-        public Renderer myRenderer;
+        public Renderer myRenderer { get; set; }
         //Did we collide last frame?
         private bool didCollide;
         //What was the translational velocity result?
@@ -1054,7 +1058,7 @@ namespace OpenRelativity.Objects
                     gameObject.layer = myLayer;
                 }
 
-                if (!isStatic && myRigidbody != null)
+                if (!isStatic && !isSleeping && myRigidbody != null)
                 {
                     //update our viw and set the rigid body proportionally
                     //Dragging probably happens intrinsically in the rest frame,
@@ -1084,7 +1088,8 @@ namespace OpenRelativity.Objects
                                 Ray down = new Ray(opticalWorldCenterOfMass, Vector3.down);
                                 float extentY = myColliders[0].bounds.extents.y;
                                 RaycastHit hitInfo;
-                                if (Physics.Raycast(down, out hitInfo, (transform.position - transform.TransformPoint(Vector3.down * extentY)).magnitude + 0.01f))
+                                float distance = (transform.position - transform.TransformPoint(Vector3.down * extentY)).magnitude;
+                                if (Physics.Raycast(down, out hitInfo, distance + 0.01f))
                                 {
                                     sleepFrameCounter = sleepFrameDelay;
                                     Sleep();
