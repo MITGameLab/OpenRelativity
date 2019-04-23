@@ -35,8 +35,12 @@ namespace OpenRelativity.Objects
                     Vector3 playerAngVel = state.PlayerAngularVelocityVector;
                     Vector4 myAccel = GetTotalAcceleration(piw);
 
+                    //(If we are not overridden by a uniform proper acceleration...)
                     //Consider the acceleration in this set operation to happen over the course of one fixed update frame:
-                    myAccel += (Vector4)((value - _viw) * (float)GetTimeFactor() * Time.fixedDeltaTime);
+                    if (properAiw == Vector3.zero)
+                    {
+                        myAccel += (Vector4)((value - _viw) * (float)GetTimeFactor() * Time.fixedDeltaTime);
+                    }
 
                     Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
                     //Under instantaneous changes in velocity, the optical position should be invariant:
@@ -1004,18 +1008,19 @@ namespace OpenRelativity.Objects
 
                 if (nonrelativisticShader)
                 {
+                    // The object should still contract, if sleeping, but this "unglues" it from any object it rests on, in an obvious way.
                     if (!isStatic && !isSleeping)
                     {
                         //Update the position in world, if necessary:
                         piw += transform.position - contractor.position;
-                    }
-                    transform.localPosition = Vector3.zero;
-                    Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
-                    float testMag = testPos.sqrMagnitude;
-                    if (!float.IsNaN(testMag) && !float.IsInfinity(testMag))
-                    {
-                        contractor.position = testPos;
-                        ContractLength();
+                        transform.localPosition = Vector3.zero;
+                        Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
+                        float testMag = testPos.sqrMagnitude;
+                        if (!float.IsNaN(testMag) && !float.IsInfinity(testMag))
+                        {
+                            contractor.position = testPos;
+                            ContractLength();
+                        }
                     }
                 }
                 else
@@ -1026,6 +1031,15 @@ namespace OpenRelativity.Objects
                 if (!myColliderIsVoxel)
                 {
                     UpdateColliderPosition();
+                }
+
+                if (isSleeping)
+                {
+                    myRigidbody.velocity = Vector3.zero;
+                    myRigidbody.angularVelocity = Vector3.zero;
+
+                    viw = Vector4.zero;
+                    aviw = Vector4.zero;
                 }
 
                 //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
@@ -1768,7 +1782,7 @@ namespace OpenRelativity.Objects
             Vector3 finalTanRapidity;
             if (penDist > 0)
             {
-                float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor());
+                float impulse = (float)(-hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor());
 
                 Vector3 tanNorm = Vector3.Cross(Vector3.Cross(lineOfAction, relVel), lineOfAction).normalized;
                 Vector3 frictionChange = combFriction * impulse * tanNorm;
