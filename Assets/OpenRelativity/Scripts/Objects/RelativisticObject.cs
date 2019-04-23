@@ -1782,7 +1782,7 @@ namespace OpenRelativity.Objects
             Vector3 finalTanRapidity;
             if (penDist > 0)
             {
-                float impulse = (float)(-hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor());
+                float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor());
 
                 Vector3 tanNorm = Vector3.Cross(Vector3.Cross(lineOfAction, relVel), lineOfAction).normalized;
                 Vector3 frictionChange = combFriction * impulse * tanNorm;
