@@ -938,9 +938,10 @@ namespace OpenRelativity.Objects
             if (!state.MovementFrozen)
             {
                 double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-                if (!double.IsInfinity(state.FixedDeltaTimeWorld))
+                double localDeltaT = deltaTime - state.FixedDeltaTimeWorld;
+                if (!double.IsInfinity(localDeltaT) && !double.IsNaN(localDeltaT))
                 {
-                    localTimeOffset += deltaTime - state.FixedDeltaTimeWorld;
+                    localTimeOffset += localDeltaT;
                 }
 
                 //Add proper acceleration:
