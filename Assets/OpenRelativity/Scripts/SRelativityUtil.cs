@@ -9,25 +9,6 @@ namespace OpenRelativity
         public static float c { get { return (float)srCamera.SpeedOfLight; } }
         public static float cSqrd { get { return (float)srCamera.SpeedOfLightSqrd; } }
         public static float maxVel { get { return (float)srCamera.MaxSpeed; } }
-        public static Matrix4x4 GetMetric(Vector4 stpiw, Vector4 pstpiw)
-        {
-            return srCamera.conformalMap.GetMetric(stpiw, pstpiw);
-        }
-        public static Matrix4x4 GetConformalFactor(Vector4 stpiw, Vector4 pstpiw)
-        {
-            if (srCamera == null || srCamera.conformalMap == null)
-            {
-                return Matrix4x4.identity;
-            }
-            else
-            {
-                return srCamera.conformalMap.GetConformalFactor(stpiw, pstpiw);
-            }
-        }
-        public static Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
-        {
-            return srCamera.conformalMap.GetWorldAcceleration(piw, playerPos);
-        }
 
         private static GameState _srCamera;
         private static GameState srCamera
@@ -275,16 +256,6 @@ namespace OpenRelativity
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
-            if (!srCamera.isMinkowski)
-            {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = GetConformalFactor(stpiw, origin);
-                }
-                //Apply conformal map:
-                metric = mixedMetric.Value * metric;
-            }
-
             //We'll also Lorentz transform the vectors:
             beta = viw.magnitude;
             gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
@@ -384,16 +355,6 @@ namespace OpenRelativity
             vpcLorentzMatrix.SetColumn(3, -transComp);
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
-
-            if (!srCamera.isMinkowski)
-            {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = GetConformalFactor(stpiw, origin);
-                }
-                //Apply conformal map:
-                metric = mixedMetric.Value * metric;
-            }
 
             //We'll also Lorentz transform the vectors:
             beta = viw.magnitude;
@@ -533,16 +494,6 @@ namespace OpenRelativity
             vpcLorentzMatrix.SetColumn(3, -transComp);
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
-
-            if (!srCamera.isMinkowski)
-            {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = GetConformalFactor(stpiw, origin);
-                }
-                //Apply conformal map:
-                metric = mixedMetric.Value * metric;
-            }
 
             //We'll also Lorentz transform the vectors:
             Matrix4x4 viwLorentzMatrix;

@@ -363,22 +363,16 @@ namespace OpenRelativity
 
         private void FixedUpdate()
         {
-            if (!MovementFrozen && !double.IsNaN(deltaTimePlayer) && sqrtOneMinusVSquaredCWDividedByCSquared > 0 && !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
+            if (!isMinkowski &&
+                !MovementFrozen &&
+                !double.IsNaN(deltaTimePlayer) &&
+                sqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
+                !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
             {
-                Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
-                Vector3 velocity = -playerVelocityVector;
-                //Set our rigidbody's geodesic acceleration, if necessary
-                playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
-                if (!isMinkowski)
-                {
-                    Vector3 playerPos = playerTransform.position;
-                    Vector3 accel = conformalMap.GetWorldAcceleration(playerPos, playerPos);
-                    float test = accel.sqrMagnitude;
-                    if (!double.IsNaN(test) && !double.IsInfinity(test))
-                    {
-                        playerRB.AddForce(accel, ForceMode.Acceleration);
-                    }
-                }
+                Vector3 playerPos = playerTransform.position;
+                Vector4 disp = new Vector4(0, 0, 0, (float)FixedDeltaTimePlayer);
+                disp = conformalMap.LocalToWorld(playerPos) * disp;
+                playerTransform.position -= (Vector3)disp;
             }
         }
         #region Matrix/Quat math

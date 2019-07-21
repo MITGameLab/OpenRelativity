@@ -224,8 +224,7 @@ namespace OpenRelativity.Objects
                 {
                     Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", tempViw);
-                    Vector4 tempAiw = GetWorldAcceleration(transform.position);
-                    tempRenderer.materials[0].SetVector("_aiw", tempAiw);
+                    tempRenderer.materials[0].SetVector("_aiw", Vector4.zero);
                     Matrix4x4 minkowski = Matrix4x4.identity;
                     minkowski.m33 = 1;
                     minkowski.m00 = -1;
@@ -308,12 +307,6 @@ namespace OpenRelativity.Objects
 
                 }
             }
-        }
-
-        private Vector4 GetWorldAcceleration(Vector3 piw)
-        {
-            Vector4 playerPos = state.playerTransform.position;
-            return state.conformalMap.GetConformalFactor(playerPos, playerPos).inverse * state.conformalMap.GetWorldAcceleration(piw, playerPos);
         }
     }
 }

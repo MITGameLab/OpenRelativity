@@ -954,8 +954,7 @@ namespace OpenRelativity.Objects
                 if (!state.isMinkowski && (deltaTime != 0) && !isStatic)
                 {
                     Vector4 displacement = new Vector4(0, 0, 0, (float)deltaTime);
-                    Matrix4x4 mixedMetric = SRelativityUtil.GetConformalFactor(piw, state.playerTransform.position);
-                    displacement = mixedMetric * displacement;
+                    displacement = state.conformalMap.WorldToLocal(state.playerTransform.position) * state.conformalMap.LocalToWorld(piw) * displacement;
                     piw += (Vector3)displacement;
 
                     if (!nonrelativisticShader)
@@ -1222,10 +1221,6 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null)
             {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = SRelativityUtil.GetConformalFactor(piw, state.playerTransform.position);
-                }
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
@@ -1999,7 +1994,7 @@ namespace OpenRelativity.Objects
                 state.PlayerAngularVelocityVector
             );
 
-            metric = state.conformalMap.GetConformalFactor(piw, playerPos) * metric;
+            metric = state.conformalMap.WorldToLocal(playerPos) * state.conformalMap.LocalToWorld(piw) * metric;
 
             return metric;
         }
@@ -2016,7 +2011,7 @@ namespace OpenRelativity.Objects
             {
                 propAccel += properAiw;
             }
-            return propAccel.ProperToWorldAccel(viw) + state.conformalMap.GetWorldAcceleration(piw, playerPos);
+            return propAccel.ProperToWorldAccel(viw);
         }
 
         private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)
