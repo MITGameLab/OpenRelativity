@@ -1221,6 +1221,10 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null)
             {
+                if (mixedMetric == null)
+                {
+                    mixedMetric = state.conformalMap.WorldToLocal(state.playerTransform.position) * state.conformalMap.LocalToWorld(piw);
+                }
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
