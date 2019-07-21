@@ -15,5 +15,19 @@ namespace OpenRelativity.ConformalMaps
         {
             return Matrix4x4.identity;
         }
+
+        public override Matrix4x4 WorldCoordMetric(Vector4 stpiw)
+        {
+            // By convention, all of our metrics map to proper DISTANCE, as opposed to proper TIME.
+            // (The metric is "intrinsic," i.e. proper distances are independent of coordinates,
+            // except, numerically, we're actually always expecting inputs in a particular coordinate system,
+            // and this is specifically the Unity "world" coordinate system, for this abstract method.)
+            Matrix4x4 metric = Matrix4x4.identity;
+
+            // "3" or "w" is the time index, and seconds * (meters / second) gives a quantity with units of "meters", (i.e. "distance")
+            metric[3, 3] = -SRelativityUtil.c;
+
+            return metric;
+        }
     }
 }
