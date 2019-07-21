@@ -363,8 +363,7 @@ namespace OpenRelativity
 
         private void FixedUpdate()
         {
-            if (!isMinkowski &&
-                !MovementFrozen &&
+            if (!MovementFrozen &&
                 !double.IsNaN(deltaTimePlayer) &&
                 sqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
                 !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
