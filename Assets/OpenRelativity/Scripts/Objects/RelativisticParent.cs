@@ -8,14 +8,24 @@ namespace OpenRelativity.Objects
 {
     public class RelativisticParent : MonoBehaviour
     {
-        //Keep track of our own Mesh Filter
-        private MeshFilter meshFilter;
-        //Store this object's velocity here.
+        // Do we use (pseudo-Newtonian) world gravity?
+        public bool useGravity = false;
+        // Is this parent object static relative world coordinates?
+        public bool isStatic = false;
+
+        // Store this object's velocity here.
         public Vector3 viw;
+        // "Proper acceleration" of the parent object
+        public Vector3 properAiw = Vector3.zero;
+
+        // Keep track of our own Mesh Filter
+        private MeshFilter meshFilter;
+        // Keep track of the GameState singleton;
         private GameState state;
-        //When was this object created? use for moving objects
+
+        // When was this object created? use for moving objects
         private float startTime = 0;
-        //When should we die? again, for moving objects
+        // When should we die? again, for moving objects
         private float deathTime = 0;
 
         // Get the start time of our object, so that we know where not to draw it
@@ -24,12 +34,12 @@ namespace OpenRelativity.Objects
             if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             startTime = (float)state.TotalTimeWorld;
         }
-        //Set the death time, so that we know at what point to destroy the object in the player's view point.
+        // Set the death time, so that we know at what point to destroy the object in the player's view point.
         public void SetDeathTime()
         {
             deathTime = (float)state.TotalTimeWorld;
         }
-        //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
+        // This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
             if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
@@ -224,8 +234,7 @@ namespace OpenRelativity.Objects
                 {
                     Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", tempViw);
-                    Vector4 tempAiw = GetWorldAcceleration(transform.position);
-                    tempRenderer.materials[0].SetVector("_aiw", tempAiw);
+                    tempRenderer.materials[0].SetVector("_aiw", GetTotalAcceleration());
                     Matrix4x4 minkowski = Matrix4x4.identity;
                     minkowski.m33 = 1;
                     minkowski.m00 = -1;
@@ -310,10 +319,19 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private Vector4 GetWorldAcceleration(Vector3 piw)
+        public Vector4 GetTotalAcceleration()
         {
             Vector4 playerPos = state.playerTransform.position;
-            return state.conformalMap.GetConformalFactor(playerPos, playerPos).inverse * state.conformalMap.GetWorldAcceleration(piw, playerPos);
+            Vector3 propAccel = Vector4.zero;
+            if (useGravity && !isStatic)
+            {
+                propAccel += Physics.gravity;
+            }
+            if (properAiw.sqrMagnitude > 0)
+            {
+                propAccel += properAiw;
+            }
+            return propAccel.ProperToWorldAccel(viw);
         }
     }
 }

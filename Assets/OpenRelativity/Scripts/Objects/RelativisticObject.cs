@@ -47,7 +47,7 @@ namespace OpenRelativity.Objects
                     //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
                     piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz)).OpticalToWorldHighPrecision(value, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz);
                     //test = test - piw.WorldToOptical(value, playerPos, playerVel);
-                    if (!nonrelativisticShader)
+                    if (!nonrelativisticShader && !float.IsInfinity(piw.magnitude) && !float.IsNaN(piw.magnitude))
                     {
                         transform.position = piw;
                     }
@@ -574,8 +574,6 @@ namespace OpenRelativity.Objects
                     MeshCollider orig = childrenColliders[i];
                     MeshCollider dupe = CopyComponent(childrenColliders[i], gameObject);
                     dupe.convex = orig.convex;
-                    dupe.inflateMesh = orig.inflateMesh;
-                    dupe.skinWidth = orig.skinWidth;
                     dupe.sharedMesh = Instantiate(orig.sharedMesh);
                     dupes.Add(dupe);
                 }
@@ -817,9 +815,16 @@ namespace OpenRelativity.Objects
             if (didCollide)
             {
                 //Finish and shut off enforcement
-                viw = collisionResultVel3;
-                aviw = collisionResultAngVel3;
-                myRigidbody.angularVelocity = aviw;
+                if (!float.IsInfinity(collisionResultVel3.magnitude) && !float.IsNaN(collisionResultVel3.magnitude))
+                {
+                    viw = collisionResultVel3;
+                }
+
+                if (!float.IsInfinity(collisionResultAngVel3.magnitude) && !float.IsNaN(collisionResultAngVel3.magnitude))
+                {
+                    aviw = collisionResultAngVel3;
+                    myRigidbody.angularVelocity = aviw;
+                }
                 didCollide = false;
             }
         }
@@ -953,13 +958,9 @@ namespace OpenRelativity.Objects
                 //Update co-moving position, if necessary:
                 if (!state.isMinkowski && (deltaTime != 0) && !isStatic)
                 {
-                    Vector3 playerPos = state.playerTransform.position;
-                    //Vector3 playerVel = state.PlayerVelocityVector;
-                    Vector4 playerAccel = state.PlayerAccelerationVector;
-                    Vector3 playerAngVel = state.PlayerAngularVelocityVector;
-                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)(-deltaTime));
-                    Vector4 myAccel = GetTotalAcceleration(piw);
-                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel, state.PlayerLorentzMatrix, viwLorentz);
+                    Vector4 displacement = new Vector4(0, 0, 0, (float)deltaTime);
+                    displacement = state.conformalMap.WorldToLocal(state.playerTransform.position) * state.conformalMap.LocalToWorld(piw) * displacement;
+                    piw += (Vector3)displacement;
 
                     if (!nonrelativisticShader)
                     {
@@ -1227,7 +1228,7 @@ namespace OpenRelativity.Objects
             {
                 if (mixedMetric == null)
                 {
-                    mixedMetric = state.conformalMap.GetConformalFactor(piw, state.playerTransform.position);
+                    mixedMetric = state.conformalMap.WorldToLocal(state.playerTransform.position) * state.conformalMap.LocalToWorld(piw);
                 }
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
@@ -1995,14 +1996,14 @@ namespace OpenRelativity.Objects
         {   
             Vector3 playerPos = state.playerTransform.position;
 
-            Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
+            Matrix4x4 metric = ((Vector4)piw).GetPlayerLocalAcceleratedMetric(
                 playerPos,
                 state.PlayerVelocityVector,
                 state.PlayerAccelerationVector,
                 state.PlayerAngularVelocityVector
             );
 
-            metric = state.conformalMap.GetConformalFactor(piw, playerPos) * metric;
+            metric =  metric * state.conformalMap.WorldToLocal(playerPos) * state.conformalMap.LocalToWorld(piw);
 
             return metric;
         }
@@ -2019,7 +2020,7 @@ namespace OpenRelativity.Objects
             {
                 propAccel += properAiw;
             }
-            return propAccel.ProperToWorldAccel(viw) + state.conformalMap.GetWorldAcceleration(piw, playerPos);
+            return propAccel.ProperToWorldAccel(viw);
         }
 
         private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)
@@ -2030,12 +2031,7 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 pVel = state.PlayerVelocityVector;
                     //This works so long as our metric uses synchronous coordinates:
-                    Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
-                        state.playerTransform.position,
-                        pVel,
-                        state.PlayerAccelerationVector,
-                        state.PlayerAngularVelocityVector
-                    );
+                    Matrix4x4 metric = GetMetric();
                     
                     float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
                     if (timeFac > 0)
@@ -2063,12 +2059,7 @@ namespace OpenRelativity.Objects
             {
                 Vector3 pVel = state.PlayerVelocityVector;
                 //This works so long as our metric uses synchronous coordinates:
-                Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
-                    state.playerTransform.position,
-                    pVel,
-                    state.PlayerAccelerationVector,
-                    state.PlayerAngularVelocityVector
-                );
+                Matrix4x4 metric = GetMetric();
 
                 float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
                 if (timeFac < 0)

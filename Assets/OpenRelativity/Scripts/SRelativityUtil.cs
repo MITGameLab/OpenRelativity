@@ -9,24 +9,38 @@ namespace OpenRelativity
         public static float c { get { return (float)srCamera.SpeedOfLight; } }
         public static float cSqrd { get { return (float)srCamera.SpeedOfLightSqrd; } }
         public static float maxVel { get { return (float)srCamera.MaxSpeed; } }
-        public static Matrix4x4 GetMetric(Vector4 stpiw, Vector4 pstpiw)
+
+        public static Matrix4x4 GetWorldCoordMetric(Vector4 stpiw)
         {
-            return srCamera.conformalMap.GetMetric(stpiw, pstpiw);
-        }
-        public static Matrix4x4 GetConformalFactor(Vector4 stpiw, Vector4 pstpiw)
-        {
-            if (srCamera == null || srCamera.conformalMap == null)
+            if (srCamera.conformalMap)
+            {
+                return srCamera.conformalMap.WorldCoordMetric(stpiw);
+            } else
             {
                 return Matrix4x4.identity;
             }
-            else
+        }
+
+        public static Matrix4x4 GetPlayerCooordMetric(Vector4 stpiw, Vector4 pstpiw)
+        {
+            if (srCamera.conformalMap)
             {
-                return srCamera.conformalMap.GetConformalFactor(stpiw, pstpiw);
+                return srCamera.conformalMap.WorldToLocal(pstpiw) * GetWorldCoordMetric(stpiw);
+            } else
+            {
+                return Matrix4x4.identity;
             }
         }
-        public static Vector4 GetWorldAcceleration(Vector3 piw, Vector3 playerPos)
+
+        public static Matrix4x4 GetConformalMap(Vector4 stpiw, Vector4 pstpiw)
         {
-            return srCamera.conformalMap.GetWorldAcceleration(piw, playerPos);
+            if (srCamera.conformalMap)
+            {
+                return srCamera.conformalMap.WorldToLocal(pstpiw) * srCamera.conformalMap.LocalToWorld(stpiw);
+            } else
+            {
+                return Matrix4x4.identity;
+            }
         }
 
         private static GameState _srCamera;
@@ -162,7 +176,7 @@ namespace OpenRelativity
 
         public const float divByZeroCutoff = 1e-8f;
 
-        public static Matrix4x4 GetLocalMetric(this Vector4 stpiw, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
+        public static Matrix4x4 GetPlayerLocalAcceleratedMetric(this Vector4 stpiw, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
         {
             float spdOfLight = SRelativityUtil.c;
             float spdOfLightSqrd = SRelativityUtil.cSqrd;
@@ -220,7 +234,7 @@ namespace OpenRelativity
             return metric;
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? mixedMetric = null)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 playerStpiw, Vector3 avp, Vector4 aiw, Matrix4x4? mixedMetric = null)
         {
             float spdOfLight = SRelativityUtil.c;
             float spdOfLightSqrd = spdOfLight * spdOfLight;
@@ -257,7 +271,7 @@ namespace OpenRelativity
 
             //Find metric based on player acceleration and rest frame:
             Vector3 angFac = Vector3.Cross(avp, riwForMetric) / spdOfLight;
-            float linFac = Vector3.Dot(pap, riwForMetric) / spdOfLightSqrd;
+            float linFac = Vector3.Dot(playerStpiw, riwForMetric) / spdOfLightSqrd;
             linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLightSqrd;
             angFac *= -2;
 
@@ -268,22 +282,17 @@ namespace OpenRelativity
                 new Vector4(angFac.x, angFac.y, angFac.z, linFac)
             );
 
+            if (!srCamera.isMinkowski)
+            {
+                metric = GetConformalMap(stpiw, playerStpiw) * metric;
+            }
+
             //Lorentz boost back to world frame;
             Vector4 transComp = vpcLorentzMatrix.GetColumn(3);
             transComp.w = -(transComp.w);
             vpcLorentzMatrix.SetColumn(3, -transComp);
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
-
-            if (!srCamera.isMinkowski)
-            {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = GetConformalFactor(stpiw, origin);
-                }
-                //Apply conformal map:
-                metric = mixedMetric.Value * metric;
-            }
 
             //We'll also Lorentz transform the vectors:
             beta = viw.magnitude;
@@ -330,7 +339,7 @@ namespace OpenRelativity
             return tisw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Matrix4x4? mixedMetric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 playerStpiw, Vector3 avp, Matrix4x4? mixedMetric = null)
         {
             float spdOfLight = SRelativityUtil.c;
             float spdOfLightSqrd = SRelativityUtil.cSqrd;
@@ -367,7 +376,7 @@ namespace OpenRelativity
 
             //Find metric based on player acceleration and rest frame:
             Vector3 angFac = Vector3.Cross(avp, riwForMetric) / spdOfLight;
-            float linFac = Vector3.Dot(pap, riwForMetric) / (spdOfLight * spdOfLight);
+            float linFac = Vector3.Dot(playerStpiw, riwForMetric) / (spdOfLight * spdOfLight);
             linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLight * spdOfLight;
             angFac *= -2;
 
@@ -378,22 +387,17 @@ namespace OpenRelativity
                 new Vector4(angFac.x, angFac.y, angFac.z, linFac)
             );
 
+            if (!srCamera.isMinkowski)
+            {
+                metric = GetConformalMap(stpiw, playerStpiw) * metric;
+            }
+
             //Lorentz boost back to world frame;
             Vector4 transComp = vpcLorentzMatrix.GetColumn(3);
             transComp.w = -(transComp.w);
             vpcLorentzMatrix.SetColumn(3, -transComp);
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
-
-            if (!srCamera.isMinkowski)
-            {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = GetConformalFactor(stpiw, origin);
-                }
-                //Apply conformal map:
-                metric = mixedMetric.Value * metric;
-            }
 
             //We'll also Lorentz transform the vectors:
             beta = viw.magnitude;
@@ -470,7 +474,7 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null, Matrix4x4? mixedMetric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 playerStpiw, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null, Matrix4x4? mixedMetric = null)
         {
             float spdOfLight = SRelativityUtil.c;
             float spdOfLightSqrd = spdOfLight * spdOfLight;
@@ -516,7 +520,7 @@ namespace OpenRelativity
 
             //Find metric based on player acceleration and rest frame:
             Vector3 angFac = Vector3.Cross(avp, riwForMetric) / spdOfLight;
-            float linFac = Vector3.Dot(pap, riwForMetric) / spdOfLightSqrd;
+            float linFac = Vector3.Dot(playerStpiw, riwForMetric) / spdOfLightSqrd;
             linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * spdOfLightSqrd;
             angFac *= -2 * spdOfLight;
 
@@ -527,22 +531,17 @@ namespace OpenRelativity
                 new Vector4(angFac.x, angFac.y, angFac.z, linFac)
             );
 
+            if (!srCamera.isMinkowski)
+            {
+                metric = GetConformalMap(stpiw, playerStpiw) * metric;
+            }
+
             //Lorentz boost back to world frame;
             Vector4 transComp = vpcLorentzMatrix.GetColumn(3);
             transComp.w = -(transComp.w);
             vpcLorentzMatrix.SetColumn(3, -transComp);
             vpcLorentzMatrix.SetRow(3, -transComp);
             metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
-
-            if (!srCamera.isMinkowski)
-            {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = GetConformalFactor(stpiw, origin);
-                }
-                //Apply conformal map:
-                metric = mixedMetric.Value * metric;
-            }
 
             //We'll also Lorentz transform the vectors:
             Matrix4x4 viwLorentzMatrix;
