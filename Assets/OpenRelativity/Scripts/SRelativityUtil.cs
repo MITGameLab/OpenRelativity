@@ -158,7 +158,7 @@ namespace OpenRelativity
 
         public const float divByZeroCutoff = 1e-8f;
 
-        public static Matrix4x4 GetLocalMetric(this Vector4 stpiw, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
+        public static Matrix4x4 GetPlayerLocalAcceleratedMetric(this Vector4 stpiw, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
         {
             float spdOfLight = SRelativityUtil.c;
             float spdOfLightSqrd = SRelativityUtil.cSqrd;

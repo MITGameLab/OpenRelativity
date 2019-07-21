@@ -1991,14 +1991,14 @@ namespace OpenRelativity.Objects
         {   
             Vector3 playerPos = state.playerTransform.position;
 
-            Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
+            Matrix4x4 metric = ((Vector4)piw).GetPlayerLocalAcceleratedMetric(
                 playerPos,
                 state.PlayerVelocityVector,
                 state.PlayerAccelerationVector,
                 state.PlayerAngularVelocityVector
             );
 
-            metric = state.conformalMap.WorldToLocal(playerPos) * state.conformalMap.LocalToWorld(piw) * metric;
+            metric =  metric * state.conformalMap.WorldToLocal(playerPos) * state.conformalMap.LocalToWorld(piw);
 
             return metric;
         }
@@ -2026,12 +2026,7 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 pVel = state.PlayerVelocityVector;
                     //This works so long as our metric uses synchronous coordinates:
-                    Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
-                        state.playerTransform.position,
-                        pVel,
-                        state.PlayerAccelerationVector,
-                        state.PlayerAngularVelocityVector
-                    );
+                    Matrix4x4 metric = GetMetric();
                     
                     float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
                     if (timeFac > 0)
@@ -2059,12 +2054,7 @@ namespace OpenRelativity.Objects
             {
                 Vector3 pVel = state.PlayerVelocityVector;
                 //This works so long as our metric uses synchronous coordinates:
-                Matrix4x4 metric = ((Vector4)piw).GetLocalMetric(
-                    state.playerTransform.position,
-                    pVel,
-                    state.PlayerAccelerationVector,
-                    state.PlayerAngularVelocityVector
-                );
+                Matrix4x4 metric = GetMetric();
 
                 float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
                 if (timeFac < 0)
