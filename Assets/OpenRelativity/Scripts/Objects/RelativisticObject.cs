@@ -953,13 +953,10 @@ namespace OpenRelativity.Objects
                 //Update co-moving position, if necessary:
                 if (!state.isMinkowski && (deltaTime != 0) && !isStatic)
                 {
-                    Vector3 playerPos = state.playerTransform.position;
-                    //Vector3 playerVel = state.PlayerVelocityVector;
-                    Vector4 playerAccel = state.PlayerAccelerationVector;
-                    Vector3 playerAngVel = state.PlayerAngularVelocityVector;
-                    Vector4 stpiw = new Vector4(piw.x, piw.y, piw.z, (float)(-deltaTime));
-                    Vector4 myAccel = GetTotalAcceleration(piw);
-                    piw = ((Vector4)(stpiw.WorldToOptical(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel))).OpticalToWorldHighPrecision(viw, playerPos, Vector3.zero, playerAccel, playerAngVel, myAccel, state.PlayerLorentzMatrix, viwLorentz);
+                    Vector4 displacement = new Vector4(0, 0, 0, (float)deltaTime);
+                    Matrix4x4 mixedMetric = SRelativityUtil.GetConformalFactor(piw, state.playerTransform.position);
+                    displacement = mixedMetric * displacement;
+                    piw += (Vector3)displacement;
 
                     if (!nonrelativisticShader)
                     {
@@ -1227,7 +1224,7 @@ namespace OpenRelativity.Objects
             {
                 if (mixedMetric == null)
                 {
-                    mixedMetric = state.conformalMap.GetConformalFactor(piw, state.playerTransform.position);
+                    mixedMetric = SRelativityUtil.GetConformalFactor(piw, state.playerTransform.position);
                 }
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;

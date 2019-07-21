@@ -18,11 +18,11 @@ namespace OpenRelativity.ConformalMaps
             Vector4 cartesianPos = stpiw - origin;
             Vector4 sphericalPos = cartesianPos.Cartesian4ToSpherical4();
             //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
-            double rho = cartesianPos.magnitude;
-            double tau = cartesianPos.w;
+            float rho = cartesianPos.magnitude;
+            float tau = cartesianPos.w;
 
             //Convert to usual Schwarzschild solution r:
-            double r = Math.Pow(Math.Pow(3.0 / 2.0 * (rho - SRelativityUtil.c * tau), 2) * radius, 1.0 / 3.0);
+            float r = Mathf.Pow(Mathf.Pow(3.0f / 2.0f * (rho - SRelativityUtil.c * tau), 2) * radius, 1.0f / 3.0f);
 
             //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
             // so we need to cut-off the interior metric at some point, for numerical sanity
@@ -30,62 +30,66 @@ namespace OpenRelativity.ConformalMaps
             {
                 return Matrix4x4.identity;
             }
-            else
+            
+            float schwarzFac = 1 - radius / r;
+            float sqrtRDivRs = Mathf.Sqrt(r / radius);
+
+            //Here's the value of the Lemaitre-to-Schwarzschild Jacobian ("comoving"-to-"world") at the object's position in spherical coordinates:
+            Matrix4x4 objectToWorldJacobian = Matrix4x4.zero;
+            objectToWorldJacobian[3, 3] = sqrtRDivRs / (sqrtRDivRs - 1.0f / sqrtRDivRs);
+            objectToWorldJacobian[3, 0] = (1.0f / sqrtRDivRs) / (-sqrtRDivRs + 1.0f / sqrtRDivRs) / SRelativityUtil.c;
+            objectToWorldJacobian[0, 3] = SRelativityUtil.c * (radius - r) / (r * (sqrtRDivRs - 1.0f / sqrtRDivRs));
+            objectToWorldJacobian[0, 0] = (r - radius) / (r * (1.0f / sqrtRDivRs - sqrtRDivRs));
+            objectToWorldJacobian[1, 1] = 1;
+            objectToWorldJacobian[2, 2] = 1;
+
+            // To find the player's first-person perspective, we need to map back from Schwarzschild-to-Lemaitre, at the player's position:
+            cartesianPos = pstpiw - origin;
+            sphericalPos = cartesianPos.Cartesian4ToSpherical4();
+            rho = cartesianPos.magnitude;
+            tau = cartesianPos.w;
+
+            //Convert to usual Schwarzschild solution r:
+            r = Mathf.Pow(Mathf.Pow(3.0f / 2.0f * (rho - SRelativityUtil.c * tau), 2) * radius, 1.0f / 3.0f);
+
+            schwarzFac = 1 - radius / r;
+            sqrtRDivRs = Mathf.Sqrt(r / radius);
+
+            Matrix4x4 worldToPlayerJacobian = Matrix4x4.zero;
+            worldToPlayerJacobian[3, 3] = 1;
+            worldToPlayerJacobian[3, 0] = ((1.0f / sqrtRDivRs) / schwarzFac) / SRelativityUtil.c;
+            worldToPlayerJacobian[0, 3] = SRelativityUtil.c;
+            worldToPlayerJacobian[0, 0] = sqrtRDivRs / schwarzFac;
+            worldToPlayerJacobian[1, 1] = 1;
+            worldToPlayerJacobian[2, 2] = 1;
+
+            //A particular useful "tensor" (which we can think of loosely here as "just a matrix") called the "Jacobian"
+            // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
+            Matrix4x4 sphericalToCartesionJacobian  = Matrix4x4.identity;
+            float x = cartesianPos.x;
+            float y = cartesianPos.y;
+            float z = cartesianPos.z;
+            rho = Mathf.Sqrt(x * x + y * y + z * z);
+            float sqrtXSqrYSqr = Mathf.Sqrt(x * x + y * y);
+            if (rho != 0 && sqrtXSqrYSqr != 0)
             {
-                double schwarzFac = 1 - radius / r;
-                double playerR = ((Vector3)(pstpiw - origin)).magnitude;
-                double playerSchwarzFac = 1;
-                if (playerR > radiusCutoff)
-                {
-                    playerSchwarzFac = 1 - radius / playerR;
-                }
-                double sqrtRDivRs = Math.Sqrt(r / radius);
-                double denomFac = (sqrtRDivRs - 1.0 / sqrtRDivRs) * (sqrtRDivRs - 1.0 / sqrtRDivRs);
+                // This is the Jacobian from spherical to Cartesian coordinates:
+                sphericalToCartesionJacobian.m00 = x / rho;
+                sphericalToCartesionJacobian.m01 = y / rho;
+                sphericalToCartesionJacobian.m02 = z / rho;
+                sphericalToCartesionJacobian.m10 = x * z / (rho * rho * sqrtXSqrYSqr);
+                sphericalToCartesionJacobian.m11 = y * z / (rho * rho * sqrtXSqrYSqr);
+                sphericalToCartesionJacobian.m20 = -y / (x * x + y * y);
+                sphericalToCartesionJacobian.m21 = x / (x * x + y * y);
+                sphericalToCartesionJacobian.m12 = -sqrtXSqrYSqr / (rho * rho);
+                sphericalToCartesionJacobian.m22 = 0;
+                sphericalToCartesionJacobian.m33 = 1;
 
-                //Here's the value of the conformal factor at this distance in spherical coordinates with the orig at zero:
-                Matrix4x4 sphericalConformalFactor = Matrix4x4.zero;
-                //(For the metric, rather than the conformal factor, the time coordinate would have its sign flipped relative to the spatial components,
-                // either positive space and negative time, or negative time and positive space.)
-                sphericalConformalFactor[3, 3] = (float)(playerSchwarzFac * (r - radius) / (radius * denomFac));
-                sphericalConformalFactor[0, 0] = (float)(schwarzFac / (denomFac * playerSchwarzFac));
-                sphericalConformalFactor[1, 1] = (float)(r * r);
-                sphericalConformalFactor[2, 2] = (float)(r * r * Mathf.Pow(Mathf.Sin(sphericalPos.y), 2));
-
-                //A particular useful "tensor" (which we can think of loosely here as "just a matrix") called the "Jacobian"
-                // lets us convert the "metric tensor" (and other tensors) between coordinate systems, like from spherical back to Cartesian:
-                Matrix4x4 jacobian  = Matrix4x4.identity;
-                double x = cartesianPos.x;
-                double y = cartesianPos.y;
-                double z = cartesianPos.z;
-                rho = Math.Sqrt(x * x + y * y + z * z);
-                double sqrtXSqrYSqr = Math.Sqrt(x * x + y * y);
-                if (rho != 0 && sqrtXSqrYSqr != 0)
-                {
-                    // This is the Jacobian from spherical to Cartesian coordinates:
-                    jacobian.m00 = (float)(x / rho);
-                    jacobian.m01 = (float)(y / rho);
-                    jacobian.m02 = (float)(z / rho);
-                    jacobian.m10 = (float)(x * z / (rho * rho * sqrtXSqrYSqr));
-                    jacobian.m11 = (float)(y * z / (rho * rho * sqrtXSqrYSqr));
-                    jacobian.m20 = (float)(-y / (x * x + y * y));
-                    jacobian.m21 = (float)(x / (x * x + y * y));
-                    jacobian.m12 = (float)(-sqrtXSqrYSqr / (rho * rho));
-                    jacobian.m22 = 0;
-                    jacobian.m33 = 1;
-
-                    //To convert the coordinate system of the metric (or the "conformal factor," in this case,) we multiply this way by the Jacobian and its transpose.
-                    //(*IMPORTANT NOTE: I'm assuming this "conformal factor" transforms like a true tensor, which not all matrices are. I need to do more research to confirm that
-                    // it transforms the same way as the metric, but given that the conformal factor maps from Minkowski to another metric, I think this is a safe bet.)
-                    return jacobian.transpose * sphericalConformalFactor * jacobian;
-                }
-                else
-                {
-                    sphericalConformalFactor.m22 = sphericalConformalFactor.m00;
-                    sphericalConformalFactor.m00 = 1;
-                    sphericalConformalFactor.m11 = 1;
-                    return sphericalConformalFactor;
-                }
+                return sphericalToCartesionJacobian * worldToPlayerJacobian * objectToWorldJacobian;
             }
+
+
+            return Matrix4x4.identity;
         }
 
         override public Matrix4x4 GetMetric(Vector4 stpiw, Vector4 pstpiw)
