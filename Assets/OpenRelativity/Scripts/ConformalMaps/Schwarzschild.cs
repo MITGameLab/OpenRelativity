@@ -5,6 +5,8 @@ namespace OpenRelativity.ConformalMaps
 {
     public class Schwarzschild : ConformalMap
     {
+        public GameState state;
+        public Transform eventHorizon;
         public float radius = 1;
         public float radiusCutoff = 1;
 
@@ -136,6 +138,18 @@ namespace OpenRelativity.ConformalMaps
             sphericalToCartesionJacobian.m33 = 1;
 
             return sphericalToCartesionJacobian;
+        }
+
+        void FixedUpdate()
+        {
+            if (!Double.IsInfinity(state.FixedDeltaTimeWorld))
+            radius = radius - ((float)state.FixedDeltaTimeWorld * SRelativityUtil.c * radius / 2.0f);
+            if (radius < radiusCutoff)
+            {
+                radius = 0;
+            }
+
+            eventHorizon.localScale = new Vector3(radius, radius, radius);
         }
     }
 }
