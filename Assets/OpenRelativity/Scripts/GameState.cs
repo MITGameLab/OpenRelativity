@@ -369,10 +369,16 @@ namespace OpenRelativity
                 sqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
                 !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
             {
-                Vector3 playerPos = playerTransform.position;
-                Vector4 disp = new Vector4(0, 0, 0, (float)FixedDeltaTimePlayer);
-                disp = conformalMap.LocalToWorld(playerPos) * disp;
-                playerTransform.position -= (Vector3)disp;
+                if (!isMinkowski)
+                {
+                    Vector4 disp = new Vector4(0, 0, 0, (float)FixedDeltaTimePlayer);
+                    disp = conformalMap.LocalToWorld(playerTransform.position) * disp;
+                    playerTransform.position -= (Vector3)disp;
+                }
+
+                Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
+                Vector3 velocity = -playerVelocityVector;
+                playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
             }
         }
         #region Matrix/Quat math

@@ -20,10 +20,9 @@ namespace OpenRelativity.ConformalMaps
             //We assume all input space-time-position-in-world vectors are Cartesian.
             //The Schwarzschild metric is most naturally expressed in spherical coordinates.
             Vector4 cartesianPos = stpiw - origin;
-            Vector4 sphericalPos = cartesianPos.Cartesian4ToSpherical4();
 
             //Assume that spherical transform of input are Lemaître coordinates, since they "co-move" with the gravitational pull of the black hole:
-            float rho = cartesianPos.magnitude;
+            float rho = ((Vector3)cartesianPos).magnitude;
             float tau = cartesianPos.w;
 
             //Convert to usual Schwarzschild solution r:
@@ -62,9 +61,8 @@ namespace OpenRelativity.ConformalMaps
             //We assume all input space-time-position-in-world vectors are Cartesian.
             //The Schwarzschild metric is most naturally expressed in spherical coordinates.
             Vector4 cartesianPos = pstpiw - origin;
-            Vector4 sphericalPos = cartesianPos.Cartesian4ToSpherical4();
             //Assume that spherical transform of input are "Unity world coordinates," and we're converting to local (player) coordinates:
-            float r = cartesianPos.magnitude;
+            float r = ((Vector3)cartesianPos).magnitude;
             float schwarzFac = 1 - radius / r;
             float sqrtRDivRs = Mathf.Sqrt(r / radius);
             //At the center of the coordinate system is a singularity, at the Schwarzschild radius is an event horizon,
@@ -90,9 +88,8 @@ namespace OpenRelativity.ConformalMaps
         {
             Vector4 origin = transform.position;
             Vector4 cartesianPos = stpiw - origin;
-            Vector4 sphericalPos = cartesianPos.Cartesian4ToSpherical4();
 
-            float r = cartesianPos.magnitude;
+            float r = ((Vector3)cartesianPos).magnitude;
             float schwarzFac = 1 - radius / r;
             float sqrtSchwarzFac = Mathf.Sqrt(schwarzFac);
 

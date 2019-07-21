@@ -574,8 +574,6 @@ namespace OpenRelativity.Objects
                     MeshCollider orig = childrenColliders[i];
                     MeshCollider dupe = CopyComponent(childrenColliders[i], gameObject);
                     dupe.convex = orig.convex;
-                    dupe.inflateMesh = orig.inflateMesh;
-                    dupe.skinWidth = orig.skinWidth;
                     dupe.sharedMesh = Instantiate(orig.sharedMesh);
                     dupes.Add(dupe);
                 }
