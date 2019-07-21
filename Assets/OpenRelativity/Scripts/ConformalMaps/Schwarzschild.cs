@@ -144,7 +144,7 @@ namespace OpenRelativity.ConformalMaps
         void FixedUpdate()
         {
             if (!Double.IsInfinity(state.FixedDeltaTimeWorld))
-            radius = radius - ((float)state.FixedDeltaTimeWorld * SRelativityUtil.c * radius / 2.0f);
+            radius = radius - ((float)state.FixedDeltaTimeWorld * SRelativityUtil.c * 2.0f / radius);
             if (radius < radiusCutoff)
             {
                 radius = 0;
