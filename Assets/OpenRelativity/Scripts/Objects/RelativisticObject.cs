@@ -45,7 +45,7 @@ namespace OpenRelativity.Objects
                     Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
                     //Under instantaneous changes in velocity, the optical position should be invariant:
                     //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
-                    piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz)).OpticalToWorld(value, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz);
+                    piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz)).OpticalToWorldHighPrecision(value, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz);
                     //test = test - piw.WorldToOptical(value, playerPos, playerVel);
                     if (!nonrelativisticShader && !IsNaNOrInf(piw.magnitude))
                     {
