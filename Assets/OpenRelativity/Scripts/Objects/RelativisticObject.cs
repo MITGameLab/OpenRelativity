@@ -1212,26 +1212,7 @@ namespace OpenRelativity.Objects
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
-                float beta = tempViw.magnitude;
-                float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
-                Matrix4x4 viwLorentzMatrix = Matrix4x4.identity;
-                if (beta > 0)
-                {
-                    Vector4 viwTransUnit = tempViw / beta;
-                    viwTransUnit.w = 1;
-                    Vector4 spatialComp = (gamma - 1) * viwTransUnit;
-                    spatialComp.w = -gamma * beta;
-                    Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
-                    tComp.Scale(viwTransUnit);
-                    viwLorentzMatrix.SetColumn(3, tComp);
-                    viwLorentzMatrix.SetColumn(0, viwTransUnit.x * spatialComp);
-                    viwLorentzMatrix.SetColumn(1, viwTransUnit.y * spatialComp);
-                    viwLorentzMatrix.SetColumn(2, viwTransUnit.z * spatialComp);
-                    viwLorentzMatrix.m00 += 1;
-                    viwLorentzMatrix.m11 += 1;
-                    viwLorentzMatrix.m22 += 1;
-                }
-                viwLorentz = viwLorentzMatrix;
+                Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
 
                 colliderShaderParams.viw = tempViw;
                 colliderShaderParams.aiw = tempAiw;
