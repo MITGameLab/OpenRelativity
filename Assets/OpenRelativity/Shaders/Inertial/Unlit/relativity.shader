@@ -157,7 +157,7 @@ Shader "Relativity/Inertial/Unlit/ColorShift"
 			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
 
 			//Apply conformal map:
-			metric = mul(_MixedMetric, metric);
+			metric = mul(transpose(_MixedMetric), mul(metric, _MixedMetric));
 
 			//We'll also Lorentz transform the vectors:
 			float4x4 viwLorentzMatrix = _viwLorentzMatrix;

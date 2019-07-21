@@ -72,7 +72,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
 
 	//Apply conformal map:
-	metric = mul(mixedMetric, metric);
+	metric = mul(transpose(mixedMetric), mul(metric, mixedMetric));
 
 	//Remember that relativity is time-translation invariant.
 	//The above metric gives the numerically correct result if the time coordinate of riw is zero,
