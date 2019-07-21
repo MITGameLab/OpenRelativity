@@ -103,7 +103,9 @@ namespace OpenRelativity.ConformalMaps
             metric[3, 3] = -SRelativityUtil.c * sqrtSchwarzFac;
             metric[0, 0] = sqrtSchwarzFac;
 
-            return SphericalToCartesian(stpiw) * metric;
+            Matrix4x4 stc = SphericalToCartesian(stpiw);
+
+            return stc * metric * stc.inverse;
         }
 
         public Matrix4x4 SphericalToCartesian(Vector4 stpiw)
