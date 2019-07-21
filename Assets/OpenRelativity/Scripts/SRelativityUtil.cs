@@ -289,88 +289,7 @@ namespace OpenRelativity
             return tisw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
-        {
-            Vector3 vpc = -playerVel / c;;
-            Vector3 viw = velocity / c;
-
-            //riw = location in world, for reference
-            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
-
-            Matrix4x4 vpcLorentzMatrix = GetLorentzTransformMatrix(vpc);
-            // Boost to rest frame of player
-            Vector4 riwForMetric = vpcLorentzMatrix * riw;
-
-            //Find metric based on player acceleration and rest frame:
-            Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
-
-            if (!srCamera.isMinkowski)
-            {
-                Matrix4x4 ltw = GetConformalMap(stpiw, pap);
-                metric = ltw.inverse * metric * ltw;
-            }
-
-            //Lorentz boost back to world frame:
-            vpcLorentzMatrix = vpcLorentzMatrix.inverse;
-            // The Lorentz transformation is just a coordinate transformation:
-            metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
-
-            //We'll also Lorentz transform the vectors:
-            Matrix4x4 viwLorentzMatrix = GetLorentzTransformMatrix(viw);
-
-            //Remember that relativity is time-translation invariant.
-            //The above metric gives the numerically correct result if the time coordinate of riw is zero,
-            //(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
-            //We are free to translate our position in time such that this is the case.
-
-            //Apply Lorentz transform;
-            //metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
-            Vector4 riwTransformed = viwLorentzMatrix * riw;
-            //Translate in time:
-            float tisw = riwTransformed.w;
-            riwForMetric.w = 0;
-            riw = vpcLorentzMatrix * riwForMetric;
-            riwTransformed = viwLorentzMatrix * riw;
-            riwTransformed.w = 0;
-
-            //(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
-            float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
-
-            float sqrtArg = riwDotRiw / cSqrd;
-            float t2 = 0;
-            if (sqrtArg > 0)
-            {
-                t2 = -Mathf.Sqrt(sqrtArg);
-            }
-            //else
-            //{
-            //	//Unruh effect?
-            //	//Seems to happen with points behind the player.
-            //}
-            tisw += t2;
-            //Inverse Lorentz transform the position:
-            viwLorentzMatrix = viwLorentzMatrix.inverse;
-            metric = viwLorentzMatrix.transpose * metric * viwLorentzMatrix;
-            riw = viwLorentzMatrix * riwTransformed;
-            tisw = riw.w;
-            riw = (Vector3)riw + tisw * c * viw;
-
-            float speed = viw.magnitude;
-            float newz = speed * c * tisw;
-
-            if (speed > divByZeroCutoff)
-            {
-                Vector4 vpcUnit = vpc / speed;
-                newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
-            }
-
-            riw = (Vector3)riw + origin;
-
-            return riw;
-        }
-
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c; ;
             Vector3 viw = velocity / c;
@@ -411,6 +330,12 @@ namespace OpenRelativity
             //Apply Lorentz transform;
             //metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
+            if (aiw == null)
+            {
+                aiw = Vector4.zero;
+            }
+            Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw.Value;
+            float aiwMag = aiwTransformed.magnitude;
             //Translate in time:
             float tisw = riwTransformed.w;
             riwForMetric.w = 0;
@@ -433,6 +358,10 @@ namespace OpenRelativity
             //	//Seems to happen with points behind the player.
             //}
             tisw += t2;
+            if (aiwMag > divByZeroCutoff)
+            {
+                riwTransformed -= (Vector4)(((Vector3)aiwTransformed) / aiwMag * cSqrd * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1));
+            }
             //Inverse Lorentz transform the position:
             viwLorentzMatrix = viwLorentzMatrix.Value.inverse;
             metric = viwLorentzMatrix.Value.transpose * metric * viwLorentzMatrix.Value;
@@ -543,7 +472,7 @@ namespace OpenRelativity
             {
                 float aiwMag = aiwTransformed.magnitude;
                 //add the position offset due to acceleration
-                riwTransformed = (Vector3)riwTransformed + aiwTransformed / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * tisw / SRelativityUtil.c) * (aiwMag * tisw / c)) - 1);
+                riwTransformed += (Vector4)(aiwTransformed) / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * tisw / c) * (aiwMag * tisw / c)) - 1);
             }
 
             //Inverse Lorentz transform the position:
