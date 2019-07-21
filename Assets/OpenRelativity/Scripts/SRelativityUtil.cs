@@ -12,17 +12,35 @@ namespace OpenRelativity
 
         public static Matrix4x4 GetWorldCoordMetric(Vector4 stpiw)
         {
-            return srCamera.conformalMap.WorldCoordMetric(stpiw);
+            if (srCamera.conformalMap)
+            {
+                return srCamera.conformalMap.WorldCoordMetric(stpiw);
+            } else
+            {
+                return Matrix4x4.identity;
+            }
         }
 
         public static Matrix4x4 GetPlayerCooordMetric(Vector4 stpiw, Vector4 pstpiw)
         {
-            return srCamera.conformalMap.WorldToLocal(pstpiw) * GetWorldCoordMetric(stpiw);
+            if (srCamera.conformalMap)
+            {
+                return srCamera.conformalMap.WorldToLocal(pstpiw) * GetWorldCoordMetric(stpiw);
+            } else
+            {
+                return Matrix4x4.identity;
+            }
         }
 
         public static Matrix4x4 GetConformalMap(Vector4 stpiw, Vector4 pstpiw)
         {
-            return srCamera.conformalMap.WorldToLocal(pstpiw) * srCamera.conformalMap.LocalToWorld(stpiw);
+            if (srCamera.conformalMap)
+            {
+                return srCamera.conformalMap.WorldToLocal(pstpiw) * srCamera.conformalMap.LocalToWorld(stpiw);
+            } else
+            {
+                return Matrix4x4.identity;
+            }
         }
 
         private static GameState _srCamera;

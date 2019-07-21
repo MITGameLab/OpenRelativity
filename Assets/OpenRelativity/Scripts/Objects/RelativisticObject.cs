@@ -47,7 +47,7 @@ namespace OpenRelativity.Objects
                     //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
                     piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz)).OpticalToWorldHighPrecision(value, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz);
                     //test = test - piw.WorldToOptical(value, playerPos, playerVel);
-                    if (!nonrelativisticShader)
+                    if (!nonrelativisticShader && !float.IsInfinity(piw.magnitude) && !float.IsNaN(piw.magnitude))
                     {
                         transform.position = piw;
                     }
@@ -817,9 +817,16 @@ namespace OpenRelativity.Objects
             if (didCollide)
             {
                 //Finish and shut off enforcement
-                viw = collisionResultVel3;
-                aviw = collisionResultAngVel3;
-                myRigidbody.angularVelocity = aviw;
+                if (!float.IsInfinity(collisionResultVel3.magnitude) && !float.IsNaN(collisionResultVel3.magnitude))
+                {
+                    viw = collisionResultVel3;
+                }
+
+                if (!float.IsInfinity(collisionResultAngVel3.magnitude) && !float.IsNaN(collisionResultAngVel3.magnitude))
+                {
+                    aviw = collisionResultAngVel3;
+                    myRigidbody.angularVelocity = aviw;
+                }
                 didCollide = false;
             }
         }
