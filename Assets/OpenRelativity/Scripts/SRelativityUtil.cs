@@ -387,39 +387,7 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        //This method reverts the position of an object after the shader is applied back to its position in the world.
-        public static Vector3 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel)
-        {
-            Vector3 vpc = -playerVel / c;// srCamera.PlayerVelocityVector;
-
-            //riw = location in world, for reference
-            Vector4 riw = opticalPos - (Vector4)origin; //Position that will be used in the output
-            Vector4 pos = (Vector3)riw;
-  
-            //Transform fails and is unecessary if relative speed is zero:
-            float newz;
-
-            float tisw = -pos.magnitude / c;
-
-            float speed = vpc.magnitude;
-
-            if (speed > divByZeroCutoff)
-            {
-                Vector4 vpcUnit = vpc / speed;
-                newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
-                newz = speed * c * tisw;
-                riw = riw - newz * vpcUnit;
-            }
-
-            riw = (Vector3)riw - (tisw * velocity);
-
-            riw = (Vector3)riw + origin;
-
-            return riw;
-        }
-
-        public static Vector3 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw)
+        public static Vector3 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;// srCamera.PlayerVelocityVector;
 
@@ -453,18 +421,17 @@ namespace OpenRelativity
             //We'll also Lorentz transform the vectors:
             float beta = viw.sqrMagnitude;
             float gamma = 1.0f / Mathf.Sqrt(1 - beta);
-            Matrix4x4 viwLorentzMatrix = new Matrix4x4(
-                new Vector4(gamma, 0, 0, 0),
-                new Vector4(0, gamma, 0, 0),
-                new Vector4(0, 0, gamma, -gamma * beta),
-                new Vector4(0, 0, -gamma * beta, gamma)
-            );
+
+            if (viwLorentzMatrix == null)
+            {
+                viwLorentzMatrix = GetLorentzTransformMatrix(viw);
+            }
 
             //Apply Lorentz transform;
             //metric = viwLorentzMatrix.transpose * metric * viwLorentzMatrix;
-            riwTransformed = viwLorentzMatrix * riwTransformed;
-            avpTransformed = viwLorentzMatrix * avpTransformed;
-            aiwTransformed = viwLorentzMatrix * aiwTransformed;
+            riwTransformed = viwLorentzMatrix.Value * riwTransformed;
+            avpTransformed = viwLorentzMatrix.Value * avpTransformed;
+            aiwTransformed = viwLorentzMatrix.Value * aiwTransformed;
 
             tisw = riwTransformed.w;
 
@@ -476,72 +443,12 @@ namespace OpenRelativity
             }
 
             //Inverse Lorentz transform the position:
-            viwLorentzMatrix.m23 = -viwLorentzMatrix.m23;
-            viwLorentzMatrix.m32 = -viwLorentzMatrix.m32;
-            riwTransformed = viwLorentzMatrix * riwTransformed;
+            riwTransformed = viwLorentzMatrix.Value.inverse * riwTransformed;
             riw = Quaternion.Inverse(viwToZRot) * riwTransformed;
 
             riw = (Vector3)riw + origin;
 
             return riw;
-        }
-
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
-        {
-            Vector4 startPoint = opticalPos;
-            Vector3 est, offset, newEst;
-            est = opticalPos.OpticalToWorld(velocity, origin, playerVel);
-            offset = (Vector3)opticalPos - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp);
-
-            float sqrError = offset.sqrMagnitude;
-            float oldSqrError = sqrError + 1.0f;
-            float iterations = 1;
-            while ((iterations < defaultOpticalToWorldMaxIterations)
-                && (sqrError > defaultOpticalToWorldSqrErrorTolerance)
-                && (sqrError < oldSqrError))
-            {
-                iterations++;
-                startPoint += (Vector4)offset / 2.0f;
-                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel);
-                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp);
-                oldSqrError = sqrError;
-                sqrError = ((Vector3)opticalPos - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp)).sqrMagnitude;
-                if (sqrError < oldSqrError)
-                {
-                    est = newEst;
-                }
-            }
-
-            return est;
-        }
-
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
-        {
-            Vector4 startPoint = opticalPos;
-            Vector3 est, offset, newEst;
-            est = opticalPos.OpticalToWorld(velocity, origin, playerVel);
-            offset = (Vector3)opticalPos - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
-
-            float sqrError = offset.sqrMagnitude;
-            float oldSqrError = sqrError + 1.0f;
-            float iterations = 1;
-            while ((iterations < defaultOpticalToWorldMaxIterations)
-                && (sqrError > defaultOpticalToWorldSqrErrorTolerance)
-                && (sqrError < oldSqrError))
-            {
-                iterations++;
-                startPoint += (Vector4)offset / 2.0f;
-                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw);
-                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
-                oldSqrError = sqrError;
-                sqrError = ((Vector3)opticalPos - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz)).sqrMagnitude;
-                if (sqrError < oldSqrError)
-                {
-                    est = newEst;
-                }
-            }
-
-            return est;
         }
 
         public static float Gamma(this Vector3 velocity)
