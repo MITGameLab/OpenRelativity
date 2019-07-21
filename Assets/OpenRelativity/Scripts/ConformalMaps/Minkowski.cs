@@ -24,8 +24,9 @@ namespace OpenRelativity.ConformalMaps
             // and this is specifically the Unity "world" coordinate system, for this abstract method.)
             Matrix4x4 metric = Matrix4x4.identity;
 
-            // "3" or "w" is the time index, and seconds * (meters / second) gives a quantity with units of "meters", (i.e. "distance")
-            metric[3, 3] = -SRelativityUtil.c;
+            // "3" or "w" is the time index, and seconds * (meters / second) gives a quantity with units of "meters", (i.e. "distance").
+            // The metric is "two-form" which can be used to find the square norm of a vector (by an inner product) so c^2 rather than c.
+            metric[3, 3] = -SRelativityUtil.cSqrd;
 
             return metric;
         }
