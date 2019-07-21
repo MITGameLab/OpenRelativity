@@ -10,6 +10,11 @@ namespace OpenRelativity.ConformalMaps
 
         override public Matrix4x4 LocalToWorld(Vector4 stpiw)
         {
+            if (radius < radiusCutoff)
+            {
+                return Matrix4x4.identity;
+            }
+
             Vector4 origin = transform.position;
 
             //We assume all input space-time-position-in-world vectors are Cartesian.
@@ -30,7 +35,7 @@ namespace OpenRelativity.ConformalMaps
             {
                 return Matrix4x4.identity;
             }
-            
+
             float sqrtRDivRs = Mathf.Sqrt(r / radius);
 
             //Here's the value of the Lemaitre-to-Schwarzschild Jacobian ("comoving"-to-"world") at the object's position in spherical coordinates:
@@ -47,6 +52,11 @@ namespace OpenRelativity.ConformalMaps
 
         override public Matrix4x4 WorldToLocal(Vector4 pstpiw)
         {
+            if (radius < radiusCutoff)
+            {
+                return Matrix4x4.identity;
+            }
+
             Vector4 origin = transform.position;
 
             //We assume all input space-time-position-in-world vectors are Cartesian.
