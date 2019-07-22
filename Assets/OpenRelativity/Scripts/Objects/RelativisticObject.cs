@@ -937,7 +937,7 @@ namespace OpenRelativity.Objects
                 if (!state.isMinkowski && (deltaTime != 0) && !isStatic)
                 {
                     Vector4 displacement = new Vector4(0, 0, 0, (float)deltaTime);
-                    displacement = state.conformalMap.WorldToLocal(state.playerTransform.position) * state.conformalMap.LocalToWorld(piw) * displacement;
+                    displacement = state.conformalMap.LocalToWorld(piw) * displacement;
                     piw += (Vector3)displacement;
 
                     if (!nonrelativisticShader)

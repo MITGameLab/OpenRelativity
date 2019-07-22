@@ -81,7 +81,7 @@ namespace OpenRelativity.ConformalMaps
             worldToPlayerJacobian[1, 1] = 1;
             worldToPlayerJacobian[2, 2] = 1;
 
-            return SphericalToCartesian(pstpiw) * worldToPlayerJacobian;
+            return SphericalToCartesian(cartesianPos) * worldToPlayerJacobian;
         }
 
         public override Matrix4x4 WorldCoordMetric(Vector4 stpiw)
@@ -103,7 +103,7 @@ namespace OpenRelativity.ConformalMaps
             metric[3, 3] = -SRelativityUtil.c * sqrtSchwarzFac;
             metric[0, 0] = sqrtSchwarzFac;
 
-            Matrix4x4 cts = SphericalToCartesian(stpiw).inverse;
+            Matrix4x4 cts = SphericalToCartesian(cartesianPos).inverse;
           
             return cts.transpose * metric * cts;
         }
