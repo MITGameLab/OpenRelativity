@@ -330,6 +330,10 @@ namespace OpenRelativity
 
             //Apply Lorentz transform;
             //metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
+            if (aiw == null)
+            {
+                aiw = Vector4.zero;
+            }
             Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw.Value;
             aiwTransformed.w = 0;
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
