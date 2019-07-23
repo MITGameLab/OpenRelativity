@@ -170,8 +170,6 @@ namespace OpenRelativity.Objects
         //To avoid garbage collection, we might over-allocate the buffer:
         private int rawVertsBufferLength;
 
-        //Store this object's velocity here.
-
         //Keep track of Game State so that we can reference it quickly.
         private GameState _state;
         private GameState state
@@ -253,6 +251,7 @@ namespace OpenRelativity.Objects
         private Vector3 oldCollisionResultAngVel3;
         //If the shader is nonrelativistic, and if the object is static, it helps to save and restore the initial position
         public bool isStatic = false;
+
         public void MarkStaticColliderPos()
         {
             if (myColliderIsBox && myColliders != null)
@@ -688,8 +687,8 @@ namespace OpenRelativity.Objects
             {
                 myRenderer = GetComponent<Renderer>();
             }
-            //If we have a MeshRenderer on our object
-            if (myRenderer != null)
+            //If we have a MeshRenderer on our object and it's not world-static
+            if (myRenderer != null && !isStatic)
             {
                 float c = (float)state.SpeedOfLight;
                 //And if we have a texture on our material
@@ -1178,7 +1177,7 @@ namespace OpenRelativity.Objects
         private void UpdateShaderParams()
         {
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
-            if (myRenderer != null)
+            if (myRenderer != null && !isStatic)
             {
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;

@@ -4,23 +4,16 @@
 
 Shader "Relativity/Lit/Specular/ColorShift" {
 	Properties{
-		[Toggle(LIT)] _Lit("Lit?", Float) = 0
-		[Toggle(EMISSIVE)] _Emissive("Emissive?", Float) = 0
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		[Toggle(SPECULAR)] _Specular("Normal Reflectance", Range(0, 1)) = 0
+		_Specular("Normal Reflectance", Range(0, 1)) = 0
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		_viw("viw", Vector) = (0,0,0,0)
 		_aiw("aiw", Vector) = (0,0,0,0)
 	}
 		CGINCLUDE
-
-#pragma shader_feature __ ACCELERATED
-#pragma shader_feature __ LIT
-#pragma shader_feature __ EMISSIVE
-#pragma shader_feature __ SPECULAR
 
 #pragma exclude_renderers xbox360
 #pragma glsl
