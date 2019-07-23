@@ -86,7 +86,7 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD5; //normal in world
-#if defined(LIT) && (defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT)))
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			float4 ambient : TEXCOORD6;
 			SHADOW_COORDS(7)
 #endif
@@ -133,7 +133,7 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 
 			o.uv1.xy = v.texcoord * _MainTex_ST.xy + _MainTex_ST.zw; //get the UV coordinate for the current vertex, will be passed to fragment shader
 			o.uv2 = float2(0, 0);
-#if defined(LIT) && defined(LIGHTMAP_ON)
+#if defined(LIGHTMAP_ON)
 			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
 #endif
 			//You need this otherwise the screen flips and weird stuff happens
@@ -276,7 +276,7 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			o.normal = float4(UnityObjectToWorldNormal(v.normal), 0);
 
 			//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
-#if defined(LIT) && defined(VERTEXLIGHT_ON)
+#if defined(VERTEXLIGHT_ON)
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
 			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
@@ -284,7 +284,7 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			// factor in the light color
 			o.diff = nl * _LightColor0;
 			// add ambient light
-#if defined(LIT) && (defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT)))
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
 #else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
@@ -321,7 +321,7 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 
 				o.diff.rgb += diffuseReflection;
 			}
-#elif defined(LIT) && defined(LIGHTMAP_ON)
+#elif defined(LIGHTMAP_ON)
 			//half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
 			//o.diff = float4((float3)lms, 0);
 			o.diff = 0;
@@ -333,14 +333,14 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			// factor in the light color
 			o.diff = nl * _LightColor0;
 			// add ambient light
-#if defined(LIT) && (defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT)))
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
 #else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 #endif
 #endif
 
-#if defined(LIT) && (defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT)))
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			TRANSFER_SHADOW(o)
 #endif
 
@@ -556,10 +556,10 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 				specFinal = 0;
 			}
 
-#if defined(LIT) && defined(LIGHTMAP_ON)
+#if defined(LIGHTMAP_ON)
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
 			i.diff = float4((float3)lms, 0);
-#elif defined(LIT) && defined(POINT)
+#elif defined(POINT)
 			float3 normalDirection = normalize(i.normal.xyz);
 			float3 lightDirection;
 			float attenuation;
@@ -582,7 +582,7 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 #endif
 
 			//Apply lighting:
-#if defined(LIT) && (defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT)))
+#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			fixed shadow = SHADOW_ATTENUATION(i);
 			rgbFinal *= (i.diff * shadow + i.ambient);
 #else
