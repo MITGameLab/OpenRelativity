@@ -2,7 +2,7 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Accelerated/Lit/Emissive/ColorShift" {
+Shader "Relativity/Lit/Emissive/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -50,26 +50,6 @@ Shader "Relativity/Accelerated/Lit/Emissive/ColorShift" {
 		//Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
 
-//#define quaternion float4
-//
-//		inline quaternion fromToRotation(float3 from, float3 to) {
-//			quaternion rotation;
-//			rotation.xyz = cross(from, to);
-//			rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
-//			return normalize(rotation);
-//		}
-//
-//		//See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
-//		inline float3 rotate(quaternion rot, float3 vec) {
-//			float3 temp;
-//			temp = 2 * cross(rot.xyz, vec.xyz);
-//			return vec + rot.w * temp + cross(rot.xyz, temp);
-//		}
-//
-//		inline quaternion inverse(quaternion q) {
-//			return quaternion(-q.xyz, q.w) / length(q);
-//		}
-
 	struct appdata {
 		float4 vertex : POSITION;
 		float4 texcoord : TEXCOORD0; // main uses 1st uv
@@ -94,10 +74,6 @@ Shader "Relativity/Accelerated/Lit/Emissive/ColorShift" {
 		SHADOW_COORDS(8)
 #endif
 	};
-
-	float4x4 _MixedMetric; //The mixed index metric ("conformal map") at piw
-	//For the time being, we can only approximate by the value of the metric at the center of the object.
-	//Ideally, we'd have a differently numerical metric value for each vertex or fragment.
 
 	//Lorentz transforms from player to world and from object to world are the same for all points in an object,
 	// so it saves redundant GPU time to calculate them beforehand.
@@ -213,9 +189,6 @@ Shader "Relativity/Accelerated/Lit/Emissive/ColorShift" {
 		vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 		vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
 		metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
-
-		//Apply conformal map:
-		metric = mul(transpose(_MixedMetric), mul(metric, _MixedMetric));
 
 		//We'll also Lorentz transform the vectors:
 		float4x4 viwLorentzMatrix = _viwLorentzMatrix;

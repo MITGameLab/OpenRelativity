@@ -112,8 +112,6 @@ namespace OpenRelativity
         public bool keyHit { get; set; }
         public double MaxSpeed { get { return maxSpeed; } set { maxSpeed = value; } }
 
-        public ConformalMaps.ConformalMap conformalMap;
-        public bool isMinkowski { get; set; }
         public bool HasWorldGravity { get; set; }
 
         #endregion
@@ -130,17 +128,6 @@ namespace OpenRelativity
 
         public void Awake()
         {
-            //If the conformalMap parameter is null, default to Minkowski
-            if (conformalMap == null)
-            {
-                conformalMap = gameObject.AddComponent<ConformalMaps.Minkowski>();
-                isMinkowski = true;
-            }
-            else
-            {
-                isMinkowski = false;
-            }
-
             //Initialize the player's speed to zero
             playerVelocityVector = Vector3.zero;
             playerVelocity = 0;
@@ -368,13 +355,6 @@ namespace OpenRelativity
                 sqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
                 !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
             {
-                if (!isMinkowski)
-                {
-                    Vector4 disp = new Vector4(0, 0, 0, (float)FixedDeltaTimePlayer);
-                    disp = conformalMap.LocalToWorld(playerTransform.position) * disp;
-                    playerTransform.position -= (Vector3)disp;
-                }
-
                 Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
                 Vector3 velocity = -playerVelocityVector;
                 playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;

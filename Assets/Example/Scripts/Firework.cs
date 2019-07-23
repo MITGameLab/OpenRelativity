@@ -177,12 +177,6 @@ namespace OpenRelativity.Objects
                 {
                     Vector3 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", tempViw);
-                    Matrix4x4 minkowski = Matrix4x4.identity;
-                    minkowski.m33 = 1;
-                    minkowski.m00 = -1;
-                    minkowski.m11 = -1;
-                    minkowski.m22 = -1;
-                    tempRenderer.materials[0].SetMatrix("_MixedMetric", minkowski);
                 }
 
                 //As long as our object is actually alive, perform these calculations

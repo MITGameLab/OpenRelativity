@@ -1,28 +1,22 @@
-﻿//NOTE: For correct relativistic behavior, all light sources must be static
-// with respect to world coordinates! General constant velocity lights are more complicated,
-// and lights that accelerate might not be at all feasible.
-
-Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
-	Properties{
-		_Color("Color", Color) = (1,1,1,1)
-		_MainTex("Albedo", 2D) = "white" {}
+Shader "Relativity/Unlit/ColorShift"
+{
+	Properties
+	{
+		_MainTex("Base (RGB)", 2D) = "" {} //Visible Spectrum Texture ( RGB )
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_Specular("Normal Reflectance", Range(0, 1)) = 0
-		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
-		_viw("viw", Vector) = (0,0,0,0)
-		_aiw("aiw", Vector) = (0,0,0,0)
+		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
+		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
+		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
+
 		CGINCLUDE
 
 #pragma exclude_renderers xbox360
 #pragma glsl
 #include "UnityCG.cginc"
-#include "Lighting.cginc"
-#include "AutoLight.cginc"
-#include "UnityStandardCore.cginc"
 
-//Color shift variables, used to make guassians for XYZ curves
+			//Color shift variables, used to make guassians for XYZ curves
 #define xla 0.39952807612909519
 #define xlb 444.63156780935032
 #define xlc 20.095464678736523
@@ -39,7 +33,7 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 #define zb 448.45126344558236
 #define zc 22.357297606503543
 
-			//Used to determine where to center UV/IR curves
+//Used to determine where to center UV/IR curves
 #define IR_RANGE 400
 #define IR_START 700
 #define UV_RANGE 380
@@ -68,13 +62,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 //			return quaternion(-q.xyz, q.w) / length(q);
 //		}
 
-		struct appdata {
-			float4 vertex : POSITION;
-			float4 texcoord : TEXCOORD0; // main uses 1st uv
-			float4 texcoord1 : TEXCOORD1; // lightmap uses 2nd uv
-			float4 normal : NORMAL; // lightmap uses 2nd uv
-		};
-
 		//This is the data sent from the vertex shader to the fragment shader
 		struct v2f
 		{
@@ -83,28 +70,17 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 			float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
-			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
-			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
-			float4 normal : TEXCOORD5; //normal in world
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD6;
-			SHADOW_COORDS(7)
-#endif
+			//float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
 		};
-
-		float4x4 _MixedMetric; //The mixed index metric ("conformal map") at piw
-		//For the time being, we can only approximate by the value of the metric at the center of the object.
-		//Ideally, we'd have a differently numerical metric value for each vertex or fragment.
 
 		//Lorentz transforms from player to world and from object to world are the same for all points in an object,
 		// so it saves redundant GPU time to calculate them beforehand.
 		float4x4 _vpcLorentzMatrix;
 		float4x4 _viwLorentzMatrix;
 
-		//uniform float4 _Color;
 		//Variables that we use to access texture data
-		//sampler2D _MainTex;
-		//uniform float4 _MainTex_ST;
+		sampler2D _MainTex;
+		uniform float4 _MainTex_ST;
 		sampler2D _IRTex;
 		uniform float4 _IRTex_ST;
 		sampler2D _UVTex;
@@ -112,15 +88,14 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 		sampler2D _CameraDepthTexture;
 
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
-		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
-		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
-		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
+		float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
+		float4 _aiw = float4(0, 0, 0, 0); //velocity of object in world
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 		float4 _pap = float4(0, 0, 0, 0); //acceleration of player
 		float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 		float _spdOfLight = 100; //current speed of light
-		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight).
+		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 		float xyr = 1; // xy ratio
 		float xs = 1; // x scale
@@ -128,18 +103,12 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 		uniform float4 _MainTex_TexelSize;
 		uniform float4 _CameraDepthTexture_ST;
 
-		float _Specular;
-
 		//Per vertex operations
-		v2f vert(appdata v)
+		v2f vert(appdata_img v)
 		{
 			v2f o;
 
-			o.uv1.xy = v.texcoord * _MainTex_ST.xy + _MainTex_ST.zw; //get the UV coordinate for the current vertex, will be passed to fragment shader
-			o.uv2 = float2(0, 0);
-#ifdef LIGHTMAP_ON
-			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
-#endif
+			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 			if (_MainTex_TexelSize.y < 0)
@@ -148,8 +117,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 
 			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
-
-			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
 
 			float speed = length(_vpc.xyz);
 			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
@@ -161,7 +128,7 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			if (speed > divByZeroCutoff)
 			{
 				float3 uparra = (vuDot / (speed*speed)) * _vpc.xyz; //Get the parallel component of the object's velocity
-																	//Get the perpendicular component of our velocity, just by subtraction
+				//Get the perpendicular component of our velocity, just by subtraction
 				float3 uperp = _viw.xyz - uparra.xyz;
 				//relative velocity calculation
 				vr = float4((_vpc.xyz - uparra.xyz - (sqrt(1 - speed*speed))*uperp.xyz) / (1 + vuDot), 0);
@@ -207,9 +174,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
 			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
 
-			//Apply conformal map:
-			metric = mul(transpose(_MixedMetric), mul(metric, _MixedMetric));
-
 			//We'll also Lorentz transform the vectors:
 			float4x4 viwLorentzMatrix = _viwLorentzMatrix;
 
@@ -229,7 +193,7 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			riw = mul(vpcLorentzMatrix, riwForMetric);
 			riwTransformed = mul(viwLorentzMatrix, riw);
 			riwTransformed.w = 0;
-
+			
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
@@ -263,9 +227,11 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			tisw = riw.w;
 			riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 
-			float newz = speed * _spdOfLight * tisw;
-
 			if (speed > divByZeroCutoff) {
+				//Apply Lorentz transform
+				// float newz =(riw.z + state.PlayerVelocity * tisw) / state.SqrtOneMinusVSquaredCWDividedByCSquared;
+				//I had to break it up into steps, unity was getting order of operations wrong.	
+				float newz = speed * _spdOfLight * tisw;
 				float3 vpcUnit = _vpc.xyz / speed;
 				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
@@ -281,76 +247,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 
 			o.pos = UnityObjectToClipPos(o.pos);
 
-			o.normal = float4(UnityObjectToWorldNormal(v.normal), 0);
-
-			//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
-#if defined(VERTEXLIGHT_ON)
-			// dot product between normal and light direction for
-			// standard diffuse (Lambert) lighting
-			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
-			nl = max(0, nl);
-			// factor in the light color
-			o.diff = nl * _LightColor0;
-			// add ambient light
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
-#else
-			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
-#endif
-
-			float4 lightPosition;
-			float3 vertexToLightSource, lightDirection, diffuseReflection;
-			float squaredDistance;
-			float attenuation;
-			for (int index = 0; index < 4; index++)
-			{
-				lightPosition = float4(unity_4LightPosX0[index],
-					unity_4LightPosY0[index],
-					unity_4LightPosZ0[index], 1.0);
-
-				vertexToLightSource =
-					lightPosition.xyz - o.pos2.xyz;
-				squaredDistance =
-					dot(vertexToLightSource, vertexToLightSource);
-				if (dot(float4(0, 0, 1, 0), unity_SpotDirection[index]) != 1) // directional light?
-				{
-					attenuation = 1.0; // no attenuation
-					lightDirection =
-						normalize(unity_SpotDirection[index]);
-				}
-				else {
-					attenuation = 1.0 / (1.0 +
-						unity_4LightAtten0[index] * squaredDistance);
-					lightDirection = normalize(vertexToLightSource);
-				}
-				diffuseReflection = attenuation
-					* unity_LightColor[index].rgb * _Color.rgb
-					* max(0.0, dot(o.normal.xyz, lightDirection));
-
-				o.diff.rgb += diffuseReflection;
-			}
-#elif defined(LIGHTMAP_ON)
-			//half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
-			//o.diff = float4((float3)lms, 0);
-			o.diff = 0;
-#else 
-			// dot product between normal and light direction for
-			// standard diffuse (Lambert) lighting
-			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
-			nl = max(0, nl);
-			// factor in the light color
-			o.diff = nl * _LightColor0;
-			// add ambient light
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
-#else
-			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
-#endif
-#endif
-
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			TRANSFER_SHADOW(o)
-#endif
 
 			return o;
 		}
@@ -464,42 +360,11 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 
 		};
 
-		float3 BoxProjection(
-			float3 direction, float3 position,
-			float4 cubemapPosition, float3 boxMin, float3 boxMax
-		) {
-			UNITY_BRANCH
-			if (cubemapPosition.w > 0) {
-				float3 factors = ((direction > 0 ? boxMax : boxMin) - position) / direction;
-				float scalar = min(min(factors.x, factors.y), factors.z);
-				return direction * scalar + (position - cubemapPosition);
-			}
-
-			return direction;
-		}
-
-		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
-			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			float3 xyz = RGBToXYZC(rgb);
-			float3 weights = weightFromXYZCurves(xyz);
-			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
-			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
-			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
-			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE * UV; UVParam.z = (float)5;
-			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE * IR; IRParam.z = (float)5;
-
-			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-			return XYZToRGBC(pow(1 / shift, 3) * xyz);
-		}
-
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
 			//Used to maintian a square scale ( adjust for screen aspect ratio )
-			float3 x1y1z1 = i.pos2 * (float3)(2 * xs, 2 * xs / xyr, 1);
+			float3 x1y1z1 = i.pos2.xyz * (float3)(2 * xs, 2 * xs / xyr, 1);
 
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 			float shift = (1 - dot(x1y1z1, i.vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
@@ -508,103 +373,41 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 				shift = 1.0f;
 			}
 
-			//The Doppler factor is squared for (diffuse or specular) reflected light.
-			//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
-			//are indistinguishable from photons of the same color emitted from a source at rest with respect to the world frame.
-			//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent.
+			//This is a debatable and stylistic point,
+			// but, if we think of the albedo as due to (diffuse) reflectance, we should do this:
+			shift *= shift;
+			// Reflectance squares the effective Doppler shift. Unsquared, the shift
+			// would be appropriate for a black body or spectral emission spectrum.
+			// The factor can thought of as due to the apparent velocity of a (static with respect to world coordinates) source image,
+			// which is twice as much as the velocity of the (diffuse) "mirror." (See: https://arxiv.org/pdf/physics/0605100.pdf )
+			// The point is, most of the colors of common objects that humans see are due to reflectance.
+			// Light directly from a light bulb, or flame, or LED, would not receive this Doppler factor squaring.
 
 			//Get initial color 
-			float3 viewDir = i.pos2.xyz - _WorldSpaceCameraPos.xyz;
-			i.normal /= length(i.normal);
-			float3 reflDir = reflect(viewDir, i.normal);
-			reflDir = BoxProjection(
-				reflDir, i.pos2,
-				unity_SpecCube0_ProbePosition,
-				unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
-			);
-			float4 envSample = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, reflDir);
 			float4 data = tex2D(_MainTex, i.uv1).rgba;
 			float UV = tex2D(_UVTex, i.uv1).r;
 			float IR = tex2D(_IRTex, i.uv1).r;
 
-			//Apply lighting in world frame:
+			//Set alpha of drawing pixel to 0 if vertex shader has determined it should not be drawn.
+			//data.a = i.draw ? data.a : 0;
+
 			float3 rgb = data.xyz;
-			float3 rgbFinal = DopplerShift(rgb, UV, IR, shift);
 
-			//Apply specular reflectance
-			//(Assume surrounding medium has an index of refraction of 1)
-			float specFactor;
-			if (_Specular >= 1.0) {
-				specFactor = 1.0;
-			}
-			else if (_Specular <= 0.0) {
-				specFactor = 0.0;
-			}
-			else {
-				float indexRefrac = sqrt(_Specular);
-				indexRefrac = (1.0 + indexRefrac) / (1.0 - indexRefrac);
-				float angle = acos(dot(viewDir, i.normal) / length(viewDir));
-				float cosAngle = cos(angle);
-				float sinFac = sin(angle) / indexRefrac;
-				sinFac *= sinFac;
-				sinFac = sqrt(1 - sinFac);
-				float reflecS = (cosAngle - indexRefrac * sinFac) / (cosAngle + indexRefrac * sinFac);
-				reflecS *= reflecS;
-				float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
-				reflecP *= reflecP;
-				specFactor = (reflecS + reflecP) / 2;
-			}
-			float3 specRgb, specFinal;
-			if (specFactor > 0.0) {
-				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
-				specFinal = DopplerShift(specRgb, 0, 0, shift);
-			}
-			else {
-				specRgb = 0;
-				specFinal = 0;
-			}
+			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+			float3 xyz = RGBToXYZC(rgb);
+			float3 weights = weightFromXYZCurves(xyz);
+			float3 rParam,gParam,bParam,UVParam,IRParam;
+			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
+			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
 
-#if defined(LIGHTMAP_ON)
-			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
-			i.diff = float4((float3)lms, 0);
-#elif defined(POINT)
-			float3 normalDirection = normalize(i.normal.xyz);
-			float3 lightDirection;
-			float attenuation;
-			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
-			{
-				attenuation = 1.0; // no attenuation
-				lightDirection =
-					normalize(_WorldSpaceLightPos0.xyz);
-			}
-			else // point or spot light
-			{
-				float3 vertexToLightSource =
-					_WorldSpaceLightPos0.xyz - i.pos2.xyz;
-				float distance = length(vertexToLightSource);
-				attenuation = 1.0 / (1.0 + 0.0005 * distance * distance);
-				lightDirection = normalize(vertexToLightSource);
-			}
-			float nl = max(0, dot(normalDirection, lightDirection));
-			i.diff = float4(attenuation * _LightColor0.rgb * _Color.rgb * nl, 1);
-#endif
-
-			//Apply lighting:
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			fixed shadow = SHADOW_ATTENUATION(i);
-			rgbFinal *= (i.diff * shadow + i.ambient);
-#else
-			rgbFinal *= i.diff;
-#endif
-
-			// Specular reflection is added after lightmap and shadow
-			if (specFactor > 0.0) {
-				rgbFinal += specFinal;
-			}
-
-			//Doppler factor should be squared for reflected light:
-			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
-			rgbFinal = constrainRGB(rgbFinal.x, rgbFinal.y, rgbFinal.z); //might not be needed
+			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
+			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
+			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
+			float3 rgbFinal = XYZToRGBC(pow(1 / shift ,3) * xyz);
+			rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
 			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
 			//float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
@@ -622,9 +425,8 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 				//Shader properties, for things such as transparency
 				Cull Off ZWrite On
 				ZTest LEqual
-				Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
-				Tags{ "LightMode" = "ForwardBase" }
-				LOD 100
+				Fog { Mode off } //Fog does not shift properly and there is no way to do so with this fog
+				Tags {"RenderType" = "Transparent" "Queue" = "Transparent"}
 
 				AlphaTest Greater[_Cutoff]
 				Blend SrcAlpha OneMinusSrcAlpha
@@ -633,92 +435,15 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 
 				#pragma fragmentoption ARB_precision_hint_nicest
 
-				#pragma multi_compile_fwdbase
-
 				#pragma vertex vert
 				#pragma fragment frag
 				#pragma target 3.0
 
-				ENDCG
-			}
-
-			Pass{
-				Tags{ "LightMode" = "ForwardAdd" }
-				// pass for additional light sources
-				Blend One One // additive blending 
-				LOD 200
-
-				CGPROGRAM
-
-				#pragma fragmentoption ARB_precision_hint_nicest
-				#pragma multi_compile_fwdadd
-
-				#pragma vertex vert
-				#pragma fragment frag
-				#pragma target 3.0
-
-				ENDCG
-			}
-
-			Pass
-			{
-				Name "META"
-				Tags{ "LightMode" = "Meta" }
-				Cull Off
-				CGPROGRAM
-
-				#include "UnityStandardMeta.cginc"
-
-				sampler2D _GIAlbedoTex;
-				fixed4 _GIAlbedoColor;
-				float4 frag_meta2(v2f i) : SV_Target
-				{
-					// We're interested in diffuse & specular colors
-					// and surface roughness to produce final albedo.
-
-					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.uv1.xy,0,0));
-					UnityMetaInput o;
-					UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
-					fixed4 c = tex2D(_GIAlbedoTex, i.uv1);
-					o.Albedo = fixed3(c.rgb * _GIAlbedoColor.rgb);
-					o.Emission = 0;
-					return UnityMetaFragment(o);
-				}
-
-				#pragma vertex vert_meta
-				#pragma fragment frag_meta2
-				#pragma shader_feature _METALLICGLOSSMAP
-				#pragma shader_feature ___ _DETAIL_MULX2
-				ENDCG
-			}
-
-			Pass
-			{
-				Tags{ "LightMode" = "ShadowCaster" }
-
-				CGPROGRAM
-				#pragma vertex vertShadow
-				#pragma fragment fragShadow
-				#pragma multi_compile_shadowcaster
-
-				struct v2fShadow {
-					V2F_SHADOW_CASTER;
-				};
-
-				v2fShadow vertShadow(appdata_base v)
-				{
-					v2fShadow o;
-					TRANSFER_SHADOW_CASTER_NORMALOFFSET(o)
-						return o;
-				}
-
-				float4 fragShadow(v2fShadow i) : SV_Target
-				{
-					SHADOW_CASTER_FRAGMENT(i)
-				}
 				ENDCG
 			}
 		}
 
-		FallBack "Relativity/Unlit/ColorShift"
-}
+		Fallback "Unlit/Transparent"
+
+} // shader
+
