@@ -1,4 +1,4 @@
-Shader "Relativity/Accelerated/Unlit/ColorShift"
+Shader "Relativity/Unlit/ColorShift"
 {
 	Properties
 	{

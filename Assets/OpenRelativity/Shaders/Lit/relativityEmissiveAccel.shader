@@ -2,7 +2,7 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Accelerated/Lit/Emissive/ColorShift" {
+Shader "Relativity/Lit/Emissive/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}

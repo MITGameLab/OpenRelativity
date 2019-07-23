@@ -2,13 +2,12 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
+Shader "Relativity/Lit/ColorShift" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_Specular("Normal Reflectance", Range(0, 1)) = 0
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		_viw("viw", Vector) = (0,0,0,0)
 		_aiw("aiw", Vector) = (0,0,0,0)
@@ -116,15 +115,13 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 		float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 		float _spdOfLight = 100; //current speed of light
-		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight).
+		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 		float xyr = 1; // xy ratio
 		float xs = 1; // x scale
 
 		uniform float4 _MainTex_TexelSize;
 		uniform float4 _CameraDepthTexture_ST;
-
-		float _Specular;
 
 		//Per vertex operations
 		v2f vert(appdata v)
@@ -340,6 +337,9 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 #endif
 #endif
+//#else
+//		o.diff = 0;
+//#endif
 
 #if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			TRANSFER_SHADOW(o)
@@ -457,37 +457,6 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 
 		};
 
-		float3 BoxProjection(
-			float3 direction, float3 position,
-			float4 cubemapPosition, float3 boxMin, float3 boxMax
-		) {
-			UNITY_BRANCH
-			if (cubemapPosition.w > 0) {
-				float3 factors = ((direction > 0 ? boxMax : boxMin) - position) / direction;
-				float scalar = min(min(factors.x, factors.y), factors.z);
-				return direction * scalar + (position - cubemapPosition);
-			}
-
-			return direction;
-		}
-
-		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
-			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			float3 xyz = RGBToXYZC(rgb);
-			float3 weights = weightFromXYZCurves(xyz);
-			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
-			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
-			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
-			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE * UV; UVParam.z = (float)5;
-			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE * IR; IRParam.z = (float)5;
-
-			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-			return XYZToRGBC(pow(1 / shift, 3) * xyz);
-		}
-
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
@@ -507,55 +476,27 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 			//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent.
 
 			//Get initial color 
-			float3 viewDir = i.pos2.xyz - _WorldSpaceCameraPos.xyz;
-			i.normal /= length(i.normal);
-			float3 reflDir = reflect(viewDir, i.normal);
-			reflDir = BoxProjection(
-				reflDir, i.pos2,
-				unity_SpecCube0_ProbePosition,
-				unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
-			);
-			float4 envSample = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, reflDir);
 			float4 data = tex2D(_MainTex, i.uv1).rgba;
 			float UV = tex2D(_UVTex, i.uv1).r;
 			float IR = tex2D(_IRTex, i.uv1).r;
 
 			//Apply lighting in world frame:
 			float3 rgb = data.xyz;
-			float3 rgbFinal = DopplerShift(rgb, UV, IR, shift);
 
-			//Apply specular reflectance
-			//(Assume surrounding medium has an index of refraction of 1)
-			float specFactor;
-			if (_Specular >= 1.0) {
-				specFactor = 1.0;
-			}
-			else if (_Specular <= 0.0) {
-				specFactor = 0.0;
-			}
-			else {
-				float indexRefrac = sqrt(_Specular);
-				indexRefrac = (1.0 + indexRefrac) / (1.0 - indexRefrac);
-				float angle = acos(dot(viewDir, i.normal) / length(viewDir));
-				float cosAngle = cos(angle);
-				float sinFac = sin(angle) / indexRefrac;
-				sinFac *= sinFac;
-				sinFac = sqrt(1 - sinFac);
-				float reflecS = (cosAngle - indexRefrac * sinFac) / (cosAngle + indexRefrac * sinFac);
-				reflecS *= reflecS;
-				float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
-				reflecP *= reflecP;
-				specFactor = (reflecS + reflecP) / 2;
-			}
-			float3 specRgb, specFinal;
-			if (specFactor > 0.0) {
-				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
-				specFinal = DopplerShift(specRgb, 0, 0, shift);
-			}
-			else {
-				specRgb = 0;
-				specFinal = 0;
-			}
+			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+			float3 xyz = RGBToXYZC(rgb);
+			float3 weights = weightFromXYZCurves(xyz);
+			float3 rParam,gParam,bParam,UVParam,IRParam;
+			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)5;
+			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)5;
+
+			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
+			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
+			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
+			float3 rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
 
 #if defined(LIGHTMAP_ON)
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
@@ -589,15 +530,17 @@ Shader "Relativity/Accelerated/Lit/Specular/ColorShift" {
 #else
 			rgbFinal *= i.diff;
 #endif
-
-			// Specular reflection is added after lightmap and shadow
-			if (specFactor > 0.0) {
-				rgbFinal += specFinal;
-			}
-
 			//Doppler factor should be squared for reflected light:
-			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
-			rgbFinal = constrainRGB(rgbFinal.x, rgbFinal.y, rgbFinal.z); //might not be needed
+			xyz = RGBToXYZC(rgbFinal);
+			weights = weightFromXYZCurves(xyz);
+			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+			rgbFinal = XYZToRGBC(pow(1 / shift, 3) * xyz);
+			rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
 			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
 			//float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
