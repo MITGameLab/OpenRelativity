@@ -10,39 +10,6 @@ namespace OpenRelativity
         public static float cSqrd { get { return (float)srCamera.SpeedOfLightSqrd; } }
         public static float maxVel { get { return (float)srCamera.MaxSpeed; } }
 
-        public static Matrix4x4 GetWorldCoordMetric(Vector4 stpiw)
-        {
-            if (srCamera.conformalMap)
-            {
-                return srCamera.conformalMap.WorldCoordMetric(stpiw);
-            } else
-            {
-                return Matrix4x4.identity;
-            }
-        }
-
-        public static Matrix4x4 GetPlayerCooordMetric(Vector4 stpiw, Vector4 pstpiw)
-        {
-            if (srCamera.conformalMap)
-            {
-                return srCamera.conformalMap.WorldToLocal(pstpiw) * GetWorldCoordMetric(stpiw);
-            } else
-            {
-                return Matrix4x4.identity;
-            }
-        }
-
-        public static Matrix4x4 GetConformalMap(Vector4 stpiw, Vector4 pstpiw)
-        {
-            if (srCamera.conformalMap)
-            {
-                return srCamera.conformalMap.WorldToLocal(pstpiw) * srCamera.conformalMap.LocalToWorld(stpiw);
-            } else
-            {
-                return Matrix4x4.identity;
-            }
-        }
-
         private static GameState _srCamera;
         private static GameState srCamera
         {
@@ -252,12 +219,6 @@ namespace OpenRelativity
             //Find metric based on player acceleration and rest frame:
             Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
 
-            if (!srCamera.isMinkowski)
-            {
-                Matrix4x4 ltp = GetConformalMap(stpiw, pap);
-                metric = ltp.transpose * metric * ltp;
-            }
-
             //Lorentz boost back to world frame:
             vpcLorentzMatrix = vpcLorentzMatrix.inverse;
             // The Lorentz transformation is just a coordinate transformation:
@@ -306,12 +267,6 @@ namespace OpenRelativity
 
             //Find metric based on player acceleration and rest frame:
             Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
-
-            if (!srCamera.isMinkowski)
-            {
-                Matrix4x4 ltp = GetConformalMap(stpiw, pap);
-                metric = ltp.transpose * metric * ltp;
-            }
 
             //Lorentz boost back to world frame;
             vpcLorentzMatrix = vpcLorentzMatrix.Value.inverse;
@@ -424,9 +379,6 @@ namespace OpenRelativity
             Vector3 aiwTransformed = viwToZRot * aiw;
 
             //We'll also Lorentz transform the vectors:
-            float beta = viw.sqrMagnitude;
-            float gamma = 1.0f / Mathf.Sqrt(1 - beta);
-
             if (viwLorentzMatrix == null)
             {
                 viwLorentzMatrix = GetLorentzTransformMatrix(viw);

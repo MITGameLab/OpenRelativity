@@ -4,7 +4,7 @@ using UnityEngine;
 namespace OpenRelativity
 {
     //Shader properties:
-    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 424)]
+    [StructLayout(LayoutKind.Sequential, Pack = 4, Size = 360)]
     public struct ShaderParams
     {
         //[FieldOffset(0)]
@@ -19,20 +19,18 @@ namespace OpenRelativity
         //[FieldOffset(44)]
         public Vector4 playerOffset; //player position in world
         //[FieldOffset(48)]
-        public System.Single speed; //speed of player;
+        public float speed; //speed of player;
         //[FieldOffset(49)]
-        public System.Single spdOfLight; //current speed of light
+        public float spdOfLight; //current speed of light
         //[FieldOffset(50)]
-        public Matrix4x4 mixedMetric;
-        //[FieldOffset(66)]
         public Vector4 pap;
-        //[FieldOffset(82)]
+        //[FieldOffset(66)]
         public Vector4 avp;
-        //[FieldOffset(98)]
+        //[FieldOffset(82)]
         public Vector4 aiw;
-        //[FieldOffset(114)]
+        //[FieldOffset(98)]
         public Matrix4x4 vpcLorentzMatrix;
-        //[FieldOffset(178)]
+        //[FieldOffset(162)]
         public Matrix4x4 viwLorentzMatrix;
     }
 }

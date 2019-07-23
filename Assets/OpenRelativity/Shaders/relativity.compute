@@ -12,7 +12,6 @@ struct GlobalParams {
 	float4 playerOffset; //player position in world
 	float speed; //speed of player;
 	float spdOfLight; //current speed of light
-	float4x4 mixedMetric;
 	float4 pap; //acceleration of player in world coordinates
 	float4 avp; //angular velocity of player in world coordinates
 	float4 aiw; //acceleration of object in world coordinates
@@ -34,7 +33,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	float4 playerOffset = glblPrms[0].playerOffset;
 	float speed = glblPrms[0].speed;
 	float spdOfLight = glblPrms[0].spdOfLight;
-	float4x4 mixedMetric = glblPrms[0].mixedMetric;
 	float4 pap = glblPrms[0].pap;
 	float4 avp = glblPrms[0].avp;
 	float4 aiw = glblPrms[0].aiw;
@@ -70,9 +68,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 	vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
 	metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
-
-	//Apply conformal map:
-	metric = mul(transpose(mixedMetric), mul(metric, mixedMetric));
 
 	//Remember that relativity is time-translation invariant.
 	//The above metric gives the numerically correct result if the time coordinate of riw is zero,

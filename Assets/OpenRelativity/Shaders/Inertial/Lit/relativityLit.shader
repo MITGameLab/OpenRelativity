@@ -71,10 +71,6 @@ Shader "Relativity/Inertial/Lit/ColorShift" {
 #endif
 		};
 
-		float4x4 _MixedMetric; //The mixed index metric ("conformal map") at piw
-		//For the time being, we can only approximate by the value of the metric at the center of the object.
-		//Ideally, we'd have a differently numerical metric value for each vertex or fragment.
-
 		//Lorentz transforms from player to world and from object to world are the same for all points in an object,
 		// so it saves redundant GPU time to calculate them beforehand.
 		float4x4 _vpcLorentzMatrix;
@@ -182,9 +178,6 @@ Shader "Relativity/Inertial/Lit/ColorShift" {
 			vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
 			vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
 			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
-
-			//Apply conformal map:
-			metric = mul(transpose(_MixedMetric), mul(metric, _MixedMetric));
 
 			//We'll also Lorentz transform the vectors:
 			float4x4 viwLorentzMatrix = _viwLorentzMatrix;

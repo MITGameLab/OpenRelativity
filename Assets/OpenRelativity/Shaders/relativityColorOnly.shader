@@ -53,10 +53,6 @@ Shader "Relativity/ColorOnly"
 							   //float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
 	};
 
-	float4x4 _MixedMetric; //The mixed index metric ("conformal map") at piw
-						   //For the time being, we can only approximate by the value of the metric at the center of the object.
-						   //Ideally, we'd have a differently numerical metric value for each vertex or fragment.
-
 						   //Variables that we use to access texture data
 	sampler2D _MainTex;
 	uniform float4 _MainTex_ST;

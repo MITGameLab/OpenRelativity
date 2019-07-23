@@ -62,7 +62,7 @@ namespace OpenRelativity.Objects
         }
         public Matrix4x4 viwLorentz { get; private set; }
 
-        public void SetViwAndPosition(Vector3 newViw, Vector3 newPiw, Matrix4x4? mixedMetric = null)
+        public void SetViwAndPosition(Vector3 newViw, Vector3 newPiw)
         {
             piw = newPiw;
             _viw = newViw;
@@ -89,7 +89,7 @@ namespace OpenRelativity.Objects
                 UpdateRigidbodyVelocity(newViw, aviw);
             }
 
-            UpdateShaderParams(mixedMetric);
+            UpdateShaderParams();
         }
 
         //Store this object's angular velocity here.
@@ -681,13 +681,6 @@ namespace OpenRelativity.Objects
 
             colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
 
-            Matrix4x4 minkowski = Matrix4x4.identity;
-            minkowski.m33 = 1;
-            minkowski.m00 = -1;
-            minkowski.m11 = -1;
-            minkowski.m22 = -1;
-            colliderShaderParams.mixedMetric = minkowski;
-
             checkSpeed();
 
             //Also get the meshrenderer so that we can give it a unique material
@@ -710,7 +703,6 @@ namespace OpenRelativity.Objects
                     //Then, set the value that we want
                     quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 1));
                     quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
-                    quickSwapMaterial.SetMatrix("_MixedMetric", minkowski);
                     quickSwapMaterial.SetMatrix("_viwLorentzMatrix", Matrix4x4.identity);
 
 
@@ -931,19 +923,6 @@ namespace OpenRelativity.Objects
                 if (!isStatic && properAiw.sqrMagnitude != 0)
                 {
                     viw += properAiw * (float)deltaTime;
-                }
-
-                //Update co-moving position, if necessary:
-                if (!state.isMinkowski && (deltaTime != 0) && !isStatic)
-                {
-                    Vector4 displacement = new Vector4(0, 0, 0, (float)deltaTime);
-                    displacement = state.conformalMap.LocalToWorld(piw) * displacement;
-                    piw += (Vector3)displacement;
-
-                    if (!nonrelativisticShader)
-                    {
-                        transform.position = piw;
-                    }
                 }
 
                 if (meshFilter != null)
@@ -1196,15 +1175,11 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void UpdateShaderParams(Matrix4x4? mixedMetric = null)
+        private void UpdateShaderParams()
         {
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null)
             {
-                if (mixedMetric == null)
-                {
-                    mixedMetric = state.conformalMap.WorldToLocal(state.playerTransform.position) * state.conformalMap.LocalToWorld(piw);
-                }
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector3 tempPiw = transform.position;
@@ -1216,13 +1191,11 @@ namespace OpenRelativity.Objects
 
                 colliderShaderParams.viw = tempViw;
                 colliderShaderParams.aiw = tempAiw;
-                colliderShaderParams.mixedMetric = mixedMetric.Value;
                 colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
                 for (int i = 0; i < myRenderer.materials.Length; i++)
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
-                    myRenderer.materials[i].SetMatrix("_MixedMetric", mixedMetric.Value);
                     myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                 }
             }
@@ -1906,21 +1879,12 @@ namespace OpenRelativity.Objects
         {   
             Vector3 playerPos = state.playerTransform.position;
 
-            Matrix4x4 metric = ((Vector4)piw).GetPlayerLocalAcceleratedMetric(
+            return ((Vector4)piw).GetPlayerLocalAcceleratedMetric(
                 playerPos,
                 state.PlayerVelocityVector,
                 state.PlayerAccelerationVector,
                 state.PlayerAngularVelocityVector
             );
-
-            // Transformation goes right-to-left. First, object coords to world coords, then world coords to player coords.
-            // Rindler coordinates relative to first-person player acceleration are "in the middle."
-            // Then, for a vector acting from the left side, to give an inner product with the metric, the coord transform inverses are applied in opposite order.
-            Matrix4x4 otw = state.conformalMap.LocalToWorld(piw);
-            Matrix4x4 wtp = state.conformalMap.WorldToLocal(playerPos);
-            metric =  otw.inverse * wtp.inverse * metric * state.conformalMap.WorldToLocal(playerPos) * state.conformalMap.LocalToWorld(piw);
-
-            return metric;
         }
 
         public Vector4 GetTotalAcceleration(Vector3 piw)
