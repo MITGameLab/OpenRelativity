@@ -181,6 +181,9 @@ namespace OpenRelativity
                     //vNew = (1/(1+vOld*vAddx/cSqrd))*(Vector3(vAdd.x+vOld.x,vAdd.y/Gamma,vAdd.z/Gamma))
                     if (addedVelocity.sqrMagnitude != 0 || useGravity)
                     {
+                        //get gamma so we don't have to bother getting it every time
+                        float gamma = (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+
                         //Rotate our velocity Vector    
                         Vector3 rotatedVelocity = rotateX * playerVelocityVector;
 
@@ -189,9 +192,6 @@ namespace OpenRelativity
                             //Rotate our added Velocity
                             addedVelocity = rotateX * addedVelocity;
 
-                            //get gamma so we don't have to bother getting it every time
-                            float gamma = (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-
                             //Do relativistic velocity addition as described by the above equation.
                             rotatedVelocity = (1 / (1 + (rotatedVelocity.x * addedVelocity.x) / (float)state.SpeedOfLightSqrd)) *
                                 (new Vector3(addedVelocity.x + rotatedVelocity.x, addedVelocity.y * gamma, gamma * addedVelocity.z));
@@ -199,8 +199,10 @@ namespace OpenRelativity
 
                         //Unrotate our new total velocity
                         rotatedVelocity = unRotateX * rotatedVelocity;
+
+                        //3-acceleration acts as classically on the rapidity, rather than velocity.
                         totalAccel = (addedVelocity / Time.deltaTime);
-                        totalAccel = totalAccel.Gamma() * totalAccel;
+                        totalAccel = gamma * totalAccel;
 
                         //Set it, depending on gravity
                         if (!useGravity)
