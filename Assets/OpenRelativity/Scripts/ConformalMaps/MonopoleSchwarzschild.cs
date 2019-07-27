@@ -10,7 +10,7 @@ namespace OpenRelativity.ConformalMaps
         public float radiusCutoff = 1;
         public float hbarOverG = 7.038e-45f; // m^5/s^3
 
-        override public Vector3 ComovePlayer(float properTDiff, Vector3 piw)
+        override public Vector4 ComoveOptical(float properTDiff, Vector3 piw)
         {
             if (radius < radiusCutoff)
             {
@@ -23,8 +23,13 @@ namespace OpenRelativity.ConformalMaps
             float rho = 2.0f / 3.0f * Mathf.Sqrt(Mathf.Pow(r, 3.0f) / radius) + tau;
             float diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
             r -= diffR;
+            float sqrtROverRs = Mathf.Sqrt(r / radius);
+            float t = tau - 2 * Mathf.Sqrt(radius) * (Mathf.Sqrt(r) - Mathf.Sqrt(radius) * 0.5f * Mathf.Log((1.0f + sqrtROverRs) / (1.0f - sqrtROverRs)));
 
-            return piw.normalized * r;
+            Vector4 piw4 = piw.normalized * r;
+            piw4.w = t;
+
+            return piw4;
         }
 
         void FixedUpdate()

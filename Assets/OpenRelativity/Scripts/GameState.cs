@@ -326,7 +326,7 @@ namespace OpenRelativity
                 if (conformalMap != null)
                 {
                     // Assume local player coordinates are comoving
-                    playerTransform.position = conformalMap.ComovePlayer((float)FixedDeltaTimePlayer, playerTransform.position);
+                    playerTransform.position = conformalMap.ComoveOptical((float)FixedDeltaTimePlayer, playerTransform.position);
                 }
 
                 Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();

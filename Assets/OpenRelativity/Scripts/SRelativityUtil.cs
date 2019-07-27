@@ -347,7 +347,7 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector3 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;// srCamera.PlayerVelocityVector;
 
@@ -404,6 +404,7 @@ namespace OpenRelativity
             riw = Quaternion.Inverse(viwToZRot) * riwTransformed;
 
             riw = (Vector3)riw + origin;
+            riw.w = riwTransformed.w;
 
             return riw;
         }

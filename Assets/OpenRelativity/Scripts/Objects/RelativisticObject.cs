@@ -911,8 +911,58 @@ namespace OpenRelativity.Objects
 
             if (!state.MovementFrozen)
             {
-                double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-                double localDeltaT = deltaTime - state.FixedDeltaTimeWorld;
+                // "Twins paradox"
+                float deltaTime = (float)(state.FixedDeltaTimePlayer * GetTimeFactor());
+                float localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
+
+                if (nonrelativisticShader)
+                {
+                    // The object should still contract, if sleeping, but this "unglues" it from any object it rests on, in an obvious way.
+                    if (!isStatic && !isSleeping)
+                    {
+                        //Update the position in world, if necessary:
+                        piw += transform.position - contractor.position;
+                        transform.localPosition = Vector3.zero;
+                        Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
+                        float testMag = testPos.sqrMagnitude;
+                        if (!IsNaNOrInf(testMag))
+                        {
+                            contractor.position = testPos;
+                            ContractLength();
+                        }
+                    }
+                }
+                else
+                {
+                    piw = transform.position;
+                }
+
+                if (state.conformalMap != null)
+                {
+                    Vector3 ppiw = state.playerTransform.position;
+                    Vector3 pviw = state.PlayerVelocityVector;
+                    Vector3 paw = state.PlayerAccelerationVector;
+                    Vector3 avp = state.PlayerAngularVelocityVector;
+
+                    //Update comoving position
+                    Vector3 opiw = nonrelativisticShader ? transform.position : ((Vector4)piw).WorldToOptical(viw, ppiw, pviw, paw, avp, GetTotalAcceleration(piw));
+
+                    Vector4 piw4 = state.conformalMap.ComoveOptical(deltaTime, opiw);
+                    piw4 = nonrelativisticShader ? piw4 : piw4.OpticalToWorld(viw, ppiw, pviw, paw, avp, GetTotalAcceleration(piw));
+                    float testMag = piw4.sqrMagnitude;
+                    if (!IsNaNOrInf(testMag))
+                    {
+                        piw = piw4;
+                        if (nonrelativisticShader)
+                        {
+                            contractor.position = piw;
+                            transform.localPosition = Vector3.zero;
+                        }
+                        deltaTime = piw4.w;
+                        localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
+                    }
+                }
+                
                 if (!IsNaNOrInf(localDeltaT))
                 {
                     localTimeOffset += localDeltaT;
@@ -962,28 +1012,6 @@ namespace OpenRelativity.Objects
                             }
                         }
                     }
-                }
-
-                if (nonrelativisticShader)
-                {
-                    // The object should still contract, if sleeping, but this "unglues" it from any object it rests on, in an obvious way.
-                    if (!isStatic && !isSleeping)
-                    {
-                        //Update the position in world, if necessary:
-                        piw += transform.position - contractor.position;
-                        transform.localPosition = Vector3.zero;
-                        Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
-                        float testMag = testPos.sqrMagnitude;
-                        if (!IsNaNOrInf(testMag))
-                        {
-                            contractor.position = testPos;
-                            ContractLength();
-                        }
-                    }
-                }
-                else
-                {
-                    piw = transform.position;
                 }
 
                 if (!myColliderIsVoxel)
@@ -1876,10 +1904,8 @@ namespace OpenRelativity.Objects
         // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
         public Matrix4x4 GetMetric()
         {   
-            Vector3 playerPos = state.playerTransform.position;
-
             return ((Vector4)piw).GetPlayerLocalAcceleratedMetric(
-                playerPos,
+                state.playerTransform.position,
                 state.PlayerVelocityVector,
                 state.PlayerAccelerationVector,
                 state.PlayerAngularVelocityVector

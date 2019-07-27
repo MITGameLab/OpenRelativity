@@ -6,6 +6,6 @@ namespace OpenRelativity.ConformalMaps
     {
         public GameState state { get; set; }
 
-        abstract public Vector3 ComovePlayer(float properTDiff, Vector3 piw);
+        abstract public Vector4 ComoveOptical(float properTDiff, Vector3 piw);
     }
 }
