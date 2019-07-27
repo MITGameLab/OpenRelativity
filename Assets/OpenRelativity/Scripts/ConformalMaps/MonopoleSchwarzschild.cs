@@ -51,6 +51,7 @@ namespace OpenRelativity.ConformalMaps
             return piw4;
         }
 
+        /*
         void FixedUpdate()
         {
             if (!double.IsInfinity(state.FixedDeltaTimeWorld) && !double.IsNaN(state.FixedDeltaTimeWorld))
@@ -66,5 +67,6 @@ namespace OpenRelativity.ConformalMaps
 
             eventHorizon.localScale = new Vector3(radius, radius, radius);
         }
+        */
     }
 }
