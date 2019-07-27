@@ -940,7 +940,7 @@ namespace OpenRelativity.Objects
                 if (state.conformalMap != null)
                 {
                     Vector3 ppiw = state.playerTransform.position;
-                    Vector3 pviw = state.PlayerVelocityVector;
+                    Vector3 pviw = -state.PlayerVelocityVector;
                     Vector3 paw = state.PlayerAccelerationVector;
                     Vector3 avp = state.PlayerAngularVelocityVector;
 
