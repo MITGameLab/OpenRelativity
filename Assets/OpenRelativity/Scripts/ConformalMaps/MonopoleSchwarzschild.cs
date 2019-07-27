@@ -14,20 +14,39 @@ namespace OpenRelativity.ConformalMaps
         {
             if (radius < radiusCutoff)
             {
-                return piw;
+                Vector4 toRet = piw;
+                toRet.w = properTDiff;
+                return toRet;
             }
 
-            // Assume that the spatial component is in world coordinates, and the time is in local time 
+            // Assume that the spatial component is in world coordinates, and the time is a local time differential 
             float r = piw.magnitude;
             float tau = properTDiff;
             float rho = 2.0f / 3.0f * Mathf.Sqrt(Mathf.Pow(r, 3.0f) / radius) + tau;
-            float diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
-            r -= diffR;
+
+            // Partial differential, finite difference approach:
+            //float diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
+            //r -= diffR;
+            // Unless we have a really small and/or adaptive finite difference time step, the above approximation fails close to the event horizon.
+
+            // We can try the integral form, instead, with a major caveat...
+            float nR = Mathf.Pow(radius * Mathf.Pow(3.0f / 2.0f * (rho - tau), 2.0f), 1.0f / 3.0f);
+            float diffR = nR - r;
+            // The equation we derive this closed-form integral from has many roots.
+            // Some of these roots are not admissible without the existence of complex numbers.
+            // Some are valid (real) when rho > tau, and some are valid when rho < tau.
+            // (The above is real only when rho > tau, so rho better be greater than tau, in our inputs, at least.)
+
+            // Remember that differential geometry gives us coordinate systems that are valid only over LOCAL regions, i.e. specifically NOT GLOBAL coordinate systems.
+            // The coordinates are not "intrinsically" significant. "Intrinsic" properties, i.e. intrinsic curvature, an intrinsic property of the METRIC, is independent of coordinate systems.
+
+            // All that said, the above should serve our purposes in the local region of interest.
+
             float sqrtROverRs = Mathf.Sqrt(r / radius);
-            float t = tau - 2 * Mathf.Sqrt(radius) * (Mathf.Sqrt(r) - Mathf.Sqrt(radius) * 0.5f * Mathf.Log((1.0f + sqrtROverRs) / (1.0f - sqrtROverRs)));
+            float diffT = Mathf.Sqrt(r / radius) / (1.0f - radius / r) * diffR;
 
             Vector4 piw4 = piw.normalized * r;
-            piw4.w = t;
+            piw4.w = diffT;
 
             return piw4;
         }
