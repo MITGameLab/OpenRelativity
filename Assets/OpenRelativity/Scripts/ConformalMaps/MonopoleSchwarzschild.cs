@@ -45,7 +45,8 @@ namespace OpenRelativity.ConformalMaps
 
             // All that said, the above should serve our purposes in the local region of interest.
 
-            float diffT = Mathf.Sqrt(r / radius) / (1.0f - radius / r) * diffR;
+            // The integral isn't as "nice" for time, and we approximate to lowest order:
+            float diffT = Mathf.Log((radius - r) / diffR);
 
             Vector4 piw4 = piw.normalized * nR;
             piw4.w = diffT;

@@ -93,7 +93,18 @@ namespace OpenRelativity
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get { return sqrtOneMinusVSquaredCWDividedByCSquared; } }
         //public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
         public double DeltaTimeWorld { get { return deltaTimeWorld; } }
-        public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / sqrtOneMinusVSquaredCWDividedByCSquared; } }
+        private double _fixedDeltaTimeWorld;
+        public double FixedDeltaTimeWorld {
+            get {
+                if (conformalMap == null)
+                {
+                    return Time.fixedDeltaTime / sqrtOneMinusVSquaredCWDividedByCSquared;
+                } else
+                {
+                    return _fixedDeltaTimeWorld;
+                }
+            }
+        }
         //public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / inverseAcceleratedGamma; } }
         public double DeltaTimePlayer { get { return deltaTimePlayer; } }
         public double FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
@@ -326,7 +337,9 @@ namespace OpenRelativity
                 if (conformalMap != null)
                 {
                     // Assume local player coordinates are comoving
-                    playerTransform.position = conformalMap.ComoveOptical((float)FixedDeltaTimePlayer, playerTransform.position);
+                    Vector4 piw4 = conformalMap.ComoveOptical((float)FixedDeltaTimePlayer, playerTransform.position);
+                    playerTransform.position = piw4;
+                    _fixedDeltaTimeWorld = piw4.w / sqrtOneMinusVSquaredCWDividedByCSquared;
                 }
 
                 Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
