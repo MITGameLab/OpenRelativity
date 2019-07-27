@@ -45,7 +45,7 @@ namespace OpenRelativity.ConformalMaps
             float sqrtROverRs = Mathf.Sqrt(r / radius);
             float diffT = Mathf.Sqrt(r / radius) / (1.0f - radius / r) * diffR;
 
-            Vector4 piw4 = piw.normalized * r;
+            Vector4 piw4 = piw.normalized * nR;
             piw4.w = diffT;
 
             return piw4;
