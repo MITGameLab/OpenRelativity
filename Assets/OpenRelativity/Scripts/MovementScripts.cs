@@ -227,7 +227,7 @@ namespace OpenRelativity
                         }
                     }
 
-                    state.PlayerAccelerationVector = totalAccel;
+                    state.LocalPlayerAccelerationVector = totalAccel;
 
                     //CHANGE the speed of light
 

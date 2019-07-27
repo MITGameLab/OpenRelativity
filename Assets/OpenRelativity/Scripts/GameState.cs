@@ -84,7 +84,18 @@ namespace OpenRelativity
         public Matrix4x4 WorldRotation { get { return worldRotation; } }
         public Quaternion Orientation { get { return orientation; } }
         public Vector3 PlayerVelocityVector { get { return playerVelocityVector; } set { playerVelocityVector = value; } }
-        public Vector3 PlayerAccelerationVector { get { return playerAccelerationVector; } set { playerAccelerationVector = value; } }
+        public Vector3 LocalPlayerAccelerationVector { get { return playerAccelerationVector; } set { playerAccelerationVector = value; } }
+        public Vector3 PlayerAccelerationVector {
+            get {
+                if (conformalMap == null)
+                {
+                    return playerAccelerationVector;
+                } else
+                {
+                    return playerAccelerationVector + conformalMap.GetRindlerAcceleration(playerTransform.position);
+                }
+            }
+        }
         public Vector3 PlayerAngularVelocityVector { get { if (deltaTimePlayer == 0) { return Vector3.zero; } else { return (float)(deltaCameraAngle * Mathf.Deg2Rad / deltaTimePlayer) * playerTransform.up; } } }
         public Matrix4x4 PlayerLorentzMatrix { get { return playerLorentzMatrix; } }
 

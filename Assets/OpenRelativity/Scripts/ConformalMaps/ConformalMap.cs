@@ -7,5 +7,6 @@ namespace OpenRelativity.ConformalMaps
         public GameState state { get; set; }
 
         abstract public Vector4 ComoveOptical(float properTDiff, Vector3 piw);
+        abstract public Vector3 GetRindlerAcceleration(Vector3 piw);
     }
 }

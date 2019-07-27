@@ -10,5 +10,10 @@ namespace OpenRelativity.ConformalMaps
             piw4.w = properTDiff;
             return piw4;
         }
+
+        override public Vector3 GetRindlerAcceleration(Vector3 piw)
+        {
+            return Vector3.zero;
+        }
     }
 }

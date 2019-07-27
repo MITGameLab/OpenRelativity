@@ -54,6 +54,11 @@ namespace OpenRelativity.ConformalMaps
             return piw4;
         }
 
+        override public Vector3 GetRindlerAcceleration(Vector3 piw)
+        {
+            return SRelativityUtil.cSqrd / (2 * radius) * piw.normalized;
+        }
+
         void FixedUpdate()
         {
             if (!double.IsInfinity(state.FixedDeltaTimeWorld) && !double.IsNaN(state.FixedDeltaTimeWorld))
