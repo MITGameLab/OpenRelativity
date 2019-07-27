@@ -23,7 +23,8 @@ namespace OpenRelativity.ConformalMaps
             float r = piw.magnitude;
             float tau = properTDiff;
             float rsCubeRoot = Mathf.Pow(radius, 1.0f / 3.0f);
-            float rho = (2.0f * r * Mathf.Sqrt(r / rsCubeRoot) + 3.0f * rsCubeRoot * tau) / (3.0f * rsCubeRoot);
+            // To begin, "tau" = 0;
+            float rho = (2.0f * r * Mathf.Sqrt(r / rsCubeRoot)) / (3.0f * rsCubeRoot);
 
             // Partial differential, finite difference approach:
             //float diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
@@ -37,6 +38,7 @@ namespace OpenRelativity.ConformalMaps
             // Some of these roots are not admissible without the existence of complex numbers.
             // Some are valid (real) when rho > tau, and some are valid when rho < tau.
             // (The above is real only when rho > tau, so rho better be greater than tau, in our inputs, at least.)
+            // This neglects the change in "radius," the Schwarzschild radius, but we approximate that with a finite difference loop, in the FixedUpdate() method.
 
             // Remember that differential geometry gives us coordinate systems that are valid only over LOCAL regions, i.e. specifically NOT GLOBAL coordinate systems.
             // The coordinates are not "intrinsically" significant. "Intrinsic" properties, i.e. intrinsic curvature, an intrinsic property of the METRIC, is independent of coordinate systems.
