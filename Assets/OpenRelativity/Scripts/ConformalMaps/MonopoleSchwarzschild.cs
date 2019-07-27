@@ -22,7 +22,8 @@ namespace OpenRelativity.ConformalMaps
             // Assume that the spatial component is in world coordinates, and the time is a local time differential 
             float r = piw.magnitude;
             float tau = properTDiff;
-            float rho = 2.0f / 3.0f * Mathf.Sqrt(Mathf.Pow(r, 3.0f) / radius) + tau;
+            float rsCubeRoot = Mathf.Pow(radius, 1.0f / 3.0f);
+            float rho = (2.0f * r * Mathf.Sqrt(r / rsCubeRoot) + 3.0f * rsCubeRoot * tau) / (3.0f * rsCubeRoot);
 
             // Partial differential, finite difference approach:
             //float diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
@@ -42,7 +43,6 @@ namespace OpenRelativity.ConformalMaps
 
             // All that said, the above should serve our purposes in the local region of interest.
 
-            float sqrtROverRs = Mathf.Sqrt(r / radius);
             float diffT = Mathf.Sqrt(r / radius) / (1.0f - radius / r) * diffR;
 
             Vector4 piw4 = piw.normalized * nR;
@@ -51,7 +51,6 @@ namespace OpenRelativity.ConformalMaps
             return piw4;
         }
 
-        /*
         void FixedUpdate()
         {
             if (!double.IsInfinity(state.FixedDeltaTimeWorld) && !double.IsNaN(state.FixedDeltaTimeWorld))
@@ -67,6 +66,5 @@ namespace OpenRelativity.ConformalMaps
 
             eventHorizon.localScale = new Vector3(radius, radius, radius);
         }
-        */
     }
 }
