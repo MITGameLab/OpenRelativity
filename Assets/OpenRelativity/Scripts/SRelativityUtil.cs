@@ -205,7 +205,12 @@ namespace OpenRelativity
             return metric;
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 aiw)
+        {
+            return stpiw.GetTisw(stpiw, velocity, srCamera.playerTransform.position, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw);
+        }
+
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3 aiw)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -250,7 +255,12 @@ namespace OpenRelativity
             return tisw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        {
+            return stpiw.WorldToOptical(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+        }
+
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -347,7 +357,12 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        {
+            return opticalPos.OpticalToWorld(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+        }
+
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;// srCamera.PlayerVelocityVector;
 
@@ -376,7 +391,11 @@ namespace OpenRelativity
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
             riwTransformed.w = tisw;
             Vector3 avpTransformed = viwToZRot * avp;
-            Vector3 aiwTransformed = viwToZRot * aiw;
+            if (!aiw.HasValue)
+            {
+                aiw = Vector3.zero;
+            }
+            Vector3 aiwTransformed = viwToZRot * aiw.Value;
 
             //We'll also Lorentz transform the vectors:
             if (viwLorentzMatrix == null)
@@ -392,7 +411,7 @@ namespace OpenRelativity
 
             tisw = riwTransformed.w;
 
-            if (aiw.sqrMagnitude > divByZeroCutoff)
+            if (aiw.Value.sqrMagnitude > divByZeroCutoff)
             {
                 float aiwMag = aiwTransformed.magnitude;
                 //add the position offset due to acceleration
@@ -409,7 +428,12 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
+        public static Vector4 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        {
+            return opticalPos.OpticalToWorldHighPrecision(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+        }
+
+        public static Vector4 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3? aiw = null, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
         {
             Vector4 startPoint = opticalPos;
             Vector3 est, offset, newEst;

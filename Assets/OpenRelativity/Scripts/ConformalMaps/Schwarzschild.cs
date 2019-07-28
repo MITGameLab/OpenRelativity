@@ -3,9 +3,10 @@ using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
-    public class MonopoleSchwarzschild : ConformalMap
+    public class Schwarzschild : ConformalMap
     {
         public Transform eventHorizon;
+        public bool doEvaporate = true;
         public float radius = 1;
         public float radiusCutoff = 1;
         public float hbarOverG = 7.038e-45f; // m^5/s^3
@@ -68,6 +69,14 @@ namespace OpenRelativity.ConformalMaps
 
         void FixedUpdate()
         {
+            if (!doEvaporate)
+            {
+                return;
+            }
+
+            // This is speculative, but it can simply be turned off, in the editor.
+            // This attempts to simulate black hole evaporation at a rate inversely proportional to Schwarzschild radius.
+            // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
             if (!double.IsInfinity(state.FixedDeltaTimeWorld) && !double.IsNaN(state.FixedDeltaTimeWorld))
             {
                 float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
