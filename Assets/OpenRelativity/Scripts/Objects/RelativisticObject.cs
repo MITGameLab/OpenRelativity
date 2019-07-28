@@ -24,35 +24,29 @@ namespace OpenRelativity.Objects
             // (This keeps the optical and Minkowski position fixed.)
             set
             {
-                if (!isStatic)
+                // Skip this all, if the change is negligible.
+                if ((value - viw).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
                 {
-                    //This makes instantiation cleaner:
-                    initialViw = value;
-                    Vector4 myAccel = GetTotalAcceleration();
-
-                    //(If we are not overridden by a uniform proper acceleration...)
-                    //Consider the acceleration in this set operation to happen over the course of one fixed update frame:
-                    if (properAiw == Vector3.zero)
-                    {
-                        myAccel += (Vector4)((value - _viw) * (float)GetTimeFactor() * Time.fixedDeltaTime);
-                    }
-
-                    Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
-                    //Under instantaneous changes in velocity, the optical position should be invariant:
-                    //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
-                    piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, myAccel, vpcLorentz, viwLorentz)).OpticalToWorldHighPrecision(value, myAccel, vpcLorentz, viwLorentz);
-                    //test = test - piw.WorldToOptical(value, playerPos, playerVel);
-                    if (!nonrelativisticShader && !IsNaNOrInf(piw.magnitude))
-                    {
-                        transform.position = piw;
-                    }
-                    _viw = value;
-                    //Also update the Rigidbody, if any
-                    UpdateRigidbodyVelocity(value, aviw);
-
-                    //Update the shader parameters if necessary
-                    UpdateShaderParams();
+                    return;
                 }
+
+                // This makes instantiation cleaner:
+                initialViw = value;
+
+                // Under instantaneous changes in velocity, the optical position should be invariant.
+                // Cast to Vector3 to ignor time component
+                Vector3 opiw = ((Vector4)piw).WorldToOptical(_viw, properAiw);
+                piw = ((Vector4)opiw).OpticalToWorldHighPrecision(value, properAiw);
+                if (!nonrelativisticShader && !IsNaNOrInf(piw.magnitude))
+                {
+                    transform.position = piw;
+                }
+                _viw = value;
+                // Also update the Rigidbody, if any
+                UpdateRigidbodyVelocity(value, aviw);
+
+                // Update the shader parameters if necessary
+                UpdateShaderParams();
             }
         }
         public Matrix4x4 viwLorentz { get; private set; }
@@ -246,6 +240,13 @@ namespace OpenRelativity.Objects
         private Vector3 oldCollisionResultAngVel3;
         //If the shader is nonrelativistic, and if the object is static, it helps to save and restore the initial position
         public bool isStatic = false;
+        public bool isWorldStatic
+        {
+            get
+            {
+                return isStatic || isSleeping || viw.sqrMagnitude == 0;
+            }
+        }
 
         public void MarkStaticColliderPos()
         {
@@ -908,7 +909,7 @@ namespace OpenRelativity.Objects
                 if (nonrelativisticShader)
                 {
                     // The object should still contract, if sleeping, but this "unglues" it from any object it rests on, in an obvious way.
-                    if (!isStatic && !isSleeping)
+                    if (!isWorldStatic)
                     {
                         //Update the position in world, if necessary:
                         piw += transform.position - contractor.position;
@@ -954,9 +955,9 @@ namespace OpenRelativity.Objects
                 }
 
                 //Add proper acceleration:
-                if (!isStatic && properAiw.sqrMagnitude != 0)
+                if (properAiw.sqrMagnitude != 0)
                 {
-                    viw += properAiw * (float)deltaTime;
+                    viw += properAiw * deltaTime;
                 }
 
                 if (meshFilter != null)
@@ -1004,7 +1005,7 @@ namespace OpenRelativity.Objects
                     UpdateColliderPosition();
                 }
 
-                if (isSleeping)
+                if (isWorldStatic)
                 {
                     myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
@@ -1012,38 +1013,7 @@ namespace OpenRelativity.Objects
                     viw = Vector4.zero;
                     aviw = Vector4.zero;
                 }
-
-                //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
-                if (myColliderIsBox && isSleeping && isRestingOnCollider)
-                {
-                    int myLayer = gameObject.layer;
-                    gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
-
-                    float extentY = myColliders[0].bounds.extents.y;
-                    float maxDist = 100f;
-                    Ray downRay = new Ray()
-                    {
-                        direction = Physics.gravity.normalized,
-                        origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center + extentY * Vector3.up)
-                    };
-                    RaycastHit hitInfo;
-                    if (Physics.Raycast(downRay, out hitInfo, maxDist, gameObject.layer))
-                    {
-                        if (nonrelativisticShader)
-                        {
-                            contractor.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
-                            transform.localPosition = Vector3.zero;
-                        }
-                        else
-                        {
-                            transform.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
-                        }
-                    }
-
-                    gameObject.layer = myLayer;
-                }
-
-                if (!isStatic && !isSleeping && myRigidbody != null)
+                else if (myRigidbody != null)
                 {
                     //update our viw and set the rigid body proportionally
                     //Dragging probably happens intrinsically in the rest frame,
@@ -1106,6 +1076,36 @@ namespace OpenRelativity.Objects
                         sleepOldOrientation = transform.forward;
                     }
                 }
+
+                //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
+                if (myColliderIsBox && isSleeping && isRestingOnCollider)
+                {
+                    int myLayer = gameObject.layer;
+                    gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
+
+                    float extentY = myColliders[0].bounds.extents.y;
+                    float maxDist = 100f;
+                    Ray downRay = new Ray()
+                    {
+                        direction = Physics.gravity.normalized,
+                        origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center + extentY * Vector3.up)
+                    };
+                    RaycastHit hitInfo;
+                    if (Physics.Raycast(downRay, out hitInfo, maxDist, gameObject.layer))
+                    {
+                        if (nonrelativisticShader)
+                        {
+                            contractor.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
+                            transform.localPosition = Vector3.zero;
+                        }
+                        else
+                        {
+                            transform.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
+                        }
+                    }
+
+                    gameObject.layer = myLayer;
+                }
             }
             //If our rigidbody is not null, and movement is frozen, then set the object to standstill.
             else if (myRigidbody != null)
@@ -1140,38 +1140,30 @@ namespace OpenRelativity.Objects
                 //If we have a BoxCollider, transform its center to its optical position
                 else if (myColliderIsBox)
                 {
+                    Vector3 aiw = GetTotalAcceleration();
+
                     Vector3 pos;
                     BoxCollider collider;
                     Vector3 testPos;
                     float testMag;
-                    if (isStatic || isSleeping)
-                    {
                         
-                        for (int i = 0; i < myColliders.Length; i++)
-                        {
-                            collider = (BoxCollider)myColliders[i];
-                            pos = transform.TransformPoint(colliderPiw[i]);
-                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, Vector4.zero, vpcLorentz, Matrix4x4.identity));
-                            testMag = testPos.sqrMagnitude;
-                            if (!IsNaNOrInf(testMag))
-                            {
-                                collider.center = testPos;
-                            }
-                        }
-                    }
-                    else
+                    for (int i = 0; i < myColliders.Length; i++)
                     {
-                        for (int i = 0; i < myColliders.Length; i++)
+                        collider = (BoxCollider)myColliders[i];
+                        pos = transform.TransformPoint(colliderPiw[i]);
+                        if (isWorldStatic)
                         {
-                            collider = (BoxCollider)myColliders[i];
-                            pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
-                            Vector4 myAccel = GetTotalAcceleration();
-                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, myAccel, vpcLorentz, viwLorentz));
-                            testMag = testPos.sqrMagnitude;
-                            if (!IsNaNOrInf(testMag))
-                            {
-                                collider.center = testPos;
-                            }
+                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, Vector3.zero, vpcLorentz, viwLorentz));
+                        }
+                        else
+                        {
+                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw, vpcLorentz, viwLorentz));
+                        }
+                        testMag = testPos.sqrMagnitude;
+
+                        if (!IsNaNOrInf(testMag))
+                        {
+                            collider.center = testPos;
                         }
                     }
                 }
@@ -1889,16 +1881,16 @@ namespace OpenRelativity.Objects
         public Vector4 GetTotalAcceleration()
         {
             Vector4 playerPos = state.playerTransform.position;
-            Vector3 propAccel = Vector4.zero;
+            Vector3 prAccel = Vector4.zero;
             if (useGravity && !isStatic && !isSleeping)
             {
-                propAccel += Physics.gravity;
+                prAccel += Physics.gravity;
             }
             if (properAiw.sqrMagnitude > 0)
             {
-                propAccel += properAiw;
+                prAccel += properAiw;
             }
-            return propAccel.ProperToWorldAccel(viw);
+            return prAccel.ProperToWorldAccel(viw);
         }
 
         private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)
