@@ -28,11 +28,6 @@ namespace OpenRelativity.Objects
                 {
                     //This makes instantiation cleaner:
                     initialViw = value;
-
-                    Vector3 playerPos = state.playerTransform.position;
-                    Vector3 playerVel = state.PlayerVelocityVector;
-                    Vector4 playerAccel = state.PlayerAccelerationVector;
-                    Vector3 playerAngVel = state.PlayerAngularVelocityVector;
                     Vector4 myAccel = GetTotalAcceleration(piw);
 
                     //(If we are not overridden by a uniform proper acceleration...)
@@ -45,7 +40,7 @@ namespace OpenRelativity.Objects
                     Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
                     //Under instantaneous changes in velocity, the optical position should be invariant:
                     //Vector3 test = piw.WorldToOptical(_viw, playerPos, playerVel);
-                    piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz)).OpticalToWorldHighPrecision(value, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz);
+                    piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, myAccel, vpcLorentz, viwLorentz)).OpticalToWorldHighPrecision(value, myAccel, vpcLorentz, viwLorentz);
                     //test = test - piw.WorldToOptical(value, playerPos, playerVel);
                     if (!nonrelativisticShader && !IsNaNOrInf(piw.magnitude))
                     {
@@ -69,7 +64,7 @@ namespace OpenRelativity.Objects
             initialViw = newViw;
             if (nonrelativisticShader)
             {
-                newPiw = ((Vector4)newPiw).WorldToOptical(newViw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw));
+                newPiw = ((Vector4)newPiw).WorldToOptical(newViw, GetTotalAcceleration(piw));
             }
             transform.position = newPiw;
 
@@ -381,8 +376,9 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
+            // TODO: Why is position subtracted from acceleration, here?
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= (float)GetTimeFactor();
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (myRenderer != null)
@@ -391,8 +387,9 @@ namespace OpenRelativity.Objects
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
+            // TODO: Why is position subtracted from acceleration, here?
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, playerPos, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, GetTotalAcceleration(piw)) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= (float)GetTimeFactor();
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
@@ -731,7 +728,7 @@ namespace OpenRelativity.Objects
             //If the shader is nonrelativistic, map the object from world space to optical space and handle length contraction:
             if (nonrelativisticShader)
             {
-                transform.position = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw));
+                transform.position = ((Vector4)piw).WorldToOptical(viw, GetTotalAcceleration(piw));
                 if (contractor == null) SetUpContractor();
                 ContractLength();
             }
@@ -885,14 +882,7 @@ namespace OpenRelativity.Objects
 
         public float GetTisw(Vector3? playerPos = null)
         {
-            return ((Vector4)piw).GetTisw(
-                viw,
-                state.playerTransform.position,
-                state.PlayerVelocityVector,
-                state.PlayerAccelerationVector,
-                state.PlayerAngularVelocityVector,
-                properAiw
-            );
+            return ((Vector4)piw).GetTisw(viw, properAiw);
         }
 
         void FixedUpdate() {
@@ -911,8 +901,53 @@ namespace OpenRelativity.Objects
 
             if (!state.MovementFrozen)
             {
-                double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-                double localDeltaT = deltaTime - state.FixedDeltaTimeWorld;
+                // "Twins paradox"
+                float deltaTime = (float)(state.FixedDeltaTimePlayer * GetTimeFactor());
+                float localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
+
+                if (nonrelativisticShader)
+                {
+                    // The object should still contract, if sleeping, but this "unglues" it from any object it rests on, in an obvious way.
+                    if (!isStatic && !isSleeping)
+                    {
+                        //Update the position in world, if necessary:
+                        piw += transform.position - contractor.position;
+                        transform.localPosition = Vector3.zero;
+                        Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
+                        float testMag = testPos.sqrMagnitude;
+                        if (!IsNaNOrInf(testMag))
+                        {
+                            contractor.position = testPos;
+                            ContractLength();
+                        }
+                    }
+                }
+                else
+                {
+                    piw = transform.position;
+                }
+
+                if (state.conformalMap != null)
+                {
+                    //Update comoving position
+                    Vector3 opiw = nonrelativisticShader ? transform.position : ((Vector4)piw).WorldToOptical(viw, GetTotalAcceleration(piw));
+
+                    Vector4 piw4 = state.conformalMap.ComoveOptical(deltaTime, opiw);
+                    piw4 = nonrelativisticShader ? piw4 : piw4.OpticalToWorld(viw, GetTotalAcceleration(piw));
+                    float testMag = piw4.sqrMagnitude;
+                    if (!IsNaNOrInf(testMag))
+                    {
+                        piw = piw4;
+                        if (nonrelativisticShader)
+                        {
+                            contractor.position = piw;
+                            transform.localPosition = Vector3.zero;
+                        }
+                        deltaTime = piw4.w;
+                        localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
+                    }
+                }
+                
                 if (!IsNaNOrInf(localDeltaT))
                 {
                     localTimeOffset += localDeltaT;
@@ -962,28 +997,6 @@ namespace OpenRelativity.Objects
                             }
                         }
                     }
-                }
-
-                if (nonrelativisticShader)
-                {
-                    // The object should still contract, if sleeping, but this "unglues" it from any object it rests on, in an obvious way.
-                    if (!isStatic && !isSleeping)
-                    {
-                        //Update the position in world, if necessary:
-                        piw += transform.position - contractor.position;
-                        transform.localPosition = Vector3.zero;
-                        Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, GetTotalAcceleration(piw), state.PlayerLorentzMatrix, viwLorentz);
-                        float testMag = testPos.sqrMagnitude;
-                        if (!IsNaNOrInf(testMag))
-                        {
-                            contractor.position = testPos;
-                            ContractLength();
-                        }
-                    }
-                }
-                else
-                {
-                    piw = transform.position;
                 }
 
                 if (!myColliderIsVoxel)
@@ -1104,10 +1117,6 @@ namespace OpenRelativity.Objects
 
         public void UpdateColliderPosition(Collider toUpdate = null)
         {
-            Vector3 playerPos = state.playerTransform.position;
-            Vector3 playerVel = state.PlayerVelocityVector;
-            Vector4 playerAccel = state.PlayerAccelerationVector;
-            Vector3 playerAngVel = state.PlayerAngularVelocityVector;
             Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
 
             if (myColliderIsVoxel)
@@ -1142,7 +1151,7 @@ namespace OpenRelativity.Objects
                         {
                             collider = (BoxCollider)myColliders[i];
                             pos = transform.TransformPoint(colliderPiw[i]);
-                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, playerPos, playerVel, playerAccel, playerAngVel, Vector4.zero, vpcLorentz, Matrix4x4.identity));
+                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(Vector3.zero, Vector4.zero, vpcLorentz, Matrix4x4.identity));
                             testMag = testPos.sqrMagnitude;
                             if (!IsNaNOrInf(testMag))
                             {
@@ -1157,7 +1166,7 @@ namespace OpenRelativity.Objects
                             collider = (BoxCollider)myColliders[i];
                             pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
                             Vector4 myAccel = GetTotalAcceleration(pos);
-                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, playerPos, playerVel, playerAccel, playerAngVel, myAccel, vpcLorentz, viwLorentz));
+                            testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, myAccel, vpcLorentz, viwLorentz));
                             testMag = testPos.sqrMagnitude;
                             if (!IsNaNOrInf(testMag))
                             {
@@ -1876,10 +1885,8 @@ namespace OpenRelativity.Objects
         // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
         public Matrix4x4 GetMetric()
         {   
-            Vector3 playerPos = state.playerTransform.position;
-
             return ((Vector4)piw).GetPlayerLocalAcceleratedMetric(
-                playerPos,
+                state.playerTransform.position,
                 state.PlayerVelocityVector,
                 state.PlayerAccelerationVector,
                 state.PlayerAngularVelocityVector

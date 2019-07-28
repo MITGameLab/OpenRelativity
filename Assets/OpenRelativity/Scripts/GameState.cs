@@ -1,23 +1,15 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
-//using Microsoft.Xna.Framework;
-//using Microsoft.Xna.Framework.Audio;
-//using Microsoft.Xna.Framework.Content;
-//using Microsoft.Xna.Framework.GamerServices;
-//using Microsoft.Xna.Framework.Graphics;
-//using Microsoft.Xna.Framework.Input;
-//using Microsoft.Xna.Framework.Net;
-//using Microsoft.Xna.Framework.Storage;
+using OpenRelativity.ConformalMaps;
 
 namespace OpenRelativity
 {
     public class GameState : MonoBehaviour
     {
         #region Member Variables
+
+        public ConformalMap conformalMap;
 
         private System.IO.TextWriter stateStream;
 
@@ -68,6 +60,7 @@ namespace OpenRelativity
 
         //This is a value that gets used in many calculations, so we calculate it each frame
         private double sqrtOneMinusVSquaredCWDividedByCSquared;
+
         //This is the equivalent of the above value for an accelerated player frame
         //private double inverseAcceleratedGamma;
 
@@ -100,7 +93,18 @@ namespace OpenRelativity
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get { return sqrtOneMinusVSquaredCWDividedByCSquared; } }
         //public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
         public double DeltaTimeWorld { get { return deltaTimeWorld; } }
-        public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / sqrtOneMinusVSquaredCWDividedByCSquared; } }
+        private double _fixedDeltaTimeWorld;
+        public double FixedDeltaTimeWorld {
+            get {
+                if (conformalMap == null)
+                {
+                    return Time.fixedDeltaTime / sqrtOneMinusVSquaredCWDividedByCSquared;
+                } else
+                {
+                    return _fixedDeltaTimeWorld;
+                }
+            }
+        }
         //public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / inverseAcceleratedGamma; } }
         public double DeltaTimePlayer { get { return deltaTimePlayer; } }
         public double FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
@@ -128,6 +132,11 @@ namespace OpenRelativity
 
         public void Awake()
         {
+            if (conformalMap != null)
+            {
+                conformalMap.state = this;
+            }
+
             //Initialize the player's speed to zero
             playerVelocityVector = Vector3.zero;
             playerVelocity = 0;
@@ -248,40 +257,10 @@ namespace OpenRelativity
 
                 //Send velocities and acceleration to shader
                 Vector4 vpc = new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c;
-
-                //Lorentz transforms are the same for all points in an object,
-                // so it saves redundant GPU time to calculate them beforehand.
-                float speed = vpc.magnitude;
-                float beta = speed;
-                float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
-                playerLorentzMatrix = Matrix4x4.identity;
-                //Round very small velocities to zero, to avoid annoying visual jitter.
-                if (beta > SRelativityUtil.divByZeroCutoff)
-                {
-                    Vector4 vpcTransUnit = -vpc / beta;
-                    vpcTransUnit.w = 1;
-                    Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
-                    spatialComp.w = -gamma * beta;
-                    Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
-                    tComp.Scale(vpcTransUnit);
-                    playerLorentzMatrix.SetColumn(3, tComp);
-                    playerLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
-                    playerLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
-                    playerLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
-                    playerLorentzMatrix.m00 += 1;
-                    playerLorentzMatrix.m11 += 1;
-                    playerLorentzMatrix.m22 += 1;
-                    Shader.SetGlobalVector("_vpc", vpc);
-
-                }
-                else
-                {
-                    Shader.SetGlobalVector("_vpc", Vector4.zero);
-                }
-
+                Shader.SetGlobalVector("_vpc", vpc);
                 Shader.SetGlobalVector("_pap", playerAccelerationVector);
                 Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
-                Shader.SetGlobalMatrix("_vpcLorentzMatrix", playerLorentzMatrix);
+                Shader.SetGlobalMatrix("_vpcLorentzMatrix", SRelativityUtil.GetLorentzTransformMatrix(vpc));
 
                 /******************************
                 * PART TWO OF ALGORITHM
@@ -355,6 +334,14 @@ namespace OpenRelativity
                 sqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
                 !double.IsNaN(sqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
             {
+                if (conformalMap != null)
+                {
+                    // Assume local player coordinates are comoving
+                    Vector4 piw4 = conformalMap.ComoveOptical((float)FixedDeltaTimePlayer, playerTransform.position);
+                    playerTransform.position = piw4;
+                    _fixedDeltaTimeWorld = piw4.w / sqrtOneMinusVSquaredCWDividedByCSquared;
+                }
+
                 Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
                 Vector3 velocity = -playerVelocityVector;
                 playerRB.velocity = velocity / (float)sqrtOneMinusVSquaredCWDividedByCSquared;
