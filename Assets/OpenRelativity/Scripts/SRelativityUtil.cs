@@ -168,6 +168,11 @@ namespace OpenRelativity
             return vpcLorentzMatrix;
         }
 
+        public static Matrix4x4 GetRindlerMetric(Vector4 riw)
+        {
+            return GetRindlerMetric(riw, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector);
+        }
+
         public static Matrix4x4 GetRindlerMetric(Vector4 riw, Vector4 pap, Vector3 avp)
         {
             //Find metric based on player acceleration and rest frame:
@@ -182,25 +187,6 @@ namespace OpenRelativity
                 new Vector4(0, 0, -1, angFac.z),
                 new Vector4(angFac.x, angFac.y, angFac.z, linFac)
             );
-
-            return metric;
-        }
-
-        public static Matrix4x4 GetPlayerLocalAcceleratedMetric(this Vector4 stpiw, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp)
-        {
-            Vector3 vpc = -playerVel / c;
-
-            //riw = location in world, for reference
-            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
-            Matrix4x4 vpcLorentzMatrix = GetLorentzTransformMatrix(vpc);
-            // Boost to rest frame of player
-            Vector4 riwForMetric = vpcLorentzMatrix * riw;
-            //Find metric based on player acceleration and rest frame:
-            Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
-            //Lorentz boost back to world frame:
-            vpcLorentzMatrix = vpcLorentzMatrix.inverse;
-            // The Lorentz transformation is just a coordinate transformation:
-            metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
             return metric;
         }
