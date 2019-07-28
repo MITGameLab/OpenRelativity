@@ -185,7 +185,7 @@ namespace OpenRelativity.Objects
                     else
                     {
                         toUpdateBox.center = transform.InverseTransformPoint(
-                            ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(myRO.viw, myRO.GetTotalAcceleration(myRO.piw), gameState.PlayerLorentzMatrix, myRO.viwLorentz)
+                            ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(myRO.viw, myRO.GetTotalAcceleration(), gameState.PlayerLorentzMatrix, myRO.viwLorentz)
                        );
                     }
                 }
@@ -222,7 +222,7 @@ namespace OpenRelativity.Objects
             }
             else {
                 viw = myRO.viw;
-                aiw = myRO.GetTotalAcceleration(myRO.piw);
+                aiw = myRO.GetTotalAcceleration();
             }
 
             Vector3 playerPos = gameState.playerTransform.position;
