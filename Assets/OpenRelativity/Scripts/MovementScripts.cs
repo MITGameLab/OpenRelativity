@@ -227,7 +227,12 @@ namespace OpenRelativity
                         }
                     }
 
-                    state.LocalPlayerAccelerationVector = totalAccel;
+                    if (state.conformalMap != null && !isFalling)
+                    {
+                        totalAccel += state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+                    }
+
+                    state.PlayerAccelerationVector = totalAccel;
 
                     //CHANGE the speed of light
 
