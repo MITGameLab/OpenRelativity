@@ -130,7 +130,7 @@ namespace OpenRelativity
         public static Vector3 InverseContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
             float speedSqr = velocity.sqrMagnitude;
-            if (speedSqr == 0.0)
+            if (float.IsNaN(speedSqr) || float.IsInfinity(speedSqr) || speedSqr < divByZeroCutoff)
             {
                 return interval;
             }
@@ -191,12 +191,12 @@ namespace OpenRelativity
             return metric;
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 aiw)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
         {
             return stpiw.GetTisw(stpiw, velocity, srCamera.playerTransform.position, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw);
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3 aiw)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -241,12 +241,12 @@ namespace OpenRelativity
             return tisw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4? aiw = null, Matrix4x4? viwLorentzMatrix = null)
         {
-            return stpiw.WorldToOptical(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+            return stpiw.WorldToOptical(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, srCamera.PlayerLorentzMatrix, viwLorentzMatrix);
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -283,7 +283,7 @@ namespace OpenRelativity
             //metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
             if (aiw == null)
             {
-                aiw = Vector4.zero;
+                aiw = Vector3.zero.ProperToWorldAccel(viw);
             }
             Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw.Value;
             aiwTransformed.w = 0;
@@ -327,7 +327,7 @@ namespace OpenRelativity
             riw = (Vector3)riw + tisw * velocity;
 
             float speed = viw.magnitude;
-            if (speed > 0)
+            if (speed > divByZeroCutoff)
             {
                 float newz = speed * c * tisw;
                 Vector4 vpcUnit = vpc / speed;
@@ -343,43 +343,40 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             return opticalPos.OpticalToWorld(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
         }
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
-            Vector3 vpc = -playerVel / c;// srCamera.PlayerVelocityVector;
+            Vector3 vpc = -playerVel / c;
+            Vector3 viw = velocity / c;
 
             //riw = location in world, for reference
             Vector4 riw = opticalPos - (Vector4)origin; //Position that will be used in the output
             Vector4 pos = (Vector3)riw;
 
-            //Transform fails and is unecessary if relative speed is zero:
-            float newz;
             float tisw = -pos.magnitude / c;
 
-            float speed = vpc.magnitude;
-
+            //Transform fails and is unecessary if relative speed is zero:
+            float speed = viw.magnitude;
             if (speed > divByZeroCutoff)
             {
                 Vector4 vpcUnit = vpc / speed;
-                newz = Vector4.Dot((Vector3)riw, vpcUnit) * Mathf.Sqrt(1 - (speed * speed));
-                riw = riw + (newz - Vector4.Dot((Vector3)riw, vpcUnit)) * vpcUnit;
-                newz = speed * c * tisw;
-                riw = riw - newz * vpcUnit;
+                float riwDotVpcUnit = Vector4.Dot(riw, vpcUnit);
+                float newz = (riwDotVpcUnit + speed * c * tisw) / Mathf.Sqrt(1 - (speed * speed));
+                riw -= (newz - riwDotVpcUnit) * vpcUnit;
             }
 
             //Rotate all our vectors so that velocity is entirely along z direction:
-            Vector3 viw = velocity / c;
             Quaternion viwToZRot = Quaternion.FromToRotation(viw, Vector3.forward);
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
             riwTransformed.w = tisw;
             Vector3 avpTransformed = viwToZRot * avp;
             if (!aiw.HasValue)
             {
-                aiw = Vector3.zero;
+                aiw = Vector3.zero.ProperToWorldAccel(viw);
             }
             Vector3 aiwTransformed = viwToZRot * aiw.Value;
 
@@ -395,13 +392,13 @@ namespace OpenRelativity
             avpTransformed = viwLorentzMatrix.Value * avpTransformed;
             aiwTransformed = viwLorentzMatrix.Value * aiwTransformed;
 
-            tisw = riwTransformed.w;
+            float t2 = riwTransformed.w;
 
             if (aiw.Value.sqrMagnitude > divByZeroCutoff)
             {
                 float aiwMag = aiwTransformed.magnitude;
                 //add the position offset due to acceleration
-                riwTransformed += (Vector4)(aiwTransformed) / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * tisw / c) * (aiwMag * tisw / c)) - 1);
+                riwTransformed += (Vector4)(aiwTransformed) / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
             }
 
             //Inverse Lorentz transform the position:
@@ -413,18 +410,17 @@ namespace OpenRelativity
 
             return riw;
         }
-
-        public static Vector4 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             return opticalPos.OpticalToWorldHighPrecision(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
         }
 
-        public static Vector4 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector3? aiw = null, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
         {
             Vector4 startPoint = opticalPos;
             Vector3 est, offset, newEst;
-            est = opticalPos.OpticalToWorld(velocity, origin, playerVel, Vector4.zero, Vector3.zero, Vector4.zero);
-            offset = (Vector3)opticalPos - ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
+            est = opticalPos.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
+            offset = ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz)- (Vector3)opticalPos;
 
             float sqrError = offset.sqrMagnitude;
             float oldSqrError = sqrError + 1.0f;
@@ -436,9 +432,9 @@ namespace OpenRelativity
                 iterations++;
                 startPoint += (Vector4)offset / 2.0f;
                 newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw);
-                offset = (Vector3)startPoint - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
+                offset = ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz)- (Vector3)startPoint;
                 oldSqrError = sqrError;
-                sqrError = ((Vector3)opticalPos - ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz)).sqrMagnitude;
+                sqrError = offset.sqrMagnitude;
                 if (sqrError < oldSqrError)
                 {
                     est = newEst;

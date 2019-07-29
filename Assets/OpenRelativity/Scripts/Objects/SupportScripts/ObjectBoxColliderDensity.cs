@@ -175,19 +175,9 @@ namespace OpenRelativity.Objects
 
                 if (foundCollider)
                 {
-                    //Vector4 playerAccel = gameState.PlayerVisualAccelerationVector;
-                    if (isStatic)
-                    {
-                        toUpdateBox.center = transform.InverseTransformPoint(
-                            ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(Vector3.zero, Vector4.zero, gameState.PlayerLorentzMatrix, Matrix4x4.identity)
-                       );
-                    }
-                    else
-                    {
-                        toUpdateBox.center = transform.InverseTransformPoint(
-                            ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(myRO.viw, myRO.GetTotalAcceleration(), gameState.PlayerLorentzMatrix, myRO.viwLorentz)
-                       );
-                    }
+                    toUpdateBox.center = transform.InverseTransformPoint(
+                       ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(myRO.viw, myRO.Get4Acceleration(), myRO.viwLorentz)
+                    );
                 }
             }
             else if (finishedCoroutine)
@@ -222,19 +212,14 @@ namespace OpenRelativity.Objects
             }
             else {
                 viw = myRO.viw;
-                aiw = myRO.GetTotalAcceleration();
+                aiw = myRO.Get4Acceleration();
             }
 
-            Vector3 playerPos = gameState.playerTransform.position;
-            Vector3 vpw = gameState.PlayerVelocityVector;
-            Vector4 pap = gameState.PlayerAccelerationVector;
-            Vector3 avp = gameState.PlayerAngularVelocityVector;
-            Matrix4x4 vpcLorentz = gameState.PlayerLorentzMatrix;
             Matrix4x4 viwLorentz = myRO.viwLorentz;
             for (int i = 0; i < totalBoxCount; i++)
             {
                 Transform changeTransform = change[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(changeTransform.TransformPoint(origPositions[i]))).WorldToOptical(viw, aiw, vpcLorentz, viwLorentz));
+                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(changeTransform.TransformPoint(origPositions[i]))).WorldToOptical(viw, aiw, viwLorentz));
                 //Change mesh:
                 if (coroutineTimer.ElapsedMilliseconds > 1)
                 {

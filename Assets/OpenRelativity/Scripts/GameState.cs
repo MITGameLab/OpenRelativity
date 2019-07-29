@@ -235,6 +235,8 @@ namespace OpenRelativity
 
                 //update our player velocity
                 playerVelocity = playerVelocityVector.magnitude;
+                Vector4 vpc = new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c;
+                playerLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(vpc);
 
                 //update our acceleration (which relates rapidities rather than velocities)
                 //playerAccelerationVector = (playerVelocityVector.Gamma() * playerVelocityVector - oldPlayerVelocityVector.Gamma() * oldPlayerVelocityVector) / Time.deltaTime;
@@ -256,11 +258,10 @@ namespace OpenRelativity
                 }
 
                 //Send velocities and acceleration to shader
-                Vector4 vpc = new Vector4(-playerVelocityVector.x, -playerVelocityVector.y, -playerVelocityVector.z, 0) / (float)c;
                 Shader.SetGlobalVector("_vpc", vpc);
                 Shader.SetGlobalVector("_pap", playerAccelerationVector);
                 Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
-                Shader.SetGlobalMatrix("_vpcLorentzMatrix", SRelativityUtil.GetLorentzTransformMatrix(vpc));
+                Shader.SetGlobalMatrix("_vpcLorentzMatrix", playerLorentzMatrix);
 
                 /******************************
                 * PART TWO OF ALGORITHM
