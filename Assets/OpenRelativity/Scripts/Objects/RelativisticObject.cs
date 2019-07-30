@@ -25,7 +25,7 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if ((value - viw).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
+                if (isKinematic || (value - viw).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
                 {
                     return;
                 }
@@ -71,7 +71,7 @@ namespace OpenRelativity.Objects
             MarkStaticColliderPos();
 
             //Also update the Rigidbody, if any
-            if (!isStatic)
+            if (!isKinematic)
             {
                 UpdateRigidbodyVelocity(newViw, aviw);
             }
@@ -90,7 +90,7 @@ namespace OpenRelativity.Objects
             }
             set
             {
-                if (!isStatic)
+                if (!isKinematic)
                 {
                     initialAviw = value;
                     _aviw = value;
@@ -102,7 +102,7 @@ namespace OpenRelativity.Objects
         //Store object's acceleration;
         public Vector3 properAiw = Vector3.zero;
 
-        public bool isKinematic
+        public bool isRBKinematic
         {
             get
             {
@@ -237,7 +237,8 @@ namespace OpenRelativity.Objects
         private Vector3 oldCollisionResultVel3;
         private Vector3 oldCollisionResultAngVel3;
         //If the shader is nonrelativistic, and if the object is static, it helps to save and restore the initial position
-        public bool isStatic = false;
+        public bool isKinematic = false;
+        public bool isLightMapStatic = false;
 
         public void MarkStaticColliderPos()
         {
@@ -675,7 +676,7 @@ namespace OpenRelativity.Objects
                 myRenderer = GetComponent<Renderer>();
             }
             //If we have a MeshRenderer on our object and it's not world-static
-            if (myRenderer != null && !isStatic)
+            if (myRenderer != null && !isLightMapStatic)
             {
                 float c = (float)state.SpeedOfLight;
                 //And if we have a texture on our material
@@ -867,16 +868,13 @@ namespace OpenRelativity.Objects
             UpdateShaderParams();
         }
 
-        public float GetTisw(Vector3? playerPos = null)
+        public float GetTisw(Vector3? pos = null)
         {
-            return ((Vector4)piw).GetTisw(
-                viw,
-                state.playerTransform.position,
-                state.PlayerVelocityVector,
-                state.PlayerAccelerationVector,
-                state.PlayerAngularVelocityVector,
-                properAiw
-            );
+            if (pos == null)
+            {
+                pos = piw;
+            }
+            return ((Vector4)pos.Value).GetTisw(viw, properAiw);
         }
 
         void FixedUpdate() {
@@ -1006,7 +1004,7 @@ namespace OpenRelativity.Objects
             }
 
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
-            if (isStatic || isSleeping || myRigidbody == null) {
+            if (isKinematic || isSleeping || myRigidbody == null) {
 
                 if (myRigidbody != null)
                 {
@@ -1127,6 +1125,7 @@ namespace OpenRelativity.Objects
                 //If we have a BoxCollider, transform its center to its optical position
                 else if (myColliderIsBox)
                 {
+                    Vector4 aiw = Get4Acceleration();
                     Vector3 pos;
                     BoxCollider collider;
                     Vector3 testPos;
@@ -1135,8 +1134,7 @@ namespace OpenRelativity.Objects
                     {
                         collider = (BoxCollider)myColliders[i];
                         pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
-                        Vector4 myAccel = Get4Acceleration();
-                        testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, myAccel, viwLorentz));
+                        testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw, viwLorentz));
                         testMag = testPos.sqrMagnitude;
                         if (!IsNaNOrInf(testMag))
                         {
@@ -1155,7 +1153,7 @@ namespace OpenRelativity.Objects
         private void UpdateShaderParams()
         {
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
-            if (myRenderer != null && !isStatic)
+            if (myRenderer != null && !isLightMapStatic)
             {
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
@@ -1735,26 +1733,29 @@ namespace OpenRelativity.Objects
 
         private void Sleep()
         {
+            if (!isSleeping)
+            {
+                //The sleep rotation has to be held fixed to keep sleeping objects
+                // resting flush on stationary surfaces below them.
+                sleepRotation = transform.rotation;
+            }
+            transform.rotation = sleepRotation;
+            viw = Vector3.zero;
+            collisionResultVel3 = Vector3.zero;
+            oldCollisionResultVel3 = Vector3.zero;
+            aviw = Vector3.zero;
+            collisionResultAngVel3 = Vector3.zero;
+            oldCollisionResultAngVel3 = Vector3.zero;
+            properAiw = Vector3.zero;
+
             if (myRigidbody != null)
             {
-                if (!isSleeping)
-                {
-                    //The sleep rotation has to be held fixed to keep sleeping objects
-                    // resting flush on stationary surfaces below them.
-                    sleepRotation = transform.rotation;
-                }
-                transform.rotation = sleepRotation;
-                viw = Vector3.zero;
-                collisionResultVel3 = Vector3.zero;
-                oldCollisionResultVel3 = Vector3.zero;
                 myRigidbody.velocity = Vector3.zero;
-                aviw = Vector3.zero;
-                collisionResultAngVel3 = Vector3.zero;
-                oldCollisionResultAngVel3 = Vector3.zero;
                 myRigidbody.angularVelocity = Vector3.zero;
                 myRigidbody.Sleep();
-                isSleeping = true;
             }
+
+            isSleeping = true;
         }
 
         private void WakeUp()

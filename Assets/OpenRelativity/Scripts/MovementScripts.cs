@@ -202,7 +202,7 @@ namespace OpenRelativity
 
                         //3-acceleration acts as classically on the rapidity, rather than velocity.
                         totalAccel = (addedVelocity / Time.deltaTime);
-                        totalAccel = gamma * totalAccel;
+                        totalAccel = totalAccel.Gamma() * totalAccel;
 
                         //Set it, depending on gravity
                         if (!useGravity)

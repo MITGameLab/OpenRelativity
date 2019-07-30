@@ -13,7 +13,7 @@ namespace OpenRelativity.Objects
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
-        private const int cullingSqrDistance = 64 * 64;
+        private const int cullingSqrDistance = 32 * 32;
         private const int cullingFrameInterval = 10;
         private int cullingFrameCount;
 
