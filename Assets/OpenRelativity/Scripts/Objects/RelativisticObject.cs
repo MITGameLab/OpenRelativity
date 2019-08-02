@@ -22,6 +22,9 @@ namespace OpenRelativity.Objects
         // If we have intrinsic proper acceleration besides gravity, how quickly does it degrade?
         // (This isn't physically how we want to handle changing acceleration, but it's a stop-gap to experiment with smooth-ish changes in proper acceleration.)
         private float accelDrag = 0f;
+        private bool didCollide;
+
+        private bool wasUsingGravity;
 
         private Vector3 _viw = Vector3.zero;
         public Vector3 viw
@@ -734,9 +737,15 @@ namespace OpenRelativity.Objects
             // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
             // We restore the time-dilated visual apparent velocity, afterward.
 
+            if (!didCollide && useGravity)
+            {
+                properAiw -= Physics.gravity;
+            }
+            didCollide = true;
+
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
-            //piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : transform.position;
+            piw = nonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
             Vector3 myViw = myRigidbody.velocity.RapidityToVelocity();
@@ -748,7 +757,11 @@ namespace OpenRelativity.Objects
             }
 
             float gamma = GetTimeFactor(myViw);
-            Vector3 myAccel = accelDrag <= 0 ? properAiw : (properAiw + (myViw * gamma - viw * viw.Gamma()) * Mathf.Log(1 + (float)state.FixedDeltaTimePlayer * accelDrag) / accelDrag);
+            Vector3 myAccel = (properAiw + (myViw * gamma - viw * viw.Gamma()) * Mathf.Log(1 + (float)state.FixedDeltaTimePlayer * accelDrag));
+            if (accelDrag > 0)
+            {
+                myAccel /= accelDrag;
+            }
 
             UpdateViwAndAccel(viw, properAiw, myViw, myAccel);
             aviw = myRigidbody.angularVelocity / gamma;
@@ -944,7 +957,7 @@ namespace OpenRelativity.Objects
 
                 Vector3 myAccel = properAiw;
 
-                if (useGravity)
+                if (useGravity && !didCollide)
                 {
                     myAccel -= Physics.gravity;
                 }
@@ -952,7 +965,7 @@ namespace OpenRelativity.Objects
                 float jerkDiff = (1 + deltaTime * accelDrag);
                 myAccel = myAccel / jerkDiff;
 
-                if (useGravity)
+                if (useGravity && !didCollide)
                 {
                     myAccel += Physics.gravity;
                 }
@@ -963,13 +976,11 @@ namespace OpenRelativity.Objects
             // Accelerate after updating gravity's effect on proper acceleration
             viw += properAiw * deltaTime;
 
-            // Set the Rigidbody parameters, dependent on player's point of view
-            UpdateRigidbodyVelocity(viw, aviw);
-
             Vector3 testVec = deltaTime * viw;
             if (!IsNaNOrInf(testVec.sqrMagnitude))
             {
-                Quaternion diffRot = Quaternion.Euler(deltaTime * aviw);
+                float aviwMag = aviw.magnitude;
+                Quaternion diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
                 riw = riw * diffRot;
                 myRigidbody.MoveRotation(riw);
 

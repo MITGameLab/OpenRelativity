@@ -26,7 +26,7 @@ namespace OpenRelativity.Objects
         public ComputeShader colliderShader;
 
         //This constant determines maximum box size. We subdivide boxes until all their dimensions are less than this length.
-        private float constant = 24 * 10;
+        private float constant = 24;
 
         private int totalBoxCount;
 
