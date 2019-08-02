@@ -230,14 +230,6 @@ namespace OpenRelativity.Objects
                 }
                 change[i].center = newPos;
             }
-            //Cache actual world center of mass, and then reset local (rest frame) center of mass:
-            if (!isStatic)
-            {
-                myRB.ResetCenterOfMass();
-                myRO.opticalWorldCenterOfMass = myRB.worldCenterOfMass;
-                myRB.centerOfMass = initCOM;
-            }
-            //}
             finishedCoroutine = true;
             coroutineTimer.Stop();
             coroutineTimer.Reset();
@@ -262,7 +254,6 @@ namespace OpenRelativity.Objects
                         myRO.wasKinematic = myRB.isKinematic;
                         myRB.isKinematic = true;
                     }
-                    myRO.collideTimeStart += gameState.DeltaTimeWorld;
                 }
                 else if (myRO.wasFrozen)
                 {
@@ -350,16 +341,6 @@ namespace OpenRelativity.Objects
                     change[i].center = trnsfrmdPositions[i];
                 }
             }
-
-            if (!isStatic)
-            {
-                //Cache actual world center of mass, and then reset local (rest frame) center of mass:
-                myRB.ResetCenterOfMass();
-                myRO.opticalWorldCenterOfMass = myRB.worldCenterOfMass;
-                myRB.centerOfMass = initCOM;
-            }
-
-            //Debug.Log("Finished updating mesh collider.");
 
             finishedCoroutine = true;
             coroutineTimer.Stop();

@@ -6,34 +6,24 @@ namespace OpenRelativity
 {
     public static class SRelativityUtil
     {
-        public static float c { get { return (float)srCamera.SpeedOfLight; } }
-        public static float cSqrd { get { return (float)srCamera.SpeedOfLightSqrd; } }
-        public static float maxVel { get { return (float)srCamera.MaxSpeed; } }
+        public static float c { get { return (float)state.SpeedOfLight; } }
+        public static float cSqrd { get { return (float)state.SpeedOfLightSqrd; } }
+        public static float maxVel { get { return (float)state.MaxSpeed; } }
+        public const float divByZeroCutoff = 1e-8f;
 
-        private static GameState _srCamera;
-        private static GameState srCamera
+        private static GameState _state;
+        private static GameState state
         {
             get
             {
-                if (_srCamera == null)
+                if (_state == null)
                 {
                     GameObject cameraGO = GameObject.FindGameObjectWithTag(Tags.player);
-                    _srCamera = cameraGO.GetComponent<GameState>();
+                    _state = cameraGO.GetComponent<GameState>();
                 }
 
-                return _srCamera;
+                return _state;
             }
-        }
-
-        private static Vector3 GetSpatial(this Vector4 st)
-        {
-            return new Vector3(st.x, st.y, st.z);
-        }
-
-        private static Vector4 MakeVel(this Vector3 spatial)
-        {
-            return new Vector4(spatial.x, spatial.y, spatial.z, c);
-
         }
 
         public static Vector3 AddVelocity(this Vector3 orig, Vector3 toAdd)
@@ -43,12 +33,6 @@ namespace OpenRelativity
             perp = orig.InverseGamma() * perp / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
             parra = (parra + orig) / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
             return parra + perp;
-        }
-
-        public static Vector4 AddVelocity(this Vector4 orig, Vector4 toAdd)
-        {
-            Vector3 new3Vel = orig.GetSpatial().AddVelocity(toAdd.GetSpatial());
-            return new Vector4(new3Vel.x, new3Vel.y, new3Vel.z, c);
         }
 
         public static Vector3 RelativeVelocityTo(this Vector3 myWorldVel, Vector3 otherWorldVel)
@@ -75,42 +59,6 @@ namespace OpenRelativity
             }
 
             return vr * c;
-        }
-
-        public static Vector4 RelativeVelocityTo(this Vector4 myWorldVel, Vector4 otherWorldVel)
-        {
-            Vector3 new3Vel = myWorldVel.GetSpatial().RelativeVelocityTo(otherWorldVel.GetSpatial());
-            return new Vector4(new3Vel.x, new3Vel.y, new3Vel.z, c);
-        }
-
-
-        public static Vector4 ContractLengthBy(this Vector4 interval, Vector4 velocity)
-        {
-            float sqrMag = velocity.sqrMagnitude;
-            if (sqrMag == 0.0f)
-            {
-                return interval;
-            }
-            float invGamma = Mathf.Sqrt(1.0f + sqrMag / cSqrd);
-            Quaternion rot = Quaternion.FromToRotation(1.0f / sqrMag * velocity, Vector3.right);
-            Vector3 rotInt = rot * new Vector3(interval.x, interval.y, interval.z);
-            rotInt = new Vector3(rotInt.x * invGamma, rotInt.y, rotInt.z);
-            rotInt = Quaternion.Inverse(rot) * rotInt;
-            return new Vector4(rotInt.x, rotInt.y, rotInt.z, interval.w / invGamma);
-        }
-        public static Vector4 InverseContractLengthBy(this Vector4 interval, Vector4 velocity)
-        {
-            float sqrMag = velocity.sqrMagnitude;
-            if (sqrMag == 0.0f)
-            {
-                return interval;
-            }
-            float invGamma = Mathf.Sqrt(1.0f + sqrMag / cSqrd);
-            Quaternion rot = Quaternion.FromToRotation(1.0f / sqrMag * velocity, Vector3.right);
-            Vector3 rotInt = rot * new Vector3(interval.x, interval.y, interval.z);
-            rotInt = new Vector3(rotInt.x / invGamma, rotInt.y, rotInt.z);
-            rotInt = Quaternion.Inverse(rot) * rotInt;
-            return new Vector4(rotInt.x, rotInt.y, rotInt.z, interval.w * invGamma);
         }
 
         public static Vector3 ContractLengthBy(this Vector3 interval, Vector3 velocity)
@@ -141,8 +89,6 @@ namespace OpenRelativity
             return Quaternion.Inverse(rot) * rotInt;
         }
 
-        public const float divByZeroCutoff = 1e-8f;
-
         public static Matrix4x4 GetLorentzTransformMatrix(Vector3 vpc)
         {
             float beta = vpc.magnitude;
@@ -170,22 +116,24 @@ namespace OpenRelativity
 
         public static Matrix4x4 GetRindlerMetric(Vector4 riw)
         {
-            return GetRindlerMetric(riw, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector);
+            return GetRindlerMetric(riw, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector);
         }
 
         public static Matrix4x4 GetRindlerMetric(Vector4 riw, Vector4 pap, Vector3 avp)
         {
             //Find metric based on player acceleration and rest frame:
-            Vector3 angFac = Vector3.Cross(avp, riw) / c;
-            float linFac = Vector3.Dot(pap, riw) / cSqrd;
-            linFac = ((1 + linFac) * (1 + linFac) - angFac.sqrMagnitude) * cSqrd;
-            angFac *= -2;
+            float linFac = 1 + Vector3.Dot(pap, riw) / cSqrd;
+            linFac *= linFac;
+            float angFac = Vector3.Dot(avp, riw) / c;
+            angFac *= angFac;
+            float avpMagSqr = avp.sqrMagnitude;
+            Vector3 angVec = avpMagSqr < divByZeroCutoff ? Vector3.zero : 2 * angFac / (c * avpMagSqr) * avp.normalized;
 
             Matrix4x4 metric = new Matrix4x4(
-                new Vector4(-1, 0, 0, angFac.x),
-                new Vector4(0, -1, 0, angFac.y),
-                new Vector4(0, 0, -1, angFac.z),
-                new Vector4(angFac.x, angFac.y, angFac.z, linFac)
+                new Vector4(-1, 0, 0, -angVec.x),
+                new Vector4(0, -1, 0, -angVec.y),
+                new Vector4(0, 0, -1, -angVec.z),
+                new Vector4(-angVec.x, -angVec.y, -angVec.z, (linFac * (1 - angFac) - angFac))
             );
 
             return metric;
@@ -193,7 +141,7 @@ namespace OpenRelativity
 
         public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
         {
-            return stpiw.GetTisw(stpiw, velocity, srCamera.playerTransform.position, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw);
+            return stpiw.GetTisw(stpiw, velocity, state.playerTransform.position, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
 
         public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
@@ -241,12 +189,12 @@ namespace OpenRelativity
             return tisw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4? aiw = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null)
         {
-            return stpiw.WorldToOptical(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, srCamera.PlayerLorentzMatrix, viwLorentzMatrix);
+            return stpiw.WorldToOptical(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, state.PlayerLorentzMatrix, viwLorentzMatrix);
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -280,12 +228,7 @@ namespace OpenRelativity
             //We are free to translate our position in time such that this is the case.
 
             //Apply Lorentz transform;
-            //metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
-            if (aiw == null)
-            {
-                aiw = Vector3.zero.ProperToWorldAccel(viw);
-            }
-            Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw.Value;
+            Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
             aiwTransformed.w = 0;
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
             //Translate in time:
@@ -307,12 +250,7 @@ namespace OpenRelativity
             {
                 t2 = -Mathf.Sqrt(sqrtArg);
             }
-            //else
-            //{
-            //    //Unruh effect?
-            //    //Seems to happen with points behind the player.
-            //    bool putBreakPointHere = true;
-            //}
+
             tisw += t2;
             //add the position offset due to acceleration
             if (aiwMag > divByZeroCutoff)
@@ -343,12 +281,12 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
-            return opticalPos.OpticalToWorld(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+            return opticalPos.OpticalToWorld(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
         }
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4? aiw = null, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -374,11 +312,7 @@ namespace OpenRelativity
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
             riwTransformed.w = tisw;
             Vector3 avpTransformed = viwToZRot * avp;
-            if (!aiw.HasValue)
-            {
-                aiw = Vector3.zero.ProperToWorldAccel(viw);
-            }
-            Vector3 aiwTransformed = viwToZRot * aiw.Value;
+            Vector3 aiwTransformed = viwToZRot * aiw;
 
             //We'll also Lorentz transform the vectors:
             if (viwLorentzMatrix == null)
@@ -394,9 +328,9 @@ namespace OpenRelativity
 
             float t2 = riwTransformed.w;
 
-            if (aiw.Value.sqrMagnitude > divByZeroCutoff)
+            float aiwMag = aiwTransformed.magnitude;
+            if (aiwMag> divByZeroCutoff)
             {
-                float aiwMag = aiwTransformed.magnitude;
                 //add the position offset due to acceleration
                 riwTransformed += (Vector4)(aiwTransformed) / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
             }
@@ -410,9 +344,10 @@ namespace OpenRelativity
 
             return riw;
         }
+
         public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
-            return opticalPos.OpticalToWorldHighPrecision(velocity, srCamera.playerTransform.position, srCamera.PlayerVelocityVector, srCamera.PlayerAccelerationVector, srCamera.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+            return opticalPos.OpticalToWorldHighPrecision(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
         }
 
         public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
@@ -462,166 +397,6 @@ namespace OpenRelativity
                 return Vector3.zero;
             }
             return (float)(c * Math.Tanh(mag / c) / mag) * rapidity;
-        }
-
-        public static Vector3 GetGravity(Vector3 origin)
-        {
-            return Physics.gravity;
-        }
-
-        public static Vector4 LorentzTransform(this Vector4 pos4, Vector3 vel3)
-        {
-            float gamma = vel3.Gamma();
-            Vector3 pos3 = pos4;
-            Vector3 parra = Vector3.Project(pos3, vel3.normalized);
-            float tnew = gamma * (pos4.w - Vector3.Dot(parra, vel3) / cSqrd);
-            pos3 = gamma * (parra - vel3 * pos4.w) + (pos3 - parra);
-            return new Vector4(pos3.x, pos3.y, pos3.z, tnew);
-        }
-
-        public static Vector4 InverseLorentzTransform(this Vector4 pos4, Vector3 vel3)
-        {
-            float gamma = vel3.Gamma();
-            Vector3 pos3 = pos4;
-            Vector3 parra = Vector3.Project(pos3, vel3.normalized);
-            float tnew = gamma * (pos4.w + Vector3.Dot(parra, vel3) / cSqrd);
-            pos3 = gamma * (parra + vel3 * pos4.w) + (pos3 - parra);
-            return new Vector4(pos3.x, pos3.y, pos3.z, tnew);
-        }
-
-        //http://answers.unity3d.com/questions/530178/how-to-get-a-component-from-an-object-and-add-it-t.html
-        public static T GetCopyOf<T>(this Component comp, T other) where T : Component
-        {
-            Type type = comp.GetType();
-            if (type != other.GetType()) return null; // type mis-match
-            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Default;
-            PropertyInfo[] pinfos = type.GetProperties(flags);
-            foreach (var pinfo in pinfos)
-            {
-                if (pinfo.CanWrite)
-                {
-                    try
-                    {
-                        pinfo.SetValue(comp, pinfo.GetValue(other, null), null);
-                    }
-                    catch { } // In case of NotImplementedException being thrown. For some reason specifying that exception didn't seem to catch it, so I didn't catch anything specific.
-                }
-            }
-            FieldInfo[] finfos = type.GetFields(flags);
-            foreach (var finfo in finfos)
-            {
-                finfo.SetValue(comp, finfo.GetValue(other));
-            }
-            return comp as T;
-        }
-
-        public static T AddComponent<T>(this GameObject go, T toAdd) where T : Component
-        {
-            return go.AddComponent<T>().GetCopyOf(toAdd) as T;
-        }
-
-        public static Vector3 SphericalToCartesian(this Vector3 spherical)
-        {
-            float radius = spherical.x;
-            float elevation = spherical.y;
-            float polar = spherical.z;
-            Vector3 outCart;
-
-            float a = radius * Mathf.Cos(elevation);
-            outCart.x = a * Mathf.Cos(polar);
-            outCart.y = radius * Mathf.Sin(elevation);
-            outCart.z = a * Mathf.Sin(polar);
-
-            return outCart;
-        }
-
-        public static Vector4 Spherical4ToCartesian4(this Vector4 spherical)
-        {
-            float radius = spherical.x;
-            float elevation = spherical.y;
-            float polar = spherical.z;
-            float time = spherical.w;
-            Vector4 outCart;
-
-            float a = radius * Mathf.Cos(elevation);
-            outCart.x = a * Mathf.Cos(polar);
-            outCart.y = radius * Mathf.Sin(elevation);
-            outCart.z = a * Mathf.Sin(polar);
-            outCart.w = time;
-
-            return outCart;
-        }
-
-        public static Vector3 CartesianToSpherical(this Vector3 cartesian)
-        {
-            float radius, polar, elevation;
-            radius = cartesian.magnitude;
-            if (radius == 0)
-            {
-                polar = 0;
-                elevation = 0;
-            }
-            else
-            {
-                float sqrtXSqrYSqr = Mathf.Sqrt(cartesian.x * cartesian.x + cartesian.y * cartesian.y);
-                if ((cartesian.z == 0) && (sqrtXSqrYSqr == 0))
-                {
-                    elevation = 0;
-                }
-                else
-                {
-                    elevation = Mathf.Atan2(sqrtXSqrYSqr, cartesian.z);
-                }
-
-                if ((cartesian.y == 0) && (cartesian.x == 0))
-                {
-                    polar = 0;
-                }
-                else
-                {
-                    polar = Mathf.Atan2(cartesian.y, cartesian.x);
-
-                }
-            }
-
-            return new Vector3(radius, elevation, polar);
-        }
-
-        public static Vector4 Cartesian4ToSpherical4(this Vector4 cartesian)
-        {
-            float outTime = cartesian.w;
-            float radius, polar, elevation;
-            Vector3 spatial = new Vector3(cartesian.x, cartesian.y, cartesian.z);
-            radius = spatial.magnitude;
-            if (radius == 0)
-            {
-                polar = 0;
-                elevation = 0;
-            }
-            else
-            {
-                float sqrtXSqrYSqr = Mathf.Sqrt(cartesian.x * cartesian.x + cartesian.y * cartesian.y);
-                if ((cartesian.z == 0) && (sqrtXSqrYSqr == 0))
-                {
-                    elevation = 0;
-                }
-                else
-                {
-                    elevation = Mathf.Atan2(sqrtXSqrYSqr, cartesian.z);
-                }
-
-                if ((cartesian.y == 0) && (cartesian.x == 0))
-                {
-                    polar = 0;
-                }
-                else
-                {
-                    polar = Mathf.Atan2(cartesian.y, cartesian.x);
-
-                }
-            }
-
-            return new Vector4(radius, elevation, polar, outTime);
         }
 
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)

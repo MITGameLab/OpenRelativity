@@ -299,39 +299,52 @@ namespace OpenRelativity.Objects
                 //make our rigidbody's velocity viw
                 if (GetComponent<Rigidbody>() != null)
                 {
-
-                    if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
-                    //if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
+                    float timeFac = GetTimeFactor();
+                    if ((float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0
+                        && IsNaNOrInf(timeFac))
                     {
-                        Vector3 tempViw = viw;
-                        //ASK RYAN WHY THESE WERE DIVIDED BY THIS
-                        tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                        //Attempt to correct for acceleration:
-                        Vector3 playerPos = state.playerTransform.position;
-                        Vector3 playerVel = state.PlayerVelocityVector;
-                        tempViw /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos));
-
-                        GetComponent<Rigidbody>().velocity = tempViw;
+                        GetComponent<Rigidbody>().velocity = viw / timeFac;
                     }
-
-
                 }
             }
         }
 
+        private bool IsNaNOrInf(double p)
+        {
+            return double.IsInfinity(p) || double.IsNaN(p);
+        }
+
+        private bool IsNaNOrInf(float p)
+        {
+            return float.IsInfinity(p) || float.IsNaN(p);
+        }
+
+        public Matrix4x4 GetMetric()
+        {
+            return SRelativityUtil.GetRindlerMetric(transform.position);
+        }
+
+        public float GetTimeFactor(Vector3? pVel = null)
+        {
+            if (!pVel.HasValue)
+            {
+                pVel = state.PlayerVelocityVector;
+            }
+
+            Matrix4x4 metric = GetMetric();
+
+            float timeFac = 1 / Mathf.Sqrt(1 - (float)(Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
+            if (IsNaNOrInf(timeFac))
+            {
+                timeFac = 1;
+            }
+
+            return timeFac;
+        }
+
         public Vector4 Get4Acceleration()
         {
-            Vector4 playerPos = state.playerTransform.position;
-            Vector3 propAccel = Vector4.zero;
-            if (useGravity && !isStatic)
-            {
-                propAccel += Physics.gravity;
-            }
-            if (properAiw.sqrMagnitude > 0)
-            {
-                propAccel += properAiw;
-            }
-            return propAccel.ProperToWorldAccel(viw);
+            return properAiw.ProperToWorldAccel(viw);
         }
     }
 }

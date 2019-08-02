@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 //using System.Linq; //For debugging purposes only
 using UnityEngine;
@@ -7,10 +8,21 @@ namespace OpenRelativity.Objects
 {
     public class RelativisticObject : MonoBehaviour
     {
-        #region Rigid body physics
-        //Since we don't have direct access to the level of rigid bodies or PhysX in Unity,
-        // we need to manually update some relativistic rigid body mechanics, for the time-being.
+        #region Public Settings
+        public bool isKinematic = false;
+        public bool isLightMapStatic = false;
+        public bool useGravity;
         public Vector3 initialViw;
+        public Vector3 initialAviw;
+        #endregion
+
+        #region Rigid body physics
+        // How long (in seconds) do we wait before we detect collisions with an object we just collided with?
+        private float collideWait = 0f;
+        // If we have intrinsic proper acceleration besides gravity, how quickly does it degrade?
+        // (This isn't physically how we want to handle changing acceleration, but it's a stop-gap to experiment with smooth-ish changes in proper acceleration.)
+        private float accelDrag = 0f;
+
         private Vector3 _viw = Vector3.zero;
         public Vector3 viw
         {
@@ -18,69 +30,30 @@ namespace OpenRelativity.Objects
             {
                 return _viw;
             }
-            //Changing velocities lose continuity of position,
-            // unless we transform the world position to optical position with the old velocity,
-            // and inverse transform the optical position with the new the velocity.
-            // (This keeps the optical and Minkowski position fixed.)
+
             set
             {
                 // Skip this all, if the change is negligible.
-                if (isKinematic || (value - viw).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
+                if (IsNaNOrInf(value.sqrMagnitude) || (value - _viw).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
                 {
                     return;
                 }
 
-                // This makes instantiation cleaner:
+                if (isKinematic)
+                {
+                    _viw = value;
+                    return;
+                }
+
+                // This keeps the public parameter up-to-date:
                 initialViw = value;
 
-                // Under instantaneous changes in velocity, the optical position should be invariant.
-                piw = ((Vector4)((Vector4)piw).WorldToOptical(_viw, Get4Acceleration())).OpticalToWorldHighPrecision(value, Get4Acceleration());
-                if (!nonrelativisticShader && !IsNaNOrInf(piw.magnitude))
-                {
-                    transform.position = piw;
-                }
-                _viw = value;
-                // Also update the Rigidbody, if any
-                UpdateRigidbodyVelocity(value, aviw);
-
-                // Update the shader parameters if necessary
-                UpdateShaderParams();
+                UpdateViwAndAccel(_viw, _properAiw, value, _properAiw);
             }
         }
         public Matrix4x4 viwLorentz { get; private set; }
 
-        public void SetViwAndPosition(Vector3 newViw, Vector3 newPiw)
-        {
-            piw = newPiw;
-            _viw = newViw;
-            initialViw = newViw;
-            if (nonrelativisticShader)
-            {
-                newPiw = ((Vector4)newPiw).WorldToOptical(newViw, Get4Acceleration());
-            }
-            transform.position = newPiw;
-
-            if (nonrelativisticShader)
-            {
-                if (contractor == null) SetUpContractor();
-                contractor.position = transform.position;
-                transform.localPosition = Vector3.zero;
-                ContractLength();
-            }
-
-            MarkStaticColliderPos();
-
-            //Also update the Rigidbody, if any
-            if (!isKinematic)
-            {
-                UpdateRigidbodyVelocity(newViw, aviw);
-            }
-
-            UpdateShaderParams();
-        }
-
         //Store this object's angular velocity here.
-        public Vector3 initialAviw;
         private Vector3 _aviw;
         public Vector3 aviw
         {
@@ -100,7 +73,63 @@ namespace OpenRelativity.Objects
         }
 
         //Store object's acceleration;
-        public Vector3 properAiw = Vector3.zero;
+        public Vector3 _properAiw;
+        public Vector3 properAiw
+        {
+            get
+            {
+                return _properAiw;
+            }
+
+            set
+            {
+                // Skip this all, if the change is negligible.
+                if (IsNaNOrInf(value.sqrMagnitude) || (value - _properAiw).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
+                {
+                    return;
+                }
+
+                if (isKinematic)
+                {
+                    _properAiw = value;
+                    return;
+                }
+
+                UpdateViwAndAccel(_viw, _properAiw, _viw, value);
+            }
+        }
+
+        public void UpdateViwAndAccel(Vector3 vi, Vector3 ai, Vector3 vf, Vector3 af)
+        {
+            //Changing velocities lose continuity of position,
+            // unless we transform the world position to optical position with the old velocity,
+            // and inverse transform the optical position with the new the velocity.
+            // (This keeps the optical position fixed.)
+
+            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai)).OpticalToWorldHighPrecision(vf, af);
+
+            if (!IsNaNOrInf(piw.magnitude))
+            {
+                if (nonrelativisticShader)
+                {
+                    UpdateContractorPosition();
+                }
+                else
+                {
+                    transform.position = piw;
+                }
+            }
+
+            _viw = vf;
+            _properAiw = af;
+
+            // Also update the Rigidbody and Collider, if any
+            UpdateRigidbodyVelocity(_viw, _aviw);
+            UpdateColliderPosition();
+
+            // Update the shader parameters if necessary
+            UpdateShaderParams();
+        }
 
         public bool isRBKinematic
         {
@@ -114,41 +143,8 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public bool useGravity;
-
-        //This is a velocity we "sleep" the rigid body at:
-        private const float sleepVelocity = 0.01f;
-        //Gravity might keep the velocity above this, so we also check whether the position is changing:
-        private const float sleepDistance = 0.01f;
-        private const float sleepAngle = 6f;
-        private Vector3 sleepOldPosition;
-        private Vector3 sleepOldOrientation;
-        //Once we're below the sleep velocity threshold, this is how many frames we wait for
-        // before sleeping the object:
-        private const int sleepFrameDelay = 3;
-        private int sleepFrameCounter;
-        private bool isRestingOnCollider;
         //TODO: Rigidbody doesn't stay asleep. Figure out why, and get rid of this:
         private bool isSleeping;
-        //Length contraction and rounding error pulls sleeping objects off the surfaces they rest on.
-        // Save the original orientation on sleep, and force it back while sleeping.
-        private Quaternion sleepRotation;
-        //This is a cap on penalty method collision.
-        //(It's roughly the Unity units equivalent of Young's Modulus of diamond.)
-        private const float maxYoungsModulus = 1220.0e9f;
-        //The center of mass calculation in the rigidbody becomes non-physical when we transform the collider
-        public Vector3 opticalWorldCenterOfMass { get; set; }
-        //private const float drag = 0.1f;
-        //private const float angularDrag = 0.1f;
-        public float initBounciness = 0.4f;
-        //During collision, viw getters and setters trigger many "enter" rather than "stay" events, so we smooth this:
-        private class RecentCollision
-        {
-            public double LastTime { get; set; }
-            public Collider Collider { get; set; }
-        }
-        private List<RecentCollision> collidedWith;
-        private float collideAgainWait = 0.3f;
         #endregion
         //Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
@@ -203,6 +199,8 @@ namespace OpenRelativity.Objects
         //private int? oldParentID;
         //Store world position, mostly for a nonrelativistic shader:
         public Vector3 piw { get; set; }
+        //Store rotation quaternion
+        public Quaternion riw { get; set; }
 
         //We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
@@ -212,7 +210,6 @@ namespace OpenRelativity.Objects
         private Vector3[] trnsfrmdMeshVerts;
         //If we have a collider to transform, we cache it here
         private Collider[] myColliders;
-        private PhysicMaterial myPhysicMaterial;
         //If we specifically have a mesh collider, we need to know to transform the verts of the mesh itself.
         private bool myColliderIsMesh;
         private bool myColliderIsBox;
@@ -223,22 +220,6 @@ namespace OpenRelativity.Objects
         private Rigidbody myRigidbody;
         //If we have a Renderer, we cache it, too.
         public Renderer myRenderer { get; set; }
-        //Did we collide last frame?
-        private bool didCollide;
-        //What was the translational velocity result?
-        private Vector3 collisionResultVel3;
-        //What was the angular velocity result?
-        private Vector3 collisionResultAngVel3;
-        //Time when the collision started
-        public double collideTimeStart { get; set; }
-        //Collision-softening time
-        //public float collideSoftenTime = 0.2f;
-        //For penalty methods, we need an intermediate collision velocity result
-        private Vector3 oldCollisionResultVel3;
-        private Vector3 oldCollisionResultAngVel3;
-        //If the shader is nonrelativistic, and if the object is static, it helps to save and restore the initial position
-        public bool isKinematic = false;
-        public bool isLightMapStatic = false;
 
         public void MarkStaticColliderPos()
         {
@@ -275,10 +256,8 @@ namespace OpenRelativity.Objects
 
         private void UpdateMeshCollider(MeshCollider transformCollider)
         {
-            //Debug.Log("Updating mesh collider.");
-
             //Freeze the physics if the global state is frozen.
-            if (state.MovementFrozen || viw.sqrMagnitude >= state.SpeedOfLightSqrd || state.SqrtOneMinusVSquaredCWDividedByCSquared <= 0)
+            if (state.MovementFrozen)
             {
                 if (!wasFrozen)
                 {
@@ -287,7 +266,6 @@ namespace OpenRelativity.Objects
                     wasKinematic = myRigidbody.isKinematic;
                     myRigidbody.isKinematic = true;
                 }
-                collideTimeStart += state.DeltaTimeWorld;
                 return;
             }
             else if (wasFrozen)
@@ -343,10 +321,9 @@ namespace OpenRelativity.Objects
             trnsfrmdMesh.RecalculateBounds();
             transformCollider.sharedMesh = trnsfrmdMesh;
 
-            //Cache actual world center of mass, and then reset local (rest frame) center of mass:
-            myRigidbody.ResetCenterOfMass();
-            opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
-            myRigidbody.centerOfMass = initCOM;
+            // Reset physics:
+            //myRigidbody.ResetCenterOfMass();
+            //myRigidbody.ResetInertiaTensor();
 
             //Debug.Log("Finished updating mesh collider.");
         }
@@ -371,7 +348,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor();
+            timeDelayToPlayer *= GetTimeFactor();
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (myRenderer != null)
                 myRenderer.enabled = false;
@@ -381,7 +358,7 @@ namespace OpenRelativity.Objects
         {
             Vector3 playerPos = state.playerTransform.position;
             float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= (float)GetTimeFactor();
+            timeDelayToPlayer *= GetTimeFactor();
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
         void CombineParent()
@@ -605,14 +582,14 @@ namespace OpenRelativity.Objects
         {
             _viw = initialViw;
             _aviw = initialAviw;
+            _properAiw = useGravity ? Physics.gravity : Vector3.zero;
+
             piw = transform.position;
+            riw = transform.rotation;
+
             isSleeping = false;
-            isRestingOnCollider = false;
-            didCollide = false;
-            sleepFrameCounter = 0;
             myRigidbody = GetComponent<Rigidbody>();
             rawVertsBufferLength = 0;
-            collidedWith = new List<RecentCollision>();
             wasKinematic = false;
             wasFrozen = false;
 
@@ -633,7 +610,6 @@ namespace OpenRelativity.Objects
             {
                 for (int i = 0; i < myColliders.Length; i++)
                 {
-                    myColliders[i].material.bounciness = initBounciness;
                     if (myColliderIsMesh)
                     {
                         ((MeshCollider)myColliders[i]).sharedMesh.MarkDynamic();
@@ -695,11 +671,6 @@ namespace OpenRelativity.Objects
 
                     //And stick it back into our renderer. We'll do the SetVector thing every frame.
                     myRenderer.materials[i] = quickSwapMaterial;
-
-                    //set our start time and start position in the shader.
-                    //tempRenderer.materials[i].SetFloat("_strtTime", (float)startTime);
-                    //tempRenderer.materials[i].SetVector("_strtPos", new Vector4(transform.position.x, transform.position.y, transform.position.z, 0));
-                    //}
                 }
             }
 
@@ -717,17 +688,7 @@ namespace OpenRelativity.Objects
             }
 
             //If the shader is nonrelativistic, map the object from world space to optical space and handle length contraction:
-            if (nonrelativisticShader)
-            {
-                transform.position = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
-                if (contractor == null) SetUpContractor();
-                ContractLength();
-            }
-
-            if (myRigidbody != null)
-            {
-                opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
-            }
+            UpdateContractorPosition();
         }
 
         private void UpdateCollider()
@@ -762,108 +723,101 @@ namespace OpenRelativity.Objects
                 myColliderIsBox = false;
                 myColliderIsMesh = false;
             }
-
-            Collider collider = GetComponent<Collider>();
-            if (collider != null)
-            {
-                myPhysicMaterial = collider.material;
-            }
         }
 
         private void EnforceCollision()
         {
-            oldCollisionResultVel3 = collisionResultVel3;
-            oldCollisionResultAngVel3 = collisionResultAngVel3;
+            // Like how Rigidbody components are co-opted for efficient relativistic motion,
+            // it's feasible to get (at least reasonable, if not exact) relativistic collision
+            // handling by transforming the end state after PhysX collisions.
 
-            if (didCollide)
-            {
-                //Finish and shut off enforcement
-                if (!IsNaNOrInf(collisionResultVel3.magnitude))
-                {
-                    viw = collisionResultVel3;
-                }
+            // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
+            // We restore the time-dilated visual apparent velocity, afterward.
 
-                if (!IsNaNOrInf(collisionResultAngVel3.magnitude))
-                {
-                    aviw = collisionResultAngVel3;
-                    myRigidbody.angularVelocity = aviw;
-                }
-                didCollide = false;
-            }
-        }
+            // Get the position and rotation after the collision:
+            riw = myRigidbody.rotation;
+            //piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : transform.position;
 
-        public void UpdateGravity()
-        {
-            if (useGravity && !isRestingOnCollider)
+            // Now, update the velocity and angular velocity based on the collision result:
+            Vector3 myViw = myRigidbody.velocity.RapidityToVelocity();
+            // Make sure we're not updating to faster than max speed
+            float mySpeed = myViw.magnitude;
+            if (mySpeed > state.MaxSpeed)
             {
-                if (isSleeping) WakeUp();
-                properAiw = Physics.gravity;
+                myViw = (float)state.MaxSpeed / mySpeed * myViw;
             }
-            else
-            {
-                properAiw = Vector3.zero;
-            }
+
+            float gamma = GetTimeFactor(myViw);
+            Vector3 myAccel = accelDrag <= 0 ? properAiw : (properAiw + (myViw * gamma - viw * viw.Gamma()) * Mathf.Log(1 + (float)state.FixedDeltaTimePlayer * accelDrag) / accelDrag);
+
+            UpdateViwAndAccel(viw, properAiw, myViw, myAccel);
+            aviw = myRigidbody.angularVelocity / gamma;
         }
 
         public void Update()
         {
-            EnforceCollision();
-
-            if (meshFilter != null && !state.MovementFrozen)
+            if (state.MovementFrozen || nonrelativisticShader || meshFilter != null)
             {
-                #region meshDensity
-                //This is where I'm going to change our mesh density.
-                //I'll take the model, and pass MeshDensity the mesh and unchanged vertices
-                //If it comes back as having changed something, I'll edit the mesh.
+                UpdateShaderParams();
+                return;
+            }
 
-                //If the shader is nonrelativistic, there's no reason to change the mesh density.
-                if (!nonrelativisticShader) {
-                    ObjectMeshDensity density = GetComponent<ObjectMeshDensity>();
+            if (myRigidbody != null)
+            {
+                UpdateRigidbodyVelocity(viw, aviw);
+            }
 
-                    if (density != null)
+            ObjectMeshDensity density = GetComponent<ObjectMeshDensity>();
+
+            if (density == null)
+            {
+                UpdateShaderParams();
+                return;
+            }
+
+            #region meshDensity
+            //This is where I'm going to change our mesh density.
+            //I'll take the model, and pass MeshDensity the mesh and unchanged vertices
+            //If it comes back as having changed something, I'll edit the mesh.
+
+            //Only run MeshDensity if the mesh needs to change, and if it's passed a threshold distance.
+            if (rawVertsBuffer != null && density.change != null)
+            {
+                //This checks if we're within our large range, first mesh density circle
+                //If we're within a distance of 40, split this mesh
+                if (!(density.state) && (RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).sqrMagnitude < (21000 * 21000)))
+                {
+                    Mesh meshFilterMesh = meshFilter.mesh;
+                    if (density.ReturnVerts(meshFilterMesh, true))
                     {
-
-                        //Only run MeshDensity if the mesh needs to change, and if it's passed a threshold distance.
-                        if (rawVertsBuffer != null && density.change != null)
+                        Vector3[] meshVerts = meshFilterMesh.vertices;
+                        rawVertsBufferLength = meshVerts.Length;
+                        if (rawVertsBuffer.Length < rawVertsBufferLength)
                         {
-                            //This checks if we're within our large range, first mesh density circle
-                            //If we're within a distance of 40, split this mesh
-                            if (!(density.state) && (RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).sqrMagnitude < (21000 * 21000)))
-                            {
-                                Mesh meshFilterMesh = meshFilter.mesh;
-                                if (density.ReturnVerts(meshFilterMesh, true))
-                                {
-                                    Vector3[] meshVerts = meshFilterMesh.vertices;
-                                    rawVertsBufferLength = meshVerts.Length;
-                                    if (rawVertsBuffer.Length < rawVertsBufferLength)
-                                    {
-                                        rawVertsBuffer = new Vector3[rawVertsBufferLength];
-                                    }
-                                    System.Array.Copy(meshVerts, rawVertsBuffer, rawVertsBufferLength);
-                                }
-                            }
-
-                            //If the object leaves our wide range, revert mesh to original state
-                            else if (density.state && (RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).sqrMagnitude > (21000 * 21000)))
-                            {
-                                Mesh meshFilterMesh = meshFilter.mesh;
-                                if (density.ReturnVerts(meshFilterMesh, false))
-                                {
-                                    Vector3[] meshVerts = meshFilterMesh.vertices;
-                                    rawVertsBufferLength = meshVerts.Length;
-                                    if (rawVertsBuffer.Length < rawVertsBufferLength)
-                                    {
-                                        rawVertsBuffer = new Vector3[rawVertsBufferLength];
-                                    }
-                                    System.Array.Copy(meshVerts, rawVertsBuffer, rawVertsBufferLength);
-                                }
-                            }
-
+                            rawVertsBuffer = new Vector3[rawVertsBufferLength];
                         }
+                        System.Array.Copy(meshVerts, rawVertsBuffer, rawVertsBufferLength);
                     }
                 }
-                #endregion
+
+                //If the object leaves our wide range, revert mesh to original state
+                else if (density.state && (RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).sqrMagnitude > (21000 * 21000)))
+                {
+                    Mesh meshFilterMesh = meshFilter.mesh;
+                    if (density.ReturnVerts(meshFilterMesh, false))
+                    {
+                        Vector3[] meshVerts = meshFilterMesh.vertices;
+                        rawVertsBufferLength = meshVerts.Length;
+                        if (rawVertsBuffer.Length < rawVertsBufferLength)
+                        {
+                            rawVertsBuffer = new Vector3[rawVertsBufferLength];
+                        }
+                        System.Array.Copy(meshVerts, rawVertsBuffer, rawVertsBufferLength);
+                    }
+                }
+
             }
+            #endregion
 
             UpdateShaderParams();
         }
@@ -878,19 +832,6 @@ namespace OpenRelativity.Objects
         }
 
         void FixedUpdate() {
-            int lcv = 0;
-            while (lcv < collidedWith.Count)
-            {
-                if (collidedWith[lcv].LastTime + collideAgainWait <= state.TotalTimeWorld)
-                {
-                    collidedWith.RemoveAt(lcv);
-                }
-                else
-                {
-                    lcv++;
-                }
-            }
-
             if (state.MovementFrozen)
             {
                 // If our rigidbody is not null, and movement is frozen, then set the object to standstill.
@@ -904,23 +845,23 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            double deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-            double localDeltaT = deltaTime - state.FixedDeltaTimeWorld;
+            // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
+            //EnforceCollision();
+
+            float deltaTime = (float)state.FixedDeltaTimePlayer * GetTimeFactor();
+            float localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
 
             if (state.conformalMap != null)
             {
                 //Update comoving position
-                Vector3 opiw = nonrelativisticShader ? transform.position : ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
-
-                Vector4 piw4 = state.conformalMap.ComoveOptical((float)deltaTime, opiw);
-                piw4 = nonrelativisticShader ? piw4 : piw4.OpticalToWorld(viw, state.playerTransform.position, -state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Get4Acceleration());
+                Vector4 piw4 = state.conformalMap.ComoveOptical(deltaTime, piw);
                 float testMag = piw4.sqrMagnitude;
                 if (!IsNaNOrInf(testMag))
                 {
                     piw = piw4;
                     if (nonrelativisticShader)
                     {
-                        contractor.position = piw;
+                        contractor.position = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
                         transform.localPosition = Vector3.zero;
                     }
                     deltaTime = piw4.w;
@@ -973,38 +914,10 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            //This might be nonphysical, but we want resting colliders to stay "glued" to the floor:
-            if (myColliderIsBox && isSleeping && isRestingOnCollider)
-            {
-                int myLayer = gameObject.layer;
-                gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
-
-                float extentY = myColliders[0].bounds.extents.y;
-                float maxDist = 100f;
-                Ray downRay = new Ray()
-                {
-                    direction = Physics.gravity.normalized,
-                    origin = transform.TransformPoint(((BoxCollider)myColliders[0]).center + extentY * Vector3.up)
-                };
-                RaycastHit hitInfo;
-                if (Physics.Raycast(downRay, out hitInfo, maxDist, gameObject.layer))
-                {
-                    if (nonrelativisticShader)
-                    {
-                        contractor.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
-                        transform.localPosition = Vector3.zero;
-                    }
-                    else
-                    {
-                        transform.position += (hitInfo.distance - 2.0f * extentY) * Vector3.down;
-                    }
-                }
-
-                gameObject.layer = myLayer;
-            }
-
+            #region rigidbody
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
-            if (isKinematic || isSleeping || myRigidbody == null) {
+            if (isKinematic || isSleeping || myRigidbody == null)
+            {
 
                 if (myRigidbody != null)
                 {
@@ -1020,84 +933,74 @@ namespace OpenRelativity.Objects
                     UpdateColliderPosition();
                 }
 
+                UpdateShaderParams();
+
                 // We're done.
                 return;
             }
 
-            if (nonrelativisticShader)
+            if (accelDrag > 0)
             {
-                // Update the position in world, if necessary:
-                piw += transform.position - contractor.position;
-                transform.localPosition = Vector3.zero;
-                Vector3 testPos = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration(), viwLorentz);
-                float testMag = testPos.sqrMagnitude;
-                if (!IsNaNOrInf(testMag))
+
+                Vector3 myAccel = properAiw;
+
+                if (useGravity)
                 {
-                    contractor.position = testPos;
-                    ContractLength();
+                    myAccel -= Physics.gravity;
                 }
+
+                float jerkDiff = (1 + deltaTime * accelDrag);
+                myAccel = myAccel / jerkDiff;
+
+                if (useGravity)
+                {
+                    myAccel += Physics.gravity;
+                }
+
+                properAiw = myAccel;
             }
 
-            piw = transform.position;
+            // Accelerate after updating gravity's effect on proper acceleration
+            viw += properAiw * deltaTime;
+
+            // Set the Rigidbody parameters, dependent on player's point of view
+            UpdateRigidbodyVelocity(viw, aviw);
+
+            Vector3 testVec = deltaTime * viw;
+            if (!IsNaNOrInf(testVec.sqrMagnitude))
+            {
+                Quaternion diffRot = Quaternion.Euler(deltaTime * aviw);
+                riw = riw * diffRot;
+                myRigidbody.MoveRotation(riw);
+
+                piw += testVec;
+
+                if (nonrelativisticShader)
+                {
+                    transform.localPosition = Vector3.zero;
+                    testVec = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
+                    if (!IsNaNOrInf(testVec.sqrMagnitude))
+                    {
+                        contractor.position = testVec;
+                        ContractLength();
+                    }
+                }
+                else
+                {
+                    myRigidbody.MovePosition(piw);
+                }
+            }
 
             if (!myColliderIsVoxel)
             {
                 UpdateColliderPosition();
             }
+            #endregion
 
-            // Gravity can affect proper acceleration
-            UpdateGravity();
-
-            // Accelerate after updating gravity's effect on proper acceleration
-            viw += properAiw * (float)deltaTime;
-
-            //Correct for both time dilation and change in metric due to player acceleration:
-            UpdateRigidbodyVelocity(viw, aviw);
-
-            float sleepThreshold = sleepVelocity * sleepVelocity;
-            bool isFallingAsleep = (viw.sqrMagnitude < sleepThreshold) && (aviw.sqrMagnitude < sleepThreshold);
-            if (!isFallingAsleep)
-            {
-                sleepFrameCounter = 0;
-            }
-            else
-            {
-                sleepFrameCounter++;
-                if (sleepFrameCounter >= sleepFrameDelay)
-                {
-                    if (useGravity && myColliders != null && myColliders.Length > 0)
-                    {
-                        int myLayer = gameObject.layer;
-                        gameObject.layer = 1 << LayerMask.NameToLayer("Ignore Raycast");
-                        Ray down = new Ray(opticalWorldCenterOfMass, Vector3.down);
-                        float extentY = myColliders[0].bounds.extents.y;
-                        RaycastHit hitInfo;
-                        float distance = (transform.position - transform.TransformPoint(Vector3.down * extentY)).magnitude;
-                        if (Physics.Raycast(down, out hitInfo, distance + 0.01f))
-                        {
-                            sleepFrameCounter = sleepFrameDelay;
-                            Sleep();
-                            isRestingOnCollider = true;
-                        }
-                        gameObject.layer = myLayer;
-                    }
-                    else
-                    {
-                        sleepFrameCounter = sleepFrameDelay;
-                        Sleep();
-                    }
-                }
-            }
-
-            if ((sleepOldPosition - piw).sqrMagnitude >= (sleepDistance * sleepDistance))
-            {
-                sleepOldPosition = piw;
-            }
-
-            if (Vector3.Angle(sleepOldOrientation, transform.forward) >= sleepAngle)
-            {
-                sleepOldOrientation = transform.forward;
-            }
+            // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
+            float gamma = viw.Gamma();
+            myRigidbody.velocity = gamma * viw;
+            myRigidbody.angularVelocity = gamma * aviw;
         }
 
         public void UpdateColliderPosition(Collider toUpdate = null)
@@ -1115,7 +1018,7 @@ namespace OpenRelativity.Objects
             else if (!nonrelativisticShader && (myColliders != null) && (myColliders.Length > 0))
             {
                 //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-                if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders)
+                if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
                 {
                     for (int i = 0; i < myColliders.Length; i++)
                     {
@@ -1142,11 +1045,6 @@ namespace OpenRelativity.Objects
                         }
                     }
                 }
-            }
-
-            if (myRigidbody != null)
-            {
-                opticalWorldCenterOfMass = myRigidbody.worldCenterOfMass;
             }
         }
 
@@ -1208,26 +1106,63 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void checkCollisionSpeed()
-        {
-            if (collisionResultVel3.magnitude > state.MaxSpeed - .01)
-            {
-                oldCollisionResultVel3 = oldCollisionResultVel3.normalized * (float)(state.MaxSpeed - .01f);
-                collisionResultVel3 = oldCollisionResultVel3;
-            }
-        }
-
         public void ResetDeathTime()
         {
             DeathTime = float.PositiveInfinity;
         }
 
         #region 4D Rigid body mechanics
-        //This is a reference type to package collision points with collision normal vectors
-        private class PointAndNorm
+
+        private IEnumerator EnableCollision(float delay, Collider otherCollider)
         {
-            public Vector3 point;
-            public Vector3 normal;
+            yield return new WaitForSeconds(delay);
+            Physics.IgnoreCollision(GetComponent<Collider>(), otherCollider, false);
+        }
+
+        public void OnCollisionEnter(Collision collision)
+        {
+            if (myRigidbody == null || myColliders == null || myRigidbody.isKinematic)
+            {
+                return;
+            }
+
+            GameObject otherGO = collision.gameObject;
+            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
+
+            //Lorentz transformation might make us come "unglued" from a collider we're resting on.
+            // If we're asleep, and the other collider has zero velocity, we don't need to wake up:
+            if (isSleeping && otherRO.viw == Vector3.zero)
+            {
+                return;
+            }
+
+            if ((viw.AddVelocity(-otherRO.viw).magnitude < Physics.bounceThreshold))
+            {
+                // If we're lower than the bounce threshold, just reset the state.
+                // We often end up here when player acceleration puts high apparent curvature on a too low vertex mesh collider.
+                // PhysX will force the objects apart, but this might be the least error we can get away with.
+                viw = Vector3.zero;
+                aviw = Vector3.zero;
+                UpdateRigidbodyVelocity(viw, aviw);
+
+                return;
+            }
+
+            //If we made it this far, we shouldn't be sleeping:
+            WakeUp();
+
+            // We don't want to bug out, on many collisions with the same object
+            if (collideWait > 0)
+            {
+                Physics.IgnoreCollision(GetComponent<Collider>(), collision.collider, true);
+                StartCoroutine(EnableCollision(collideWait, collision.collider));
+            }
+
+            // Let's start simple:
+            // At low enough velocities, where the Newtonian approximation is reasonable,
+            // PhysX is probably MORE accurate for even relativistic collision than the hacky relativistic collision we had
+            // (which is still in the commit history, for reference).
+            EnforceCollision();
         }
 
         public void OnCollisionStay(Collision collision)
@@ -1240,16 +1175,6 @@ namespace OpenRelativity.Objects
             GameObject otherGO = collision.gameObject;
             RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
 
-            if (collision.contacts.Length > 1)
-            {
-                Ray down = new Ray(opticalWorldCenterOfMass, Vector3.down);
-                RaycastHit hitInfo;
-                if (collision.collider.Raycast(down, out hitInfo, (opticalWorldCenterOfMass - otherRO.opticalWorldCenterOfMass).magnitude))
-                {
-                    isRestingOnCollider = true;
-                }
-            }
-
             //Lorentz transformation might make us come "unglued" from a collider we're resting on.
             // If we're asleep, and the other collider has zero velocity, we don't need to wake up:
             if (isSleeping && otherRO.viw == Vector3.zero)
@@ -1257,495 +1182,39 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            //If we made it this far, we shouldn't be sleeping:
-            WakeUp();
-
-            PhysicMaterial otherMaterial = collision.collider.material;
-            float combFriction = CombinePhysics(myPhysicMaterial.frictionCombine, myPhysicMaterial.staticFriction, otherMaterial.staticFriction);
-            float combRestCoeff = CombinePhysics(myPhysicMaterial.bounceCombine, myPhysicMaterial.bounciness, otherMaterial.bounciness);
-
-            //Tangental relationship scales normalized "bounciness" to a Young's modulus
-
-            float combYoungsModulus = GetYoungsModulus(combRestCoeff);
-
-            PointAndNorm contactPoint = DecideContactPoint(collision);
-            ApplyPenalty(collision, otherRO, contactPoint, combFriction, combYoungsModulus);
-            didCollide = true;
-        }
-
-        private float GetYoungsModulus(float combRestCoeff)
-        {
-            float combYoungsModulus;
-            if (combRestCoeff < 1.0f)
+            if ((viw.AddVelocity(-otherRO.viw).magnitude < Physics.bounceThreshold))
             {
-                combYoungsModulus = Mathf.Tan(combRestCoeff);
-                //If the Young's modulus is higher than a realistic material, cap it.
-                if (combYoungsModulus > maxYoungsModulus) combYoungsModulus = maxYoungsModulus;
-            }
-            else
-            {
-                //If the coeffecient of restitution is one, set the Young's modulus to max:
-                combYoungsModulus = maxYoungsModulus;
-            }
+                // If we're lower than the bounce threshold, just reset the state.
+                // We often end up here when player acceleration puts high apparent curvature on a too low vertex mesh collider.
+                // PhysX will force the objects apart, but this might be the least error we can get away with.
+                viw = Vector3.zero;
+                aviw = Vector3.zero;
+                UpdateRigidbodyVelocity(viw, aviw);
 
-            return combYoungsModulus;
-        }
-
-        public void OnCollisionEnter(Collision collision)
-        {
-            if (myRigidbody == null || myColliders == null || myRigidbody.isKinematic)
-            {
-                return;
-            }
-            else if (collidedWith.Count > 0)
-            {
-                for (int i = 0; i < collidedWith.Count; i++)
-                {
-                    //If this collision is returned, redirect to OnCollisionStay
-                    if (collision.collider.Equals(collidedWith[i].Collider))
-                    {
-                        collidedWith[i].LastTime = state.TotalTimeWorld;
-                        //Then, immediately finish.
-                        return;
-                    }
-                }
-            }
-            collidedWith.Add(new RecentCollision()
-            {
-                Collider = collision.collider,
-                LastTime = state.TotalTimeWorld
-            });
-
-            GameObject otherGO = collision.gameObject;
-            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
-
-            //Lorentz transformation might make us come "unglued" from a collider we're resting on.
-            // If we're asleep, and the other collider has zero velocity, we don't need to wake up:
-            if (isSleeping && otherRO.viw == Vector3.zero)
-            {
                 return;
             }
 
             //If we made it this far, we shouldn't be sleeping:
             WakeUp();
-            didCollide = true;
 
-            PointAndNorm contactPoint = DecideContactPoint(collision);
-            if (contactPoint == null)
+            // We don't want to bug out, on many collisions with the same object
+            if (collideWait > 0)
             {
-                return;
+                Physics.IgnoreCollision(GetComponent<Collider>(), collision.collider, true);
+                StartCoroutine(EnableCollision(collideWait, collision.collider));
             }
 
-            PhysicMaterial otherMaterial = collision.collider.material;
-            float myFriction = isSleeping ? myPhysicMaterial.staticFriction : myPhysicMaterial.dynamicFriction;
-            float otherFriction = otherRO.isSleeping ? otherMaterial.staticFriction : otherMaterial.dynamicFriction;
-            float combFriction = CombinePhysics(myPhysicMaterial.frictionCombine, myFriction, otherFriction);
-            float combRestCoeff = CombinePhysics(myPhysicMaterial.bounceCombine, myPhysicMaterial.bounciness, otherMaterial.bounciness);
-
-            oldCollisionResultVel3 = viw;
-            oldCollisionResultAngVel3 = aviw;
-            otherRO.oldCollisionResultVel3 = otherRO.viw;
-            otherRO.oldCollisionResultAngVel3 = otherRO.aviw;
-            Collide(collision, otherRO, contactPoint, combRestCoeff, combFriction, (collision.rigidbody == null) || (collision.rigidbody.isKinematic));
+            // Let's start simple:
+            // At low enough velocities, where the Newtonian approximation is reasonable,
+            // PhysX is probably MORE accurate for even relativistic collision than the hacky relativistic collision we had
+            // (which is still in the commit history, for reference).
+            EnforceCollision();
         }
 
-        private float CombinePhysics(PhysicMaterialCombine physMatCombine, float mine, float theirs)
+        public void Sleep()
         {
-            float effectiveValue = 0.0f;
-            switch (physMatCombine)
-            {
-                case PhysicMaterialCombine.Average:
-                    effectiveValue = (mine + theirs) * 0.5f;
-                    break;
-                case PhysicMaterialCombine.Maximum:
-                    effectiveValue = Mathf.Max(mine, theirs);
-                    break;
-                case PhysicMaterialCombine.Minimum:
-                    effectiveValue = Mathf.Min(mine, theirs);
-                    break;
-                default:
-                    effectiveValue = mine;
-                    break;
-            }
-            return effectiveValue;
-        }
-
-        private PointAndNorm DecideContactPoint(Collision collision)
-        {
-            PointAndNorm contactPoint;
-            if (collision.contacts.Length == 0)
-            {
-                return null;
-            }
-            else if (collision.contacts.Length == 1)
-            {
-                contactPoint = new PointAndNorm()
-                {
-                    point = collision.contacts[0].point,
-                    normal = collision.contacts[0].normal
-                };
-            }
-            else
-            {
-                contactPoint = new PointAndNorm();
-                for (int i = 0; i < collision.contacts.Length; i++)
-                {
-                    contactPoint.point += collision.contacts[i].point;
-                    contactPoint.normal += collision.contacts[i].normal;
-                }
-                contactPoint.point = 1.0f / (float)collision.contacts.Length * contactPoint.point;
-                contactPoint.normal.Normalize();
-            }
-            if ((contactPoint.point - transform.position).sqrMagnitude == 0.0f)
-            {
-                contactPoint.point = 0.001f * collision.collider.transform.position;
-            }
-            return contactPoint;
-        }
-
-        private void Collide(Collision collision, RelativisticObject otherRO, PointAndNorm contactPoint, float combRestCoeff, float combFriction, bool isReflected)
-        {
-            //We grab the velocities from the RelativisticObject rather than the Rigidbody,
-            // since the Rigidbody velocity is not directly physical.
-            float mass = myRigidbody.mass;
-            Vector3 myVel = oldCollisionResultVel3;
-            Vector3 myAngVel = oldCollisionResultAngVel3;
-            Rigidbody otherRB = collision.rigidbody;
-            Vector3 otherVel = otherRO.oldCollisionResultVel3;
-            Vector3 otherAngVel = otherRO.oldCollisionResultAngVel3;
-
-            Vector3 myPRelVel = myVel.AddVelocity(-state.PlayerVelocityVector);
-            Vector4 myAccel = Get4Acceleration();
-
-            //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint, otLocPoint, contact, com;
-            if (myColliderIsMesh)
-            {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(myVel, myAccel);
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, myAccel);
-                myLocPoint = contact - com;
-            }
-            else if (nonrelativisticShader)
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, myAccel);
-                myLocPoint = (contact - com).InverseContractLengthBy(myVel);
-            }
-            else
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, myAccel);
-                myLocPoint = (contact - com);
-            }
-
-            if (otherRO.myColliderIsMesh)
-            {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(otherVel, myAccel);
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, myAccel);
-                otLocPoint = contact - com;
-            }
-            else if (otherRO.nonrelativisticShader)
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, myAccel);
-                otLocPoint = (contact - com).InverseContractLengthBy(otherVel);
-            }
-            else
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(otherVel, myAccel);
-                otLocPoint = (contact - com);
-            }
-
-            Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
-            Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
-            Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
-            Vector3 otherTotalVel = otherVel.AddVelocity(otherAngTanVel);
-            Vector3 lineOfAction = -contactPoint.normal.InverseContractLengthBy(myVel);
-            lineOfAction.Normalize();
-            //Decompose velocity in parallel and perpendicular components:
-            Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
-            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.Gamma();
-            //Boost to the inertial frame where my velocity is entirely along the line of action:
-            Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
-            //Find the relative velocity:
-            Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
-            //Find the relative rapidity on the line of action, where my contact velocity is 0:
-            float relVelGamma = relVel.Gamma();
-            Vector3 rapidityOnLoA = relVelGamma * relVel;
-
-            Vector3 myPos = opticalWorldCenterOfMass;
-            Vector3 otherPos = otherRO.opticalWorldCenterOfMass;
-            float penDist = GetPenetrationDepth(collision, myColliders[0], myPRelVel, myPos, otherPos, ref contactPoint);
-
-            //We will apply penalty methods after the initial collision, in order to stabilize objects coming to rest on flat surfaces with gravity.
-            // Our penalty methods can give a somewhat obvious apparent deviation from conservation of energy and momentum,
-            // unless we account for the initial energy and momentum loss due to "spring-loading":
-            float springImpulse = 0;
-            if (penDist > 0.0f)
-            {
-                float combYoungsModulus = GetYoungsModulus(combRestCoeff);
-                //Potential energy as if from a spring,
-                //H = K + V = p^2/(2m) + 1/2*k*l^2
-                // from which it can be shown that this is the change in momentum from the implied initial loading of the "spring":
-                springImpulse = Mathf.Sqrt(hookeMultiplier * combYoungsModulus * penDist * penDist * myRigidbody.mass);
-            }
-
-            //Rotate my relative contact point:
-            Vector3 rotatedLoc = Quaternion.Inverse(transform.rotation) * myLocPoint;
-            rotatedLoc.Scale(rotatedLoc);
-            //The relative contact point is the lever arm of the torque:
-            float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, rotatedLoc);
-            //In special relativity, the impulse relates the change in rapidities, rather than the change in velocities.
-            float impulse;
-            if (isReflected)
-            {
-                impulse = -rapidityOnLoA.magnitude * (combRestCoeff + 1.0f) / (1.0f / mass + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, lineOfAction), myLocPoint)));
-            }
-            else
-            {
-                rotatedLoc = Quaternion.Inverse(otherRB.transform.rotation) * otLocPoint;
-                rotatedLoc.Scale(rotatedLoc);
-                float otherMOI = Vector3.Dot(otherRB.inertiaTensor, rotatedLoc);
-                impulse = -rapidityOnLoA.magnitude * (combRestCoeff + 1.0f) / (1.0f / mass + 1.0f / otherRB.mass + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, lineOfAction), myLocPoint)) + Vector3.Dot(lineOfAction, Vector3.Cross(1.0f / otherMOI * Vector3.Cross(otLocPoint, lineOfAction), otLocPoint)));
-            }
-
-            impulse -= springImpulse;
-
-            Vector3 tanNorm = Vector3.Cross(Vector3.Cross(lineOfAction, relVel), lineOfAction).normalized;
-            Vector3 frictionChange = combFriction * impulse * tanNorm;
-            //The change in rapidity on the line of action:
-            Vector3 finalLinearRapidity = relVelGamma * myVel + (impulse * lineOfAction + frictionChange) / mass;
-            //The change in rapidity perpendincular to the line of action:
-            Vector3 finalTanRapidity = relVelGamma * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction + frictionChange), myLocPoint);
-            //Velocities aren't linearly additive in special relativity, but rapidities are:
-            float finalRapidityMag = (finalLinearRapidity + finalTanRapidity).magnitude;
-            Vector3 tanVelFinal = finalTanRapidity.RapidityToVelocity(finalRapidityMag);
-            //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalLinearRapidity.RapidityToVelocity(finalRapidityMag);
-            //If the angle of the torque is close to 0 or 180, we have rounding problems:
-            float angle = Vector3.Angle(myAngVel, myLocPoint);
-            if (angle > 2.0f && angle < 178.0f)
-            {
-                collisionResultAngVel3 = Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
-            }
-            else
-            {
-                collisionResultAngVel3 = myAngVel;
-            }
-            //In the ideal, it shouldn't be necessary to clamp the speed
-            // in order to prevent FTL collision results, but we could
-            // still exceed the max speed and come very close to the speed of light
-            checkCollisionSpeed();
-
-            //Velocity overwrite will come on next frame:
-            //oldCollisionResultVel3 = collisionResultVel3;
-            //oldCollisionResultAngVel3 = collisionResultAngVel3;
-            didCollide = true;
-        }
-
-        //EXPERIMENTAL PENALTY METHOD CODE BELOW
-        private const float hookeMultiplier = 1.0f;
-        private void ApplyPenalty(Collision collision, RelativisticObject otherRO, PointAndNorm contactPoint, float combFriction, float combYoungsModulus)
-        {
-            //We grab the velocities from the RelativisticObject rather than the Rigidbody,
-            // since the Rigidbody velocity is not directly physical.
-            float mass = myRigidbody.mass;
-            Vector3 myVel = oldCollisionResultVel3;
-            Vector3 myAngVel = oldCollisionResultAngVel3;
-            Rigidbody otherRB = collision.rigidbody;
-            Vector3 otherVel = otherRO.oldCollisionResultVel3;
-            Vector3 otherAngVel = otherRO.oldCollisionResultAngVel3;
-
-            Vector3 myPRelVel = myVel.AddVelocity(-state.PlayerVelocityVector);
-            Vector4 myAccel = Get4Acceleration();
-
-            //We want to find the contact offset relative the centers of mass of in each object's inertial frame;
-            Vector3 myLocPoint, otLocPoint, contact, com;
-            if (myColliderIsMesh)
-            {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(myVel, myAccel);
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, myAccel);
-                myLocPoint = contact - com;
-            }
-            else if (nonrelativisticShader)
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, myAccel);
-                myLocPoint = (contact - com).InverseContractLengthBy(myVel);
-            }
-            else
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(myVel, myAccel);
-                myLocPoint = (contact - com);
-            }
-
-            myAccel = Get4Acceleration();
-            if (otherRO.myColliderIsMesh)
-            {
-                contact = ((Vector4)(contactPoint.point)).OpticalToWorld(otherVel, myAccel);
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, myAccel);
-                otLocPoint = contact - com;
-            }
-            else if (otherRO.nonrelativisticShader)
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)(otherRO.opticalWorldCenterOfMass)).OpticalToWorld(otherVel, myAccel);
-                otLocPoint = (contact - com).InverseContractLengthBy(otherVel);
-            }
-            else
-            {
-                contact = contactPoint.point;
-                com = ((Vector4)opticalWorldCenterOfMass).OpticalToWorld(otherVel, myAccel);
-                otLocPoint = (contact - com);
-            }
-
-            Vector3 myAngTanVel = Vector3.Cross(myAngVel, myLocPoint);
-            Vector3 myTotalVel = myVel.AddVelocity(myAngTanVel);
-            Vector3 otherAngTanVel = Vector3.Cross(otherAngVel, otLocPoint);
-            Vector3 otherTotalVel = otherVel.AddVelocity(otherAngTanVel);
-            Vector3 lineOfAction = -contactPoint.normal.InverseContractLengthBy(myVel);
-            lineOfAction.Normalize();
-            //Decompose velocity in parallel and perpendicular components:
-            Vector3 myParraVel = Vector3.Project(myTotalVel, lineOfAction);
-            Vector3 myPerpVel = (myTotalVel - myParraVel) * myParraVel.Gamma();
-            //Boost to the inertial frame where my velocity is entirely along the line of action:
-            Vector3 otherContactVel = otherTotalVel.AddVelocity(-myPerpVel);
-            //Find the relative velocity:
-            Vector3 relVel = myParraVel.RelativeVelocityTo(otherContactVel);
-            //Find the relative rapidity on the line of action, where my contact velocity is 0:
-            float relVelGamma = relVel.Gamma();
-            //Vector3 rapidityOnLoA = relVelGamma * relVel;
-
-            Vector3 myPos = opticalWorldCenterOfMass;
-            Vector3 otherPos = otherRO.opticalWorldCenterOfMass;
-            float penDist = GetPenetrationDepth(collision, myColliders[0], myPRelVel, myPos, otherPos, ref contactPoint);
-
-            
-
-            //Rotate my relative contact point:
-            Vector3 rotatedLoc = Quaternion.Inverse(transform.rotation) * myLocPoint;
-            //The relative contact point is the lever arm of the torque:
-            float myMOI = Vector3.Dot(myRigidbody.inertiaTensor, new Vector3(rotatedLoc.x * rotatedLoc.x, rotatedLoc.y * rotatedLoc.y, rotatedLoc.z * rotatedLoc.z));
-
-            Vector3 finalLinearRapidity;
-            Vector3 finalTanRapidity;
-            if (penDist > 0)
-            {
-                float impulse = (float)(hookeMultiplier * combYoungsModulus * penDist * state.FixedDeltaTimePlayer * GetTimeFactor());
-
-                Vector3 tanNorm = Vector3.Cross(Vector3.Cross(lineOfAction, relVel), lineOfAction).normalized;
-                Vector3 frictionChange = combFriction * impulse * tanNorm;
-                //The change in rapidity on the line of action:
-                finalLinearRapidity = relVelGamma * myVel + (impulse * lineOfAction + frictionChange) / mass;
-                //The change in rapidity perpendincular to the line of action:
-                finalTanRapidity = relVelGamma * myAngTanVel + Vector3.Cross(1.0f / myMOI * Vector3.Cross(myLocPoint, impulse * lineOfAction + frictionChange), myLocPoint);
-            }
-            else
-            {
-                finalLinearRapidity = relVelGamma * myVel * combFriction;
-                finalTanRapidity = relVelGamma * myAngTanVel * combFriction;
-            }
-            //Velocities aren't linearly additive in special relativity, but rapidities are:
-            float finalRapidityMag = (finalLinearRapidity + finalTanRapidity).magnitude;
-            Vector3 tanVelFinal = finalTanRapidity.RapidityToVelocity(finalRapidityMag);
-            //This is a hack. We save the new velocities to overwrite the Rigidbody velocities on the next frame:
-            collisionResultVel3 = finalLinearRapidity.RapidityToVelocity(finalRapidityMag);
-            //If the angle of the torque is close to 0 or 180, we have rounding problems:
-            float angle = Vector3.Angle(myAngVel, myLocPoint);
-            if (angle > 2.0f && angle < 178.0f)
-            {
-                collisionResultAngVel3 = Vector3.Cross(tanVelFinal, myLocPoint) / myLocPoint.sqrMagnitude;
-            }
-            else
-            {
-                collisionResultAngVel3 = myAngVel;
-            }
-            //In the ideal, it shouldn't be necessary to clamp the speed
-            // in order to prevent FTL collision results, but we could
-            // still exceed the max speed and come very close to the speed of light
-            checkCollisionSpeed();
-
-            didCollide = true;
-        }
-
-        private float GetPenetrationDepth(Collision collision, Collider myCollider, Vector3 myPRelVel, Vector3 myPos, Vector3 otherPos, ref PointAndNorm contactPoint)
-        {
-            //Raycast with other collider in a collision
-
-            //float gamma = myPRelVel.Gamma();
-
-            Vector3 testNormal;
-            float penDist = 0.0f;
-            float penTest = 0.0f;
-            Vector3 myExtents = myCollider.bounds.extents;
-            Vector3 otherExtents = collision.collider.bounds.extents;
-            float startDist = 4.0f * Mathf.Max(otherExtents.x, otherExtents.y, otherExtents.z, myExtents.x, myExtents.y, myExtents.z);
-            RaycastHit hitInfo;
-            ContactPoint point;
-            float maxLCV = collision.contacts.Length;
-            Ray ray = new Ray();
-            for (int i = 0; i < maxLCV; i++)
-            {
-                point = collision.contacts[i];
-                testNormal = point.normal;
-                ray.origin = myPos + startDist * testNormal;
-                ray.direction = -testNormal;
-
-                if (collision.collider.Raycast(ray, out hitInfo, startDist))
-                {
-                    penTest = hitInfo.distance - startDist;
-                }
-                else
-                {
-                    penTest = 0.0f;
-                }
-                if (penTest > penDist)
-                {
-                    penDist = penTest;
-                    contactPoint.point = point.point;
-                    contactPoint.normal = point.normal;
-                }
-
-                ray.origin = otherPos - startDist * testNormal;
-                ray.direction = testNormal;
-
-                if (myCollider.Raycast(ray, out hitInfo, startDist))
-                {
-                    penTest = hitInfo.distance - startDist;
-                }
-                else
-                {
-                    penTest = 0.0f;
-                }
-
-                if (penTest > penDist)
-                {
-                    penDist = penTest;
-                    contactPoint.point = point.point;
-                    contactPoint.normal = point.normal;
-                }
-            }
-
-            return penDist;
-        }
-
-        private void Sleep()
-        {
-            if (!isSleeping)
-            {
-                //The sleep rotation has to be held fixed to keep sleeping objects
-                // resting flush on stationary surfaces below them.
-                sleepRotation = transform.rotation;
-            }
-            transform.rotation = sleepRotation;
             viw = Vector3.zero;
-            collisionResultVel3 = Vector3.zero;
-            oldCollisionResultVel3 = Vector3.zero;
             aviw = Vector3.zero;
-            collisionResultAngVel3 = Vector3.zero;
-            oldCollisionResultAngVel3 = Vector3.zero;
             properAiw = Vector3.zero;
 
             if (myRigidbody != null)
@@ -1758,10 +1227,9 @@ namespace OpenRelativity.Objects
             isSleeping = true;
         }
 
-        private void WakeUp()
+        public void WakeUp()
         {
             isSleeping = false;
-            isRestingOnCollider = false;
             if (myRigidbody != null)
             {
                 myRigidbody.WakeUp();
@@ -1863,47 +1331,58 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            if ((!state.MovementFrozen) && (state.SqrtOneMinusVSquaredCWDividedByCSquared > 0))
-            {
-                Vector3 pVel = state.PlayerVelocityVector;
-                //This works so long as our metric uses synchronous coordinates:
-                Matrix4x4 metric = GetMetric();
-                    
-                float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
-                if (!IsNaNOrInf(timeFac) && timeFac > 0)
-                {
-                    myRigidbody.velocity = mViw * timeFac;
-                    myRigidbody.angularVelocity = mAviw * timeFac;
-                }
-                else
-                {
-                    myRigidbody.velocity = Vector3.zero;
-                    myRigidbody.angularVelocity = Vector3.zero;
-                }
-            }
-            else
+            // If movement is frozen, set to zero.
+            if (state.MovementFrozen)
             {
                 myRigidbody.velocity = Vector3.zero;
                 myRigidbody.angularVelocity = Vector3.zero;
+
+                return;
+            }
+
+            // If we're in an invalid state, (such as before full initialization,) set to zero.
+            float timeFac = GetTimeFactor();
+            if (IsNaNOrInf(timeFac) || timeFac == 0)
+            {
+                myRigidbody.velocity = Vector3.zero;
+                myRigidbody.angularVelocity = Vector3.zero;
+
+                return;
+            }
+
+            myRigidbody.velocity = mViw * timeFac;
+            myRigidbody.angularVelocity = mAviw * timeFac;
+        }
+
+        public void UpdateContractorPosition()
+        {
+            if (nonrelativisticShader)
+            {
+                if (contractor == null)
+                {
+                    SetUpContractor();
+                }
+                contractor.position = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
+                transform.localPosition = Vector3.zero;
+                ContractLength();
             }
         }
 
-        public double GetTimeFactor()
+        public float GetTimeFactor(Vector3? pVel = null)
         {
-            if (state.SqrtOneMinusVSquaredCWDividedByCSquared <= 0)
+            if (!pVel.HasValue)
             {
-                return 1;
+                pVel = state.PlayerVelocityVector;
             }
 
-            Vector3 pVel = state.PlayerVelocityVector;
-            //This works so long as our metric uses synchronous coordinates:
             Matrix4x4 metric = GetMetric();
 
-            float timeFac = (float)((state.SpeedOfLightSqrd + Vector4.Dot(pVel, metric * pVel)) / state.SpeedOfLightSqrd);
-            if (timeFac < 0)
+            float timeFac = 1 / Mathf.Sqrt(1 - (float)(Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
+            if (IsNaNOrInf(timeFac))
             {
-                timeFac = 0;
+                timeFac = 1;
             }
+
             return timeFac;
         }
     }
