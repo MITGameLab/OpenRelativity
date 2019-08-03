@@ -12,8 +12,6 @@ namespace OpenRelativity.Objects
         public bool isKinematic = false;
         public bool isLightMapStatic = false;
         public bool useGravity;
-        public Vector3 initialViw;
-        public Vector3 initialAviw;
         #endregion
 
         #region Rigid body physics
@@ -26,7 +24,7 @@ namespace OpenRelativity.Objects
 
         private bool wasUsingGravity;
 
-        private Vector3 _viw = Vector3.zero;
+        public Vector3 _viw = Vector3.zero;
         public Vector3 viw
         {
             get
@@ -48,16 +46,13 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
-                // This keeps the public parameter up-to-date:
-                initialViw = value;
-
                 UpdateViwAndAccel(_viw, _properAiw, value, _properAiw);
             }
         }
         public Matrix4x4 viwLorentz { get; private set; }
 
         //Store this object's angular velocity here.
-        private Vector3 _aviw;
+        public Vector3 _aviw;
         public Vector3 aviw
         {
             get
@@ -68,7 +63,6 @@ namespace OpenRelativity.Objects
             {
                 if (!isKinematic)
                 {
-                    initialAviw = value;
                     _aviw = value;
                     UpdateRigidbodyVelocity(viw, value);
                 }
@@ -583,8 +577,6 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
-            _viw = initialViw;
-            _aviw = initialAviw;
             _properAiw = useGravity ? Physics.gravity : Vector3.zero;
 
             piw = transform.position;
@@ -938,8 +930,14 @@ namespace OpenRelativity.Objects
                     myRigidbody.angularVelocity = Vector3.zero;
                 }
 
-                viw = Vector4.zero;
-                aviw = Vector4.zero;
+                if (!isKinematic)
+                {
+                    viw = Vector4.zero;
+                    aviw = Vector4.zero;
+                } else
+                {
+                    transform.position = nonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) : piw;
+                }
 
                 if (!myColliderIsVoxel)
                 {
@@ -1066,7 +1064,6 @@ namespace OpenRelativity.Objects
             {
                 Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
-                Vector3 tempPiw = transform.position;
                 Vector4 tempAiw = Get4Acceleration();
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
