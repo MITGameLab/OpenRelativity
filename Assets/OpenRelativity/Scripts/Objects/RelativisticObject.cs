@@ -9,9 +9,49 @@ namespace OpenRelativity.Objects
     public class RelativisticObject : MonoBehaviour
     {
         #region Public Settings
-        public bool isKinematic = false;
+        // Set with Rigidbody isKinematic flag instead
+        public bool isKinematic
+        {
+            get
+            {
+                if (myRigidbody == null)
+                {
+                    return true;
+                }
+
+                return myRigidbody.isKinematic;
+            }
+
+            set
+            {
+                if (myRigidbody != null)
+                {
+                    myRigidbody.isKinematic = value;
+                }
+            }
+        }
         public bool isLightMapStatic = false;
-        public bool useGravity;
+        public bool _useGravity;
+        public bool useGravity
+        {
+            get
+            {
+                return _useGravity;
+            }
+
+            set
+            {
+                if (useGravity && !value)
+                {
+                    properAiw -= Physics.gravity;
+                } else if (!useGravity && value)
+                {
+                    properAiw += Physics.gravity;
+                }
+
+                _useGravity = value;
+            }
+        }
         #endregion
 
         #region Rigid body physics
@@ -20,7 +60,7 @@ namespace OpenRelativity.Objects
         // If we have intrinsic proper acceleration besides gravity, how quickly does it degrade?
         // (This isn't physically how we want to handle changing acceleration, but it's a stop-gap to experiment with smooth-ish changes in proper acceleration.)
         private float accelDrag = 0f;
-        private bool didCollide;
+        private bool isResting;
 
         private bool wasUsingGravity;
 
@@ -47,6 +87,7 @@ namespace OpenRelativity.Objects
                 }
 
                 UpdateViwAndAccel(_viw, _properAiw, value, _properAiw);
+                UpdateRigidbodyVelocity(_viw, _aviw);
             }
         }
         public Matrix4x4 viwLorentz { get; private set; }
@@ -64,7 +105,7 @@ namespace OpenRelativity.Objects
                 if (!isKinematic)
                 {
                     _aviw = value;
-                    UpdateRigidbodyVelocity(viw, value);
+                    UpdateRigidbodyVelocity(_viw, value);
                 }
             }
         }
@@ -93,6 +134,7 @@ namespace OpenRelativity.Objects
                 }
 
                 UpdateViwAndAccel(_viw, _properAiw, _viw, value);
+                UpdateRigidbodyVelocity(_viw, _aviw);
             }
         }
 
@@ -103,7 +145,7 @@ namespace OpenRelativity.Objects
             // and inverse transform the optical position with the new the velocity.
             // (This keeps the optical position fixed.)
 
-            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai)).OpticalToWorldHighPrecision(vf, af);
+            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi))).OpticalToWorldHighPrecision(vf, af.ProperToWorldAccel(vf));
 
             if (!IsNaNOrInf(piw.magnitude))
             {
@@ -119,10 +161,6 @@ namespace OpenRelativity.Objects
 
             _viw = vf;
             _properAiw = af;
-
-            // Also update the Rigidbody and Collider, if any
-            UpdateRigidbodyVelocity(_viw, _aviw);
-            UpdateColliderPosition();
 
             // Update the shader parameters if necessary
             UpdateShaderParams();
@@ -275,13 +313,13 @@ namespace OpenRelativity.Objects
             //Set remaining global parameters:
             colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
             colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
-            colliderShaderParams.vpc = (-state.PlayerVelocityVector).ToMinkowski4Viw() / (float)state.SpeedOfLight;
+            colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
             colliderShaderParams.pap = state.PlayerAccelerationVector;
             colliderShaderParams.avp = state.PlayerAngularVelocityVector;
             colliderShaderParams.playerOffset = state.playerTransform.position;
-            colliderShaderParams.speed = (float)(state.PlayerVelocity / state.SpeedOfLight);
             colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
             colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
+            colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
 
             //Center of mass in local coordinates should be invariant,
             // but transforming the collider verts will change it,
@@ -577,10 +615,14 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
-            _properAiw = useGravity ? Physics.gravity : Vector3.zero;
-
-            piw = transform.position;
+            if (useGravity)
+            {
+                _properAiw += Physics.gravity;
+            }
+            piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : transform.position;
             riw = transform.rotation;
+
+            UpdateViwAndAccel(Vector3.zero, Vector3.zero, viw, properAiw);
 
             isSleeping = false;
             myRigidbody = GetComponent<Rigidbody>();
@@ -720,56 +762,62 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void EnforceCollision()
+        private void EnforceCollision(Collision collision)
         {
             // Like how Rigidbody components are co-opted for efficient relativistic motion,
             // it's feasible to get (at least reasonable, if not exact) relativistic collision
             // handling by transforming the end state after PhysX collisions.
 
             // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
-            // We restore the time-dilated visual apparent velocity, afterward.
+            // We restore the time-dilated visual apparent velocity, afterward
 
-            if (!didCollide && useGravity)
+            if (useGravity && (collision.contacts.Length > 2))
             {
-                properAiw -= Physics.gravity;
+                ContactPoint contact = collision.contacts[0];
+                if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
+                {
+                    viw = Vector3.zero;
+                    aviw = Vector3.zero;
+                    isResting = true;
+
+                    return;
+                }
             }
-            didCollide = true;
 
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
             piw = nonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
-            Vector3 myViw = myRigidbody.velocity.RapidityToVelocity();
             // Make sure we're not updating to faster than max speed
-            float mySpeed = myViw.magnitude;
-            if (mySpeed > state.MaxSpeed)
-            {
-                myViw = (float)state.MaxSpeed / mySpeed * myViw;
-            }
+            Vector3 myViw = myRigidbody.velocity.RapidityToVelocity();
 
             float gamma = GetTimeFactor(myViw);
-            Vector3 myAccel = (properAiw + (myViw * gamma - viw * viw.Gamma()) * Mathf.Log(1 + (float)state.FixedDeltaTimePlayer * accelDrag));
+
+            Vector3 myAccel = properAiw;
             if (accelDrag > 0)
             {
-                myAccel /= accelDrag;
+                myAccel += (myViw * gamma - viw * GetTimeFactor(viw)) * Mathf.Log(1 + (float)state.FixedDeltaTimePlayer * accelDrag) / accelDrag;
             }
 
             UpdateViwAndAccel(viw, properAiw, myViw, myAccel);
+
             aviw = myRigidbody.angularVelocity / gamma;
+
+            checkSpeed();
         }
 
-        public void Update()
+        void Update()
         {
+            if (myRigidbody != null)
+            {
+                UpdateRigidbodyVelocity(viw, aviw);
+            }
+
             if (state.MovementFrozen || nonrelativisticShader || meshFilter != null)
             {
                 UpdateShaderParams();
                 return;
-            }
-
-            if (myRigidbody != null)
-            {
-                UpdateRigidbodyVelocity(viw, aviw);
             }
 
             ObjectMeshDensity density = GetComponent<ObjectMeshDensity>();
@@ -790,7 +838,7 @@ namespace OpenRelativity.Objects
             {
                 //This checks if we're within our large range, first mesh density circle
                 //If we're within a distance of 40, split this mesh
-                if (!(density.state) && (RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).sqrMagnitude < (21000 * 21000)))
+                if (!(density.state) && (meshFilter.transform.TransformPoint(rawVertsBuffer[0]).sqrMagnitude < (21000 * 21000)))
                 {
                     Mesh meshFilterMesh = meshFilter.mesh;
                     if (density.ReturnVerts(meshFilterMesh, true))
@@ -806,7 +854,7 @@ namespace OpenRelativity.Objects
                 }
 
                 //If the object leaves our wide range, revert mesh to original state
-                else if (density.state && (RecursiveTransform(rawVertsBuffer[0], meshFilter.transform).sqrMagnitude > (21000 * 21000)))
+                else if (density.state && (meshFilter.transform.TransformPoint(rawVertsBuffer[0]).sqrMagnitude > (21000 * 21000)))
                 {
                     Mesh meshFilterMesh = meshFilter.mesh;
                     if (density.ReturnVerts(meshFilterMesh, false))
@@ -849,9 +897,6 @@ namespace OpenRelativity.Objects
                 // We're done.
                 return;
             }
-
-            // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
-            //EnforceCollision();
 
             float deltaTime = (float)state.FixedDeltaTimePlayer * GetTimeFactor();
             float localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
@@ -919,9 +964,11 @@ namespace OpenRelativity.Objects
                 }
             }
 
+            UpdateColliderPosition();
+
             #region rigidbody
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
-            if (isKinematic || isSleeping || myRigidbody == null)
+            if (isKinematic || isSleeping || isResting || myRigidbody == null)
             {
 
                 if (myRigidbody != null)
@@ -939,23 +986,19 @@ namespace OpenRelativity.Objects
                     transform.position = nonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) : piw;
                 }
 
-                if (!myColliderIsVoxel)
-                {
-                    UpdateColliderPosition();
-                }
-
                 UpdateShaderParams();
+
+                isResting = false;
 
                 // We're done.
                 return;
             }
 
+            Vector3 myAccel = properAiw;
             if (accelDrag > 0)
             {
 
-                Vector3 myAccel = properAiw;
-
-                if (useGravity && !didCollide)
+                if (useGravity)
                 {
                     myAccel -= Physics.gravity;
                 }
@@ -963,7 +1006,7 @@ namespace OpenRelativity.Objects
                 float jerkDiff = (1 + deltaTime * accelDrag);
                 myAccel = myAccel / jerkDiff;
 
-                if (useGravity && !didCollide)
+                if (useGravity)
                 {
                     myAccel += Physics.gravity;
                 }
@@ -972,7 +1015,7 @@ namespace OpenRelativity.Objects
             }
 
             // Accelerate after updating gravity's effect on proper acceleration
-            viw += properAiw * deltaTime;
+            viw += myAccel * deltaTime;
 
             Vector3 testVec = deltaTime * viw;
             if (!IsNaNOrInf(testVec.sqrMagnitude))
@@ -986,28 +1029,26 @@ namespace OpenRelativity.Objects
 
                 if (nonrelativisticShader)
                 {
-                    transform.localPosition = Vector3.zero;
+                    transform.parent = null;
                     testVec = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
                     if (!IsNaNOrInf(testVec.sqrMagnitude))
                     {
-                        contractor.position = testVec;
-                        ContractLength();
+                        myRigidbody.MovePosition(testVec);
                     }
+                    contractor.position = myRigidbody.position;
+                    transform.parent = contractor;
+                    transform.localPosition = Vector3.zero;
+                    ContractLength();
                 }
                 else
                 {
                     myRigidbody.MovePosition(piw);
                 }
             }
-
-            if (!myColliderIsVoxel)
-            {
-                UpdateColliderPosition();
-            }
             #endregion
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
-            float gamma = viw.Gamma();
+            float gamma = GetTimeFactor(viw);
             myRigidbody.velocity = gamma * viw;
             myRigidbody.angularVelocity = gamma * aviw;
         }
@@ -1016,42 +1057,36 @@ namespace OpenRelativity.Objects
         {
             Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
 
-            if (myColliderIsVoxel)
+            if (myColliderIsVoxel || nonrelativisticShader || myColliders == null || myColliders.Length == 0)
             {
-                ObjectBoxColliderDensity obcd = GetComponent<ObjectBoxColliderDensity>();
-                if (obcd != null)
+                return;
+            }
+
+            //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
+            if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
+            {
+                for (int i = 0; i < myColliders.Length; i++)
                 {
-                    obcd.UpdatePositions(toUpdate);
+                    UpdateMeshCollider((MeshCollider)myColliders[i]);
                 }
             }
-            else if (!nonrelativisticShader && (myColliders != null) && (myColliders.Length > 0))
+            //If we have a BoxCollider, transform its center to its optical position
+            else if (myColliderIsBox)
             {
-                //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-                if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
+                Vector4 aiw4 = Get4Acceleration();
+                Vector3 pos;
+                BoxCollider collider;
+                Vector3 testPos;
+                float testMag;
+                for (int i = 0; i < myColliders.Length; i++)
                 {
-                    for (int i = 0; i < myColliders.Length; i++)
+                    collider = (BoxCollider)myColliders[i];
+                    pos = transform.TransformPoint((Vector4)colliderPiw[i]);
+                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw4, viwLorentz));
+                    testMag = testPos.sqrMagnitude;
+                    if (!IsNaNOrInf(testMag))
                     {
-                        UpdateMeshCollider((MeshCollider)myColliders[i]);
-                    }
-                }
-                //If we have a BoxCollider, transform its center to its optical position
-                else if (myColliderIsBox)
-                {
-                    Vector4 aiw = Get4Acceleration();
-                    Vector3 pos;
-                    BoxCollider collider;
-                    Vector3 testPos;
-                    float testMag;
-                    for (int i = 0; i < myColliders.Length; i++)
-                    {
-                        collider = (BoxCollider)myColliders[i];
-                        pos = transform.InverseTransformPoint(((Vector4)colliderPiw[i]));
-                        testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw, viwLorentz));
-                        testMag = testPos.sqrMagnitude;
-                        if (!IsNaNOrInf(testMag))
-                        {
-                            collider.center = testPos;
-                        }
+                        collider.center = testPos;
                     }
                 }
             }
@@ -1062,9 +1097,10 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null && !isLightMapStatic)
             {
-                Vector4 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
+                Vector4 tempViw = viw / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector4 tempAiw = Get4Acceleration();
+                Vector4 tempVr = (-viw).AddVelocity(state.PlayerVelocityVector) / (float)state.SpeedOfLight;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
@@ -1073,11 +1109,14 @@ namespace OpenRelativity.Objects
                 colliderShaderParams.viw = tempViw;
                 colliderShaderParams.aiw = tempAiw;
                 colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
+                colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
                 for (int i = 0; i < myRenderer.materials.Length; i++)
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
                     myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
+                    myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
+                    myRenderer.materials[i].SetVector("_vr", tempVr);
                 }
             }
         }
@@ -1087,30 +1126,32 @@ namespace OpenRelativity.Objects
             gameObject.SetActive(false);
             //Destroy(this.gameObject);
         }
-        public Vector3 RecursiveTransform(Vector3 pt, Transform trans)
-        {
-            //Basically, this will transform the point until it has no more parent transforms.
-            Vector3 pt1 = Vector3.zero;
-            //If we have a parent transform, run this function again
-            if (trans.parent != null)
-            {
-                pt = RecursiveTransform(pt1, trans.parent);
-
-                return pt;
-            }
-            else
-            {
-                pt1 = trans.TransformPoint(pt);
-                return pt1;
-            }
-        }
 
         //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
-            if (viw.sqrMagnitude > ((state.MaxSpeed - .01) * (state.MaxSpeed - .01)))
+            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+
+            if (viw.sqrMagnitude > maxSpeedSqr)
             {
                 viw = viw.normalized * (float)(state.MaxSpeed - .01f);
+            }
+
+            // The tangential velocities of each vertex should also not be greater than the maximum speed.
+            // (This is a relatively computationally costly check, but it's good practice.
+            
+            if (trnsfrmdMeshVerts != null)
+            {
+                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+                {
+                    Vector3 disp = Vector3.Scale(trnsfrmdMeshVerts[i], transform.lossyScale);
+                    Vector3 tangentialVel = Vector3.Cross(aviw, disp);
+                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
+                    if (tanVelMagSqr > maxSpeedSqr)
+                    {
+                        aviw = aviw.normalized * (float)(state.MaxSpeed - 0.01f) / disp.magnitude;
+                    }
+                }
             }
         }
 
@@ -1129,6 +1170,16 @@ namespace OpenRelativity.Objects
 
         public void OnCollisionEnter(Collision collision)
         {
+            OnCollision(collision);
+        }
+
+        public void OnCollisionStay(Collision collision)
+        {
+            OnCollision(collision);
+        }
+
+        public void OnCollision(Collision collision)
+        {
             if (myRigidbody == null || myColliders == null || myRigidbody.isKinematic)
             {
                 return;
@@ -1144,103 +1195,18 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            if ((viw.AddVelocity(-otherRO.viw).magnitude < Physics.bounceThreshold))
-            {
-                // If we're lower than the bounce threshold, just reset the state.
-                // We often end up here when player acceleration puts high apparent curvature on a too low vertex mesh collider.
-                // PhysX will force the objects apart, but this might be the least error we can get away with.
-                viw = Vector3.zero;
-                aviw = Vector3.zero;
-                UpdateRigidbodyVelocity(viw, aviw);
-
-                return;
-            }
-
-            //If we made it this far, we shouldn't be sleeping:
-            WakeUp();
+            // Let's start simple:
+            // At low enough velocities, where the Newtonian approximation is reasonable,
+            // PhysX is probably MORE accurate for even relativistic collision than the hacky relativistic collision we had
+            // (which is still in the commit history, for reference).
+            EnforceCollision(collision);
+            // EnforceCollision() might opt not to set didCollide
 
             // We don't want to bug out, on many collisions with the same object
             if (collideWait > 0)
             {
                 Physics.IgnoreCollision(GetComponent<Collider>(), collision.collider, true);
                 StartCoroutine(EnableCollision(collideWait, collision.collider));
-            }
-
-            // Let's start simple:
-            // At low enough velocities, where the Newtonian approximation is reasonable,
-            // PhysX is probably MORE accurate for even relativistic collision than the hacky relativistic collision we had
-            // (which is still in the commit history, for reference).
-            EnforceCollision();
-        }
-
-        public void OnCollisionStay(Collision collision)
-        {
-            if (myRigidbody == null || myRigidbody.isKinematic)
-            {
-                return;
-            }
-
-            GameObject otherGO = collision.gameObject;
-            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
-
-            //Lorentz transformation might make us come "unglued" from a collider we're resting on.
-            // If we're asleep, and the other collider has zero velocity, we don't need to wake up:
-            if (isSleeping && otherRO.viw == Vector3.zero)
-            {
-                return;
-            }
-
-            if ((viw.AddVelocity(-otherRO.viw).magnitude < Physics.bounceThreshold))
-            {
-                // If we're lower than the bounce threshold, just reset the state.
-                // We often end up here when player acceleration puts high apparent curvature on a too low vertex mesh collider.
-                // PhysX will force the objects apart, but this might be the least error we can get away with.
-                viw = Vector3.zero;
-                aviw = Vector3.zero;
-                UpdateRigidbodyVelocity(viw, aviw);
-
-                return;
-            }
-
-            //If we made it this far, we shouldn't be sleeping:
-            WakeUp();
-
-            // We don't want to bug out, on many collisions with the same object
-            if (collideWait > 0)
-            {
-                Physics.IgnoreCollision(GetComponent<Collider>(), collision.collider, true);
-                StartCoroutine(EnableCollision(collideWait, collision.collider));
-            }
-
-            // Let's start simple:
-            // At low enough velocities, where the Newtonian approximation is reasonable,
-            // PhysX is probably MORE accurate for even relativistic collision than the hacky relativistic collision we had
-            // (which is still in the commit history, for reference).
-            EnforceCollision();
-        }
-
-        public void Sleep()
-        {
-            viw = Vector3.zero;
-            aviw = Vector3.zero;
-            properAiw = Vector3.zero;
-
-            if (myRigidbody != null)
-            {
-                myRigidbody.velocity = Vector3.zero;
-                myRigidbody.angularVelocity = Vector3.zero;
-                myRigidbody.Sleep();
-            }
-
-            isSleeping = true;
-        }
-
-        public void WakeUp()
-        {
-            isSleeping = false;
-            if (myRigidbody != null)
-            {
-                myRigidbody.WakeUp();
             }
         }
         #endregion
@@ -1323,6 +1289,11 @@ namespace OpenRelativity.Objects
         public Matrix4x4 GetMetric()
         {   
             return SRelativityUtil.GetRindlerMetric(piw);
+        }
+
+        public Vector4 Get4Velocity()
+        {
+            return viw.ToMinkowski4Viw();
         }
 
         public Vector4 Get4Acceleration()

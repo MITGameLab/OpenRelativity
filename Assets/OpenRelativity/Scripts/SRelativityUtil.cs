@@ -222,14 +222,9 @@ namespace OpenRelativity
                 viwLorentzMatrix = GetLorentzTransformMatrix(viw);
             }
 
-            //Remember that relativity is time-translation invariant.
-            //The above metric gives the numerically correct result if the time coordinate of riw is zero,
-            //(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
-            //We are free to translate our position in time such that this is the case.
-
             //Apply Lorentz transform;
+            metric = viwLorentzMatrix.Value.transpose * metric * viwLorentzMatrix.Value;
             Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
-            aiwTransformed.w = 0;
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
             //Translate in time:
             float tisw = riwTransformed.w;
@@ -264,7 +259,7 @@ namespace OpenRelativity
             tisw = riw.w;
             riw = (Vector3)riw + tisw * velocity;
 
-            float speed = viw.magnitude;
+            float speed = vpc.magnitude;
             if (speed > divByZeroCutoff)
             {
                 float newz = speed * c * tisw;
@@ -298,7 +293,7 @@ namespace OpenRelativity
             float tisw = -pos.magnitude / c;
 
             //Transform fails and is unecessary if relative speed is zero:
-            float speed = viw.magnitude;
+            float speed = vpc.magnitude;
             if (speed > divByZeroCutoff)
             {
                 Vector4 vpcUnit = vpc / speed;
@@ -401,7 +396,12 @@ namespace OpenRelativity
 
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)
         {
-            return new Vector4(viw.x, viw.y, viw.z, (float)(Math.Sqrt(c - viw.sqrMagnitude) / c));
+            if (c < divByZeroCutoff)
+            {
+                return Vector4.zero;
+            }
+
+            return new Vector4(viw.x, viw.y, viw.z, c) * viw.Gamma();
         }
 
         public static Vector4 ProperToWorldAccel(this Vector3 propAccel, Vector3 viw)

@@ -88,8 +88,8 @@ Shader "Relativity/ColorOnly"
 			o.uv1.y = 1.0 - o.uv1.y;
 #endif 
 
-		float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
-		o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
+		float4 piw = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+		piw = float4(piw.xyz / piw.w - _playerOffset.xyz, 0);
 
 		float speed = length(_vpc.xyz);
 		//vw + vp/(1+vw*vp/c^2)
@@ -121,16 +121,11 @@ Shader "Relativity/ColorOnly"
 		o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
 										   //riw = location in world, for reference
-		float4 riw = float4(o.pos.xyz + _playerOffset.xyz, 0); //Position that will be used in the output
+		float4 riw = float4(piw.xyz + _playerOffset.xyz, 0); //Position that will be used in the output
 
 		//Transform the vertex back into local space for the mesh to use
-		tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1.0f));
-		o.pos = float4(tempPos.xyz / tempPos.w, 0);
-
+		o.pos = UnityObjectToClipPos(v.vertex.xyz);
 		o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
-
-		o.pos = UnityObjectToClipPos(o.pos);
-
 
 		return o;
 	}

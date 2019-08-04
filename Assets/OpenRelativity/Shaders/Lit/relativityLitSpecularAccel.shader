@@ -48,26 +48,6 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
 
-//#define quaternion float4
-//
-//		inline quaternion fromToRotation(float3 from, float3 to) {
-//			quaternion rotation;
-//			rotation.xyz = cross(from, to);
-//			rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
-//			return normalize(rotation);
-//		}
-//
-//		//See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
-//		inline float3 rotate(quaternion rot, float3 vec) {
-//			float3 temp;
-//			temp = 2 * cross(rot.xyz, vec.xyz);
-//			return vec + rot.w * temp + cross(rot.xyz, temp);
-//		}
-//
-//		inline quaternion inverse(quaternion q) {
-//			return quaternion(-q.xyz, q.w) / length(q);
-//		}
-
 		struct appdata {
 			float4 vertex : POSITION;
 			float4 texcoord : TEXCOORD0; // main uses 1st uv
@@ -82,7 +62,6 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
 			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
-			float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
 			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD5; //normal in world
@@ -91,11 +70,6 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			SHADOW_COORDS(7)
 #endif
 		};
-
-		//Lorentz transforms from player to world and from object to world are the same for all points in an object,
-		// so it saves redundant GPU time to calculate them beforehand.
-		float4x4 _vpcLorentzMatrix;
-		float4x4 _viwLorentzMatrix;
 
 		//uniform float4 _Color;
 		//Variables that we use to access texture data
@@ -107,6 +81,15 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 		uniform float4 _UVTex_ST;
 		sampler2D _CameraDepthTexture;
 
+		float _Specular;
+
+		//Lorentz transforms from player to world and from object to world are the same for all points in an object,
+		// so it saves redundant GPU time to calculate them beforehand.
+		float4x4 _vpcLorentzMatrix;
+		float4x4 _viwLorentzMatrix;
+		float4x4 _invVpcLorentzMatrix;
+		float4x4 _invViwLorentzMatrix;
+
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
@@ -115,8 +98,9 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 		float4 _pap = float4(0, 0, 0, 0); //acceleration of player
 		float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
-		float _spdOfLight = 100; //current speed of light
-		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight).
+		float4 _vr;
+		float _spdOfLight = 100; //current speed of ligh;
+		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 		float xyr = 1; // xy ratio
 		float xs = 1; // x scale
@@ -124,16 +108,14 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 		uniform float4 _MainTex_TexelSize;
 		uniform float4 _CameraDepthTexture_ST;
 
-		float _Specular;
-
 		//Per vertex operations
 		v2f vert(appdata v)
 		{
 			v2f o;
 
-			o.uv1.xy = v.texcoord * _MainTex_ST.xy + _MainTex_ST.zw; //get the UV coordinate for the current vertex, will be passed to fragment shader
+			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
 			o.uv2 = float2(0, 0);
-#if defined(LIGHTMAP_ON)
+#ifdef LIGHTMAP_ON
 			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
 #endif
 			//You need this otherwise the screen flips and weird stuff happens
@@ -145,43 +127,18 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 
-			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
-
 			float speed = length(_vpc.xyz);
 			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
-			//vw + vp/(1+vw*vp/c^2)
-			float vuDot = dot(_vpc.xyz, _viw.xyz); //Get player velocity dotted with velocity of the object.
-			float4 vr;
-			//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-			if (speed > divByZeroCutoff)
-			{
-				float3 uparra = (vuDot / (speed*speed)) * _vpc.xyz; //Get the parallel component of the object's velocity
-																	//Get the perpendicular component of our velocity, just by subtraction
-				float3 uperp = _viw.xyz - uparra.xyz;
-				//relative velocity calculation
-				vr = float4((_vpc.xyz - uparra.xyz - (sqrt(1 - speed*speed))*uperp.xyz) / (1 + vuDot), 0);
-			}
-			//If our speed is nearly zero, it could lead to infinities.
-			else
-			{
-				//relative velocity calculation
-				vr = float4(-_viw.xyz, 0);
-			}
-
-			//set our relative velocity
-			o.vr = vr;
-			vr *= -1;
 			//relative speed
-			float speedr = sqrt(dot(vr.xyz, vr.xyz));
+			float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
 			o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
 			//Boost to rest frame of player:
-			float4x4 vpcLorentzMatrix = _vpcLorentzMatrix;
-			float4 riwForMetric = mul(vpcLorentzMatrix, riw);
+			float4 riwForMetric = mul(_vpcLorentzMatrix, riw);
 
 			//Find metric based on player acceleration and rest frame:
 			float linFac = 1 + dot(_pap.xyz, riwForMetric.xyz) / spdOfLightSqrd;
@@ -198,33 +155,20 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 				-1, 0, 0, -angVec.x,
 				0, -1, 0, -angVec.y,
 				0, 0, -1, -angVec.z,
-				-angVec.x, -angVec.y, angVec.z, (linFac * (1 - angFac) - angFac)
+				-angVec.x, -angVec.y, -angVec.z, (linFac * (1 - angFac) - angFac)
 			};
 
 			//Lorentz boost back to world frame;
-			float4 transComp = vpcLorentzMatrix._m30_m31_m32_m33;
-			transComp.w = -(transComp.w);
-			vpcLorentzMatrix._m30_m31_m32_m33 = -transComp;
-			vpcLorentzMatrix._m03_m13_m23_m33 = -transComp;
-			metric = mul(transpose(vpcLorentzMatrix), mul(metric, vpcLorentzMatrix));
+			metric = mul(transpose(_invVpcLorentzMatrix), mul(metric, _invVpcLorentzMatrix));
 
 			//We'll also Lorentz transform the vectors:
-			float4x4 viwLorentzMatrix = _viwLorentzMatrix;
-
-			//Remember that relativity is time-translation invariant.
-			//The above metric gives the numerically correct result if the time coordinate of riw is zero,
-			//(at least if the "conformal factor" or "mixed [indices] metric" is the identity).
-			//We are free to translate our position in time such that this is the case.
 
 			//Apply Lorentz transform;
-			float4 aiwTransformed = mul(viwLorentzMatrix, _aiw);
-			aiwTransformed.w = 0;
-			float4 riwTransformed = mul(viwLorentzMatrix, riw);
+			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
+			float4 aiwTransformed = mul(_viwLorentzMatrix, _aiw);
 			//Translate in time:
+			float4 riwTransformed = mul(_viwLorentzMatrix, riw);
 			float tisw = riwTransformed.w;
-			riwForMetric.w = 0;
-			riw = mul(vpcLorentzMatrix, riwForMetric);
-			riwTransformed = mul(viwLorentzMatrix, riw);
 			riwTransformed.w = 0;
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
@@ -239,11 +183,6 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			{
 				t2 = -sqrt(sqrtArg);
 			}
-			//else
-			//{
-			//	//Unruh effect?
-			//	//Seems to happen with points behind the player.
-			//}
 			tisw += t2;
 			//add the position offset due to acceleration
 			if (aiwMag > divByZeroCutoff)
@@ -251,12 +190,9 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
 			}
 			riwTransformed.w = tisw;
+
 			//Inverse Lorentz transform the position:
-			transComp = viwLorentzMatrix._m30_m31_m32_m33;
-			transComp.w = -(transComp.w);
-			viwLorentzMatrix._m30_m31_m32_m33 = -transComp;
-			viwLorentzMatrix._m03_m13_m23_m33 = -transComp;
-			riw = mul(viwLorentzMatrix, riwTransformed);
+			riw = mul(_invViwLorentzMatrix, riwTransformed);
 			tisw = riw.w;
 			riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 
@@ -499,7 +435,7 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			float3 x1y1z1 = i.pos2 * (float3)(2 * xs, 2 * xs / xyr, 1);
 
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			float shift = (1 - dot(x1y1z1, i.vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
+			float shift = (1 - dot(x1y1z1, _vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
 			if (_colorShift == 0)
 			{
 				shift = 1.0f;

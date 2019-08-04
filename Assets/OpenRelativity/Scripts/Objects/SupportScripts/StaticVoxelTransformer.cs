@@ -43,7 +43,7 @@ namespace OpenRelativity.Objects
         private ShaderParams colliderShaderParams;
 
         private GameState _gameState = null;
-        private GameState gameState
+        private GameState state
         {
             get
             {
@@ -64,22 +64,14 @@ namespace OpenRelativity.Objects
         // Use this for initialization
         private void Start()
         {
-            origPositionsBufferLength = 0;
-            cullingFrameCount = 0;
             finishedCoroutine = true;
             dispatchedShader = false;
             //wasFrozen = false;
             coroutineTimer = new System.Diagnostics.Stopwatch();
 
-            if (forceCPU || colliderShader == null)
-            {
-                CPUUpdatePositions();
-            }
-            else
-            {
-                GPUUpdatePositions();
-            }
+            Init();
         }
+
         void Init()
         {
             if (origPositionsList == null) origPositionsList = new List<Vector3>();
@@ -107,7 +99,14 @@ namespace OpenRelativity.Objects
 
             allColliders.AddRange(collidersToAdd);
             origPositionsList.AddRange(positionsToAdd);
+
+            queuedColliders.AddRange(collidersToAdd);
+            queuedOrigPositionsList.AddRange(positionsToAdd);
+            queuedOrigPositions = queuedOrigPositionsList.ToArray();
+            origPositionsBufferLength = queuedOrigPositions.Length;
+
             Cull();
+
             batchSizeDict.Add(batchNum, positionsToAdd.Length);
             serialQueue.Add(batchNum);
 
@@ -147,7 +146,10 @@ namespace OpenRelativity.Objects
                     }
                 }
 
-                Cull();
+                queuedColliders.Clear();
+                queuedColliders.AddRange(allColliders);
+                queuedOrigPositionsList.Clear();
+                queuedOrigPositionsList.AddRange(origPositionsList);
 
                 return true;
             }
@@ -165,26 +167,28 @@ namespace OpenRelativity.Objects
         // Update is called once per frame
         public void UpdatePositions()
         {
-            if (!gameState.MovementFrozen)
+            if (!state.MovementFrozen)
             {
                 if (sphericalCulling) cullingFrameCount++;
-                if (finishedCoroutine)
+                if (!finishedCoroutine)
                 {
-                    if (sphericalCulling && ((cullingFrameCount + 1) >= cullingFrameInterval))
-                    {
-                        cullingFrameCount = 0;
-                        Cull();
-                    }
-                    if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
-                    {
-                        finishedCoroutine = false;
-                        StartCoroutine("GPUUpdatePositions");
-                    }
-                    else
-                    {
-                        finishedCoroutine = false;
-                        StartCoroutine("CPUUpdatePositions");
-                    }
+                    return;
+                }
+
+                if (sphericalCulling && ((cullingFrameCount + 1) >= cullingFrameInterval))
+                {
+                    cullingFrameCount = 0;
+                    Cull();
+                }
+                if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
+                {
+                    finishedCoroutine = false;
+                    StartCoroutine("GPUUpdatePositions");
+                }
+                else
+                {
+                    finishedCoroutine = false;
+                    StartCoroutine("CPUUpdatePositions");
                 }
             }
             else if (!wasFrozen)
@@ -195,17 +199,14 @@ namespace OpenRelativity.Objects
                 queuedOrigPositionsList.AddRange(origPositionsList);
                 queuedOrigPositions = queuedOrigPositionsList.ToArray();
                 cullingFrameCount = 0;
-                //for (int i = 0; i < allColliders.Count; i++)
-                //{
-                //    allColliders[i].enabled = true;
-                //}
+
                 if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
                 {
                     finishedCoroutine = false;
                     StopCoroutine("GPUUpdatePositions");
                     StartCoroutine("GPUUpdatePositions");
                 }
-                else //if (finishedCoroutine)
+                else
                 {
                     finishedCoroutine = false;
                     StopCoroutine("CPUUpdatePositions");
@@ -221,64 +222,77 @@ namespace OpenRelativity.Objects
             coroutineTimer.Reset();
             coroutineTimer.Start();
 
-            colliderShaderParams.vpc = -gameState.PlayerVelocityVector / (float)gameState.SpeedOfLight;
-            colliderShaderParams.playerOffset = gameState.playerTransform.position;
-            colliderShaderParams.speed = (float)(gameState.PlayerVelocity / gameState.SpeedOfLight);
-            colliderShaderParams.spdOfLight = (float)gameState.SpeedOfLight;
+            if (origPositionsBufferLength > 0)
+            {
+                colliderShaderParams.viw = Vector3.zero;
+                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero);
+                colliderShaderParams.viwLorentzMatrix = Matrix4x4.identity;
+                colliderShaderParams.invViwLorentzMatrix = Matrix4x4.identity;
 
-            ShaderParams[] spa = new ShaderParams[1];
-            spa[0] = colliderShaderParams;
+                colliderShaderParams.ltwMatrix = Matrix4x4.identity;
+                colliderShaderParams.wtlMatrix = Matrix4x4.identity;
+                colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
+                colliderShaderParams.pap = state.PlayerAccelerationVector;
+                colliderShaderParams.avp = state.PlayerAngularVelocityVector;
+                colliderShaderParams.playerOffset = state.playerTransform.position;
+                colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
+                colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
+                colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
 
-            //Put verts in R/W buffer and dispatch:
-            if (paramsBuffer == null)
-            {
-                paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
-            }
-            paramsBuffer.SetData(spa);
-            if (posBuffer == null)
-            {
-                posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
-            }
-            else if (posBuffer.count < origPositionsBufferLength)
-            {
-                posBuffer.Dispose();
-                posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
-            }
-            if (trnsfrmdPositions == null || (trnsfrmdPositions.Length < queuedOrigPositions.Length))
-            {
-                trnsfrmdPositions = new Vector3[queuedOrigPositions.Length];
-            }
-            //Read data for frame at last possible moment:
-            if (dispatchedShader)
-            {
-                posBuffer.GetData(trnsfrmdPositions);
-                dispatchedShader = false;
-            }
+                ShaderParams[] spa = new ShaderParams[1];
+                spa[0] = colliderShaderParams;
 
-            posBuffer.SetData(queuedOrigPositions);
-            int kernel = colliderShader.FindKernel("CSMain");
-            colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
-            colliderShader.SetBuffer(kernel, "verts", posBuffer);
-
-            //Dispatch doesn't block, but it might take multiple frames to return:
-            colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
-            dispatchedShader = true;
-
-            //Update the old result while waiting:
-            float nanInfTest;
-            for (int i = 0; i < queuedColliders.Count; i++)
-            {
-                nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
-                if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
+                //Put verts in R/W buffer and dispatch:
+                if (paramsBuffer == null)
                 {
-                    if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
+                    paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
+                }
+                paramsBuffer.SetData(spa);
+                if (posBuffer == null)
+                {
+                    posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+                }
+                else if (posBuffer.count < origPositionsBufferLength)
+                {
+                    posBuffer.Dispose();
+                    posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+                }
+                if (trnsfrmdPositions == null || (trnsfrmdPositions.Length < queuedOrigPositions.Length))
+                {
+                    trnsfrmdPositions = queuedOrigPositionsList.ToArray();
+                }
+                //Read data for frame at last possible moment:
+                if (dispatchedShader)
+                {
+                    posBuffer.GetData(trnsfrmdPositions);
+                    dispatchedShader = false;
+                }
+
+                posBuffer.SetData(queuedOrigPositions);
+                int kernel = colliderShader.FindKernel("CSMain");
+                colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
+                colliderShader.SetBuffer(kernel, "verts", posBuffer);
+
+                //Dispatch doesn't block, but it might take multiple frames to return:
+                colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
+                dispatchedShader = true;
+
+                //Update the old result while waiting:
+                float nanInfTest;
+                for (int i = 0; i < queuedColliders.Count; i++)
+                {
+                    nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
+                    if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
                     {
-                        coroutineTimer.Stop();
-                        coroutineTimer.Reset();
-                        yield return null;
-                        coroutineTimer.Start();
+                        if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
+                        {
+                            coroutineTimer.Stop();
+                            coroutineTimer.Reset();
+                            yield return null;
+                            coroutineTimer.Start();
+                        }
+                        queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(trnsfrmdPositions[i]);
                     }
-                    queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(trnsfrmdPositions[i]);
                 }
             }
 
@@ -294,7 +308,24 @@ namespace OpenRelativity.Objects
 
             for (int i = 0; i < queuedColliders.Count; i++)
             {
-                Vector3 newPos = queuedColliders[i].transform.InverseTransformPoint(((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, Vector4.zero, Matrix4x4.identity));
+                colliderShaderParams.viw = Vector3.zero;
+                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero);
+                colliderShaderParams.viwLorentzMatrix = Matrix4x4.identity;
+                colliderShaderParams.invViwLorentzMatrix = Matrix4x4.identity;
+
+                colliderShaderParams.ltwMatrix = Matrix4x4.identity;
+                colliderShaderParams.wtlMatrix = Matrix4x4.identity;
+                colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
+                colliderShaderParams.pap = state.PlayerAccelerationVector;
+                colliderShaderParams.avp = state.PlayerAngularVelocityVector;
+                colliderShaderParams.playerOffset = state.playerTransform.position;
+                colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
+                colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
+                colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
+
+                Vector3 newPos = queuedColliders[i].transform.InverseTransformPoint(
+                    ((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero), Matrix4x4.identity, Matrix4x4.identity)
+                );
                 //Change mesh:
                 if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                 {
@@ -314,69 +345,75 @@ namespace OpenRelativity.Objects
         private void Cull()
         {
             Init();
-            if (sphericalCulling && !gameState.MovementFrozen)
+            if (!sphericalCulling || state.MovementFrozen)
             {
-                RelativisticObject[] ros = FindObjectsOfType<RelativisticObject>();
-                List<Vector3> rosPiw = new List<Vector3>();
-                for (int i = 0; i < ros.Length; i++)
+                return;
+            }
+
+            RelativisticObject[] ros = FindObjectsOfType<RelativisticObject>();
+            List<Vector3> rosPiw = new List<Vector3>();
+            for (int i = 0; i < ros.Length; i++)
+            {
+                if (ros[i].GetComponent<Rigidbody>() != null)
                 {
-                    if (ros[i].GetComponent<Rigidbody>() != null) {
-                        Collider roC = ros[i].GetComponent<Collider>();
-                        if ((roC != null) && roC.enabled)
-                        {
-                            rosPiw.Add(ros[i].piw);
-                        }
-                    }
-                }
-                queuedOrigPositionsList.Clear();
-                queuedColliders.Clear();
-
-                Vector3 playerPos = gameState.playerTransform.position;
-                float distSqr;
-
-                for (int i = 0; i < origPositionsList.Count; i++)
-                {
-                    // Don't cull anything (spherically) close to the player.
-                    Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, Vector4.zero, Matrix4x4.identity);
-                    distSqr = (colliderPos - playerPos).sqrMagnitude;
-                    if (distSqr < cullingSqrDistance)
+                    Collider roC = ros[i].GetComponent<Collider>();
+                    if ((roC != null) && roC.enabled)
                     {
-                        queuedColliders.Add(allColliders[i]);
-                        queuedOrigPositionsList.Add(origPositionsList[i]);
-                    } else
-                    {
-                        bool didCull = true;
-                        // The object isn't close to the player, but remote RelativisticObjects still need their own active collider spheres, if they're colliding far away.
-                        for (int j = 0; j < rosPiw.Count; j++)
-                        {
-                            distSqr = (colliderPos - rosPiw[j]).sqrMagnitude;
-                            if (distSqr < cullingSqrDistance)
-                            {
-                                queuedColliders.Add(allColliders[i]);
-                                queuedOrigPositionsList.Add(origPositionsList[i]);
-                                didCull = false;
-                                break;
-                            }
-                        }
-
-                        // If the transform is culled, reset it.
-                        if (didCull)
-                        {
-                            allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
-                        }
+                        rosPiw.Add(ros[i].piw);
                     }
                 }
             }
-            else
-            {
-                queuedColliders.Clear();
-                queuedColliders.AddRange(allColliders);
-                queuedOrigPositionsList.Clear();
-                queuedOrigPositionsList.AddRange(origPositionsList);
-            }
+            queuedOrigPositionsList.Clear();
+            queuedColliders.Clear();
 
-            queuedOrigPositions = queuedOrigPositionsList.ToArray();
-            origPositionsBufferLength = queuedOrigPositions.Length;
+            Vector3 playerPos = state.playerTransform.position;
+            float distSqr;
+
+            for (int i = 0; i < origPositionsList.Count; i++)
+            {
+                // Don't cull anything (spherically) close to the player.
+                Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, Vector3.zero.ProperToWorldAccel(Vector3.zero), Matrix4x4.identity);
+                distSqr = (colliderPos - playerPos).sqrMagnitude;
+                if (distSqr < cullingSqrDistance)
+                {
+                    queuedColliders.Add(allColliders[i]);
+                    queuedOrigPositionsList.Add(origPositionsList[i]);
+                }
+                else
+                {
+                    bool didCull = true;
+                    // The object isn't close to the player, but remote RelativisticObjects still need their own active collider spheres, if they're colliding far away.
+                    for (int j = 0; j < rosPiw.Count; j++)
+                    {
+                        distSqr = (colliderPos - rosPiw[j]).sqrMagnitude;
+                        if (distSqr < cullingSqrDistance)
+                        {
+                            queuedColliders.Add(allColliders[i]);
+                            queuedOrigPositionsList.Add(origPositionsList[i]);
+                            didCull = false;
+                            break;
+                        }
+                    }
+
+                    // If the transform is culled, reset it.
+                    if (didCull)
+                    {
+                        allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
+                    }
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (dispatchedShader)
+            {
+                posBuffer.GetData(trnsfrmdPositions);
+                dispatchedShader = false;
+
+                posBuffer.Release();
+                paramsBuffer.Release();
+            }
         }
     }
 }

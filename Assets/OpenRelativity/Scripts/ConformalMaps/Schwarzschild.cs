@@ -63,7 +63,7 @@ namespace OpenRelativity.ConformalMaps
             }
             else
             {
-                return SRelativityUtil.cSqrd / (2 * radius) * piw.normalized;
+                return radius * SRelativityUtil.cSqrd / (2 * piw.sqrMagnitude) * piw.normalized;
             }
         }
 

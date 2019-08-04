@@ -1,17 +1,13 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System;
-using OpenRelativity;
 
 namespace OpenRelativity.Objects
 {
     public class ObjectBoxColliderDensity : MonoBehaviour
     {
         //If a large number of voxels are static with respect to world coordinates, we can batch them and gain performance:
-        public bool isStatic = true;
         public float oversizePercent = 0.1f;
-        private bool wasStatic;
         private Guid staticQueueNumber;
 
         //Need these three lists to create a new set of each variable needed for a new mesh
@@ -23,26 +19,13 @@ namespace OpenRelativity.Objects
         public BoxCollider[] original { get; set; }
         public List<BoxCollider> change { get; set; }
 
-        public ComputeShader colliderShader;
-
         //This constant determines maximum box size. We subdivide boxes until all their dimensions are less than this length.
         private float constant = 24;
 
         private int totalBoxCount;
 
-        private RelativisticObject myRO;
-        private Rigidbody myRB;
-
         private ComputeBuffer paramsBuffer;
         private ComputeBuffer posBuffer;
-        //To avoid garbage collection, we might over-allocate the buffer:
-        private int origPositionsBufferLength;
-        private Vector3[] trnsfrmdPositions;
-
-        System.Diagnostics.Stopwatch coroutineTimer;
-
-        private bool finishedCoroutine;
-        private bool dispatchedShader;
 
         private GameState _gameState = null;
         private GameState gameState
@@ -61,12 +44,6 @@ namespace OpenRelativity.Objects
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
         {
-            wasStatic = isStatic;
-            finishedCoroutine = true;
-            dispatchedShader = false;
-            coroutineTimer = new System.Diagnostics.Stopwatch();
-            myRO = GetComponent<RelativisticObject>();
-            myRB = GetComponent<Rigidbody>();
             //Grab the meshfilter, and if it's not null, keep going
             BoxCollider[] origBoxColliders = GetComponents<BoxCollider>();
 
@@ -86,29 +63,12 @@ namespace OpenRelativity.Objects
 
         private void OnEnable()
         {
-            if (isStatic)
-            {
-                TakeQueueNumber();
-            }
-            else
-            {
-                if (colliderShader == null)
-                {
-                    CPUUpdatePositions();
-                }
-                else
-                {
-                    GPUUpdatePositions();
-                }
-            }
+            TakeQueueNumber();
         }
 
         void OnDisable()
         {
-            if (isStatic)
-            {
-                ReturnQueueNumber();
-            }
+            ReturnQueueNumber();
         }
 
         private void TakeQueueNumber()
@@ -132,219 +92,6 @@ namespace OpenRelativity.Objects
             {
                 svt.ReturnQueueNumber(staticQueueNumber);
             }
-        }
-
-        private void Update()
-        {
-            if (wasStatic && !isStatic)
-            {
-                ReturnQueueNumber();
-            }
-            else if (!wasStatic && isStatic)
-            {
-                TakeQueueNumber();
-            }
-            wasStatic = isStatic;
-        }
-
-        private void FixedUpdate()
-        {
-            if (!isStatic && !wasStatic)
-            {
-                UpdatePositions();
-            }
-        }
-
-        public void UpdatePositions(Collider toUpdate = null)
-        {
-            if (toUpdate != null)
-            {
-                BoxCollider toUpdateBox = (BoxCollider)toUpdate;
-                bool foundCollider = false;
-                int i = 0;
-                while ((!foundCollider) && (i < change.Count)) {
-                    if (toUpdateBox.Equals(change[i]))
-                    {
-                        foundCollider = true;
-                    }
-                    else
-                    {
-                        i++;
-                    }
-                }
-
-                if (foundCollider)
-                {
-                    toUpdateBox.center = transform.InverseTransformPoint(
-                       ((Vector4)(transform.TransformPoint(origPositions[i]))).WorldToOptical(myRO.viw, myRO.Get4Acceleration(), myRO.viwLorentz)
-                    );
-                }
-            }
-            else if (finishedCoroutine)
-            {
-                if (colliderShader != null && SystemInfo.supportsComputeShaders)
-                {
-                    finishedCoroutine = false;
-                    StartCoroutine("GPUUpdatePositions");
-                }
-                else //if (finishedCoroutine)
-                {
-                    finishedCoroutine = false;
-                    StartCoroutine("CPUUpdatePositions");
-                }
-            }
-        }
-
-        private IEnumerator CPUUpdatePositions()
-        {
-            coroutineTimer.Reset();
-            coroutineTimer.Start();
-            Vector3 initCOM = Vector3.zero;
-            if (!isStatic)
-            {
-                initCOM = myRB.centerOfMass;
-            }
-            Vector3 viw;
-            Vector4 aiw;
-            if (isStatic) {
-                viw = Vector3.zero;
-                aiw = Vector4.zero;
-            }
-            else {
-                viw = myRO.viw;
-                aiw = myRO.Get4Acceleration();
-            }
-
-            Matrix4x4 viwLorentz = myRO.viwLorentz;
-            for (int i = 0; i < totalBoxCount; i++)
-            {
-                Transform changeTransform = change[i].transform;
-                Vector3 newPos = changeTransform.InverseTransformPoint(((Vector4)(changeTransform.TransformPoint(origPositions[i]))).WorldToOptical(viw, aiw, viwLorentz));
-                //Change mesh:
-                if (coroutineTimer.ElapsedMilliseconds > 1)
-                {
-                    coroutineTimer.Stop();
-                    coroutineTimer.Reset();
-                    yield return new WaitForFixedUpdate();
-                    coroutineTimer.Start();
-                }
-                change[i].center = newPos;
-            }
-            finishedCoroutine = true;
-            coroutineTimer.Stop();
-            coroutineTimer.Reset();
-        }
-
-        private IEnumerator GPUUpdatePositions()
-        {
-            coroutineTimer.Stop();
-            coroutineTimer.Reset();
-            coroutineTimer.Start();
-            //Debug.Log("Updating mesh collider.");
-
-            //Freeze the physics if the global state is frozen.
-            if (!isStatic)
-            {
-                if (gameState.MovementFrozen)
-                {
-                    if (!myRO.wasFrozen)
-                    {
-                        //Read the state of the rigidbody and shut it off, once.
-                        myRO.wasFrozen = true;
-                        myRO.wasKinematic = myRB.isKinematic;
-                        myRB.isKinematic = true;
-                    }
-                }
-                else if (myRO.wasFrozen)
-                {
-                    //Restore the state of the rigidbody, once.
-                    myRO.wasFrozen = false;
-                    myRO.isRBKinematic = myRO.wasKinematic;
-                }
-            }
-
-            //Set remaining global parameters:
-            ShaderParams colliderShaderParams = new ShaderParams();
-            colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
-            colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
-            if (isStatic)
-            {
-                colliderShaderParams.viw = Vector3.zero;
-            }
-            else
-            {
-                colliderShaderParams.viw = myRO.viw / (float)gameState.SpeedOfLight;
-            }
-            colliderShaderParams.vpc = -gameState.PlayerVelocityVector / (float)gameState.SpeedOfLight;
-            colliderShaderParams.playerOffset = gameState.playerTransform.position;
-            colliderShaderParams.speed = (float)(gameState.PlayerVelocity / gameState.SpeedOfLight);
-            colliderShaderParams.spdOfLight = (float)gameState.SpeedOfLight;
-
-            //Center of mass in local coordinates should be invariant,
-            // but transforming the collider verts will change it,
-            // so we save it and restore it at the end:
-
-            Vector3 initCOM = Vector3.zero;
-            if (!isStatic)
-            {
-                initCOM = myRB.centerOfMass;
-            }
-
-            ShaderParams[] spa = new ShaderParams[1];
-            spa[0] = colliderShaderParams;
-
-            //Put verts in R/W buffer and dispatch:
-            if (paramsBuffer == null)
-            {
-                paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
-            }
-            paramsBuffer.SetData(spa);
-            if (posBuffer == null)
-            {
-                posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
-            }
-            else if (posBuffer.count != origPositionsBufferLength)
-            {
-                posBuffer.Dispose();
-                posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
-            }
-            //Read data for frame at last possible moment:
-            if (dispatchedShader)
-            {
-                posBuffer.GetData(trnsfrmdPositions);
-                dispatchedShader = false;
-            }
-
-            posBuffer.SetData(origPositions);
-            int kernel = colliderShader.FindKernel("CSMain");
-            colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
-            colliderShader.SetBuffer(kernel, "verts", posBuffer);
-
-            //Dispatch doesn't block, but it might take multiple frames to return:
-            colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
-            dispatchedShader = true;
-
-            //Update the old result while waiting:
-            float nanInfTest;
-            for (int i = 0; i < totalBoxCount; i++)
-            {
-                nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
-                if (!float.IsInfinity(nanInfTest) && !float.IsNaN(nanInfTest))
-                {
-                    if (coroutineTimer.ElapsedMilliseconds > 2)
-                    {
-                        coroutineTimer.Stop();
-                        coroutineTimer.Reset();
-                        yield return new WaitForFixedUpdate();
-                        coroutineTimer.Start();
-                    }
-                    change[i].center = trnsfrmdPositions[i];
-                }
-            }
-
-            finishedCoroutine = true;
-            coroutineTimer.Stop();
-            coroutineTimer.Reset();
         }
 
         //Just subdivide something
@@ -407,8 +154,6 @@ namespace OpenRelativity.Objects
             }
 
             origPositions = origPosList.ToArray();
-            origPositionsBufferLength = origPositions.Length;
-            trnsfrmdPositions = new Vector3[origPositionsBufferLength];
 
             return change;
         }

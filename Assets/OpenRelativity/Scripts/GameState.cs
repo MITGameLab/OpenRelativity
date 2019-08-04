@@ -241,6 +241,7 @@ namespace OpenRelativity
                 Shader.SetGlobalVector("_pap", PlayerAccelerationVector);
                 Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
                 Shader.SetGlobalMatrix("_vpcLorentzMatrix", PlayerLorentzMatrix);
+                Shader.SetGlobalMatrix("_invVpcLorentzMatrix", PlayerLorentzMatrix.inverse);
 
                 /******************************
                 * PART TWO OF ALGORITHM

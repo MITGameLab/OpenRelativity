@@ -175,7 +175,7 @@ namespace OpenRelativity.Objects
                 //Send our object's v/c (Velocity over the Speed of Light) to the shader
                 if (tempRenderer != null)
                 {
-                    Vector3 tempViw = viw.ToMinkowski4Viw() / (float)state.SpeedOfLight;
+                    Vector3 tempViw = viw / (float)state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", tempViw);
                 }
 
