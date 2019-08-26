@@ -225,7 +225,7 @@ namespace OpenRelativity.Objects
             if (origPositionsBufferLength > 0)
             {
                 colliderShaderParams.viw = Vector3.zero;
-                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero);
+                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero, 1);
                 colliderShaderParams.viwLorentzMatrix = Matrix4x4.identity;
                 colliderShaderParams.invViwLorentzMatrix = Matrix4x4.identity;
 
@@ -309,7 +309,7 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < queuedColliders.Count; i++)
             {
                 colliderShaderParams.viw = Vector3.zero;
-                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero);
+                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero, 1);
                 colliderShaderParams.viwLorentzMatrix = Matrix4x4.identity;
                 colliderShaderParams.invViwLorentzMatrix = Matrix4x4.identity;
 
@@ -324,7 +324,7 @@ namespace OpenRelativity.Objects
                 colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
 
                 Vector3 newPos = queuedColliders[i].transform.InverseTransformPoint(
-                    ((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero), Matrix4x4.identity, Matrix4x4.identity)
+                    ((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
                 );
                 //Change mesh:
                 if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
@@ -372,7 +372,7 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < origPositionsList.Count; i++)
             {
                 // Don't cull anything (spherically) close to the player.
-                Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, Vector3.zero.ProperToWorldAccel(Vector3.zero), Matrix4x4.identity);
+                Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity);
                 distSqr = (colliderPos - playerPos).sqrMagnitude;
                 if (distSqr < cullingSqrDistance)
                 {

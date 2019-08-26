@@ -24,9 +24,6 @@ namespace OpenRelativity.Objects
 
         private int totalBoxCount;
 
-        private ComputeBuffer paramsBuffer;
-        private ComputeBuffer posBuffer;
-
         private GameState _gameState = null;
         private GameState gameState
         {
@@ -160,8 +157,6 @@ namespace OpenRelativity.Objects
 
         void OnDestroy()
         {
-            if (paramsBuffer != null) paramsBuffer.Release();
-            if (posBuffer != null) posBuffer.Release();
             for (int i = 0; i < original.Length; i++)
             {
                 original[i].enabled = true;

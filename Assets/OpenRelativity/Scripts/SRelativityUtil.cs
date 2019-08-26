@@ -303,7 +303,7 @@ namespace OpenRelativity
             }
 
             //Rotate all our vectors so that velocity is entirely along z direction:
-            Quaternion viwToZRot = Quaternion.FromToRotation(viw, Vector3.forward);
+            Quaternion viwToZRot = viw.sqrMagnitude < divByZeroCutoff ? Quaternion.identity : Quaternion.FromToRotation(viw, Vector3.forward);
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
             riwTransformed.w = tisw;
             Vector3 avpTransformed = viwToZRot * avp;
@@ -384,14 +384,26 @@ namespace OpenRelativity
             return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / cSqrd);
         }
 
-        public static Vector3 RapidityToVelocity(this Vector3 rapidity, float? altMag = null)
+        public static Vector3 RapidityToVelocity(this Vector3 rapidity, Matrix4x4? metric = null)
         {
-            float mag = altMag ?? rapidity.magnitude;
-            if (mag == 0.0f)
+            rapidity /= c;
+            float rMag = rapidity.magnitude;
+
+            if (rMag < divByZeroCutoff)
             {
                 return Vector3.zero;
             }
-            return (float)(c * Math.Tanh(mag / c) / mag) * rapidity;
+
+            Vector3 rUnit = rapidity / rMag;
+            float exp2Rap = Mathf.Exp(2 * rMag);
+            Vector3 flat3V = c * (exp2Rap - 1) / (exp2Rap + 1) * rUnit;
+
+            if (metric == null)
+            {
+                return flat3V;
+            }
+
+            return Mathf.Sqrt(-Vector4.Dot(flat3V, metric.Value.inverse * flat3V)) * rUnit;
         }
 
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)
@@ -404,10 +416,9 @@ namespace OpenRelativity
             return new Vector4(viw.x, viw.y, viw.z, c) * viw.Gamma();
         }
 
-        public static Vector4 ProperToWorldAccel(this Vector3 propAccel, Vector3 viw)
+        public static Vector4 ProperToWorldAccel(this Vector3 propAccel, Vector3 viw, float gamma)
         {
-            float gammaSqrd = viw.Gamma();
-            gammaSqrd *= gammaSqrd;
+            float gammaSqrd = gamma * gamma;
             float gammaFourthADotVDivCSqrd = Vector3.Dot(propAccel, viw) * gammaSqrd * gammaSqrd / cSqrd;
             Vector4 fourAccel = gammaSqrd * (Vector3)propAccel + gammaFourthADotVDivCSqrd * viw;
             fourAccel.w = gammaFourthADotVDivCSqrd * c;

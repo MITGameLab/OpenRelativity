@@ -9,7 +9,7 @@ namespace OpenRelativity
     {
         //Consts 
         private const float SLOW_DOWN_RATE = 0.75f;
-        private const float ACCEL_RATE = 2.0f;
+        private const float ACCEL_RATE = 8.0f;
         private const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
         public bool useGravity = false;
@@ -33,10 +33,17 @@ namespace OpenRelativity
         public bool invertKeyDown { get; set; }
         //Keep track of total frames passed
         int frames;
-        //How fast are we going to shoot the bullets?
-        public float viwMax = 3;
         //Gamestate reference for quick access
-        GameState state;
+        private GameState state;
+
+        // Based on Strano 2019, (preprint).
+        // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
+        public bool monopoleAccel = false;
+        private Vector3 frameDragAccel;
+        // Float precision prevents the "frameDragAccel" from correctly returning to "world accelerated rest frame"
+        // under the effect of forces like drag and friction in the at rest W.R.T. the "world."
+        // If we track small differences separately, we can get better accuracy.
+        private Vector3 frameDragAccelRemainder;
 
         void Start()
         {
@@ -60,15 +67,13 @@ namespace OpenRelativity
             inverted = -1;
             invertKeyDown = false;
 
-            viwMax = Mathf.Min(viwMax, (float)GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>().MaxSpeed);
+            frameDragAccel = Vector3.zero;
 
             frames = 0;
         }
         //Again, use LateUpdate to solve some collision issues.
         void LateUpdate()
         {
-            if (true)
-            {
                 float viewRotX = 0;
                 //If we're not paused, update speed and rotation using player input.
                 if (!state.MovementFrozen)
@@ -121,9 +126,6 @@ namespace OpenRelativity
                     }
 
 
-                    //Store our added velocity into temporary variable addedVelocity
-                    Vector3 addedVelocity = Vector3.zero;
-
                     //Turn our camera rotation into a Quaternion. This allows us to make where we're pointing the direction of our added velocity.
                     //If you want to constrain the player to just x/z movement, with no Y direction movement, comment out the next two lines
                     //and uncomment the line below that is marked
@@ -133,105 +135,109 @@ namespace OpenRelativity
                     //UNCOMMENT THIS LINE if you would like to constrain the player to just x/z movement.
                     //Quaternion cameraRotation = Quaternion.AngleAxis(camTransform.eulerAngles.y, Vector3.up);
 
+                    Vector3 totalAccel = Vector3.zero;
 
                     float temp;
                     //Movement due to left/right input
-                    addedVelocity += new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE) * Time.deltaTime;
+                    totalAccel += new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE);
                     if (temp != 0)
                     {
                         state.keyHit = true;
                     }
-                    addedVelocity += new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE, 0, 0) * Time.deltaTime;
+                    totalAccel += new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE, 0, 0);
                     if (temp != 0)
                     {
                         state.keyHit = true;
                     }
 
                     //And rotate our added velocity by camera angle
-                    addedVelocity = cameraRotation * addedVelocity;
+                    totalAccel = cameraRotation * totalAccel;
 
                     //AUTO SLOW DOWN CODE BLOCK
 
-                    //If we are not adding velocity this round to our x direction, slow down
-                    if (addedVelocity.x == 0)
-                    {
-                        addedVelocity += new Vector3(-1 * SLOW_DOWN_RATE * playerVelocityVector.x, 0, 0) * Time.deltaTime;
-                    }
-                    //If we are not adding velocity this round to our z direction, slow down
-                    if (addedVelocity.z == 0)
-                    {
-                        addedVelocity += new Vector3(0, 0, -1 * SLOW_DOWN_RATE * playerVelocityVector.z) * Time.deltaTime;
-                    }
-                    //If we are not adding velocity this round to our y direction, slow down
-                    if (addedVelocity.y == 0)
-                    {
-                        addedVelocity += new Vector3(0, -1 * SLOW_DOWN_RATE * playerVelocityVector.y, 0) * Time.deltaTime;
-                    }
+                    //Add a fluid drag force (as for air)
+                    totalAccel -= SLOW_DOWN_RATE * playerVelocityVector.sqrMagnitude * playerVelocityVector.normalized;
 
-                    /*
-                     * IF you turn on this bit of code, you'll get head bob. It's a fun little effect, but if you make the magnitude of the cosine too large it gets sickening.
-                    if (!double.IsNaN((float)(0.2 * Mathf.Cos((float)GetComponent<GameState>().TotalTimePlayer) * Time.deltaTime)) && frames > 2)
+                    Vector3 quasiWorldAccel = totalAccel;
+
+                    if ((Time.deltaTime > 0) && (useGravity || (totalAccel.sqrMagnitude != 0) || (frameDragAccel.sqrMagnitude != 0)))
                     {
-                        addedVelocity.y += (float)(0.2 * Mathf.Cos((float)GetComponent<GameState>().TotalTimePlayer) * Time.deltaTime);
-                    }
-                    */
-
-                    Vector3 totalAccel = Vector3.zero;
-                    //Add the velocities here. remember, this is the equation:
-                    //vNew = (1/(1+vOld*vAddx/cSqrd))*(Vector3(vAdd.x+vOld.x,vAdd.y/Gamma,vAdd.z/Gamma))
-                    if (addedVelocity.sqrMagnitude != 0 || useGravity)
-                    {
-                        //get gamma so we don't have to bother getting it every time
-                        float gamma = (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-
-                        //Rotate our velocity Vector    
-                        Vector3 rotatedVelocity = rotateX * playerVelocityVector;
-
-                        if (addedVelocity.sqrMagnitude != 0)
+                        if (!isFalling)
                         {
-                            //Rotate our added Velocity
-                            addedVelocity = rotateX * addedVelocity;
-
-                            //Do relativistic velocity addition as described by the above equation.
-                            rotatedVelocity = (1 / (1 + (rotatedVelocity.x * addedVelocity.x) / (float)state.SpeedOfLightSqrd)) *
-                                (new Vector3(addedVelocity.x + rotatedVelocity.x, addedVelocity.y * gamma, gamma * addedVelocity.z));
-                        }
-
-                        //Unrotate our new total velocity
-                        rotatedVelocity = unRotateX * rotatedVelocity;
-
-                        //3-acceleration acts as classically on the rapidity, rather than velocity.
-                        totalAccel = (addedVelocity / Time.deltaTime);
-                        totalAccel = totalAccel.Gamma() * totalAccel;
-
-                        //Set it, depending on gravity
-                        if (!useGravity)
-                        {
-                            state.PlayerVelocityVector = rotatedVelocity;
-                        }
-                        else
-                        {
-                            if (!isFalling)
+                            if (quasiWorldAccel.y < 0)
                             {
-                                if (rotatedVelocity.y > 0.0f)
-                                {
-                                    rotatedVelocity.y = 0.0f;
-                                }
-                                state.PlayerVelocityVector = rotatedVelocity;
+                                quasiWorldAccel.y = 0;
+                            }
+
+                            if (totalAccel.y < 0)
+                            {
+                                totalAccel.y = 0;
+                            }
+
+                            if (useGravity)
+                            {
                                 totalAccel -= Physics.gravity;
                             }
-                            else
+
+                            if (state.conformalMap != null)
                             {
-                                state.PlayerVelocityVector = rotatedVelocity.AddVelocity((-Physics.gravity * Time.deltaTime).RapidityToVelocity());
+                                totalAccel += state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
                             }
+                        }
+                        else if (useGravity)
+                        {
+                            quasiWorldAccel -= Physics.gravity;
+                        }
+
+                        if (monopoleAccel)
+                        {
+                            // This isn't "smooth," but the player shouldn't fall through the floor.
+                            if (!isFalling && frameDragAccel.y < 0)
+                            {
+                                frameDragAccel.y = 0;
+                            }
+
+                            // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
+                            // (Relativity privileges no "inertial" frame, but there is intrinsic observable difference between "accelerated frames.")
+                            // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
+                            // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
+                            // has been known since Galileo.)
+                            quasiWorldAccel += frameDragAccel;
+                            totalAccel += frameDragAccel;
+                            Vector3 da = -totalAccel.normalized * totalAccel.sqrMagnitude / (float)state.SpeedOfLight * Time.deltaTime;
+                            Vector3 oldFrameDragAccel = frameDragAccel;
+                            frameDragAccelRemainder += da;
+
+                            frameDragAccel.x += frameDragAccelRemainder.x;
+                            if (oldFrameDragAccel.x != frameDragAccel.x)
+                            {
+                                frameDragAccelRemainder.x -= (frameDragAccel.x - oldFrameDragAccel.x);
+                            }
+                            frameDragAccel.y += frameDragAccelRemainder.y;
+                            if (oldFrameDragAccel.y != frameDragAccel.y)
+                            {
+                                frameDragAccelRemainder.y -= (frameDragAccel.y - oldFrameDragAccel.y);
+                            }
+                            frameDragAccel.z += frameDragAccelRemainder.z;
+                            if (oldFrameDragAccel.z != frameDragAccel.z)
+                            {
+                                frameDragAccelRemainder.z -= (frameDragAccel.z - oldFrameDragAccel.z);
+                            }
+
+                            // The "AUTO SLOW DOWN CODE BLOCK" above gives a qualitative "drag" effect, (as by friction with air or the floor,)
+                            // that should ultimately "lock" the player's frame of accelerated rest back to "world coordinates," at the limit.
                         }
                     }
 
-                    if (state.conformalMap != null && !isFalling)
+                    //3-acceleration acts as classically on the rapidity, rather than velocity.
+                    Vector3 totalVel = playerVelocityVector.AddVelocity((quasiWorldAccel * Time.deltaTime).RapidityToVelocity());
+                    Vector3 projVOnG = Vector3.Project(totalVel, Physics.gravity);
+                    if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude < SRelativityUtil.divByZeroCutoff))
                     {
-                        totalAccel += state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+                        totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
                     }
 
+                    state.PlayerVelocityVector = totalVel;
                     state.PlayerAccelerationVector = totalAccel;
 
                     //CHANGE the speed of light
@@ -271,10 +277,10 @@ namespace OpenRelativity
                     //Current position of the mouse
                     //Difference between last frame's mouse position
                     //X axis position change
-                    float positionChangeX = -(float)Input.GetAxis("Mouse X");
+                    float positionChangeX = -Input.GetAxis("Mouse X");
 
                     //Y axis position change
-                    float positionChangeY = (float)inverted * Input.GetAxis("Mouse Y");
+                    float positionChangeY = inverted * Input.GetAxis("Mouse Y");
 
                     //Use these to determine camera rotation, that is, to look around the world without changing direction of motion
                     //These two are for X axis rotation and Y axis rotation, respectively
@@ -282,14 +288,14 @@ namespace OpenRelativity
                     if (Mathf.Abs(positionChangeX) <= 1 && Mathf.Abs(positionChangeY) <= 1)
                     {
                         //Take the position changes and translate them into an amount of rotation
-                        viewRotX = (float)(-positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost);
-                        viewRotY = (float)(positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost);
+                        viewRotX = -positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost;
+                        viewRotY = positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost;
                     }
                     else
                     {
                         //Take the position changes and translate them into an amount of rotation
-                        viewRotX = (float)(-positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity);
-                        viewRotY = (float)(positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity);
+                        viewRotX = -positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity;
+                        viewRotY = positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity;
                     }
                     //Perform Rotation on the camera, so that we can look in places that aren't the direction of movement
                     //Wait some frames on start up, otherwise we spin during the intialization when we can't see yet
@@ -323,7 +329,7 @@ namespace OpenRelativity
                     if (Camera.main)
                     {
                         Shader.SetGlobalFloat("xyr", (float)Camera.main.pixelWidth / Camera.main.pixelHeight);
-                        Shader.SetGlobalFloat("xs", (float)Mathf.Tan(Mathf.Deg2Rad * Camera.main.fieldOfView / 2f));
+                        Shader.SetGlobalFloat("xs", Mathf.Tan(Mathf.Deg2Rad * Camera.main.fieldOfView / 2f));
 
                         //Don't cull because at high speeds, things come into view that are not visible normally
                         //This is due to the lorenz transformation, which is pretty cool but means that basic culling will not work.
@@ -333,7 +339,6 @@ namespace OpenRelativity
 
 
                 }
-            }
         }
 
         void OnTriggerEnter(Collider collider)
@@ -379,6 +384,13 @@ namespace OpenRelativity
                     if (pVel.y > 0.0f)
                     {
                         state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
+                    }
+
+                    Vector3 pAccel = state.PlayerAccelerationVector;
+                    if (pAccel.y < 0.0f)
+                    {
+                        pAccel.y = 0.0f;
+                        state.PlayerAccelerationVector = pAccel;
                     }
 
                     otherRO.UpdateColliderPosition(collider);

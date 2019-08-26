@@ -344,7 +344,7 @@ namespace OpenRelativity.Objects
 
         public Vector4 Get4Acceleration()
         {
-            return properAiw.ProperToWorldAccel(viw);
+            return properAiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
         }
     }
 }
