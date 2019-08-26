@@ -10,20 +10,23 @@ namespace OpenRelativity.Objects
     {
         #region Public Settings
         // Set with Rigidbody isKinematic flag instead
+        private bool _isKinematic = false;
         public bool isKinematic
         {
             get
             {
-                if (myRigidbody == null)
+                if (myRigidbody != null)
                 {
-                    return true;
+                    _isKinematic = myRigidbody.isKinematic;
                 }
 
-                return myRigidbody.isKinematic;
+                return _isKinematic;
             }
 
             set
             {
+                _isKinematic = value;
+
                 if (myRigidbody != null)
                 {
                     myRigidbody.isKinematic = value;
@@ -103,14 +106,11 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
-                if (isKinematic)
+                if (!isKinematic)
                 {
-                    _nonGravAccel = value;
-                    return;
+                    UpdateViwAndAccel(_viw, value);
+                    UpdateRigidbodyVelocity(_viw, _aviw);
                 }
-
-                UpdateViwAndAccel(_viw, value);
-                UpdateRigidbodyVelocity(_viw, _aviw);
             }
         }
 
@@ -132,7 +132,7 @@ namespace OpenRelativity.Objects
                     _properAccel -= Physics.gravity;
                 }
 
-                if (isResting && state.conformalMap != null)
+                if (state.conformalMap != null)
                 {
                     _properAccel += state.conformalMap.GetRindlerAcceleration(piw);
                 }
@@ -142,24 +142,23 @@ namespace OpenRelativity.Objects
 
             set
             {
-                _nonGravAccel = value - frameDragAccel;
-                if (!isResting)
+                _properAccel = value - frameDragAccel;
+                Vector3 accel = _properAccel;
+
+                if (isResting)
                 {
-                    _properAccel = properAccel;
-                    return;
+                    if (useGravity)
+                    {
+                        accel += Physics.gravity;
+                    }
+
+                    if (state.conformalMap != null)
+                    {
+                        accel -= state.conformalMap.GetRindlerAcceleration(piw);
+                    }
                 }
 
-                if (useGravity)
-                {
-                    _nonGravAccel += Physics.gravity;
-                }
-
-                if (isResting && state.conformalMap != null)
-                {
-                    _nonGravAccel -= state.conformalMap.GetRindlerAcceleration(piw);
-                }
-
-                _properAccel = properAccel;
+                nonGravAccel = accel;
             }
         }
 
@@ -232,17 +231,6 @@ namespace OpenRelativity.Objects
             UpdateShaderParams();
         }
 
-        public bool isRBKinematic
-        {
-            get
-            {
-                return myRigidbody.isKinematic;
-            }
-            set
-            {
-                myRigidbody.isKinematic = value;
-            }
-        }
         #endregion
         //Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
