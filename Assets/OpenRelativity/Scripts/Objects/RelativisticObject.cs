@@ -285,6 +285,10 @@ namespace OpenRelativity.Objects
         //private int? oldParentID;
         //Store world position, mostly for a nonrelativistic shader:
         public Vector3 piw { get; set; }
+        public void ResetPiw()
+        {
+            piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : transform.position;
+        }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
 
@@ -674,7 +678,7 @@ namespace OpenRelativity.Objects
         void Start()
         {
             frameDragAccel = Vector3.zero;
-            piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : transform.position;
+            ResetPiw();
             riw = transform.rotation;
 
             piw = ((Vector4)((Vector4)piw).WorldToOptical(Vector3.zero, Vector3.zero.ProperToWorldAccel(Vector3.zero, GetTimeFactor()))).OpticalToWorldHighPrecision(viw, aiw.ProperToWorldAccel(viw, GetTimeFactor()));
@@ -934,7 +938,12 @@ namespace OpenRelativity.Objects
             {
                 pos = piw;
             }
-            return ((Vector4)pos.Value).GetTisw(viw, aiw);
+            float tisw = ((Vector4)pos.Value).GetTisw(viw, aiw);
+            if (IsNaNOrInf(tisw))
+            {
+                tisw = 0;
+            }
+            return tisw;
         }
 
         void FixedUpdate() {
