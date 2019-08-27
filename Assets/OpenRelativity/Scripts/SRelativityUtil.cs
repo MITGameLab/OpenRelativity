@@ -141,7 +141,7 @@ namespace OpenRelativity
 
         public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
         {
-            return stpiw.GetTisw(stpiw, velocity, state.playerTransform.position, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
+            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
 
         public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)

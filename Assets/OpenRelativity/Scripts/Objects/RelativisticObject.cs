@@ -938,12 +938,7 @@ namespace OpenRelativity.Objects
             {
                 pos = piw;
             }
-            float tisw = ((Vector4)pos.Value).GetTisw(viw, aiw);
-            if (IsNaNOrInf(tisw))
-            {
-                tisw = 0;
-            }
-            return tisw;
+            return ((Vector4)pos.Value).GetTisw(viw, aiw);
         }
 
         void FixedUpdate() {
