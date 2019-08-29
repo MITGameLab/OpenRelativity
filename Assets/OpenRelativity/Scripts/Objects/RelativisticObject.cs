@@ -120,7 +120,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                _properAccel = nonGravAccel + frameDragAccel;
+                _properAccel = monopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
 
                 if (!isResting)
                 {
