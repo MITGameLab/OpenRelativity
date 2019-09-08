@@ -102,16 +102,9 @@ namespace OpenRelativity
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get; private set; }
         //public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
         public double DeltaTimeWorld { get; private set; }
-        private double _fixedDeltaTimeWorld;
         public double FixedDeltaTimeWorld {
             get {
-                if (conformalMap == null)
-                {
-                    return Time.fixedDeltaTime / SqrtOneMinusVSquaredCWDividedByCSquared;
-                } else
-                {
-                    return _fixedDeltaTimeWorld;
-                }
+                return Time.fixedDeltaTime / SqrtOneMinusVSquaredCWDividedByCSquared;
             }
         }
         //public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / inverseAcceleratedGamma; } }
@@ -355,7 +348,6 @@ namespace OpenRelativity
                     // Assume local player coordinates are comoving
                     Vector4 piw4 = conformalMap.ComoveOptical((float)FixedDeltaTimePlayer, playerTransform.position);
                     playerTransform.position = piw4;
-                    _fixedDeltaTimeWorld = piw4.w / SqrtOneMinusVSquaredCWDividedByCSquared;
                     PlayerVelocityVector = PlayerVelocityVector.AddVelocity(conformalMap.GetRindlerAcceleration(playerTransform.position) * (float)FixedDeltaTimePlayer);
                 }
 

@@ -68,7 +68,7 @@ namespace OpenRelativity.ConformalMaps
 
         void FixedUpdate()
         {
-            if (!doEvaporate)
+            if (!doEvaporate || state.MovementFrozen)
             {
                 return;
             }
