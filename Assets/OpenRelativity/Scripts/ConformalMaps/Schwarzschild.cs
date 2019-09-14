@@ -5,14 +5,27 @@ namespace OpenRelativity.ConformalMaps
 {
     public class Schwarzschild : ConformalMap
     {
+        public bool isExterior { get; set; }
+
         public Transform eventHorizon;
         public bool doEvaporate = true;
         public float radius = 1;
-        public float radiusCutoff = 1;
+
+        public void Start()
+        {
+            float dist = state.playerTransform.position.magnitude;
+            isExterior = (dist > radius);
+            if (!isExterior)
+            {
+                state.TotalTimeWorld = Math.Tan(dist / radius * Math.PI / 2) * radius / state.SpeedOfLight;
+                state.TotalTimePlayer = state.TotalTimeWorld;
+                state.playerTransform.position = Vector3.zero;
+            }
+        }
 
         override public Vector4 ComoveOptical(float properTDiff, Vector3 piw)
         {
-            if (radius < radiusCutoff)
+            if (radius <= 0)
             {
                 Vector4 toRet = piw;
                 toRet.w = properTDiff;
@@ -24,7 +37,17 @@ namespace OpenRelativity.ConformalMaps
             float tau = properTDiff;
             float rsCubeRoot = Mathf.Pow(radius, 1.0f / 3.0f);
             // To begin, "tau" = 0;
-            float rho = (2.0f * r * Mathf.Sqrt(r / rsCubeRoot)) / (3.0f * rsCubeRoot);
+            float rho;
+
+            if (isExterior)
+            {
+                r = piw.magnitude;
+                rho = (2.0f * r * Mathf.Sqrt(r / rsCubeRoot)) / (3.0f * rsCubeRoot);
+            } else {
+                tau *= -1;
+                rho = (float)(state.SpeedOfLight * state.TotalTimeWorld);
+                r = Mathf.Pow(rho / (2 * rsCubeRoot), 2.0f / 3.0f);
+            }
 
             // Partial differential, finite difference approach:
             //float diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
@@ -48,7 +71,14 @@ namespace OpenRelativity.ConformalMaps
             // The integral isn't as "nice" for time, and we approximate to lowest order:
             float diffT = Mathf.Log((radius - r) / diffR);
 
-            Vector4 piw4 = piw.normalized * nR;
+            if (!isExterior)
+            {
+                float temp = diffT;
+                diffT = diffR / (float)state.SpeedOfLight;
+                diffR = temp * (float)state.SpeedOfLight;
+            }
+
+            Vector4 piw4 = piw + piw.normalized * diffR;
             piw4.w = diffT;
 
             return piw4;
@@ -56,19 +86,17 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
         {
-            if (radius < radiusCutoff)
-            {
-                return Vector3.zero;
-            }
-            else
+            if (isExterior)
             {
                 return radius * SRelativityUtil.cSqrd / (2 * piw.sqrMagnitude) * piw.normalized;
             }
+
+            return Vector3.zero;
         }
 
         void FixedUpdate()
         {
-            if (!doEvaporate || state.MovementFrozen)
+            if (radius <= 0 || !doEvaporate || state.MovementFrozen)
             {
                 return;
             }
@@ -78,11 +106,24 @@ namespace OpenRelativity.ConformalMaps
             // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
             if (!double.IsInfinity(state.FixedDeltaTimeWorld) && !double.IsNaN(state.FixedDeltaTimeWorld))
             {
-                float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                radius = radius - ((float)state.FixedDeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius);
+                float diffR;
+                if (radius > state.planckLength)
+                {
+                    float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
+                    diffR = (float)-state.FixedDeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
+                } else
+                {
+                    diffR = (float)-state.FixedDeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+                }
+
+                if (!isExterior)
+                {
+                    diffR *= -1;
+                }
+                radius = radius + diffR;
             }
 
-            if (radius < radiusCutoff)
+            if (radius < 0)
             {
                 radius = 0;
             }

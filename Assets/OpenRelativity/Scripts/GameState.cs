@@ -41,25 +41,32 @@ namespace OpenRelativity
                 return hbar / gConst;
             }
         }
+        public float planckLength
+        {
+            get
+            {
+                return (float)Math.Sqrt((hbar * gConst) / Math.Pow(SpeedOfLight, 3));
+            }
+        }
         public float planckTime
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst / Mathf.Pow((float)SpeedOfLight, 5));
+                return (float)Math.Sqrt(hbar * gConst / Math.Pow(SpeedOfLight, 5));
             }
         }
         public float planckMass
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst / (float)SpeedOfLight);
+                return (float)Math.Sqrt(hbar * gConst / SpeedOfLight);
             }
         }
         public float planckAccel
         {
             get
             {
-                return (float)SpeedOfLight / planckTime;
+                return (float)(SpeedOfLight / planckTime);
             }
         }
         public float fluxPerAccel = 0;
@@ -93,6 +100,7 @@ namespace OpenRelativity
         public Matrix4x4 WorldRotation { get; private set; }
         public Quaternion Orientation { get { return orientation; } }
         public Vector3 PlayerVelocityVector { get; set; }
+        public Vector3 PlayerComovingVelocityVector { get; set; }
         public Vector3 PlayerAccelerationVector { get; set; }
         public Vector3 PlayerAngularVelocityVector { get { if (DeltaTimePlayer == 0) { return Vector3.zero; } else { return (float)(deltaCameraAngle * Mathf.Deg2Rad / DeltaTimePlayer) * playerTransform.up; } } }
         public Matrix4x4 PlayerLorentzMatrix { get; private set; }
@@ -110,8 +118,8 @@ namespace OpenRelativity
         //public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / inverseAcceleratedGamma; } }
         public double DeltaTimePlayer { get; private set; }
         public double FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
-        public double TotalTimePlayer { get; private set; }
-        public double TotalTimeWorld { get; private set; }
+        public double TotalTimePlayer { get; set; }
+        public double TotalTimeWorld { get; set; }
         public double SpeedOfLight { get { return c; } set { c = value; SpeedOfLightSqrd = value * value; } }
         public double SpeedOfLightSqrd { get; private set; }
 
@@ -235,9 +243,9 @@ namespace OpenRelativity
 
                 //if we reached max speed, forward or backwards, keep at max speed
 
-                if (PlayerVelocityVector.magnitude >= (float)MaxSpeed - .01f)
+                if (PlayerVelocityVector.magnitude >= (float)maxPlayerSpeed - .01f)
                 {
-                    PlayerVelocityVector = PlayerVelocityVector.normalized * ((float)MaxSpeed - .01f);
+                    PlayerVelocityVector = PlayerVelocityVector.normalized * ((float)maxPlayerSpeed - .01f);
                 }
 
                 //update our player velocity
@@ -347,6 +355,8 @@ namespace OpenRelativity
                 {
                     // Assume local player coordinates are comoving
                     Vector4 piw4 = conformalMap.ComoveOptical((float)FixedDeltaTimePlayer, playerTransform.position);
+                    Vector3 pDiff = (Vector3)piw4 - playerTransform.position;
+                    PlayerComovingVelocityVector = pDiff / (float)FixedDeltaTimePlayer;
                     playerTransform.position = piw4;
                     PlayerVelocityVector = PlayerVelocityVector.AddVelocity(conformalMap.GetRindlerAcceleration(playerTransform.position) * (float)FixedDeltaTimePlayer);
                 }

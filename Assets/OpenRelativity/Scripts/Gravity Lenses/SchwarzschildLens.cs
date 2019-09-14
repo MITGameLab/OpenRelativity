@@ -8,16 +8,17 @@ public class SchwarzschildLens : GravityLens
     public Schwarzschild schwarzschild;
     public GravityMirror gravityMirror;
 
+    public Material interiorMaterial;
+    private Material origLensMaterial;
+
+    private void Start()
+    {
+        origLensMaterial = lensMaterial;
+    }
+
     // Update is called once per frame
     void Update()
     {
-        if (gravityMirror != null)
-        {
-            gravityMirror.ManualUpdate();
-        }
-
-        lensPass = null;
-
         float r = schwarzschild.radius;
 
         if (r == 0)
@@ -28,10 +29,27 @@ public class SchwarzschildLens : GravityLens
 
         doBlit = true;
 
-        Vector3 lensUVPos = cam.WorldToViewportPoint(Vector3.zero);
+        if (!schwarzschild.isExterior)
+        {
+            lensMaterial = interiorMaterial;
+            lensMaterial.SetFloat("_lensRadius", r);
+            lensMaterial.SetFloat("_playerDist", (float)(state.SpeedOfLight * state.TotalTimeWorld));
+            return;
+        }
+
+        lensMaterial = origLensMaterial;
+
+        if (gravityMirror != null)
+        {
+            gravityMirror.ManualUpdate();
+        }
+
+        lensPass = null;
+
         float playerAngle = Mathf.Deg2Rad * Vector3.Angle(-cam.transform.position, cam.transform.forward);
         float playerDist = cam.transform.position.magnitude;
 
+        Vector3 lensUVPos = cam.WorldToViewportPoint(Vector3.zero);
         float frustumHeight = 2.0f * playerDist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
         float frustumWidth = frustumHeight * cam.aspect;
 
@@ -42,5 +60,6 @@ public class SchwarzschildLens : GravityLens
         lensMaterial.SetFloat("_lensVPos", lensUVPos.y);
         lensMaterial.SetFloat("_frustumWidth", frustumWidth);
         lensMaterial.SetFloat("_frustumHeight", frustumHeight);
+        lensMaterial.SetFloat("_isExterior", schwarzschild.isExterior ? 1.0f : 0.0f);
     }
 }

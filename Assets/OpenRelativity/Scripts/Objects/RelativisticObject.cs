@@ -70,6 +70,7 @@ namespace OpenRelativity.Objects
             }
         }
         public Matrix4x4 viwLorentz { get; private set; }
+        public Vector3 cviw;
 
         //Store this object's angular velocity here.
         public Vector3 _aviw;
@@ -281,7 +282,19 @@ namespace OpenRelativity.Objects
         //If the shader is not relativistic, we need to handle length contraction with a "contractor" transform.
         private Transform contractor;
         //Changing a transform's parent is expensive, but we can avoid it with this:
-        private Vector3 contractorLocalScale;
+        public Vector3 _localScale;
+        public Vector3 localScale
+        {
+            get
+            {
+                return _localScale;
+            }
+            set
+            {
+                transform.localScale = value;
+                _localScale = value;
+            }
+        }
         //private int? oldParentID;
         //Store world position, mostly for a nonrelativistic shader:
         public Vector3 piw { get; set; }
@@ -677,6 +690,7 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
+            cviw = Vector3.zero;
             frameDragAccel = Vector3.zero;
             ResetPiw();
             riw = transform.rotation;
@@ -787,9 +801,8 @@ namespace OpenRelativity.Objects
             {
                 Transform camTransform = Camera.main.transform;
                 float distToCenter = (Camera.main.farClipPlane + Camera.main.nearClipPlane) / 2.0f;
-                Vector3 center = camTransform.position + camTransform.forward * distToCenter;
-                float extremeBound = 500000.0f;
-                meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
+                Vector3 center = camTransform.position;
+                meshFilter.sharedMesh.bounds = new Bounds(distToCenter * camTransform.forward + center, 2 * distToCenter * Vector3.one);
             }
         }
 
@@ -843,6 +856,7 @@ namespace OpenRelativity.Objects
                 {
                     viw = Vector3.zero;
                     aviw = Vector3.zero;
+                    cviw = Vector3.zero;
                     isResting = true;
 
                     return;
@@ -958,6 +972,14 @@ namespace OpenRelativity.Objects
             float deltaTime = (float)state.FixedDeltaTimePlayer * GetTimeFactor();
             float localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
 
+            if (state.conformalMap != null)
+            {
+                Vector4 nPiw4 = state.conformalMap.ComoveOptical(deltaTime, piw);
+                Vector3 pDiff = (Vector3)nPiw4 - piw;
+                cviw = pDiff / deltaTime;
+                piw = nPiw4;
+            }
+
             if (!IsNaNOrInf(localDeltaT))
             {
                 localTimeOffset += localDeltaT;
@@ -1052,8 +1074,9 @@ namespace OpenRelativity.Objects
 
                 if (!isKinematic)
                 {
-                    viw = Vector4.zero;
-                    aviw = Vector4.zero;
+                    viw = Vector3.zero;
+                    aviw = Vector3.zero;
+                    cviw = Vector3.zero;
                 } else
                 {
                     transform.position = nonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) : piw;
@@ -1074,7 +1097,15 @@ namespace OpenRelativity.Objects
             if (!IsNaNOrInf(testVec.sqrMagnitude))
             {
                 float aviwMag = aviw.magnitude;
-                Quaternion diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
+                Quaternion diffRot;
+                if (aviwMag < SRelativityUtil.divByZeroCutoff)
+                {
+                    diffRot = Quaternion.identity;
+                }
+                else
+                {
+                    diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
+                }
                 riw = riw * diffRot;
                 myRigidbody.MoveRotation(riw);
 
@@ -1150,10 +1181,10 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null && !isLightMapStatic)
             {
-                Vector4 tempViw = viw / (float)state.SpeedOfLight;
+                Vector3 tempViw = cviw.AddVelocity(viw) / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector4 tempAiw = Get4Acceleration();
-                Vector4 tempVr = (-viw).AddVelocity(state.PlayerVelocityVector) / (float)state.SpeedOfLight;
+                Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / (float)state.SpeedOfLight;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
@@ -1276,13 +1307,13 @@ namespace OpenRelativity.Objects
             contractor.position = transform.position;
             transform.parent = contractor;
             transform.localPosition = Vector3.zero;
-            contractorLocalScale = contractor.localScale;
+            localScale = transform.localScale;
         }
 
         public void ContractLength()
         {
             Vector3 playerVel = state.PlayerVelocityVector;
-            Vector3 relVel = viw.RelativeVelocityTo(playerVel);
+            Vector3 relVel = cviw.AddVelocity(viw).AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(playerVel)));
             float relVelMag = relVel.sqrMagnitude;
 
             if (relVelMag > (state.MaxSpeed))
@@ -1294,14 +1325,10 @@ namespace OpenRelativity.Objects
 
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:
-            contractor.localScale = contractorLocalScale;
-            if ((contractor.lossyScale - new Vector3(1.0f, 1.0f, 1.0f)).sqrMagnitude > 0.0001)
-            {
-                //If we can't avoid (expensive) re-parenting, we do it:
-                SetUpContractor();
-            }
+            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            transform.localScale = localScale;
 
-            if (relVelMag > 0.0f)
+            if (relVelMag > SRelativityUtil.divByZeroCutoff)
             {
                 Quaternion rot = transform.rotation;
 
@@ -1318,7 +1345,7 @@ namespace OpenRelativity.Objects
                 transform.rotation = origRot;
 
                 // - Set the scale based only on the velocity relative to the player:
-                contractor.localScale = contractorLocalScale.ContractLengthBy(relVelMag * Vector3.forward);
+                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f).ContractLengthBy(relVelMag * Vector3.forward);
             }
         }
 
