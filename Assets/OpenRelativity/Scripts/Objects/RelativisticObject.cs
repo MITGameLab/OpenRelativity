@@ -451,6 +451,7 @@ namespace OpenRelativity.Objects
             FetchState();
 
             viwLorentz = Matrix4x4.identity;
+            _localScale = transform.localScale;
         }
 
         // Get the start time of our object, so that we know where not to draw it
@@ -1292,6 +1293,7 @@ namespace OpenRelativity.Objects
 
         private void SetUpContractor()
         {
+            _localScale = transform.localScale;
             if (contractor != null)
             {
                 Transform prnt = contractor.parent;
@@ -1307,7 +1309,6 @@ namespace OpenRelativity.Objects
             contractor.position = transform.position;
             transform.parent = contractor;
             transform.localPosition = Vector3.zero;
-            localScale = transform.localScale;
         }
 
         public void ContractLength()
@@ -1326,7 +1327,7 @@ namespace OpenRelativity.Objects
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:
             contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-            transform.localScale = localScale;
+            transform.localScale = _localScale;
 
             if (relVelMag > SRelativityUtil.divByZeroCutoff)
             {
