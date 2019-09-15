@@ -7,6 +7,7 @@ Shader "Relativity/Unlit/ColorShift"
 		_IRTex("IR",2D) = "" {} //IR texture
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
+		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's acceleration in world coordinates
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
 

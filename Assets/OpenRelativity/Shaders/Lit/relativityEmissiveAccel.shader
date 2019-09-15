@@ -11,6 +11,7 @@ Shader "Relativity/Lit/Emissive/ColorShift" {
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
+		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's acceleration in world coordinates
 		_EmissionMap("Emission Map", 2D) = "black" {}
 		[HDR] _EmissionColor("Emission Color", Color) = (0,0,0)
 		_EmissionMultiplier("Emission Multiplier", Range(0,10)) = 1

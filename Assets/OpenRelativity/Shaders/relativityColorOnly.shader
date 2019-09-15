@@ -64,7 +64,6 @@ Shader "Relativity/ColorOnly"
 
 	float4 _viw = float4(0, 0, 0, 0); //velocity of object in world
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-	float4 _pap = float4(0, 0, 0, 0); //acceleration of player
 	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 	float _spdOfLight = 100; //current speed of light
