@@ -367,7 +367,7 @@ Shader "Relativity/Unlit/ColorShift"
 
 			Pass{
 				//Shader properties, for things such as transparency
-				Cull Off ZWrite On
+				ZWrite On
 				ZTest LEqual
 				Fog { Mode off } //Fog does not shift properly and there is no way to do so with this fog
 				Tags {"RenderType" = "Transparent" "Queue" = "Transparent"}
