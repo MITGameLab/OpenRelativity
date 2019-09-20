@@ -13,13 +13,8 @@ namespace OpenRelativity
 
         private System.IO.TextWriter stateStream;
 
-        //Player orientation
-        private Quaternion orientation = Quaternion.identity;
-
         //grab the player's transform so that we can use it
         public Transform playerTransform;
-        //If we've paused the game
-        private bool movementFrozen = false;
         //player Velocity as a scalar magnitude
         public double playerVelocity { get; set; }
         //speed of light
@@ -95,10 +90,10 @@ namespace OpenRelativity
 
         #region Properties
 
-        public bool MovementFrozen { get { return movementFrozen; } set { movementFrozen = value; } }
+        //If we've paused the game
+        public bool MovementFrozen { get; set; }
 
         public Matrix4x4 WorldRotation { get; private set; }
-        public Quaternion Orientation { get { return orientation; } }
         public Vector3 PlayerVelocityVector { get; set; }
         public Vector3 PlayerComovingVelocityVector { get; set; }
         public Vector3 PlayerAccelerationVector { get; set; }
@@ -109,7 +104,7 @@ namespace OpenRelativity
         public double PlayerVelocity { get { return playerVelocity; } }
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get; private set; }
         //public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
-        public double DeltaTimeWorld { get; private set; }
+        public double DeltaTimeWorld { get; protected set; }
         public double FixedDeltaTimeWorld {
             get {
                 return Time.fixedDeltaTime / SqrtOneMinusVSquaredCWDividedByCSquared;
@@ -168,7 +163,7 @@ namespace OpenRelativity
             c = totalC;
             SpeedOfLightSqrd = c * c;
             //And ensure that the game starts
-            movementFrozen = false;
+            MovementFrozen = false;
             menuKeyDown = false;
             shaderKeyDown = false;
             keyHit = false;
@@ -185,12 +180,12 @@ namespace OpenRelativity
             pctOfSpdUsing = 0;
         }
         //Call this function to pause and unpause the game
-        public void ChangeState()
+        public virtual void ChangeState()
         {
-            if (movementFrozen)
+            if (MovementFrozen)
             {
                 //When we unpause, lock the cursor and hide it so that it doesn't get in the way
-                movementFrozen = false;
+                MovementFrozen = false;
                 //Cursor.visible = false;
                 Cursor.lockState = CursorLockMode.Locked;
             }
@@ -198,7 +193,7 @@ namespace OpenRelativity
             {
                 //When we pause, set our velocity to zero, show the cursor and unlock it.
                 GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
-                movementFrozen = true;
+                MovementFrozen = true;
                 Cursor.visible = true;
                 Cursor.lockState = CursorLockMode.None;
             }
@@ -206,7 +201,7 @@ namespace OpenRelativity
         }
 
         //We set this in late update because of timing issues with collisions
-        public void LateUpdate()
+        public virtual void LateUpdate()
         {
             //Set the pause code in here so that our other objects can access it.
             if (Input.GetAxis("Menu Key") > 0 && !menuKeyDown)
@@ -236,7 +231,7 @@ namespace OpenRelativity
             }
 
             //If we're not paused, update everything
-            if (!movementFrozen)
+            if (!MovementFrozen)
             {
                 //Put our player position into the shader so that it can read it.
                 Shader.SetGlobalVector("_playerOffset", new Vector4(playerTransform.position.x, playerTransform.position.y, playerTransform.position.z, 0));
@@ -326,10 +321,9 @@ namespace OpenRelativity
                 //Steering constant angular velocity in the player frame
                 //Rotate around the y-axis
 
-                orientation = Quaternion.AngleAxis(playerRotation.y, Vector3.up) * Quaternion.AngleAxis(playerRotation.x, Vector3.right);
-                Quaternion WorldOrientation = Quaternion.Inverse(orientation);
-                Normalize(orientation);
-                WorldRotation = CreateFromQuaternion(WorldOrientation);
+                playerTransform.rotation = Quaternion.AngleAxis(playerRotation.y, Vector3.up) * Quaternion.AngleAxis(playerRotation.x, Vector3.right);
+                // World rotation is opposite of player world rotation
+                WorldRotation = CreateFromQuaternion(Quaternion.Inverse(playerTransform.rotation));
 
                 //Add up our rotation so that we know where the character (NOT CAMERA) should be facing 
                 playerRotation += deltaRotation;
@@ -346,6 +340,8 @@ namespace OpenRelativity
 
         private void FixedUpdate()
         {
+            Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
+
             if (!MovementFrozen &&
                 !double.IsNaN(DeltaTimePlayer) &&
                 SqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
@@ -361,9 +357,11 @@ namespace OpenRelativity
                     PlayerVelocityVector = PlayerVelocityVector.AddVelocity(conformalMap.GetRindlerAcceleration(playerTransform.position) * (float)FixedDeltaTimePlayer);
                 }
 
-                Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
                 Vector3 velocity = -PlayerVelocityVector;
                 playerRB.velocity = velocity / (float)SqrtOneMinusVSquaredCWDividedByCSquared;
+            } else
+            {
+                playerRB.velocity = Vector3.zero;
             }
         }
         #region Matrix/Quat math
