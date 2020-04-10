@@ -8,16 +8,14 @@ namespace OpenRelativity
         // Start is called before the first frame update
         void Start()
         {
-            transform.position = -playerCam.transform.position;
-            transform.LookAt(playerCam.transform.position);
-            transform.rotation *= playerCam.transform.rotation;
+            ManualUpdate();
         }
 
         // Update is called once per frame
         public void ManualUpdate()
         {
             transform.position = -playerCam.transform.position;
-            transform.LookAt(playerCam.transform.position);
+            transform.rotation = Quaternion.LookRotation(Vector3.back, Vector3.up);
             transform.rotation *= playerCam.transform.rotation;
         }
     }
