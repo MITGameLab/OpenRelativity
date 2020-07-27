@@ -74,7 +74,7 @@ namespace OpenRelativity
         //Again, use LateUpdate to solve some collision issues.
         void LateUpdate()
         {
-            float viewRotX = 0;
+            float viewRotX;
             //If we're not paused, update speed and rotation using player input.
             if (!state.MovementFrozen)
             {
@@ -120,7 +120,6 @@ namespace OpenRelativity
                 //If the magnitude's zero just make these angles zero and the Quaternions identity Q's
                 if (playerVelocityVector.sqrMagnitude == 0)
                 {
-                    rotationAroundX = 0;
                     rotateX = Quaternion.identity;
                     unRotateX = Quaternion.identity;
                 }
@@ -296,7 +295,7 @@ namespace OpenRelativity
 
                 //Use these to determine camera rotation, that is, to look around the world without changing direction of motion
                 //These two are for X axis rotation and Y axis rotation, respectively
-                float viewRotY = 0;
+                float viewRotY;
                 if (Mathf.Abs(positionChangeX) <= 1 && Mathf.Abs(positionChangeY) <= 1)
                 {
                     //Take the position changes and translate them into an amount of rotation
@@ -388,7 +387,8 @@ namespace OpenRelativity
                 Ray rayBack = new Ray(playerPos + extents.z * Vector3.forward, Vector3.back);
                 RaycastHit hitInfo;
                 float dist;
-                if (collider.Raycast(rayDown, out hitInfo, 2.0f * extents.y))
+                RaycastHit unused;
+                if (collider.Raycast(rayDown, out unused, 2.0f * extents.y))
                 {
                     isFalling = false;
                     Vector3 pVel = state.PlayerVelocityVector;

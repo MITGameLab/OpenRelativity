@@ -2,14 +2,21 @@
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
-Shader "Relativity/Lit/Specular/ColorShift" {
+Shader "Relativity/Lit/Standard" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_Specular("Normal Reflectance", Range(0, 1)) = 0
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
+		[Toggle(SPECULAR)]
+		_SpecularOn("Specular Reflections", Range(0, 1)) = 0
+		_Specular("Normal Reflectance", Range(0, 1)) = 0
+		[Toggle(_EMISSION)]
+		_EmissionOn("Emission Lighting", Range(0, 1)) = 0
+		_EmissionMap("Emission Map", 2D) = "black" {}
+		[HDR] _EmissionColor("Emission Color", Color) = (0,0,0)
+		_EmissionMultiplier("Emission Multiplier", Range(0,10)) = 1
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's acceleration in world coordinates
@@ -66,9 +73,15 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD5; //normal in world
+#if _EMISSION
+			float2 uv3 : TEXCOORD6; //EmisionMap TEXCOORD
 #if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD6;
+			float4 ambient : TEXCOORD7;
 			SHADOW_COORDS(7)
+#endif
+#elif defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+			float4 ambient : TEXCOORD6;
+			SHADOW_COORDS(6)
 #endif
 		};
 
@@ -81,6 +94,9 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 		sampler2D _UVTex;
 		uniform float4 _UVTex_ST;
 		sampler2D _CameraDepthTexture;
+
+		uniform float4 _EmissionMap_ST;
+		float _EmissionMultiplier;
 
 		float _Specular;
 
@@ -124,6 +140,10 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			if (_MainTex_TexelSize.y < 0)
 				o.uv1.y = 1.0 - o.uv1.y;
 #endif 
+
+#if _EMISSION
+			o.uv3.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy;
+#endif
 
 			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
@@ -461,42 +481,13 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			float UV = tex2D(_UVTex, i.uv1).r;
 			float IR = tex2D(_IRTex, i.uv1).r;
 
+#if _EMISSION
+			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
+#endif
+
 			//Apply lighting in world frame:
 			float3 rgb = data.xyz;
 			float3 rgbFinal = DopplerShift(rgb, UV, IR, shift);
-
-			//Apply specular reflectance
-			//(Assume surrounding medium has an index of refraction of 1)
-			float specFactor;
-			if (_Specular >= 1.0) {
-				specFactor = 1.0;
-			}
-			else if (_Specular <= 0.0) {
-				specFactor = 0.0;
-			}
-			else {
-				float indexRefrac = sqrt(_Specular);
-				indexRefrac = (1.0 + indexRefrac) / (1.0 - indexRefrac);
-				float angle = acos(dot(viewDir, i.normal) / length(viewDir));
-				float cosAngle = cos(angle);
-				float sinFac = sin(angle) / indexRefrac;
-				sinFac *= sinFac;
-				sinFac = sqrt(1 - sinFac);
-				float reflecS = (cosAngle - indexRefrac * sinFac) / (cosAngle + indexRefrac * sinFac);
-				reflecS *= reflecS;
-				float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
-				reflecP *= reflecP;
-				specFactor = (reflecS + reflecP) / 2;
-			}
-			float3 specRgb, specFinal;
-			if (specFactor > 0.0) {
-				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
-				specFinal = DopplerShift(specRgb, 0, 0, shift);
-			}
-			else {
-				specRgb = 0;
-				specFinal = 0;
-			}
 
 #if defined(LIGHTMAP_ON)
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
@@ -531,13 +522,52 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 			rgbFinal *= i.diff;
 #endif
 
+#if SPECULAR
+			//Apply specular reflectance
+			//(Assume surrounding medium has an index of refraction of 1)
+			float specFactor;
+			if (_Specular >= 1.0) {
+				specFactor = 1.0;
+			}
+			else if (_Specular <= 0.0) {
+				specFactor = 0.0;
+			}
+
+			float indexRefrac = sqrt(1 - _Specular);
+			indexRefrac = (1.0 + indexRefrac) / (1.0 - indexRefrac);
+			float angle = acos(dot(viewDir, i.normal) / length(viewDir));
+			float cosAngle = cos(angle);
+			float sinFac = sin(angle) / indexRefrac;
+			sinFac *= sinFac;
+			sinFac = sqrt(1 - sinFac);
+			float reflecS = (cosAngle - indexRefrac * sinFac) / (cosAngle + indexRefrac * sinFac);
+			reflecS *= reflecS;
+			float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
+			reflecP *= reflecP;
+			specFactor = (reflecS + reflecP) / 2;
+
+			float3 specRgb, specFinal;
+			if (specFactor > 0.0) {
+				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
+				specFinal = DopplerShift(specRgb, 0, 0, shift);
+			}
+			else {
+				specRgb = 0;
+				specFinal = 0;
+			}
+
 			// Specular reflection is added after lightmap and shadow
 			if (specFactor > 0.0) {
 				rgbFinal += specFinal;
 			}
+#endif
 
 			//Doppler factor should be squared for reflected light:
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
+#if _EMISSION
+			//Add emission:
+			rgbFinal += rgbEmission;
+#endif
 			rgbFinal = constrainRGB(rgbFinal.x, rgbFinal.y, rgbFinal.z); //might not be needed
 
 			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
@@ -567,6 +597,8 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdbase
+				#pragma shader_feature SPECULAR
+			    #pragma shader_feature _EMISSION
 
 				#pragma vertex vert
 				#pragma fragment frag
@@ -585,6 +617,8 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdadd
+				#pragma shader_feature SPECULAR
+				#pragma shader_feature _EMISSION
 
 				#pragma vertex vert
 				#pragma fragment frag
@@ -612,13 +646,20 @@ Shader "Relativity/Lit/Specular/ColorShift" {
 					UnityMetaInput o;
 					UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
 					fixed4 c = tex2D(_GIAlbedoTex, i.uv1);
-					o.Albedo = fixed3(c.rgb * _GIAlbedoColor.rgb);
+#if _EMISSION
+					o.Emission = (tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor;
+#else
 					o.Emission = 0;
+#endif
+					o.Albedo = fixed3(c.rgb * _GIAlbedoColor.rgb);
+					
 					return UnityMetaFragment(o);
 				}
 
 				#pragma vertex vert_meta
 				#pragma fragment frag_meta2
+				#pragma shader_feature _EMISSION
+
 				#pragma shader_feature _METALLICGLOSSMAP
 				#pragma shader_feature ___ _DETAIL_MULX2
 				ENDCG

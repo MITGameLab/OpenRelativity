@@ -6,10 +6,10 @@ namespace OpenRelativity
 {
     public static class SRelativityUtil
     {
+        public const float divByZeroCutoff = 1e-8f;
+
         public static float c { get { return (float)state.SpeedOfLight; } }
         public static float cSqrd { get { return (float)state.SpeedOfLightSqrd; } }
-        public static float maxVel { get { return (float)state.MaxSpeed; } }
-        public const float divByZeroCutoff = 1e-8f;
 
         private static GameState _state;
         private static GameState state
@@ -316,9 +316,7 @@ namespace OpenRelativity
             }
 
             //Apply Lorentz transform;
-            //metric = viwLorentzMatrix.transpose * metric * viwLorentzMatrix;
             riwTransformed = viwLorentzMatrix.Value * riwTransformed;
-            avpTransformed = viwLorentzMatrix.Value * avpTransformed;
             aiwTransformed = viwLorentzMatrix.Value * aiwTransformed;
 
             float t2 = riwTransformed.w;
@@ -420,7 +418,7 @@ namespace OpenRelativity
         {
             float gammaSqrd = gamma * gamma;
             float gammaFourthADotVDivCSqrd = Vector3.Dot(propAccel, viw) * gammaSqrd * gammaSqrd / cSqrd;
-            Vector4 fourAccel = gammaSqrd * (Vector3)propAccel + gammaFourthADotVDivCSqrd * viw;
+            Vector4 fourAccel = gammaSqrd * propAccel + gammaFourthADotVDivCSqrd * viw;
             fourAccel.w = gammaFourthADotVDivCSqrd * c;
             return fourAccel;
         }

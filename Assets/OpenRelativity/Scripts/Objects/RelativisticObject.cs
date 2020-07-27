@@ -385,6 +385,11 @@ namespace OpenRelativity.Objects
                 myRigidbody.collisionDetectionMode = collisionDetectionMode;
             }
 
+            if (rawVertsBufferLength == 0)
+            {
+                return;
+            }
+
             //Set remaining global parameters:
             colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
             colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
@@ -430,12 +435,6 @@ namespace OpenRelativity.Objects
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
             trnsfrmdMesh.RecalculateBounds();
             transformCollider.sharedMesh = trnsfrmdMesh;
-
-            // Reset physics:
-            //myRigidbody.ResetCenterOfMass();
-            //myRigidbody.ResetInertiaTensor();
-
-            //Debug.Log("Finished updating mesh collider.");
         }
 
         void OnDestroy()
@@ -730,7 +729,7 @@ namespace OpenRelativity.Objects
             {
                 for (int i = 0; i < myColliders.Length; i++)
                 {
-                    if (myColliderIsMesh)
+                    if (myColliderIsMesh && ((MeshCollider)myColliders[i]).sharedMesh != null)
                     {
                         ((MeshCollider)myColliders[i]).sharedMesh.MarkDynamic();
                     }
@@ -820,9 +819,12 @@ namespace OpenRelativity.Objects
                     myColliderIsVoxel = false;
                     for (int i = 0; i < myMeshColliders.Length; i++)
                     {
-                        trnsfrmdMesh = Instantiate(myMeshColliders[i].sharedMesh);
-                        myMeshColliders[i].sharedMesh = trnsfrmdMesh;
-                        trnsfrmdMesh.MarkDynamic();
+                        if (myMeshColliders[i].sharedMesh != null)
+                        {
+                            trnsfrmdMesh = Instantiate(myMeshColliders[i].sharedMesh);
+                            myMeshColliders[i].sharedMesh = trnsfrmdMesh;
+                            trnsfrmdMesh.MarkDynamic();
+                        }
                     }
                 }
                 else

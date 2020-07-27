@@ -11,8 +11,6 @@ namespace OpenRelativity
 
         public ConformalMap conformalMap;
 
-        private System.IO.TextWriter stateStream;
-
         //grab the player's transform so that we can use it
         public Transform playerTransform;
         //player Velocity as a scalar magnitude
@@ -64,6 +62,7 @@ namespace OpenRelativity
                 return (float)(SpeedOfLight / planckTime);
             }
         }
+        
         public float fluxPerAccel = 0;
 
         //Use this to determine the state of the color shader. If it's True, all you'll see is the lorenz transform.
@@ -80,7 +79,6 @@ namespace OpenRelativity
         //Player rotation and change in rotation since last frame
         public Vector3 playerRotation { get; set; }
         public Vector3 deltaRotation { get; set; }
-        public double pctOfSpdUsing { get; set; } // Percent of velocity you are using
 
         private Vector3 oldCameraForward { get; set; }
         public Vector3 cameraForward { get; set; }
@@ -100,7 +98,6 @@ namespace OpenRelativity
         public Vector3 PlayerAngularVelocityVector { get { if (DeltaTimePlayer == 0) { return Vector3.zero; } else { return (float)(deltaCameraAngle * Mathf.Deg2Rad / DeltaTimePlayer) * playerTransform.up; } } }
         public Matrix4x4 PlayerLorentzMatrix { get; private set; }
 
-        public double PctOfSpdUsing { get { return pctOfSpdUsing; } set { pctOfSpdUsing = value; } }
         public double PlayerVelocity { get { return playerVelocity; } }
         public double SqrtOneMinusVSquaredCWDividedByCSquared { get; private set; }
         //public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
@@ -126,11 +123,6 @@ namespace OpenRelativity
         #endregion
 
         #region consts
-        private const float ORB_SPEED_INC = 0.05f;
-        private const float ORB_DECEL_RATE = 0.6f;
-        private const float ORB_SPEED_DUR = 2f;
-        private const float MAX_SPEED = 20.00f;
-        public const float NORM_PERCENT_SPEED = .99f;
         public const int splitDistance = 21000;
         #endregion
 
@@ -158,7 +150,6 @@ namespace OpenRelativity
             
             //Set our constants
             MaxSpeed = maxPlayerSpeed;
-            pctOfSpdUsing = NORM_PERCENT_SPEED;
 
             c = totalC;
             SpeedOfLightSqrd = c * c;
@@ -173,12 +164,7 @@ namespace OpenRelativity
 
             PlayerLorentzMatrix = Matrix4x4.identity;
         }
-        public void reset()
-        {
-            //Reset everything not level-based
-            playerRotation = Vector3.zero;
-            pctOfSpdUsing = 0;
-        }
+
         //Call this function to pause and unpause the game
         public virtual void ChangeState()
         {
@@ -310,11 +296,11 @@ namespace OpenRelativity
                     GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
                 }
                 /*****************************
-             * PART 3 OF ALGORITHM
-             * FIND THE ROTATION MATRIX
-             * AND CHANGE THE PLAYERS VELOCITY
-             * BY THIS ROTATION MATRIX
-             * ***************************/
+                 * PART 3 OF ALGORITHM
+                 * FIND THE ROTATION MATRIX
+                 * AND CHANGE THE PLAYERS VELOCITY
+                 * BY THIS ROTATION MATRIX
+                 * ***************************/
 
 
                 //Find the turn angle
@@ -398,36 +384,6 @@ namespace OpenRelativity
             matrix.m32 = 0;
             matrix.m33 = 1;
             return matrix;
-        }
-
-        //Normalize the given quaternion so that its magnitude is one.
-        public Quaternion Normalize(Quaternion quat)
-        {
-            Vector4 qVec = new Vector4(quat.x, quat.y, quat.z, quat.w);
-            Quaternion q;
-            float m = qVec.sqrMagnitude;
-            if (m != 1)
-            {
-                m = Mathf.Sqrt(m);
-                qVec /= m;
-                q = new Quaternion(qVec.x, qVec.y, qVec.z, qVec.w);
-            }
-            else
-            {
-                q = quat;
-            }
-            return q;
-        }
-        //Transform the matrix by a vector3
-        public Vector3 TransformNormal(Vector3 normal, Matrix4x4 matrix)
-        {
-            Vector3 final;
-            final.x = matrix.m00 * normal.x + matrix.m10 * normal.y + matrix.m20 * normal.z;
-
-            final.y = matrix.m02 * normal.x + matrix.m11 * normal.y + matrix.m21 * normal.z;
-
-            final.z = matrix.m03 * normal.x + matrix.m12 * normal.y + matrix.m22 * normal.z;
-            return final;
         }
         #endregion
     }
