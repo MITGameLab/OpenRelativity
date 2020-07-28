@@ -66,6 +66,7 @@ Shader "Relativity/ColorOnly"
 	float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 	float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
+	float4 _vr;
 	float _spdOfLight = 100; //current speed of light
 	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
@@ -93,33 +94,11 @@ Shader "Relativity/ColorOnly"
 		float speed = length(_vpc.xyz);
 		//vw + vp/(1+vw*vp/c^2)
 
-
-		float vuDot = dot(_vpc.xyz, _viw.xyz); //Get player velocity dotted with velocity of the object.
-		float4 vr;
-		//IF our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-		if (speed > divByZeroCutoff)
-		{
-			float3 uparra = (vuDot / (speed*speed)) * _vpc.xyz; //Get the parallel component of the object's velocity
-																//Get the perpendicular component of our velocity, just by subtraction
-			float3 uperp = _viw.xyz - uparra.xyz;
-			//relative velocity calculation
-			vr = float4((_vpc.xyz - uparra.xyz - (sqrt(1 - speed*speed))*uperp.xyz) / (1 + vuDot), 0);
-		}
-		//If our speed is nearly zero, it could lead to infinities.
-		else
-		{
-			//relative velocity calculation
-			vr = float4(-_viw.xyz, 0);
-		}
-
-		//set our relative velocity
-		o.vr = vr;
-		vr *= -1;
 		//relative speed
-		float speedr = sqrt(dot(vr.xyz, vr.xyz));
+		float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
 		o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
-										   //riw = location in world, for reference
+		//riw = location in world, for reference
 		float4 riw = float4(piw.xyz + _playerOffset.xyz, 0); //Position that will be used in the output
 
 		//Transform the vertex back into local space for the mesh to use
@@ -245,7 +224,7 @@ Shader "Relativity/ColorOnly"
 		float3 x1y1z1 = i.pos2.xyz * (float3)(2 * xs, 2 * xs / xyr, 1);
 
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-		float shift = (1 - dot(x1y1z1, i.vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
+		float shift = (1 - dot(x1y1z1, _vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
 		if (_colorShift == 0)
 		{
 			shift = 1.0f;
