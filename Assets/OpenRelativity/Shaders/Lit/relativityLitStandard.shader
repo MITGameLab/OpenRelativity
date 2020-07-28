@@ -125,6 +125,146 @@ Shader "Relativity/Lit/Standard" {
 		uniform float4 _MainTex_TexelSize;
 		uniform float4 _CameraDepthTexture_ST;
 
+		//Color functions, there's no check for division by 0 which may cause issues on
+		//some graphics cards.
+		float3 RGBToXYZC(float3 rgb)
+		{
+			float3 xyz;
+			xyz.x = dot(float3(0.13514, 0.120432, 0.057128), rgb);
+			xyz.y = dot(float3(0.0668999, 0.232706, 0.0293946), rgb);
+			xyz.z = dot(float3(0.0, 0.0000218959, 0.358278), rgb);
+			return xyz;
+		}
+		float3 XYZToRGBC(float3 xyz)
+		{
+			float3 rgb;
+			rgb.x = dot(float3(9.94845, -5.1485, -1.16389), xyz);
+			rgb.y = dot(float3(-2.86007, 5.77745, -0.0179627), xyz);
+			rgb.z = dot(float3(0.000174791, -0.000353084, 2.79113), xyz);
+			return rgb;
+		}
+		float3 weightFromXYZCurves(float3 xyz)
+		{
+			float3 returnVal;
+			returnVal.x = dot(float3(0.0735806, -0.0380793, -0.00860837), xyz);
+			returnVal.y = dot(float3(-0.0665378, 0.134408, -0.000417865), xyz);
+			returnVal.z = dot(float3(0.00000299624, -0.00000605249, 0.0484424), xyz);
+			return returnVal;
+		}
+
+		float getXFromCurve(float3 param, float shift)
+		{
+			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+
+			//Re-use memory to save per-vertex operations:
+			float bottom2 = param.z * shift;
+			bottom2 *= bottom2;
+			float paramYShift = param.y * shift;
+
+			float top1 = param.x * xla * exp(-(((paramYShift - xlb) * (paramYShift - xlb))
+				/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
+			float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
+
+			float top2 = param.x * xha * exp(-(((paramYShift - xhb) * (paramYShift - xhb))
+				/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
+			bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
+
+			return (top1 / bottom1) + (top2 / bottom2);
+		}
+		float getYFromCurve(float3 param, float shift)
+		{
+			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+
+			//Re-use memory to save per-vertex operations:
+			float bottom = param.z * shift;
+			bottom *= bottom;
+
+			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
+				/ (2 * (bottom + yc * yc)))) * sqrt2Pi;
+			bottom = sqrt(1 / bottom + 1 / (yc * yc));
+
+			return top / bottom;
+		}
+
+		float getZFromCurve(float3 param, float shift)
+		{
+			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+
+			//Re-use memory to save per-vertex operations:
+			float bottom = param.z * shift;
+			bottom *= bottom;
+
+			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
+				/ (2 * (bottom + zc * zc)))) * sqrt2Pi;
+			bottom = sqrt(1 / bottom + 1 / (zc * zc));
+
+			return top / bottom;
+		}
+
+		float3 constrainRGB(float r, float g, float b)
+		{
+			float w;
+
+			w = (0 < r) ? 0 : r;
+			w = (w < g) ? w : g;
+			w = (w < b) ? w : b;
+			w = -w;
+
+			if (w > 0) {
+				r += w;  g += w; b += w;
+			}
+			w = r;
+			w = (w < g) ? g : w;
+			w = (w < b) ? b : w;
+
+			if (w > 1)
+			{
+				r /= w;
+				g /= w;
+				b /= w;
+			}
+			float3 rgb;
+			rgb.x = r;
+			rgb.y = g;
+			rgb.z = b;
+			return rgb;
+
+		};
+
+		float3 BoxProjection(
+			float3 direction, float3 position,
+			float4 cubemapPosition, float3 boxMin, float3 boxMax
+		) {
+			UNITY_BRANCH
+				if (cubemapPosition.w > 0) {
+					float3 factors = ((direction > 0 ? boxMax : boxMin) - position) / direction;
+					float scalar = min(min(factors.x, factors.y), factors.z);
+					return direction * scalar + (position - cubemapPosition);
+				}
+
+			return direction;
+		}
+
+		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
+			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+			float3 xyz = RGBToXYZC(rgb);
+			float3 weights = weightFromXYZCurves(xyz);
+			float3 rParam, gParam, bParam, UVParam, IRParam;
+			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
+			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
+			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
+			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE * UV; UVParam.z = (float)5;
+			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE * IR; IRParam.z = (float)5;
+
+			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
+			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
+			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
+			return XYZToRGBC(pow(1 / shift, 3) * xyz);
+		}
+
 		//Per vertex operations
 		v2f vert(appdata v)
 		{
@@ -239,12 +379,24 @@ Shader "Relativity/Lit/Standard" {
 
 			//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
 #if defined(VERTEXLIGHT_ON)
+			// Red/blue shift light due to gravity
+			float4 lightColor;
+			if (aiwDotAiw == 0) {
+				lightColor = _LightColor0;
+			} else {
+				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
+				float posDotAiw = -dot(posTransformed, mul(metric, aiwTransformed));
+
+				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * spdOfLightSqrd);
+				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+			}
+
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
 			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
 			nl = max(0, nl);
 			// factor in the light color
-			o.diff = nl * _LightColor0;
+			o.diff = nl * lightColor;
 			// add ambient light
 #if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
@@ -261,11 +413,23 @@ Shader "Relativity/Lit/Standard" {
 				lightPosition = float4(unity_4LightPosX0[index],
 					unity_4LightPosY0[index],
 					unity_4LightPosZ0[index], 1.0);
-
 				vertexToLightSource =
 					lightPosition.xyz - o.pos2.xyz;
 				squaredDistance =
 					dot(vertexToLightSource, vertexToLightSource);
+
+				// Red/blue shift light due to gravity
+				if (aiwDotAiw == 0) {
+					lightColor = unity_LightColor[index].rgb;
+				}
+				else {
+					float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
+					float posDotAiw = -dot(posTransformed, mul(metric, aiwTransformed));
+
+					float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * spdOfLightSqrd);
+					lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+				}
+
 				if (dot(float4(0, 0, 1, 0), unity_SpotDirection[index]) != 1) // directional light?
 				{
 					attenuation = 1.0; // no attenuation
@@ -278,7 +442,7 @@ Shader "Relativity/Lit/Standard" {
 					lightDirection = normalize(vertexToLightSource);
 				}
 				diffuseReflection = attenuation
-					* unity_LightColor[index].rgb * _Color.rgb
+					* lightColor * _Color.rgb
 					* max(0.0, dot(o.normal.xyz, lightDirection));
 
 				o.diff.rgb += diffuseReflection;
@@ -288,12 +452,25 @@ Shader "Relativity/Lit/Standard" {
 			//o.diff = float4((float3)lms, 0);
 			o.diff = 0;
 #else 
+			// Red/blue shift light due to gravity
+			float4 lightColor;
+			if (aiwDotAiw == 0) {
+				lightColor = _LightColor0;
+			}
+			else {
+				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
+				float posDotAiw = -dot(posTransformed, mul(metric, aiwTransformed));
+
+				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * spdOfLightSqrd);
+				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+			}
+
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
 			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
 			nl = max(0, nl);
 			// factor in the light color
-			o.diff = nl * _LightColor0;
+			o.diff = nl * lightColor;
 			// add ambient light
 #if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
@@ -307,146 +484,6 @@ Shader "Relativity/Lit/Standard" {
 #endif
 
 			return o;
-		}
-
-		//Color functions, there's no check for division by 0 which may cause issues on
-		//some graphics cards.
-		float3 RGBToXYZC(float3 rgb)
-		{
-			float3 xyz;
-			xyz.x = dot(float3(0.13514, 0.120432, 0.057128), rgb);
-			xyz.y = dot(float3(0.0668999, 0.232706, 0.0293946), rgb);
-			xyz.z = dot(float3(0.0, 0.0000218959, 0.358278), rgb);
-			return xyz;
-		}
-		float3 XYZToRGBC(float3 xyz)
-		{
-			float3 rgb;
-			rgb.x = dot(float3(9.94845, -5.1485, -1.16389), xyz);
-			rgb.y = dot(float3(-2.86007, 5.77745, -0.0179627), xyz);
-			rgb.z = dot(float3(0.000174791, -0.000353084, 2.79113), xyz);
-			return rgb;
-		}
-		float3 weightFromXYZCurves(float3 xyz)
-		{
-			float3 returnVal;
-			returnVal.x = dot(float3(0.0735806, -0.0380793, -0.00860837), xyz);
-			returnVal.y = dot(float3(-0.0665378, 0.134408, -0.000417865), xyz);
-			returnVal.z = dot(float3(0.00000299624, -0.00000605249, 0.0484424), xyz);
-			return returnVal;
-		}
-
-		float getXFromCurve(float3 param, float shift)
-		{
-			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
-			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
-
-			//Re-use memory to save per-vertex operations:
-			float bottom2 = param.z * shift;
-			bottom2 *= bottom2;
-			float paramYShift = param.y * shift;
-
-			float top1 = param.x * xla * exp(-(((paramYShift - xlb) * (paramYShift - xlb))
-				/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
-			float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
-
-			float top2 = param.x * xha * exp(-(((paramYShift - xhb) * (paramYShift - xhb))
-				/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
-			bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
-
-			return (top1 / bottom1) + (top2 / bottom2);
-		}
-		float getYFromCurve(float3 param, float shift)
-		{
-			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
-			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
-
-			//Re-use memory to save per-vertex operations:
-			float bottom = param.z * shift;
-			bottom *= bottom;
-
-			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
-				/ (2 * (bottom + yc * yc)))) * sqrt2Pi;
-			bottom = sqrt(1 / bottom + 1 / (yc * yc));
-
-			return top / bottom;
-		}
-
-		float getZFromCurve(float3 param, float shift)
-		{
-			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
-			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
-
-			//Re-use memory to save per-vertex operations:
-			float bottom = param.z * shift;
-			bottom *= bottom;
-
-			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
-				/ (2 * (bottom + zc * zc))))* sqrt2Pi;
-			bottom = sqrt(1 / bottom + 1 / (zc * zc));
-
-			return top / bottom;
-		}
-
-		float3 constrainRGB(float r, float g, float b)
-		{
-			float w;
-
-			w = (0 < r) ? 0 : r;
-			w = (w < g) ? w : g;
-			w = (w < b) ? w : b;
-			w = -w;
-
-			if (w > 0) {
-				r += w;  g += w; b += w;
-			}
-			w = r;
-			w = (w < g) ? g : w;
-			w = (w < b) ? b : w;
-
-			if (w > 1)
-			{
-				r /= w;
-				g /= w;
-				b /= w;
-			}
-			float3 rgb;
-			rgb.x = r;
-			rgb.y = g;
-			rgb.z = b;
-			return rgb;
-
-		};
-
-		float3 BoxProjection(
-			float3 direction, float3 position,
-			float4 cubemapPosition, float3 boxMin, float3 boxMax
-		) {
-			UNITY_BRANCH
-			if (cubemapPosition.w > 0) {
-				float3 factors = ((direction > 0 ? boxMax : boxMin) - position) / direction;
-				float scalar = min(min(factors.x, factors.y), factors.z);
-				return direction * scalar + (position - cubemapPosition);
-			}
-
-			return direction;
-		}
-
-		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
-			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			float3 xyz = RGBToXYZC(rgb);
-			float3 weights = weightFromXYZCurves(xyz);
-			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
-			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
-			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
-			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE * UV; UVParam.z = (float)5;
-			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE * IR; IRParam.z = (float)5;
-
-			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-			return XYZToRGBC(pow(1 / shift, 3) * xyz);
 		}
 
 		//Per pixel shader, does color modifications

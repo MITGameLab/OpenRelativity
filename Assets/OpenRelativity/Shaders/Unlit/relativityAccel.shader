@@ -1,4 +1,4 @@
-Shader "Relativity/Unlit/ColorShift"
+Shader "Relativity/Unlit/ColorLorentz"
 {
 	Properties
 	{
