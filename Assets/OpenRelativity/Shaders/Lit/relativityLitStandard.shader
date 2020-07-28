@@ -561,7 +561,8 @@ Shader "Relativity/Lit/Standard" {
 				lightColor = _LightColor0;
 			}
 			else {
-				float posDotAiw = -dot(_WorldSpaceLightPos0.xyz, i.aiwt);
+				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
+				float posDotAiw = -dot(posTransformed, o.aiwt);
 
 				float shift = sqrt(aiwDotAiw) * _spdOfLightSqrd;
 				if (shift != 0) {
