@@ -73,15 +73,16 @@ Shader "Relativity/Lit/Standard" {
 			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD5; //normal in world
+			float4 aiwt : TEXCOORD6;
 #if _EMISSION
-			float2 uv3 : TEXCOORD6; //EmisionMap TEXCOORD
+			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
 #if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD7;
-			SHADOW_COORDS(7)
+			float4 ambient : TEXCOORD8;
+			SHADOW_COORDS(8)
 #endif
 #elif defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD6;
-			SHADOW_COORDS(6)
+			float4 ambient : TEXCOORD7;
+			SHADOW_COORDS(8)
 #endif
 		};
 
@@ -113,7 +114,8 @@ Shader "Relativity/Lit/Standard" {
 		float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 		float4 _vr;
-		float _spdOfLight = 100; //current speed of ligh;
+		float _spdOfLight = 100; //current speed of light;
+		float _spdOfLightSqrd = 10000;
 		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 		float xyr = 1; // xy ratio
@@ -247,6 +249,7 @@ Shader "Relativity/Lit/Standard" {
 
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
@@ -286,7 +289,7 @@ Shader "Relativity/Lit/Standard" {
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 
 			float speed = length(_vpc.xyz);
-			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
+			_spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
 			//relative speed
 			float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
@@ -299,7 +302,7 @@ Shader "Relativity/Lit/Standard" {
 			float4 riwForMetric = mul(_vpcLorentzMatrix, riw);
 
 			//Find metric based on player acceleration and rest frame:
-			float linFac = 1 + dot(_pap.xyz, riwForMetric.xyz) / spdOfLightSqrd;
+			float linFac = 1 + dot(_pap.xyz, riwForMetric.xyz) / _spdOfLightSqrd;
 			linFac *= linFac;
 			float angFac = dot(_avp.xyz, riwForMetric.xyz) / _spdOfLight;
 			angFac *= angFac;
@@ -331,10 +334,11 @@ Shader "Relativity/Lit/Standard" {
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
-			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
+			o.aiwt = mul(metric, aiwTransformed);
+			float aiwDotAiw = -dot(aiwTransformed, o.aiwt);
+			float riwDotAiw = -dot(riwTransformed, o.aiwt);
 
-			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
+			float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
 			float aiwMag = length(aiwTransformed.xyz);
 			float t2 = 0;
 			if (sqrtArg > 0)
@@ -345,7 +349,7 @@ Shader "Relativity/Lit/Standard" {
 			//add the position offset due to acceleration
 			if (aiwMag > divByZeroCutoff)
 			{
-				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
 			}
 			riwTransformed.w = tisw;
 
@@ -381,9 +385,9 @@ Shader "Relativity/Lit/Standard" {
 				lightColor = _LightColor0;
 			} else {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
-				float posDotAiw = -dot(posTransformed, mul(metric, aiwTransformed));
+				float posDotAiw = -dot(posTransformed, o.aiwt);
 
-				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * spdOfLightSqrd);
+				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
 				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
 			}
 
@@ -420,9 +424,9 @@ Shader "Relativity/Lit/Standard" {
 				}
 				else {
 					float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
-					float posDotAiw = -dot(posTransformed, mul(metric, aiwTransformed));
+					float posDotAiw = -dot(posTransformed, o.aiwt);
 
-					float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * spdOfLightSqrd);
+					float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
 					lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
 				}
 
@@ -455,9 +459,9 @@ Shader "Relativity/Lit/Standard" {
 			}
 			else {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
-				float posDotAiw = -dot(posTransformed, mul(metric, aiwTransformed));
+				float posDotAiw = -dot(posTransformed, o.aiwt);
 
-				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * spdOfLightSqrd);
+				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
 				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
 			}
 
@@ -526,6 +530,12 @@ Shader "Relativity/Lit/Standard" {
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
 			i.diff = float4((float3)lms, 0);
 #elif defined(POINT)
+			// We have to compromise on accuracy for relativity in curved backgrounds, here, unfortunately.
+			// Ideally, we'd pass the metric tensor into the fragment shader, for use here, to calculate
+			// inner products, but that's a little computationally extreme, for the pipeline.
+			// It's not theoretically correct, for point lights, but we assume that the frame is flat and
+			// inertial, up to acceleration of the fragment.
+
 			float3 normalDirection = normalize(i.normal.xyz);
 			float3 lightDirection;
 			float attenuation;
@@ -544,7 +554,23 @@ Shader "Relativity/Lit/Standard" {
 				lightDirection = normalize(vertexToLightSource);
 			}
 			float nl = max(0, dot(normalDirection, lightDirection));
-			i.diff = float4(attenuation * _LightColor0.rgb * _Color.rgb * nl, 1);
+
+			float aiwDotAiw = -dot(i.aiwt, i.aiwt);
+			float4 lightColor;
+			if (aiwDotAiw == 0) {
+				lightColor = _LightColor0;
+			}
+			else {
+				float posDotAiw = -dot(_WorldSpaceLightPos0.xyz, i.aiwt);
+
+				float shift = sqrt(aiwDotAiw) * _spdOfLightSqrd;
+				if (shift != 0) {
+					shift = 1.0 + posDotAiw / shift;
+				}
+				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+			}
+
+			i.diff = float4(attenuation * lightColor.rgb * _Color.rgb * nl, 1);
 #endif
 
 			//Apply lighting:
