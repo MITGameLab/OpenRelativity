@@ -85,10 +85,7 @@ Shader "Relativity/Lit/Standard" {
 #endif
 		};
 
-		//uniform float4 _Color;
 		//Variables that we use to access texture data
-		//sampler2D _MainTex;
-		//uniform float4 _MainTex_ST;
 		sampler2D _IRTex;
 		uniform float4 _IRTex_ST;
 		sampler2D _UVTex;
@@ -377,7 +374,6 @@ Shader "Relativity/Lit/Standard" {
 
 			o.normal = float4(UnityObjectToWorldNormal(v.normal), 0);
 
-			//#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
 #if defined(VERTEXLIGHT_ON)
 			// Red/blue shift light due to gravity
 			float4 lightColor;
@@ -730,5 +726,5 @@ Shader "Relativity/Lit/Standard" {
 			}
 		}
 
-		FallBack "Relativity/Unlit/ColorShift"
+		FallBack "Relativity/Unlit/ColorLorentz"
 }

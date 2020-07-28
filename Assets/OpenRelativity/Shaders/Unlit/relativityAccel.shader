@@ -353,11 +353,6 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float3 rgbFinal = XYZToRGBC(pow(1 / shift ,3) * xyz);
 			rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
 
-			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
-			//float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
-			//float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a));
-			//return temp2;	
-			//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a );
 			return float4(rgbFinal.xyz,data.a); //use me for any real build
 		}
 
