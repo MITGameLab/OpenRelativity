@@ -175,6 +175,10 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
+			if (bottom2 == 0) {
+				bottom2 = 1.0f;
+			}
+
 			float paramYShift = param.y * shift;
 
 			float top1 = param.x * xla * exp(-(((paramYShift - xlb) * (paramYShift - xlb))
@@ -195,6 +199,9 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
+			if (bottom == 0) {
+				bottom = 1.0f;
+			}
 
 			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
 				/ (2 * (bottom + yc * yc)))) * sqrt2Pi;
@@ -211,6 +218,9 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
+			if (bottom == 0) {
+				bottom = 1.0f;
+			}
 
 			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
 				/ (2 * (bottom + zc * zc)))) * sqrt2Pi;
@@ -265,6 +275,10 @@ Shader "Relativity/Lit/Standard" {
 
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+
+			if (shift == 0) {
+				shift = 1.0f;
+			}
 
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
@@ -436,7 +450,7 @@ Shader "Relativity/Lit/Standard" {
 
 				// Red/blue shift light due to gravity
 				if (aiwDotAiw == 0) {
-					lightColor = unity_LightColor[index].rgb;
+					lightColor = _LightColor0;
 				}
 				else {
 					float posDotAiw = -dot(vertexToLightSource, o.aiwt);
@@ -584,9 +598,12 @@ Shader "Relativity/Lit/Standard" {
 				float posDotAiw = -dot(posTransformed, i.aiwt);
 
 				float shift = sqrt(aiwDotAiw) * _spdOfLightSqrd;
-				if (shift != 0) {
-					shift = 1.0 + posDotAiw / shift;
+				if (shift == 0) {
+					shift = 1.0f;
 				}
+
+				shift = 1.0f + posDotAiw / shift;
+
 				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
 			}
 
