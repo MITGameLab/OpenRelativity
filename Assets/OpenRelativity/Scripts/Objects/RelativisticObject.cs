@@ -504,6 +504,7 @@ namespace OpenRelativity.Objects
                 //If it's null, ignore it.
                 if (meshFilters[y] == null) continue;
                 if (meshFilters[y].sharedMesh == null) continue;
+                if (!meshFilters[y].sharedMesh.isReadable) continue;
                 //else add its vertices to the vertcount
                 vertCount += meshFilters[y].sharedMesh.vertices.Length;
                 //Add its triangles to the count
@@ -537,6 +538,7 @@ namespace OpenRelativity.Objects
                 //just doublecheck that the mesh isn't null
                 MFs = meshFilters[i].sharedMesh;
                 if (MFs == null) continue;
+                if (!MFs.isReadable) continue;
 
                 //Otherwise, for all submeshes in the current mesh
                 for (int q = 0; q < subMeshCount[i]; q++)
@@ -743,7 +745,7 @@ namespace OpenRelativity.Objects
             }
 
             //Get the vertices of our mesh
-            if (meshFilter != null)
+            if ((meshFilter != null) && meshFilter.mesh.isReadable)
             {
                 rawVertsBufferLength = meshFilter.mesh.vertices.Length;
                 rawVertsBuffer = meshFilter.mesh.vertices;
