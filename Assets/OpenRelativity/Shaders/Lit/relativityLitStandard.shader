@@ -17,6 +17,8 @@ Shader "Relativity/Lit/Standard" {
 		_EmissionMap("Emission Map", 2D) = "black" {}
 		[HDR] _EmissionColor("Emission Color", Color) = (0,0,0)
 		_EmissionMultiplier("Emission Multiplier", Range(0,10)) = 1
+		[Toggle(IS_STATIC)]
+		_IsStatic("Light Map Static", Range(0, 1)) = 0
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's acceleration in world coordinates
@@ -113,6 +115,8 @@ Shader "Relativity/Lit/Standard" {
 		float _EmissionMultiplier;
 
 		float _Specular;
+
+		float _IsStatic;
 
 		//Lorentz transforms from player to world and from object to world are the same for all points in an object,
 		// so it saves redundant GPU time to calculate them beforehand.
@@ -366,20 +370,33 @@ Shader "Relativity/Lit/Standard" {
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 			o.aiwt = mul(metric, aiwTransformed);
 			float aiwDotAiw = -dot(aiwTransformed, o.aiwt);
-			float riwDotAiw = -dot(riwTransformed, o.aiwt);
 
-			float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
-			float aiwMag = length(aiwTransformed.xyz);
-			float t2 = 0;
-			if (sqrtArg > 0)
-			{
-				t2 = -sqrt(sqrtArg);
+			if (_IsStatic) {
+				float sqrtArg = riwDotRiw / _spdOfLightSqrd;
+
+				float t2 = 0;
+				if (sqrtArg > 0)
+				{
+					t2 = -sqrt(sqrtArg);
+				}
+				tisw += t2;
 			}
-			tisw += t2;
-			//add the position offset due to acceleration
-			if (aiwMag > divByZeroCutoff)
-			{
-				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+			else {
+				float riwDotAiw = -dot(riwTransformed, o.aiwt);
+
+				float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
+				float aiwMag = length(aiwTransformed.xyz);
+				float t2 = 0;
+				if (sqrtArg > 0)
+				{
+					t2 = -sqrt(sqrtArg);
+				}
+				tisw += t2;
+				//add the position offset due to acceleration
+				if (aiwMag > divByZeroCutoff)
+				{
+					riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+				}
 			}
 			riwTransformed.w = tisw;
 
