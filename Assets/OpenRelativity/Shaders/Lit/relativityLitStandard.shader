@@ -86,21 +86,21 @@ Shader "Relativity/Lit/Standard" {
 			float vtlt : TEXCOORD8;
 		#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			float4 ambient : TEXCOORD9;
-			SHADOW_COORDS(9)
+			SHADOW_COORDS(10)
 		#endif
 	#elif defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			float4 ambient : TEXCOORD8;
-			SHADOW_COORDS(8)
+			SHADOW_COORDS(9)
 	#endif
 #elif defined(POINT)
 			float vtlt : TEXCOORD7;
 	#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			float4 ambient : TEXCOORD8;
-			SHADOW_COORDS(8)
+			SHADOW_COORDS(9)
 	#endif
 #elif defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			float4 ambient : TEXCOORD7;
-			SHADOW_COORDS(7)
+			SHADOW_COORDS(8)
 #endif
 		};
 
