@@ -27,9 +27,8 @@ Shader "Relativity/Lit/Standard" {
 
 #pragma exclude_renderers xbox360
 #pragma glsl
-#include "UnityCG.cginc"
-#include "Lighting.cginc"
-#include "AutoLight.cginc"
+// TODO: Shouldn't be necessary to define this if headers are included in shadow variants/passes only
+#define TRANSFER_SHADOW(a) a._ShadowCoord = mul( unity_WorldToShadow[0], mul( unity_ObjectToWorld, v.vertex ) );
 #include "UnityStandardCore.cginc"
 
 //Color shift variables, used to make guassians for XYZ curves
