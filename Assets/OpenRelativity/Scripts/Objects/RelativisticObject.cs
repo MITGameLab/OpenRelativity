@@ -10,23 +10,20 @@ namespace OpenRelativity.Objects
     {
         #region Public Settings
         // Set with Rigidbody isKinematic flag instead
-        private bool _isKinematic = false;
         public bool isKinematic
         {
             get
             {
                 if (myRigidbody != null)
                 {
-                    _isKinematic = myRigidbody.isKinematic;
+                    return myRigidbody.isKinematic;
                 }
 
-                return _isKinematic;
+                return false;
             }
 
             set
             {
-                _isKinematic = value;
-
                 if (myRigidbody != null)
                 {
                     myRigidbody.isKinematic = value;
@@ -102,16 +99,13 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if (IsNaNOrInf(value.sqrMagnitude) || (value - _nonGravAccel).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
+                if (isKinematic || IsNaNOrInf(value.sqrMagnitude) || (value - _nonGravAccel).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
                 {
                     return;
                 }
 
-                if (!isKinematic)
-                {
-                    UpdateViwAndAccel(_viw, value);
-                    UpdateRigidbodyVelocity(_viw, _aviw);
-                }
+                UpdateViwAndAccel(_viw, value);
+                UpdateRigidbodyVelocity(_viw, _aviw);
             }
         }
 
@@ -696,8 +690,6 @@ namespace OpenRelativity.Objects
             frameDragAccel = Vector3.zero;
             ResetPiw();
             riw = transform.rotation;
-
-            piw = ((Vector4)((Vector4)piw).WorldToOptical(Vector3.zero, Vector3.zero.ProperToWorldAccel(Vector3.zero, GetTimeFactor()))).OpticalToWorldHighPrecision(viw, aiw.ProperToWorldAccel(viw, GetTimeFactor()));
 
             if (nonrelativisticShader)
             {
