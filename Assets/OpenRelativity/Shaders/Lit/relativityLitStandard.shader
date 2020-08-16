@@ -301,11 +301,16 @@ Shader "Relativity/Lit/Standard" {
 
 		float3 ApplyFog(float3 color, float shift, float3 pos) {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
-			float3 fogColor = 0;
-			#if defined(UNITY_PASS_FORWARDBASE)
-			fogColor = DopplerShift(unity_FogColor.rgb, 0, 0, shift);
-			#endif
+#if defined(UNITY_PASS_FORWARDBASE)
+	#if _EMISSION
+			float3 fogColor = DopplerShift(unity_FogColor.rgb, 0, 0, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
+	#else
+			return DopplerShift(lerp(unity_FogColor.rgb, color, saturate(unityFogFactor)), 0, 0, shift);
+	#endif
+#else
+			return lerp((float3)0, color, saturate(unityFogFactor));
+#endif
 		}
 
 		//Per vertex operations
