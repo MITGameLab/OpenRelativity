@@ -69,8 +69,9 @@ Shader "Relativity/Lit/Standard" {
 		{
 			float4 pos : POSITION; //internal, used for display
 			float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
-			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
-			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
+			float4 pos3 : TEXCOORD1; //Untransformed position in world, relative to player position in world
+			float2 uv1 : TEXCOORD2; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
+			float svc : TEXCOORD3; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD5; //normal in world
@@ -325,7 +326,8 @@ Shader "Relativity/Lit/Standard" {
 #endif
 
 			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
-			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
+			o.pos3 = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
+			o.pos = o.pos3;
 
 			float speed = length(_vpc.xyz);
 			_spdOfLightSqrd = _spdOfLight * _spdOfLight;
@@ -689,7 +691,9 @@ Shader "Relativity/Lit/Standard" {
 #endif
 
 #if !defined(DEFERRED_PASS) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
-			rgbFinal = ApplyFog(rgbFinal, shift, i.pos2);
+			// We're approximating a volumetric effect for a fog that's stationary relative
+			// to the untransformed world coordinates, so we just use those.
+			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
 #endif
 
 			rgbFinal = constrainRGB(rgbFinal.r, rgbFinal.g, rgbFinal.b); //might not be needed
