@@ -301,7 +301,10 @@ Shader "Relativity/Lit/Standard" {
 
 		float3 ApplyFog(float3 color, float shift, float3 pos) {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
-			float3 fogColor = DopplerShift(unity_FogColor.rgb, 0, 0, shift);
+			float3 fogColor = 0;
+			#if defined(UNITY_PASS_FORWARDBASE)
+			fogColor = DopplerShift(unity_FogColor.rgb, 0, 0, shift);
+			#endif
 			return lerp(fogColor, color, saturate(unityFogFactor));
 		}
 
@@ -690,7 +693,7 @@ Shader "Relativity/Lit/Standard" {
 			rgbFinal += rgbEmission;
 #endif
 
-#if !defined(DEFERRED_PASS) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+#if !defined(UNITY_PASS_DEFERRED) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
 			// We're approximating a volumetric effect for a fog that's stationary relative
 			// to the untransformed world coordinates, so we just use those.
 			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
