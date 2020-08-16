@@ -298,6 +298,12 @@ Shader "Relativity/Lit/Standard" {
 			return XYZToRGBC(pow(1 / shift, 3) * xyz);
 		}
 
+		float3 ApplyFog(float3 color, float shift, float3 pos) {
+			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
+			float3 fogColor = DopplerShift(unity_FogColor.rgb, 0, 0, shift);
+			return lerp(fogColor, color, saturate(unityFogFactor));
+		}
+
 		//Per vertex operations
 		v2f vert(appdata v)
 		{
@@ -676,18 +682,19 @@ Shader "Relativity/Lit/Standard" {
 
 			//Doppler factor should be squared for reflected light:
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
+
 #if _EMISSION
 			//Add emission:
 			rgbFinal += rgbEmission;
 #endif
-			rgbFinal = constrainRGB(rgbFinal.x, rgbFinal.y, rgbFinal.z); //might not be needed
 
-			//Test if unity_Scale is correct, unity occasionally does not give us the correct scale and you will see strange things in vertices,  this is just easy way to test
-			//float4x4 temp  = mul(unity_Scale.w*_Object2World, _World2Object);
-			//float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a));
-			//return temp2;	
-			//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,data.a );
-			return float4(rgbFinal.xyz,data.a); //use me for any real build
+#if !defined(DEFERRED_PASS) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+			rgbFinal = ApplyFog(rgbFinal, shift, i.pos2);
+#endif
+
+			rgbFinal = constrainRGB(rgbFinal.r, rgbFinal.g, rgbFinal.b); //might not be needed
+
+			return float4(rgbFinal.rgb, data.a); //use me for any real build
 		}
 
 		ENDCG
@@ -709,6 +716,7 @@ Shader "Relativity/Lit/Standard" {
 
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdbase
+				#pragma multi_compile_fog
 				#pragma shader_feature SPECULAR
 			    #pragma shader_feature _EMISSION
 
@@ -729,6 +737,7 @@ Shader "Relativity/Lit/Standard" {
 
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdadd
+				#pragma multi_compile_fog
 				#pragma shader_feature SPECULAR
 				#pragma shader_feature _EMISSION
 

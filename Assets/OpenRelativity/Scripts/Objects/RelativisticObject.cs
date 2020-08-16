@@ -1176,7 +1176,7 @@ namespace OpenRelativity.Objects
         private void UpdateShaderParams()
         {
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
-            if (myRenderer != null && !isLightMapStatic)
+            if (myRenderer != null)
             {
                 Vector3 tempViw = cviw.AddVelocity(viw) / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
