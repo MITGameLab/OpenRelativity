@@ -341,11 +341,11 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam,gParam,bParam,UVParam,IRParam;
-			rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
-			gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
-			bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
-			UVParam.x = 0.02; UVParam.y = UV_START + UV_RANGE * UV; UVParam.z = (float)5;
-			IRParam.x = 0.02; IRParam.y = IR_START + IR_RANGE * IR; IRParam.z = (float)5;
+			rParam = float3(weights.x, 615.0f, 8.0f);
+			gParam = float3(weights.y, 550.0f, 4.0f);
+			bParam = float3(weights.z, 463.0f, 5.0f);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
 
 			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
 			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
