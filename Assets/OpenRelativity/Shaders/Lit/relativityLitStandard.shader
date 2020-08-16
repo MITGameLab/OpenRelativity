@@ -80,7 +80,7 @@ Shader "Relativity/Lit/Standard" {
 // We want to use the bare minimum of TEXCOORD instances we can get away with, to support
 // the oldest and most limited possible hardware.
 // TODO: Prettify the syntax of this section.
-#if _EMISSION
+#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
 	#if defined(POINT)
 			float4 vtlt : TEXCOORD8;
@@ -324,7 +324,7 @@ Shader "Relativity/Lit/Standard" {
 				o.uv1.y = 1.0 - o.uv1.y;
 #endif 
 
-#if _EMISSION
+#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			o.uv3.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy;
 #endif
 
@@ -578,7 +578,7 @@ Shader "Relativity/Lit/Standard" {
 			float UV = tex2D(_UVTex, i.uv1).r;
 			float IR = tex2D(_IRTex, i.uv1).r;
 
-#if _EMISSION
+#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
 #endif
 
@@ -685,14 +685,14 @@ Shader "Relativity/Lit/Standard" {
 			}
 #endif
 
-#if _EMISSION
+#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			//Doppler factor should be squared for reflected light:
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
 
 			//Add emission:
 			rgbFinal += rgbEmission;
 
-	#if !defined(UNITY_PASS_DEFERRED) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+	#if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
 			// We're approximating a volumetric effect for a fog that's stationary relative
 			// to the untransformed world coordinates, so we just use those.
 			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
