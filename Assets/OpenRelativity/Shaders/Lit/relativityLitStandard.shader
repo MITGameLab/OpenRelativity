@@ -709,7 +709,6 @@ Shader "Relativity/Lit/Standard" {
 				//Shader properties, for things such as transparency
 				ZWrite On
 				ZTest LEqual
-				Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
 				Tags{ "LightMode" = "ForwardBase" }
 				LOD 100
 
