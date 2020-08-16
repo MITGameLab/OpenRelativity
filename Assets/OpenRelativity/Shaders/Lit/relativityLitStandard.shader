@@ -82,7 +82,7 @@ Shader "Relativity/Lit/Standard" {
 #if _EMISSION
 			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
 	#if defined(POINT)
-			float vtlt : TEXCOORD8;
+			float4 vtlt : TEXCOORD8;
 		#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			float4 ambient : TEXCOORD9;
 			SHADOW_COORDS(10)
@@ -92,7 +92,7 @@ Shader "Relativity/Lit/Standard" {
 			SHADOW_COORDS(9)
 	#endif
 #elif defined(POINT)
-			float vtlt : TEXCOORD7;
+			float4 vtlt : TEXCOORD7;
 	#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
 			float4 ambient : TEXCOORD8;
 			SHADOW_COORDS(9)
