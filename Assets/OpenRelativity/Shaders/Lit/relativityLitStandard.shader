@@ -685,18 +685,26 @@ Shader "Relativity/Lit/Standard" {
 			}
 #endif
 
+#if _EMISSION
 			//Doppler factor should be squared for reflected light:
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
 
-#if _EMISSION
 			//Add emission:
 			rgbFinal += rgbEmission;
-#endif
 
-#if !defined(UNITY_PASS_DEFERRED) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+	#if !defined(UNITY_PASS_DEFERRED) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
 			// We're approximating a volumetric effect for a fog that's stationary relative
 			// to the untransformed world coordinates, so we just use those.
 			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
+	#endif
+#else
+	#if !defined(UNITY_PASS_DEFERRED) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+			// Doppler shift can be combined into a single step, if there's no emission
+			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
+	#else
+			//Doppler factor should be squared for reflected light:
+			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
+	#endif
 #endif
 
 			rgbFinal = constrainRGB(rgbFinal.r, rgbFinal.g, rgbFinal.b); //might not be needed
