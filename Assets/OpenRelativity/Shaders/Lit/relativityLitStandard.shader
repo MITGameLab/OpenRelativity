@@ -32,27 +32,38 @@ Shader "Relativity/Lit/Standard" {
 #include "UnityStandardCore.cginc"
 
 //Color shift variables, used to make guassians for XYZ curves
-#define xla 0.39952807612909519
-#define xlb 444.63156780935032
-#define xlc 20.095464678736523
+#define xla 0.39952807612909519f
+#define xlb 444.63156780935032f
+#define xlc 20.095464678736523f
 
-#define xha 1.1305579611401821
-#define xhb 593.23109262398259
-#define xhc 34.446036241271742
+#define xlcSqr 403.827700654347187546611654129529f
 
-#define ya 1.0098874822455657
-#define yb 556.03724875218927
-#define yc 46.184868454550838
+#define xha 1.1305579611401821f
+#define xhb 593.23109262398259f
+#define xhc 34.446036241271742f
 
-#define za 2.0648400466720593
-#define zb 448.45126344558236
-#define zc 22.357297606503543
+#define xhcSqr 1186.529412735006279641477487714564f
 
-			//Used to determine where to center UV/IR curves
+#define ya 1.0098874822455657f
+#define yb 556.03724875218927f
+#define yc 46.184868454550838f
+
+#define ycSqr 2133.042074164165111255232326502244f
+
+#define za 2.0648400466720593f
+#define zb 448.45126344558236f
+#define zc 22.357297606503543f
+
+#define zcSqr 499.848756265769052653089671552849f
+
+//Used to determine where to center UV/IR curves
 #define IR_RANGE 400
 #define IR_START 700
 #define UV_RANGE 380
 #define UV_START 0
+
+#define FORWARD_FOG (!defined(UNITY_PASS_DEFERRED) && defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+#define SHADOW_OR_SPOT (defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT)))
 
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
@@ -69,38 +80,49 @@ Shader "Relativity/Lit/Standard" {
 		{
 			float4 pos : POSITION; //internal, used for display
 			float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
-			float4 pos3 : TEXCOORD1; //Untransformed position in world, relative to player position in world
-			float2 uv1 : TEXCOORD2; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
-			float svc : TEXCOORD3; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
-			float2 uv2 : TEXCOORD4; //Lightmap TEXCOORD
+			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
+			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
+			float2 uv2 : TEXCOORD3; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
-			float4 normal : TEXCOORD5; //normal in world
-			float4 aiwt : TEXCOORD6;
+			float4 normal : TEXCOORD4; //normal in world
+			float4 aiwt : TEXCOORD5;
 // This section is a mess, but the problem is that shader semantics are "prime real estate."
 // We want to use the bare minimum of TEXCOORD instances we can get away with, to support
 // the oldest and most limited possible hardware.
 // TODO: Prettify the syntax of this section.
-#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
-			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
-	#if defined(POINT)
-			float4 vtlt : TEXCOORD8;
-		#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD9;
-			SHADOW_COORDS(10)
+#if SHADOW_OR_SPOT
+			float4 ambient : TEXCOORD6;
+			SHADOW_COORDS(7)
+	#if FORWARD_FOG
+			float4 pos3 : TEXCOORD8; //Untransformed position in world, relative to player position in world
+		#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+			float2 uv3 : TEXCOORD9; //EmisionMap TEXCOORD
+			#if defined(POINT)
+			float4 vtlt : TEXCOORD10;
+			#endif
+		#elif defined(POINT)
+			float4 vtlt : TEXCOORD9;
 		#endif
-	#elif defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD8;
-			SHADOW_COORDS(9)
+	#elif defined(POINT)
+			float4 vtlt : TEXCOORD8;
+	#endif
+#elif FORWARD_FOG
+			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
+	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
+		#if defined(POINT)
+			float4 vtlt : TEXCOORD8;
+		#endif
+	#elif defined(POINT)
+			float4 vtlt : TEXCOORD7;
+	#endif
+#elif defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+			float2 uv3 : TEXCOORD6; //EmisionMap TEXCOORD
+	#if defined(POINT)
+			float4 vtlt : TEXCOORD7;
 	#endif
 #elif defined(POINT)
-			float4 vtlt : TEXCOORD7;
-	#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD8;
-			SHADOW_COORDS(9)
-	#endif
-#elif defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
-			float4 ambient : TEXCOORD7;
-			SHADOW_COORDS(8)
+			float4 vtlt : TEXCOORD6;
 #endif
 		};
 
@@ -148,27 +170,30 @@ Shader "Relativity/Lit/Standard" {
 		//some graphics cards.
 		float3 RGBToXYZC(float3 rgb)
 		{
-			float3 xyz;
-			xyz.x = dot(float3(0.13514, 0.120432, 0.057128), rgb);
-			xyz.y = dot(float3(0.0668999, 0.232706, 0.0293946), rgb);
-			xyz.z = dot(float3(0.0, 0.0000218959, 0.358278), rgb);
-			return xyz;
+			const float3x3 rgbToXyz = {
+				0.13514f, 0.120432f, 0.057128f,
+				0.0668999f, 0.232706f, 0.0293946f,
+				0.0f, 0.0000218959f, 0.358278f
+			};
+			return mul(rgbToXyz, rgb);
 		}
 		float3 XYZToRGBC(float3 xyz)
 		{
-			float3 rgb;
-			rgb.x = dot(float3(9.94845, -5.1485, -1.16389), xyz);
-			rgb.y = dot(float3(-2.86007, 5.77745, -0.0179627), xyz);
-			rgb.z = dot(float3(0.000174791, -0.000353084, 2.79113), xyz);
-			return rgb;
+			const float3x3 xyzToRgb = {
+				9.94845f, -5.1485f, -1.16389f,
+				-2.86007f, 5.77745f, -0.0179627f,
+				0.000174791f, -0.000353084f, 2.79113f
+			};
+			return mul(xyzToRgb, xyz);
 		}
 		float3 weightFromXYZCurves(float3 xyz)
 		{
-			float3 returnVal;
-			returnVal.x = dot(float3(0.0735806, -0.0380793, -0.00860837), xyz);
-			returnVal.y = dot(float3(-0.0665378, 0.134408, -0.000417865), xyz);
-			returnVal.z = dot(float3(0.00000299624, -0.00000605249, 0.0484424), xyz);
-			return returnVal;
+			const float3x3 xyzToWeight = {
+				0.0735806f, -0.0380793f, -0.00860837f,
+				-0.0665378f, 0.134408f, -0.000417865f,
+				0.00000299624f, -0.00000605249f, 0.0484424f
+			};
+			return mul(xyzToWeight, xyz);
 		}
 
 		float getXFromCurve(float3 param, float shift)
@@ -186,12 +211,12 @@ Shader "Relativity/Lit/Standard" {
 			float paramYShift = param.y * shift;
 
 			float top1 = param.x * xla * exp(-(((paramYShift - xlb) * (paramYShift - xlb))
-				/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
-			float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
+				/ (2 * (bottom2 + xlcSqr)))) * sqrt2Pi;
+			float bottom1 = sqrt(1 / bottom2 + 1 / xlcSqr);
 
 			float top2 = param.x * xha * exp(-(((paramYShift - xhb) * (paramYShift - xhb))
-				/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
-			bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
+				/ (2 * (bottom2 + xhcSqr)))) * sqrt2Pi;
+			bottom2 = sqrt(1 / bottom2 + 1 / xhcSqr);
 
 			return (top1 / bottom1) + (top2 / bottom2);
 		}
@@ -208,8 +233,8 @@ Shader "Relativity/Lit/Standard" {
 			}
 
 			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
-				/ (2 * (bottom + yc * yc)))) * sqrt2Pi;
-			bottom = sqrt(1 / bottom + 1 / (yc * yc));
+				/ (2 * (bottom + ycSqr)))) * sqrt2Pi;
+			bottom = sqrt(1 / bottom + 1 / ycSqr);
 
 			return top / bottom;
 		}
@@ -227,8 +252,8 @@ Shader "Relativity/Lit/Standard" {
 			}
 
 			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
-				/ (2 * (bottom + zc * zc)))) * sqrt2Pi;
-			bottom = sqrt(1 / bottom + 1 / (zc * zc));
+				/ (2 * (bottom + zcSqr)))) * sqrt2Pi;
+			bottom = sqrt(1 / bottom + 1 / zcSqr);
 
 			return top / bottom;
 		}
@@ -245,6 +270,7 @@ Shader "Relativity/Lit/Standard" {
 			if (w > 0) {
 				r += w;  g += w; b += w;
 			}
+
 			w = r;
 			w = (w < g) ? g : w;
 			w = (w < b) ? b : w;
@@ -255,12 +281,8 @@ Shader "Relativity/Lit/Standard" {
 				g /= w;
 				b /= w;
 			}
-			float3 rgb;
-			rgb.x = r;
-			rgb.y = g;
-			rgb.z = b;
-			return rgb;
 
+			return float3(r, g, b);
 		};
 
 		float3 BoxProjection(
@@ -326,7 +348,7 @@ Shader "Relativity/Lit/Standard" {
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 			if (_MainTex_TexelSize.y < 0)
-				o.uv1.y = 1.0 - o.uv1.y;
+				o.uv1.y = 1.0f - o.uv1.y;
 #endif 
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
@@ -334,8 +356,12 @@ Shader "Relativity/Lit/Standard" {
 #endif
 
 			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+#if FORWARD_FOG
 			o.pos3 = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 			o.pos = o.pos3;
+#else
+			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
+#endif
 
 			float speed = length(_vpc.xyz);
 			_spdOfLightSqrd = _spdOfLight * _spdOfLight;
@@ -449,7 +475,7 @@ Shader "Relativity/Lit/Standard" {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
 				float posDotAiw = -dot(posTransformed, o.aiwt);
 
-				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
+				float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
 				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
 			}
 
@@ -460,7 +486,7 @@ Shader "Relativity/Lit/Standard" {
 			// factor in the light color
 			o.diff = nl * lightColor;
 			// add ambient light
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+#if SHADOW_OR_SPOT
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
 #else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
@@ -474,7 +500,7 @@ Shader "Relativity/Lit/Standard" {
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
 					unity_4LightPosY0[index],
-					unity_4LightPosZ0[index], 1.0);
+					unity_4LightPosZ0[index], 1.0f);
 				vertexToLightSource =
 					mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - o.pos2.xyz;
 				squaredDistance =
@@ -486,24 +512,24 @@ Shader "Relativity/Lit/Standard" {
 				}
 				else {
 					float posDotAiw = -dot(vertexToLightSource, o.aiwt);
-					float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
+					float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
 					lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
 				}
 
 				if (dot(float4(0, 0, 1, 0), unity_SpotDirection[index]) != 1) // directional light?
 				{
-					attenuation = 1.0; // no attenuation
+					attenuation = 1.0f; // no attenuation
 					lightDirection =
 						normalize(unity_SpotDirection[index]);
 				}
 				else {
-					attenuation = 1.0 / (1.0 +
+					attenuation = 1.0f / (1.0f +
 						unity_4LightAtten0[index] * squaredDistance);
 					lightDirection = normalize(vertexToLightSource);
 				}
 				diffuseReflection = attenuation
 					* lightColor * _Color.rgb
-					* max(0.0, dot(o.normal.xyz, lightDirection));
+					* max(0.0f, dot(o.normal.xyz, lightDirection));
 
 				o.diff.rgb += diffuseReflection;
 			}
@@ -521,7 +547,7 @@ Shader "Relativity/Lit/Standard" {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
 				float posDotAiw = -dot(posTransformed, o.aiwt);
 
-				float shift = 1.0 + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
+				float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
 				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
 			}
 
@@ -532,14 +558,14 @@ Shader "Relativity/Lit/Standard" {
 			// factor in the light color
 			o.diff = nl * lightColor;
 			// add ambient light
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+#if SHADOW_OR_SPOT
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
 #else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 #endif
 #endif
 
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+#if SHADOW_OR_SPOT
 			TRANSFER_SHADOW(o)
 #endif
 
@@ -606,7 +632,7 @@ Shader "Relativity/Lit/Standard" {
 			float attenuation;
 			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
 			{
-				attenuation = 1.0; // no attenuation
+				attenuation = 1.0f; // no attenuation
 				lightDirection =
 					normalize(_WorldSpaceLightPos0.xyz);
 			}
@@ -615,7 +641,7 @@ Shader "Relativity/Lit/Standard" {
 				float3 vertexToLightSource =
 					mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz).xyz - i.pos2.xyz;
 				float squaredDistance = dot(vertexToLightSource, i.vtlt);
-				attenuation = 1.0 / (1.0 + 0.0005 * squaredDistance);
+				attenuation = 1.0f / (1.0f + 0.0005f * squaredDistance);
 				lightDirection = normalize(vertexToLightSource);
 			}
 			float nl = max(0, dot(normalDirection, lightDirection));
@@ -643,7 +669,7 @@ Shader "Relativity/Lit/Standard" {
 #endif
 
 			//Apply lighting:
-#if defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT))
+#if SHADOW_OR_SPOT
 			fixed shadow = SHADOW_ATTENUATION(i);
 			rgbFinal *= (i.diff * shadow + i.ambient);
 #else
@@ -654,15 +680,15 @@ Shader "Relativity/Lit/Standard" {
 			//Apply specular reflectance
 			//(Assume surrounding medium has an index of refraction of 1)
 			float specFactor;
-			if (_Specular >= 1.0) {
-				specFactor = 1.0;
+			if (_Specular >= 1.0f) {
+				specFactor = 1.0f;
 			}
-			else if (_Specular <= 0.0) {
-				specFactor = 0.0;
+			else if (_Specular <= 0.0f) {
+				specFactor = 0.0f;
 			}
 
 			float indexRefrac = sqrt(1 - _Specular);
-			indexRefrac = (1.0 + indexRefrac) / (1.0 - indexRefrac);
+			indexRefrac = (1.0f + indexRefrac) / (1.0f - indexRefrac);
 			float angle = acos(dot(viewDir, i.normal) / length(viewDir));
 			float cosAngle = cos(angle);
 			float sinFac = sin(angle) / indexRefrac;
@@ -675,7 +701,7 @@ Shader "Relativity/Lit/Standard" {
 			specFactor = (reflecS + reflecP) / 2;
 
 			float3 specRgb, specFinal;
-			if (specFactor > 0.0) {
+			if (specFactor > 0.0f) {
 				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
 				specFinal = DopplerShift(specRgb, 0, 0, shift);
 			}
@@ -685,7 +711,7 @@ Shader "Relativity/Lit/Standard" {
 			}
 
 			// Specular reflection is added after lightmap and shadow
-			if (specFactor > 0.0) {
+			if (specFactor > 0.0f) {
 				rgbFinal += specFinal;
 			}
 #endif
@@ -703,7 +729,7 @@ Shader "Relativity/Lit/Standard" {
 			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
 	#endif
 #else
-	#if !defined(UNITY_PASS_DEFERRED) && (defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
+	#if FORWARD_FOG
 			// Doppler shift can be combined into a single step, if there's no emission
 			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
 	#else
