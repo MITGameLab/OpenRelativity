@@ -103,6 +103,11 @@ Shader "Relativity/Lit/Standard" {
 		#elif defined(POINT)
 			float4 vtlt : TEXCOORD9;
 		#endif
+	#elif defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+			float2 uv3 : TEXCOORD8; //EmisionMap TEXCOORD
+		#if defined(POINT)
+			float4 vtlt : TEXCOORD9;
+		#endif
 	#elif defined(POINT)
 			float4 vtlt : TEXCOORD8;
 	#endif
