@@ -166,8 +166,7 @@ Shader "Relativity/Lit/Standard" {
 		uniform float4 _MainTex_TexelSize;
 		uniform float4 _CameraDepthTexture_ST;
 
-		//Color functions, there's no check for division by 0 which may cause issues on
-		//some graphics cards.
+		//Color functions
 		float3 RGBToXYZC(float3 rgb)
 		{
 			const float3x3 rgbToXyz = {
