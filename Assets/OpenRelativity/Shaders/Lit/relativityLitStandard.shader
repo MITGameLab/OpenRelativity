@@ -208,8 +208,8 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
-			if (bottom2 == 0) {
-				bottom2 = 1.0f;
+			if (bottom2 < divByZeroCutoff) {
+				bottom2 = 1.0;
 			}
 
 			float paramYShift = param.y * shift;
@@ -232,7 +232,7 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
-			if (bottom == 0) {
+			if (bottom < divByZeroCutoff) {
 				bottom = 1.0f;
 			}
 
@@ -251,7 +251,7 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
-			if (bottom == 0) {
+			if (bottom < divByZeroCutoff) {
 				bottom = 1.0f;
 			}
 
@@ -262,31 +262,28 @@ Shader "Relativity/Lit/Standard" {
 			return top / bottom;
 		}
 
-		float3 constrainRGB(float r, float g, float b)
+		float3 constrainRGB(float3 rgb)
 		{
 			float w;
 
-			w = (0 < r) ? 0 : r;
-			w = (w < g) ? w : g;
-			w = (w < b) ? w : b;
-			w = -w;
+			w = (0 < rgb.r) ? 0 : rgb.r;
+			w = (w < rgb.g) ? w : rgb.b;
+			w = (w < rgb.b) ? w : rgb.g;
 
-			if (w > 0) {
-				r += w;  g += w; b += w;
+			if (w < 0) {
+				rgb -= float3(w, w, w);
 			}
 
-			w = r;
-			w = (w < g) ? g : w;
-			w = (w < b) ? b : w;
+			w = rgb.r;
+			w = (w < rgb.g) ? rgb.g : w;
+			w = (w < rgb.b) ? rgb.b : w;
 
 			if (w > 1)
 			{
-				r /= w;
-				g /= w;
-				b /= w;
+				rgb /= float3(w, w, w);
 			}
 
-			return float3(r, g, b);
+			return rgb;
 		};
 
 		float3 BoxProjection(
@@ -306,7 +303,7 @@ Shader "Relativity/Lit/Standard" {
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 
-			if (shift == 0) {
+			if (shift < divByZeroCutoff) {
 				shift = 1.0f;
 			}
 
@@ -319,20 +316,21 @@ Shader "Relativity/Lit/Standard" {
 			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
 			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
 
-			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift));
-			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift));
-			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift));
-			return XYZToRGBC(pow(1 / shift, 3) * xyz);
+			xyz = float3(
+				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
+				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
+				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
+			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
 		}
 
 		float3 ApplyFog(float3 color, float shift, float3 pos) {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
 #if defined(UNITY_PASS_FORWARDBASE)
 	#if _EMISSION
-			float3 fogColor = DopplerShift(unity_FogColor.rgb, 0, 0, shift);
+			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.r, unity_FogColor.b, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
 	#else
-			return DopplerShift(lerp(unity_FogColor.rgb, color, saturate(unityFogFactor)), 0, 0, shift);
+			return DopplerShift(lerp(unity_FogColor.rgb, color, saturate(unityFogFactor)), unity_FogColor.r, unity_FogColor.b, shift);
 	#endif
 #else
 			return lerp((float3)0, color, saturate(unityFogFactor));
@@ -473,7 +471,7 @@ Shader "Relativity/Lit/Standard" {
 #if defined(VERTEXLIGHT_ON)
 			// Red/blue shift light due to gravity
 			float4 lightColor;
-			if (aiwDotAiw == 0) {
+			if (aiwDotAiw < divByZeroCutoff) {
 				lightColor = _LightColor0;
 			} else {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
@@ -511,7 +509,7 @@ Shader "Relativity/Lit/Standard" {
 					dot(vertexToLightSource, mul(metric, vertexToLightSource));
 
 				// Red/blue shift light due to gravity
-				if (aiwDotAiw == 0) {
+				if (aiwDotAiw < divByZeroCutoff) {
 					lightColor = _LightColor0;
 				}
 				else {
@@ -544,7 +542,7 @@ Shader "Relativity/Lit/Standard" {
 #else 
 			// Red/blue shift light due to gravity
 			float4 lightColor;
-			if (aiwDotAiw == 0) {
+			if (aiwDotAiw < divByZeroCutoff) {
 				lightColor = _LightColor0;
 			}
 			else {
@@ -652,7 +650,7 @@ Shader "Relativity/Lit/Standard" {
 
 			float aiwDotAiw = -dot(i.aiwt, i.aiwt);
 			float4 lightColor;
-			if (aiwDotAiw == 0) {
+			if (aiwDotAiw < divByZeroCutoff) {
 				lightColor = _LightColor0;
 			}
 			else {
@@ -660,7 +658,7 @@ Shader "Relativity/Lit/Standard" {
 				float posDotAiw = -dot(posTransformed, i.aiwt);
 
 				float shift = sqrt(aiwDotAiw) * _spdOfLightSqrd;
-				if (shift == 0) {
+				if (shift < divByZeroCutoff) {
 					shift = 1.0f;
 				}
 
@@ -741,8 +739,6 @@ Shader "Relativity/Lit/Standard" {
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
 	#endif
 #endif
-
-			rgbFinal = constrainRGB(rgbFinal.r, rgbFinal.g, rgbFinal.b); //might not be needed
 
 			return float4(rgbFinal.rgb, data.a); //use me for any real build
 		}

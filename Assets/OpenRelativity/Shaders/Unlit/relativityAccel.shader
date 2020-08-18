@@ -294,32 +294,52 @@ Shader "Relativity/Unlit/ColorLorentz"
 			return top / bottom;
 		}
 
-		float3 constrainRGB(float r, float g, float b)
+		float3 constrainRGB(float3 rgb)
 		{
 			float w;
 
-			w = (0 < r) ? 0 : r;
-			w = (w < g) ? w : g;
-			w = (w < b) ? w : b;
-			w = -w;
+			w = (0 < rgb.r) ? 0 : rgb.r;
+			w = (w < rgb.g) ? w : rgb.b;
+			w = (w < rgb.b) ? w : rgb.g;
 
-			if (w > 0) {
-				r += w;  g += w; b += w;
+			if (w < 0) {
+				rgb -= float3(w, w, w);
 			}
 
-			w = r;
-			w = (w < g) ? g : w;
-			w = (w < b) ? b : w;
+			w = rgb.r;
+			w = (w < rgb.g) ? rgb.g : w;
+			w = (w < rgb.b) ? rgb.b : w;
 
 			if (w > 1)
 			{
-				r /= w;
-				g /= w;
-				b /= w;
+				rgb /= float3(w, w, w);
 			}
 
-			return float3(r, g, b);
+			return rgb;
 		};
+
+		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
+			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+
+			if (shift < divByZeroCutoff) {
+				shift = 1.0f;
+			}
+
+			float3 xyz = RGBToXYZC(rgb);
+			float3 weights = weightFromXYZCurves(xyz);
+			float3 rParam, gParam, bParam, UVParam, IRParam;
+			rParam = float3(weights.x, 615.0f, 8.0f);
+			gParam = float3(weights.y, 550.0f, 4.0f);
+			bParam = float3(weights.z, 463.0f, 5.0f);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+
+			xyz = float3(
+				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
+				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
+				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
+			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+		}
 
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
@@ -345,32 +365,11 @@ Shader "Relativity/Unlit/ColorLorentz"
 			// Light directly from a light bulb, or flame, or LED, would not receive this Doppler factor squaring.
 
 			//Get initial color 
-			float4 data = tex2D(_MainTex, i.uv1).rgba;
+			float4 data = tex2D(_MainTex, i.uv1);
 			float UV = tex2D(_UVTex, i.uv1).r;
 			float IR = tex2D(_IRTex, i.uv1).r;
 
-			//Set alpha of drawing pixel to 0 if vertex shader has determined it should not be drawn.
-			//data.a = i.draw ? data.a : 0;
-
-			float3 rgb = data.xyz;
-
-			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			float3 xyz = RGBToXYZC(rgb);
-			float3 weights = weightFromXYZCurves(xyz);
-			float3 rParam,gParam,bParam,UVParam,IRParam;
-			rParam = float3(weights.x, 615.0f, 8.0f);
-			gParam = float3(weights.y, 550.0f, 4.0f);
-			bParam = float3(weights.z, 463.0f, 5.0f);
-			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
-
-			xyz.x = (getXFromCurve(rParam, shift) + getXFromCurve(gParam,shift) + getXFromCurve(bParam,shift) + getXFromCurve(IRParam,shift) + getXFromCurve(UVParam,shift));
-			xyz.y = (getYFromCurve(rParam, shift) + getYFromCurve(gParam,shift) + getYFromCurve(bParam,shift) + getYFromCurve(IRParam,shift) + getYFromCurve(UVParam,shift));
-			xyz.z = (getZFromCurve(rParam, shift) + getZFromCurve(gParam,shift) + getZFromCurve(bParam,shift) + getZFromCurve(IRParam,shift) + getZFromCurve(UVParam,shift));
-			float3 rgbFinal = XYZToRGBC(pow(1 / shift ,3) * xyz);
-			rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z); //might not be needed
-
-			return float4(rgbFinal.xyz,data.a); //use me for any real build
+			return float4(DopplerShift(data.rgb, UV, IR, shift), data.a); //use me for any real build
 		}
 
 			ENDCG
