@@ -31,7 +31,7 @@ Shader "Relativity/Lit/Standard" {
 #define TRANSFER_SHADOW(a) a._ShadowCoord = mul( unity_WorldToShadow[0], mul( unity_ObjectToWorld, v.vertex ) );
 #include "UnityStandardCore.cginc"
 
-//Color shift variables, used to make guassians for XYZ curves
+//Color shift variables, used to make gaussians for XYZ curves
 #define xla 0.39952807612909519f
 #define xlb 444.63156780935032f
 #define xlc 20.095464678736523f
@@ -56,6 +56,9 @@ Shader "Relativity/Lit/Standard" {
 
 #define zcSqr 499.848756265769052653089671552849f
 
+#define bFac 0.5f
+#define rFac 0.9f
+
 //Used to determine where to center UV/IR curves
 #define IR_RANGE 400
 #define IR_START 700
@@ -67,6 +70,8 @@ Shader "Relativity/Lit/Standard" {
 
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
+
+#define CAST_LIGHTCOLOR0 float4((float)_LightColor0.r, (float)_LightColor0.g, (float)_LightColor0.b, (float)_LightColor0.a)
 
 		struct appdata {
 			float4 vertex : POSITION;
@@ -95,7 +100,7 @@ Shader "Relativity/Lit/Standard" {
 			SHADOW_COORDS(7)
 	#if FORWARD_FOG
 			float4 pos3 : TEXCOORD8; //Untransformed position in world, relative to player position in world
-		#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+		#if _EMISSION
 			float2 uv3 : TEXCOORD9; //EmisionMap TEXCOORD
 			#if defined(POINT)
 			float4 vtlt : TEXCOORD10;
@@ -103,7 +108,7 @@ Shader "Relativity/Lit/Standard" {
 		#elif defined(POINT)
 			float4 vtlt : TEXCOORD9;
 		#endif
-	#elif defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+	#elif _EMISSION
 			float2 uv3 : TEXCOORD8; //EmisionMap TEXCOORD
 		#if defined(POINT)
 			float4 vtlt : TEXCOORD9;
@@ -113,7 +118,7 @@ Shader "Relativity/Lit/Standard" {
 	#endif
 #elif FORWARD_FOG
 			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
-	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+	#if _EMISSION
 			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
 		#if defined(POINT)
 			float4 vtlt : TEXCOORD8;
@@ -121,7 +126,7 @@ Shader "Relativity/Lit/Standard" {
 	#elif defined(POINT)
 			float4 vtlt : TEXCOORD7;
 	#endif
-#elif defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+#elif _EMISSION
 			float2 uv3 : TEXCOORD6; //EmisionMap TEXCOORD
 	#if defined(POINT)
 			float4 vtlt : TEXCOORD7;
@@ -307,6 +312,10 @@ Shader "Relativity/Lit/Standard" {
 				shift = 1.0f;
 			}
 
+			if (shift == 1.0f) {
+				return rgb;
+			}
+
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
@@ -327,7 +336,7 @@ Shader "Relativity/Lit/Standard" {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
 #if defined(UNITY_PASS_FORWARDBASE)
 	#if _EMISSION
-			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.r, unity_FogColor.b, shift);
+			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.r * rFac, unity_FogColor.b * bFac, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
 	#else
 			return DopplerShift(lerp(unity_FogColor.rgb, color, saturate(unityFogFactor)), unity_FogColor.r, unity_FogColor.b, shift);
@@ -346,6 +355,9 @@ Shader "Relativity/Lit/Standard" {
 			o.uv2 = float2(0, 0);
 #ifdef LIGHTMAP_ON
 			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
+#endif
+#if _EMISSION
+			o.uv3 = float2(0, 0);
 #endif
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
@@ -470,15 +482,13 @@ Shader "Relativity/Lit/Standard" {
 
 #if defined(VERTEXLIGHT_ON)
 			// Red/blue shift light due to gravity
-			float4 lightColor;
-			if (aiwDotAiw < divByZeroCutoff) {
-				lightColor = _LightColor0;
-			} else {
+			float4 lightColor = CAST_LIGHTCOLOR0;
+			if (aiwDotAiw > divByZeroCutoff) {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
 				float posDotAiw = -dot(posTransformed, o.aiwt);
 
 				float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
-				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
 			}
 
 			// dot product between normal and light direction for
@@ -509,16 +519,14 @@ Shader "Relativity/Lit/Standard" {
 					dot(vertexToLightSource, mul(metric, vertexToLightSource));
 
 				// Red/blue shift light due to gravity
-				if (aiwDotAiw < divByZeroCutoff) {
-					lightColor = _LightColor0;
-				}
-				else {
+				float4 lightColor = CAST_LIGHTCOLOR0;
+				if (aiwDotAiw > divByZeroCutoff) {
 					float posDotAiw = -dot(vertexToLightSource, o.aiwt);
 					float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
-					lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+					lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.a);
 				}
 
-				if (dot(float4(0, 0, 1, 0), unity_SpotDirection[index]) != 1) // directional light?
+				if (unity_SpotDirection[index].z != 1) // directional light?
 				{
 					attenuation = 1.0f; // no attenuation
 					lightDirection =
@@ -541,16 +549,13 @@ Shader "Relativity/Lit/Standard" {
 			o.diff = 0;
 #else 
 			// Red/blue shift light due to gravity
-			float4 lightColor;
-			if (aiwDotAiw < divByZeroCutoff) {
-				lightColor = _LightColor0;
-			}
-			else {
+			float4 lightColor = CAST_LIGHTCOLOR0;
+			if (aiwDotAiw > divByZeroCutoff) {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
 				float posDotAiw = -dot(posTransformed, o.aiwt);
 
 				float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
-				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
 			}
 
 			// dot product between normal and light direction for
@@ -649,11 +654,8 @@ Shader "Relativity/Lit/Standard" {
 			float nl = max(0, dot(normalDirection, lightDirection));
 
 			float aiwDotAiw = -dot(i.aiwt, i.aiwt);
-			float4 lightColor;
-			if (aiwDotAiw < divByZeroCutoff) {
-				lightColor = _LightColor0;
-			}
-			else {
+			float4 lightColor = CAST_LIGHTCOLOR0;
+			if (aiwDotAiw > divByZeroCutoff) {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
 				float posDotAiw = -dot(posTransformed, i.aiwt);
 
@@ -664,7 +666,7 @@ Shader "Relativity/Lit/Standard" {
 
 				shift = 1.0f + posDotAiw / shift;
 
-				lightColor = float4(DopplerShift(_LightColor0, 0, 0, shift), _LightColor0.w);
+				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
 			}
 
 			i.diff = float4(attenuation * lightColor.rgb * _Color.rgb * nl, 1);
@@ -705,7 +707,7 @@ Shader "Relativity/Lit/Standard" {
 			float3 specRgb, specFinal;
 			if (specFactor > 0.0f) {
 				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
-				specFinal = DopplerShift(specRgb, 0, 0, shift);
+				specFinal = DopplerShift(specRgb, specRgb.r * rFac, specRgb.b * bFac, shift);
 			}
 			else {
 				specRgb = 0;

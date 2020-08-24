@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-//using System.Linq; //For debugging purposes only
 using UnityEngine;
 
 namespace OpenRelativity.Objects
@@ -264,6 +263,14 @@ namespace OpenRelativity.Objects
         public void ResetLocalTime()
         {
             localTimeOffset = 0.0;
+        }
+
+        public double localDeltaTime { get; private set; }
+        public double localFixedDeltaTime { get; private set; }
+
+        public float GetLocalTime()
+        {
+            return (float)(_state.TotalTimeWorld + localTimeOffset);
         }
 
         //Use this instead of relativistic parent
@@ -877,6 +884,8 @@ namespace OpenRelativity.Objects
 
         void Update()
         {
+            localDeltaTime = (float)(state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld);
+
             if (myRigidbody != null)
             {
                 UpdateRigidbodyVelocity(viw, aviw);
@@ -967,7 +976,7 @@ namespace OpenRelativity.Objects
             }
 
             float deltaTime = (float)state.FixedDeltaTimePlayer * GetTimeFactor();
-            float localDeltaT = deltaTime - (float)state.FixedDeltaTimeWorld;
+            localFixedDeltaTime = deltaTime - (float)state.FixedDeltaTimeWorld;
 
             if (state.conformalMap != null)
             {
@@ -977,9 +986,9 @@ namespace OpenRelativity.Objects
                 piw = nPiw4;
             }
 
-            if (!IsNaNOrInf(localDeltaT))
+            if (!IsNaNOrInf(localFixedDeltaTime))
             {
-                localTimeOffset += localDeltaT;
+                localTimeOffset += localFixedDeltaTime;
             }
 
             if (meshFilter != null)
