@@ -140,10 +140,15 @@ namespace Qrack
             }
         }
 
-        private uint[] MapControls(uint[] controls)
+        private uint[] MapControls(uint[] controls, uint controlLen = 0)
         {
-            uint[] mappedControls = new uint[controls.Length];
-            for (int i = 0; i < controls.Length; i++)
+            if (controlLen == 0)
+            {
+                controlLen = (uint)controls.Length;
+            }
+
+            uint[] mappedControls = new uint[controlLen];
+            for (int i = 0; i < controlLen; i++)
             {
                 mappedControls[i] = GetSystemIndex(controls[i]);
             }
@@ -510,7 +515,7 @@ namespace Qrack
             for (int i = 0; i < teos.Length; i++)
             {
                 mappedTeos[i].target = GetSystemIndex(teos[i].target);
-                mappedTeos[i].controls = MapControls(teos[i].controls);
+                mappedTeos[i].controls = MapControls(teos[i].controls, teos[i].controlLen);
                 List<uint> bits = new List<uint> { mappedTeos[i].target };
                 bits.AddRange(mappedTeos[i].controls);
                 CheckAlloc(bits);
