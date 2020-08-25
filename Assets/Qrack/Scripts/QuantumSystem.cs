@@ -165,7 +165,7 @@ namespace Qrack
             return mappedControls;
         }
 
-        protected void CheckAlloc(List<uint> bits)
+        public virtual void CheckAlloc(List<uint> bits)
         {
             bits.Sort();
 

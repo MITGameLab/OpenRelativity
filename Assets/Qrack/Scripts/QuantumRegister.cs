@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace Qrack
 {
@@ -11,6 +12,11 @@ namespace Qrack
         override protected uint GetSystemIndex(uint registerIndex)
         {
             return QuantumSystemMappings[registerIndex];
+        }
+
+        public override void CheckAlloc(List<uint> bits)
+        {
+            QuantumSystem.CheckAlloc(bits);
         }
 
         void Start()
