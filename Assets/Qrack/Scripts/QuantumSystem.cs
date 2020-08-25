@@ -142,6 +142,11 @@ namespace Qrack
 
         private uint[] MapControls(uint[] controls, int controlLen = -1)
         {
+            if (controls == null)
+            {
+                return null;
+            }
+
             if (controlLen < 0) {
                 controlLen = controls.Length;
             }
