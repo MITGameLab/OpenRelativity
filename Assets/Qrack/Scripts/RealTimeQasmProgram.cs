@@ -11,6 +11,7 @@ namespace Qrack
         public int InstructionIndex = 0;
 
         private float nextInstructionTime;
+        private float lastInstructionTime;
 
         protected List<RealTimeQasmInstruction> ProgramInstructions { get; set; }
         protected abstract void StartProgram();
@@ -25,6 +26,7 @@ namespace Qrack
             }
 
             nextInstructionTime = QuantumSystem.LocalTime + ProgramInstructions[InstructionIndex].DeltaTime;
+            lastInstructionTime = nextInstructionTime;
         }
 
         public void ResetProgram()
@@ -53,8 +55,9 @@ namespace Qrack
 
                 if (nextInstructionTime <= QuantumSystem.LocalTime)
                 {
-                    rtqi.quantumProgramUpdate(this);
+                    rtqi.quantumProgramUpdate(this, QuantumSystem.LocalTime - lastInstructionTime);
 
+                    lastInstructionTime = QuantumSystem.LocalTime;
                     InstructionIndex++;
 
                     if (InstructionIndex >= ProgramInstructions.Count)

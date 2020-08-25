@@ -12,7 +12,7 @@ namespace Qrack
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
                 DeltaTime = 1.0f,
-                quantumProgramUpdate = (x) =>
+                quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = x.QuantumSystem;
                     qs.Rand(0);
@@ -31,7 +31,7 @@ namespace Qrack
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
                 DeltaTime = 1.0f,
-                quantumProgramUpdate = (x) =>
+                quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = x.QuantumSystem;
                     Bob.MeasurementResults[0] = qs.M(0);

@@ -13,7 +13,7 @@ namespace Qrack
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
                 DeltaTime = 1.0f,
-                quantumProgramUpdate = (x) =>
+                quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = x.QuantumSystem;
 
@@ -38,7 +38,7 @@ namespace Qrack
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
                 DeltaTime = 1.0f,
-                quantumProgramUpdate = (x) =>
+                quantumProgramUpdate = (x, y) =>
                 {
                     Eve.ResetProgram();
                     gameObject.SetActive(false);

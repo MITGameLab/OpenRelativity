@@ -4,17 +4,13 @@
     {
         public TeleportAlice Alice;
 
-        private bool[] MeasurementResults;
-
         // Prepare a Bell pair for Alice and Bob to share
         protected override void StartProgram()
         {
-            MeasurementResults = new bool[2];
-
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
                 DeltaTime = 1.0f,
-                quantumProgramUpdate = (x) =>
+                quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = x.QuantumSystem;
                     qs.SetBit(0, false);
