@@ -22,22 +22,6 @@ namespace OpenRelativity.Objects
         //This constant determines maximum box size. We subdivide boxes until all their dimensions are less than this length.
         private float constant = 24;
 
-        private int totalBoxCount;
-
-        private GameState _gameState = null;
-        private GameState gameState
-        {
-            get
-            {
-                if (_gameState == null)
-                {
-                    _gameState = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-                }
-
-                return _gameState;
-            }
-        }
-
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
         {
@@ -49,7 +33,6 @@ namespace OpenRelativity.Objects
 
             //Store a copy of our original mesh
             original = origBoxColliders;
-            totalBoxCount = 0;
             for (int i = 0; i < original.Length; i++)
             {
                 original[i].enabled = false;
@@ -124,7 +107,6 @@ namespace OpenRelativity.Objects
             int xCount = ((int)(2.0f * xExtent / constant + 1.0f));
             int yCount = ((int)(2.0f * yExtent / constant + 1.0f));
             int zCount = ((int)(2.0f * zExtent / constant + 1.0f));
-            totalBoxCount += xCount * yCount * zCount;
 
             Vector3 newColliderPos = new Vector3();
             Vector3 newColliderSize = new Vector3(origSize.x / xCount, origSize.y / yCount, origSize.z / zCount);
