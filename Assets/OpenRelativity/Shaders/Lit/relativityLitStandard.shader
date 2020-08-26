@@ -526,7 +526,7 @@ Shader "Relativity/Lit/Standard" {
 				float4 lightColor = CAST_LIGHTCOLOR0;
 				if (paoDotPao > divByZeroCutoff) {
 					float posDotPao = -dot(vertexToLightSource, o.paot);
-					float shift = 1.0f + posDotAiw / (sqrt(paoDotPao) * _spdOfLightSqrd);
+					float shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
 					lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.a);
 				}
 
