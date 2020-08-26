@@ -8,6 +8,15 @@ namespace OpenRelativity.Objects
     public class RelativisticObject : MonoBehaviour
     {
         #region Public Settings
+        public bool isLightMapStatic = false;
+        public bool useGravity;
+        // Use this instead of relativistic parent
+        public bool isParent = false;
+        // Combine colliders under us in the hierarchy
+        public bool isCombinedColliderParent = false;
+        // Use this if not using an explicitly relativistic shader
+        public bool isNonrelativisticShader = false;
+
         // Set with Rigidbody isKinematic flag instead
         public bool isKinematic
         {
@@ -29,17 +38,110 @@ namespace OpenRelativity.Objects
                 }
             }
         }
-        public bool isLightMapStatic = false;
-        public bool useGravity;
+        #endregion
+
+        #region Local Time
+        //Acceleration desyncronizes our clock from the world clock:
+        public double localTimeOffset { get; private set; }
+        public double localDeltaTime { get; private set; }
+        public double localFixedDeltaTime { get; private set; }
+        public float GetLocalTime()
+        {
+            return (float)(_state.TotalTimeWorld + localTimeOffset);
+        }
+        public void ResetLocalTime()
+        {
+            localTimeOffset = 0.0;
+        }
+        public float GetTisw(Vector3? pos = null)
+        {
+            if (pos == null)
+            {
+                pos = piw;
+            }
+            return ((Vector4)pos.Value).GetTisw(viw, aiw);
+        }
+        #endregion
+
+        #region 4-vector relativity
+        // This is the metric tensor in an accelerated frame in special relativity.
+        // Special relativity assumes a flat metric, (the "Minkowski metric").
+        // In general relativity, the underlying metric could be curved, according to the Einstein field equations.
+        // The (flat) metric appears to change due to proper acceleration from the player's/camera's point of view, since acceleration is not physically relative like velocity.
+        // (Physically, proper acceleration could be detected by a force on the observer in the opposite direction from the acceleration,
+        // like being pushed back into the seat of an accelerating car. When we stand still on the surface of earth, we feel our weight as the ground exerts a normal force "upward,"
+        // which is equivalent to an acceleration in the opposite direction from the ostensible Newtonian gravity field, similar to the car.
+        // "Einstein equivalence principle" says that, over small enough regions, we can't tell the difference between
+        // a uniform acceleration and a gravitational field, that the two are physically equivalent over small enough regions of space.
+        // In free-fall, gravitational fields disappear. Hence, when the player is in free-fall, their acceleration is considered to be zero,
+        // while it is considered to be "upwards" when they are at rest under the effects of gravity, so they don't fall through the surface they're feeling pushed into.)
+        // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
+        public Matrix4x4 GetMetric()
+        {
+            return SRelativityUtil.GetRindlerMetric(piw);
+        }
+
+        public Vector4 Get4Velocity()
+        {
+            return viw.ToMinkowski4Viw();
+        }
+
+        public Vector4 GetWorld4Acceleration()
+        {
+            return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
+        }
+
+        public Vector4 GetProper4Acceleration()
+        {
+            return properAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
+        }
+
+        // This is the factor commonly referred to as "gamma," for length contraction and time dilation,
+        // only also with consideration for a gravitationally curved background, such as due to Rindler coordinates.
+        // (Rindler coordinates are actually Minkowski flat, but the same principle applies.)
+        public float GetTimeFactor(Vector3? pVel = null)
+        {
+            if (!pVel.HasValue)
+            {
+                // The common default case is, we want the player's "gamma,"
+                // at this RO's position in space-time.
+                pVel = state.PlayerVelocityVector;
+            }
+
+            // However, sometimes we want a different velocity, at this space-time point,
+            // such as this RO's own velocity.
+
+            Matrix4x4 metric = GetMetric();
+
+            float timeFac = 1 / Mathf.Sqrt(1 + (float)(Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
+            if (IsNaNOrInf(timeFac))
+            {
+                timeFac = 1;
+            }
+
+            return timeFac;
+        }
         #endregion
 
         #region Rigid body physics
-
         private bool isResting;
-        private bool isSleeping;
         private const float SleepThreshold = 0.01f;
         private const float SleepTime = 0.05f;
         private float SleepTimer;
+        private bool wasKinematic;
+        private CollisionDetectionMode collisionDetectionMode;
+
+        //Store world position, mostly for a nonrelativistic shader:
+        public Vector3 piw { get; set; }
+        public void ResetPiw()
+        {
+            piw = isNonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : transform.position;
+        }
+        //Store rotation quaternion
+        public Quaternion riw { get; set; }
+
+        public Matrix4x4 viwLorentz { get; private set; }
+        public Vector3 cviw { get; private set; }
 
         public Vector3 _viw = Vector3.zero;
         public Vector3 viw
@@ -72,8 +174,6 @@ namespace OpenRelativity.Objects
                 UpdateRigidbodyVelocity();
             }
         }
-        public Matrix4x4 viwLorentz { get; private set; }
-        public Vector3 cviw;
 
         //Store this object's angular velocity here.
         public Vector3 _aviw;
@@ -223,7 +323,7 @@ namespace OpenRelativity.Objects
 
             if (!IsNaNOrInf(piw.magnitude))
             {
-                if (nonrelativisticShader)
+                if (isNonrelativisticShader)
                 {
                     UpdateContractorPosition();
                 }
@@ -236,62 +336,9 @@ namespace OpenRelativity.Objects
             // Update the shader parameters if necessary
             UpdateShaderParams();
         }
-
         #endregion
-        //Keep track of our own Mesh Filter
-        private MeshFilter meshFilter;
-        //Store our raw vertices in this variable, so that we can refer to them later.
-        private Vector3[] rawVertsBuffer;
-        //To avoid garbage collection, we might over-allocate the buffer:
-        private int rawVertsBufferLength;
 
-        //Keep track of Game State so that we can reference it quickly.
-        private GameState _state;
-        private GameState state
-        {
-            get
-            {
-                if (_state == null)
-                {
-                    _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-                }
-
-                return _state;
-            }
-        }
-        private void FetchState()
-        {
-            _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-        }
-        //When was this object created? use for moving objects
-        private float startTime = float.NegativeInfinity;
-        //When should we die? again, for moving objects
-        private float _DeathTime = float.PositiveInfinity;
-        public float DeathTime { get { return _DeathTime; } set { _DeathTime = value; } }
-
-        //Acceleration desyncronizes our clock from the world clock:
-        public double localTimeOffset { get; private set; }
-
-        public void ResetLocalTime()
-        {
-            localTimeOffset = 0.0;
-        }
-
-        public double localDeltaTime { get; private set; }
-        public double localFixedDeltaTime { get; private set; }
-
-        public float GetLocalTime()
-        {
-            return (float)(_state.TotalTimeWorld + localTimeOffset);
-        }
-
-        //Use this instead of relativistic parent
-        public bool isParent = false;
-        public bool isCombinedColliderParent = false;
-        //Don't render if object has relativistic parent
-        private bool hasParent = false;
-        //Use this if not using an explicitly relativistic shader
-        public bool nonrelativisticShader = false;
+        #region Nonrelativistic Shader/Collider
         //If the shader is not relativistic, we need to handle length contraction with a "contractor" transform.
         private Transform contractor;
         //Changing a transform's parent is expensive, but we can avoid it with this:
@@ -308,28 +355,63 @@ namespace OpenRelativity.Objects
                 _localScale = value;
             }
         }
-        //private int? oldParentID;
-        //Store world position, mostly for a nonrelativistic shader:
-        public Vector3 piw { get; set; }
-        public void ResetPiw()
-        {
-            piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : transform.position;
-        }
-        //Store rotation quaternion
-        public Quaternion riw { get; set; }
-
-        //We use an attached shader to transform the collider verts:
-        public ComputeShader colliderShader;
-        //We set global constants in a struct;
-        private ShaderParams colliderShaderParams;
-        //We save and reuse the transformed vert array to avoid garbage collection 
-        private Vector3[] trnsfrmdMeshVerts;
-        //If we have a collider to transform, we cache it here
-        private Collider[] myColliders;
         //If we specifically have a mesh collider, we need to know to transform the verts of the mesh itself.
         private bool myColliderIsMesh;
         private bool myColliderIsBox;
         private bool myColliderIsVoxel;
+        //If we have a collider to transform, we cache it here
+        private Collider[] myColliders;
+        private Vector3[] colliderPiw { get; set; }
+        public void MarkStaticColliderPos()
+        {
+            if (myColliderIsBox && myColliders != null)
+            {
+                List<Vector3> sttcPosList = new List<Vector3>();
+                for (int i = 0; i < myColliders.Length; i++)
+                {
+                    sttcPosList.Add(((BoxCollider)myColliders[i]).center);
+                }
+                colliderPiw = sttcPosList.ToArray();
+            }
+        }
+        #endregion
+
+        #region RelativisticObject properties and caching
+        //Keep track of Game State so that we can reference it quickly.
+        private void FetchState()
+        {
+            _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+        }
+        private GameState _state;
+        private GameState state
+        {
+            get
+            {
+                if (_state == null)
+                {
+                    FetchState();
+                }
+
+                return _state;
+            }
+        }
+
+        //Don't render if object has relativistic parent
+        private bool hasParent = false;
+        //Keep track of our own Mesh Filter
+        private MeshFilter meshFilter;
+        //Store our raw vertices in this variable, so that we can refer to them later.
+        private Vector3[] rawVertsBuffer;
+        //To avoid garbage collection, we might over-allocate the buffer:
+        private int rawVertsBufferLength;
+        //When was this object created? use for moving objects
+        private float startTime = float.NegativeInfinity;
+        //When should we die? again, for moving objects
+        private float _DeathTime = float.PositiveInfinity;
+        public float DeathTime { get { return _DeathTime; } set { _DeathTime = value; } }
+
+        //We save and reuse the transformed vert array to avoid garbage collection 
+        private Vector3[] trnsfrmdMeshVerts;
         //We create a new collider mesh, so as not to interfere with primitives, and reuse it
         private Mesh trnsfrmdMesh;
         //If we have a Rigidbody, we cache it here
@@ -337,42 +419,24 @@ namespace OpenRelativity.Objects
         //If we have a Renderer, we cache it, too.
         public Renderer myRenderer { get; set; }
 
-        public void MarkStaticColliderPos()
-        {
-            if (myColliderIsBox && myColliders != null)
-            {
-                List<Vector3> sttcPosList = new List<Vector3>();
-                for (int i = 0;i < myColliders.Length; i++)
-                {
-                    sttcPosList.Add(((BoxCollider)myColliders[i]).center);
-                }
-                colliderPiw = sttcPosList.ToArray();
-            }
-        }
-        public Vector3[] colliderPiw { get; set; }
-
-        private ComputeBuffer paramsBuffer;
-        private ComputeBuffer vertBuffer;
-
         //We need to freeze any attached rigidbody if the world states is frozen 
-        public bool wasKinematic { get; set; }
-        private CollisionDetectionMode collisionDetectionMode;
         public bool wasFrozen { get; set; }
 
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool monopoleAccel = false;
         private Vector3 frameDragAccel;
+        #endregion
 
-        private bool IsNaNOrInf(double p)
-        {
-            return double.IsInfinity(p) || double.IsNaN(p);
-        }
-
-        private bool IsNaNOrInf(float p)
-        {
-            return float.IsInfinity(p) || float.IsNaN(p);
-        }
+        #region Collider transformation and update
+        // We use an attached shader to transform the collider verts:
+        public ComputeShader colliderShader;
+        // We set global constants in a struct
+        private ShaderParams colliderShaderParams;
+        // Mesh collider params
+        private ComputeBuffer paramsBuffer;
+        // Mesh collider vertices
+        private ComputeBuffer vertBuffer;
 
         private void UpdateMeshCollider(MeshCollider transformCollider)
         {
@@ -450,22 +514,159 @@ namespace OpenRelativity.Objects
             transformCollider.sharedMesh = trnsfrmdMesh;
         }
 
-        void OnDestroy()
+        private void UpdateCollider()
         {
-            if (paramsBuffer != null) paramsBuffer.Release();
-            if (vertBuffer != null) vertBuffer.Release();
-            if (contractor != null) Destroy(contractor.gameObject);
+            if (GetComponent<ObjectBoxColliderDensity>() == null)
+            {
+                MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
+                myColliders = myMeshColliders;
+                if (myColliders.Length > 0)
+                {
+                    myColliderIsMesh = true;
+                    myColliderIsBox = false;
+                    myColliderIsVoxel = false;
+                    for (int i = 0; i < myMeshColliders.Length; i++)
+                    {
+                        if (myMeshColliders[i].sharedMesh != null)
+                        {
+                            trnsfrmdMesh = Instantiate(myMeshColliders[i].sharedMesh);
+                            myMeshColliders[i].sharedMesh = trnsfrmdMesh;
+                            trnsfrmdMesh.MarkDynamic();
+                        }
+                    }
+                }
+                else
+                {
+                    myColliders = GetComponents<BoxCollider>();
+                    myColliderIsBox = (myColliders.Length > 0);
+                    myColliderIsMesh = false;
+                    myColliderIsVoxel = false;
+                }
+            }
+            else
+            {
+                myColliderIsVoxel = true;
+                myColliderIsBox = false;
+                myColliderIsMesh = false;
+            }
         }
 
-        void Awake()
+        public void UpdateColliderPosition(Collider toUpdate = null)
         {
-            //Get the player's GameState, use it later for general information
-            FetchState();
+            Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
 
-            viwLorentz = Matrix4x4.identity;
+            if (myColliderIsVoxel || isNonrelativisticShader || myColliders == null || myColliders.Length == 0)
+            {
+                return;
+            }
+
+            //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
+            if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
+            {
+                for (int i = 0; i < myColliders.Length; i++)
+                {
+                    UpdateMeshCollider((MeshCollider)myColliders[i]);
+                }
+            }
+            //If we have a BoxCollider, transform its center to its optical position
+            else if (myColliderIsBox)
+            {
+                Vector4 aiw4 = GetWorld4Acceleration();
+                Vector3 pos;
+                BoxCollider collider;
+                Vector3 testPos;
+                float testMag;
+                for (int i = 0; i < myColliders.Length; i++)
+                {
+                    collider = (BoxCollider)myColliders[i];
+                    pos = transform.TransformPoint((Vector4)colliderPiw[i]);
+                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw4, viwLorentz));
+                    testMag = testPos.sqrMagnitude;
+                    if (!IsNaNOrInf(testMag))
+                    {
+                        collider.center = testPos;
+                    }
+                }
+            }
+        }
+        #endregion
+
+        #region Nonrelativistic shader
+        private void SetUpContractor()
+        {
             _localScale = transform.localScale;
+            if (contractor != null)
+            {
+                Transform prnt = contractor.parent;
+                contractor.parent = null;
+                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                transform.parent = null;
+                Destroy(contractor.gameObject);
+            }
+            GameObject contractorGO = new GameObject();
+            contractorGO.name = gameObject.name + " Contractor";
+            contractor = contractorGO.transform;
+            contractor.parent = transform.parent;
+            contractor.position = transform.position;
+            transform.parent = contractor;
+            transform.localPosition = Vector3.zero;
         }
 
+        public void ContractLength()
+        {
+            Vector3 playerVel = state.PlayerVelocityVector;
+            Vector3 relVel = cviw.AddVelocity(viw).AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(playerVel)));
+            float relVelMag = relVel.sqrMagnitude;
+
+            if (relVelMag > (state.MaxSpeed))
+            {
+                relVel.Normalize();
+                relVelMag = (float)state.MaxSpeed;
+                relVel = relVelMag * relVel;
+            }
+
+            //Undo length contraction from previous state, and apply updated contraction:
+            // - First, return to world frame:
+            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            transform.localScale = _localScale;
+
+            if (relVelMag > SRelativityUtil.divByZeroCutoff)
+            {
+                Quaternion rot = transform.rotation;
+
+                relVelMag = Mathf.Sqrt(relVelMag);
+                // - If we need to contract the object, unparent it from the contractor before rotation:
+                //transform.parent = cparent;
+
+                Quaternion origRot = transform.rotation;
+
+                // - Rotate contractor to point parallel to velocity relative player:
+                contractor.rotation = Quaternion.FromToRotation(Vector3.forward, relVel / relVelMag);
+
+                // - Re-parent the object to the contractor before length contraction:
+                transform.rotation = origRot;
+
+                // - Set the scale based only on the velocity relative to the player:
+                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f).ContractLengthBy(relVelMag * Vector3.forward);
+            }
+        }
+
+        public void UpdateContractorPosition()
+        {
+            if (isNonrelativisticShader)
+            {
+                if (contractor == null)
+                {
+                    SetUpContractor();
+                }
+                contractor.position = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+                transform.localPosition = Vector3.zero;
+                ContractLength();
+            }
+        }
+        #endregion
+
+        #region RelativisticObject internals
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
@@ -476,6 +677,7 @@ namespace OpenRelativity.Objects
             if (myRenderer != null)
                 myRenderer.enabled = false;
         }
+
         //Set the death time, so that we know at what point to destroy the object in the player's view point.
         public virtual void SetDeathTime()
         {
@@ -484,6 +686,7 @@ namespace OpenRelativity.Objects
             timeDelayToPlayer *= GetTimeFactor();
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
+
         void CombineParent()
         {
             if (GetComponent<ObjectMeshDensity>())
@@ -703,6 +906,126 @@ namespace OpenRelativity.Objects
             return copy as T;
         }
 
+        private void UpdateShaderParams()
+        {
+            //Send our object's v/c (Velocity over the Speed of Light) to the shader
+            if (myRenderer != null)
+            {
+                Vector3 tempViw = cviw.AddVelocity(viw) / (float)state.SpeedOfLight;
+                Vector3 tempAviw = aviw;
+                Vector4 tempAiw = GetWorld4Acceleration();
+                Vector4 tempPao = GetProper4Acceleration();
+                Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / (float)state.SpeedOfLight;
+
+                //Velocity of object Lorentz transforms are the same for all points in an object,
+                // so it saves redundant GPU time to calculate them beforehand.
+                Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
+
+                colliderShaderParams.viw = tempViw;
+                colliderShaderParams.aiw = tempAiw;
+                colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
+                colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
+                for (int i = 0; i < myRenderer.materials.Length; i++)
+                {
+                    myRenderer.materials[i].SetVector("_viw", tempViw);
+                    myRenderer.materials[i].SetVector("_aiw", tempAiw);
+                    myRenderer.materials[i].SetVector("_pao", tempPao);
+                    myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
+                    myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
+                    myRenderer.materials[i].SetVector("_vr", tempVr);
+                }
+            }
+        }
+
+        public void KillObject()
+        {
+            gameObject.SetActive(false);
+            //Destroy(this.gameObject);
+        }
+
+        //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
+        private void checkSpeed()
+        {
+            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+
+            if (viw.sqrMagnitude > maxSpeedSqr)
+            {
+                viw = viw.normalized * (float)(state.MaxSpeed - .01f);
+            }
+
+            // The tangential velocities of each vertex should also not be greater than the maximum speed.
+            // (This is a relatively computationally costly check, but it's good practice.
+            
+            if (trnsfrmdMeshVerts != null)
+            {
+                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+                {
+                    Vector3 disp = Vector3.Scale(trnsfrmdMeshVerts[i], transform.lossyScale);
+                    Vector3 tangentialVel = Vector3.Cross(aviw, disp);
+                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
+                    if (tanVelMagSqr > maxSpeedSqr)
+                    {
+                        aviw = aviw.normalized * (float)(state.MaxSpeed - 0.01f) / disp.magnitude;
+                    }
+                }
+            }
+        }
+
+        public void ResetDeathTime()
+        {
+            DeathTime = float.PositiveInfinity;
+        }
+
+        private void UpdateRigidbodyVelocity()
+        {
+            if (myRigidbody == null ||
+                // Not a meaningful quantity, just to check if either parameter is inf/nan
+                IsNaNOrInf((_viw + _aviw).magnitude))
+            {
+                return;
+            }
+
+            // If movement is frozen, set to zero.
+            if (state.MovementFrozen)
+            {
+                myRigidbody.velocity = Vector3.zero;
+                myRigidbody.angularVelocity = Vector3.zero;
+
+                return;
+            }
+
+            // If we're in an invalid state, (such as before full initialization,) set to zero.
+            float timeFac = GetTimeFactor();
+            if (IsNaNOrInf(timeFac) || timeFac == 0)
+            {
+                myRigidbody.velocity = Vector3.zero;
+                myRigidbody.angularVelocity = Vector3.zero;
+
+                return;
+            }
+
+            myRigidbody.velocity = _viw * timeFac;
+            myRigidbody.angularVelocity = _aviw * timeFac;
+        }
+        #endregion
+
+        #region Unity lifecycle
+        void OnDestroy()
+        {
+            if (paramsBuffer != null) paramsBuffer.Release();
+            if (vertBuffer != null) vertBuffer.Release();
+            if (contractor != null) Destroy(contractor.gameObject);
+        }
+
+        void Awake()
+        {
+            //Get the player's GameState, use it later for general information
+            FetchState();
+
+            viwLorentz = Matrix4x4.identity;
+            _localScale = transform.localScale;
+        }
+
         void Start()
         {
             SleepTimer = isLightMapStatic ? 0 : SleepTime;
@@ -711,7 +1034,7 @@ namespace OpenRelativity.Objects
             ResetPiw();
             riw = transform.rotation;
 
-            if (nonrelativisticShader)
+            if (isNonrelativisticShader)
             {
                 UpdateContractorPosition();
             }
@@ -820,81 +1143,6 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private void UpdateCollider()
-        {
-            if (GetComponent<ObjectBoxColliderDensity>() == null)
-            {
-                MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
-                myColliders = myMeshColliders;
-                if (myColliders.Length > 0)
-                {
-                    myColliderIsMesh = true;
-                    myColliderIsBox = false;
-                    myColliderIsVoxel = false;
-                    for (int i = 0; i < myMeshColliders.Length; i++)
-                    {
-                        if (myMeshColliders[i].sharedMesh != null)
-                        {
-                            trnsfrmdMesh = Instantiate(myMeshColliders[i].sharedMesh);
-                            myMeshColliders[i].sharedMesh = trnsfrmdMesh;
-                            trnsfrmdMesh.MarkDynamic();
-                        }
-                    }
-                }
-                else
-                {
-                    myColliders = GetComponents<BoxCollider>();
-                    myColliderIsBox = (myColliders.Length > 0);
-                    myColliderIsMesh = false;
-                    myColliderIsVoxel = false;
-                }
-            }
-            else
-            {
-                myColliderIsVoxel = true;
-                myColliderIsBox = false;
-                myColliderIsMesh = false;
-            }
-        }
-
-        private void EnforceCollision(Collision collision)
-        {
-            // Like how Rigidbody components are co-opted for efficient relativistic motion,
-            // it's feasible to get (at least reasonable, if not exact) relativistic collision
-            // handling by transforming the end state after PhysX collisions.
-
-            // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
-            // We restore the time-dilated visual apparent velocity, afterward
-
-            if (useGravity && (collision.contacts.Length > 2))
-            {
-                ContactPoint contact = collision.contacts[0];
-                if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
-                {
-                    viw = Vector3.zero;
-                    aviw = Vector3.zero;
-                    cviw = Vector3.zero;
-                    isResting = true;
-
-                    return;
-                }
-            }
-
-            // Get the position and rotation after the collision:
-            riw = myRigidbody.rotation;
-            piw = nonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : myRigidbody.position;
-
-            // Now, update the velocity and angular velocity based on the collision result:
-            viw = myRigidbody.velocity.RapidityToVelocity(GetMetric());
-            aviw = myRigidbody.angularVelocity / GetTimeFactor();
-
-            // Make sure we're not updating to faster than max speed
-            checkSpeed();
-
-            UpdateContractorPosition();
-            UpdateColliderPosition();
-        }
-
         void Update()
         {
             localDeltaTime = (float)(state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld);
@@ -906,7 +1154,8 @@ namespace OpenRelativity.Objects
                 (aiw.sqrMagnitude < SleepThreshold))
                 {
                     SleepTimer -= Time.deltaTime;
-                } else
+                }
+                else
                 {
                     SleepTimer = SleepTime;
                 }
@@ -923,7 +1172,7 @@ namespace OpenRelativity.Objects
                 UpdateRigidbodyVelocity();
             }
 
-            if (state.MovementFrozen || nonrelativisticShader || meshFilter != null)
+            if (state.MovementFrozen || isNonrelativisticShader || meshFilter != null)
             {
                 UpdateShaderParams();
                 return;
@@ -984,16 +1233,8 @@ namespace OpenRelativity.Objects
             UpdateShaderParams();
         }
 
-        public float GetTisw(Vector3? pos = null)
+        void FixedUpdate()
         {
-            if (pos == null)
-            {
-                pos = piw;
-            }
-            return ((Vector4)pos.Value).GetTisw(viw, aiw);
-        }
-
-        void FixedUpdate() {
             if (state.MovementFrozen)
             {
                 // If our rigidbody is not null, and movement is frozen, then set the object to standstill.
@@ -1115,9 +1356,10 @@ namespace OpenRelativity.Objects
                     viw = Vector3.zero;
                     aviw = Vector3.zero;
                     cviw = Vector3.zero;
-                } else
+                }
+                else
                 {
-                    transform.position = nonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) : piw;
+                    transform.position = isNonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) : piw;
                 }
 
                 UpdateShaderParams();
@@ -1149,7 +1391,7 @@ namespace OpenRelativity.Objects
 
                 piw += testVec;
 
-                if (nonrelativisticShader)
+                if (isNonrelativisticShader)
                 {
                     transform.parent = null;
                     testVec = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
@@ -1175,123 +1417,6 @@ namespace OpenRelativity.Objects
             myRigidbody.angularVelocity = gamma * aviw;
         }
 
-        public void UpdateColliderPosition(Collider toUpdate = null)
-        {
-            Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
-
-            if (myColliderIsVoxel || nonrelativisticShader || myColliders == null || myColliders.Length == 0)
-            {
-                return;
-            }
-
-            //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
-            {
-                for (int i = 0; i < myColliders.Length; i++)
-                {
-                    UpdateMeshCollider((MeshCollider)myColliders[i]);
-                }
-            }
-            //If we have a BoxCollider, transform its center to its optical position
-            else if (myColliderIsBox)
-            {
-                Vector4 aiw4 = GetWorld4Acceleration();
-                Vector3 pos;
-                BoxCollider collider;
-                Vector3 testPos;
-                float testMag;
-                for (int i = 0; i < myColliders.Length; i++)
-                {
-                    collider = (BoxCollider)myColliders[i];
-                    pos = transform.TransformPoint((Vector4)colliderPiw[i]);
-                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw4, viwLorentz));
-                    testMag = testPos.sqrMagnitude;
-                    if (!IsNaNOrInf(testMag))
-                    {
-                        collider.center = testPos;
-                    }
-                }
-            }
-        }
-
-        private void UpdateShaderParams()
-        {
-            //Send our object's v/c (Velocity over the Speed of Light) to the shader
-            if (myRenderer != null)
-            {
-                Vector3 tempViw = cviw.AddVelocity(viw) / (float)state.SpeedOfLight;
-                Vector3 tempAviw = aviw;
-                Vector4 tempAiw = GetWorld4Acceleration();
-                Vector4 tempPao = GetProper4Acceleration();
-                Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / (float)state.SpeedOfLight;
-
-                //Velocity of object Lorentz transforms are the same for all points in an object,
-                // so it saves redundant GPU time to calculate them beforehand.
-                Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
-
-                colliderShaderParams.viw = tempViw;
-                colliderShaderParams.aiw = tempAiw;
-                colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
-                colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
-                for (int i = 0; i < myRenderer.materials.Length; i++)
-                {
-                    myRenderer.materials[i].SetVector("_viw", tempViw);
-                    myRenderer.materials[i].SetVector("_aiw", tempAiw);
-                    myRenderer.materials[i].SetVector("_pao", tempPao);
-                    myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
-                    myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
-                    myRenderer.materials[i].SetVector("_vr", tempVr);
-                }
-            }
-        }
-
-        public void KillObject()
-        {
-            gameObject.SetActive(false);
-            //Destroy(this.gameObject);
-        }
-
-        //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
-        private void checkSpeed()
-        {
-            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
-
-            if (viw.sqrMagnitude > maxSpeedSqr)
-            {
-                viw = viw.normalized * (float)(state.MaxSpeed - .01f);
-            }
-
-            // The tangential velocities of each vertex should also not be greater than the maximum speed.
-            // (This is a relatively computationally costly check, but it's good practice.
-            
-            if (trnsfrmdMeshVerts != null)
-            {
-                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
-                {
-                    Vector3 disp = Vector3.Scale(trnsfrmdMeshVerts[i], transform.lossyScale);
-                    Vector3 tangentialVel = Vector3.Cross(aviw, disp);
-                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
-                    if (tanVelMagSqr > maxSpeedSqr)
-                    {
-                        aviw = aviw.normalized * (float)(state.MaxSpeed - 0.01f) / disp.magnitude;
-                    }
-                }
-            }
-        }
-
-        public void ResetDeathTime()
-        {
-            DeathTime = float.PositiveInfinity;
-        }
-
-        #region 4D Rigid body mechanics
-
-        private IEnumerator EnableCollision(float delay, Collider otherCollider)
-        {
-            yield return new WaitForSeconds(delay);
-            Physics.IgnoreCollision(GetComponent<Collider>(), otherCollider, false);
-        }
-
         public void OnCollisionEnter(Collision collision)
         {
             OnCollision(collision);
@@ -1306,7 +1431,9 @@ namespace OpenRelativity.Objects
         {
             
         }
+        #endregion
 
+        #region Rigidbody mechanics
         public void OnCollision(Collision collision)
         {
             if (myRigidbody == null || myColliders == null || myRigidbody.isKinematic)
@@ -1330,169 +1457,54 @@ namespace OpenRelativity.Objects
             EnforceCollision(collision);
             // EnforceCollision() might opt not to set didCollide
         }
+
+        private void EnforceCollision(Collision collision)
+        {
+            // Like how Rigidbody components are co-opted for efficient relativistic motion,
+            // it's feasible to get (at least reasonable, if not exact) relativistic collision
+            // handling by transforming the end state after PhysX collisions.
+
+            // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
+            // We restore the time-dilated visual apparent velocity, afterward
+
+            if (useGravity && (collision.contacts.Length > 2))
+            {
+                ContactPoint contact = collision.contacts[0];
+                if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
+                {
+                    viw = Vector3.zero;
+                    aviw = Vector3.zero;
+                    cviw = Vector3.zero;
+                    isResting = true;
+
+                    return;
+                }
+            }
+
+            // Get the position and rotation after the collision:
+            riw = myRigidbody.rotation;
+            piw = isNonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : myRigidbody.position;
+
+            // Now, update the velocity and angular velocity based on the collision result:
+            viw = myRigidbody.velocity.RapidityToVelocity(GetMetric());
+            aviw = myRigidbody.angularVelocity / GetTimeFactor();
+
+            // Make sure we're not updating to faster than max speed
+            checkSpeed();
+
+            UpdateContractorPosition();
+            UpdateColliderPosition();
+        }
         #endregion
 
-        private void SetUpContractor()
+        private bool IsNaNOrInf(double p)
         {
-            _localScale = transform.localScale;
-            if (contractor != null)
-            {
-                Transform prnt = contractor.parent;
-                contractor.parent = null;
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-                transform.parent = null;
-                Destroy(contractor.gameObject);
-            }
-            GameObject contractorGO = new GameObject();
-            contractorGO.name = gameObject.name + " Contractor";
-            contractor = contractorGO.transform;
-            contractor.parent = transform.parent;
-            contractor.position = transform.position;
-            transform.parent = contractor;
-            transform.localPosition = Vector3.zero;
+            return double.IsInfinity(p) || double.IsNaN(p);
         }
 
-        public void ContractLength()
+        private bool IsNaNOrInf(float p)
         {
-            Vector3 playerVel = state.PlayerVelocityVector;
-            Vector3 relVel = cviw.AddVelocity(viw).AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(playerVel)));
-            float relVelMag = relVel.sqrMagnitude;
-
-            if (relVelMag > (state.MaxSpeed))
-            {
-                relVel.Normalize();
-                relVelMag = (float)state.MaxSpeed;
-                relVel = relVelMag * relVel;
-            }
-
-            //Undo length contraction from previous state, and apply updated contraction:
-            // - First, return to world frame:
-            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
-            transform.localScale = _localScale;
-
-            if (relVelMag > SRelativityUtil.divByZeroCutoff)
-            {
-                Quaternion rot = transform.rotation;
-
-                relVelMag = Mathf.Sqrt(relVelMag);
-                // - If we need to contract the object, unparent it from the contractor before rotation:
-                //transform.parent = cparent;
-
-                Quaternion origRot = transform.rotation;
-
-                // - Rotate contractor to point parallel to velocity relative player:
-                contractor.rotation = Quaternion.FromToRotation(Vector3.forward, relVel / relVelMag);
-
-                // - Re-parent the object to the contractor before length contraction:
-                transform.rotation = origRot;
-
-                // - Set the scale based only on the velocity relative to the player:
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f).ContractLengthBy(relVelMag * Vector3.forward);
-            }
-        }
-
-        //This is the metric tensor in an accelerated frame in special relativity.
-        // Special relativity assumes a flat metric, (the "Minkowski metric").
-        // In general relativity, the underlying metric could be curved, according to the Einstein field equations.
-        // The (flat) metric appears to change due to proper acceleration from the player's/camera's point of view, since acceleration is not physically relative like velocity.
-        // (Physically, proper acceleration could be detected by a force on the observer in the opposite direction from the acceleration,
-        // like being pushed back into the seat of an accelerating car. When we stand still on the surface of earth, we feel our weight as the ground exerts a normal force "upward,"
-        // which is equivalent to an acceleration in the opposite direction from the ostensible Newtonian gravity field, similar to the car.
-        // "Einstein equivalence principle" says that, over small enough regions, we can't tell the difference between
-        // a uniform acceleration and a gravitational field, that the two are physically equivalent over small enough regions of space.
-        // In free-fall, gravitational fields disappear. Hence, when the player is in free-fall, their acceleration is considered to be zero,
-        // while it is considered to be "upwards" when they are at rest under the effects of gravity, so they don't fall through the surface they're feeling pushed into.)
-        // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
-        public Matrix4x4 GetMetric()
-        {   
-            return SRelativityUtil.GetRindlerMetric(piw);
-        }
-
-        public Vector4 Get4Velocity()
-        {
-            return viw.ToMinkowski4Viw();
-        }
-
-        public Vector4 GetWorld4Acceleration()
-        {
-            return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
-        }
-
-        public Vector4 GetProper4Acceleration()
-        {
-            return properAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
-        }
-
-        private void UpdateRigidbodyVelocity()
-        {
-            if (myRigidbody == null ||
-                // Not a meaningful quantity, just to check if either parameter is inf/nan
-                IsNaNOrInf((_viw + _aviw).magnitude))
-            {
-                return;
-            }
-
-            // If movement is frozen, set to zero.
-            if (state.MovementFrozen)
-            {
-                myRigidbody.velocity = Vector3.zero;
-                myRigidbody.angularVelocity = Vector3.zero;
-
-                return;
-            }
-
-            // If we're in an invalid state, (such as before full initialization,) set to zero.
-            float timeFac = GetTimeFactor();
-            if (IsNaNOrInf(timeFac) || timeFac == 0)
-            {
-                myRigidbody.velocity = Vector3.zero;
-                myRigidbody.angularVelocity = Vector3.zero;
-
-                return;
-            }
-
-            myRigidbody.velocity = _viw * timeFac;
-            myRigidbody.angularVelocity = _aviw * timeFac;
-        }
-
-        public void UpdateContractorPosition()
-        {
-            if (nonrelativisticShader)
-            {
-                if (contractor == null)
-                {
-                    SetUpContractor();
-                }
-                contractor.position = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
-                transform.localPosition = Vector3.zero;
-                ContractLength();
-            }
-        }
-
-        // This is the factor commonly referred to as "gamma," for length contraction and time dilation,
-        // only also with consideration for a gravitationally curved background, such as due to Rindler coordinates.
-        // (Rindler coordinates are actually Minkowski flat, but the same principle applies.)
-        public float GetTimeFactor(Vector3? pVel = null)
-        {
-            if (!pVel.HasValue)
-            {
-                // The common default case is, we want the player's "gamma,"
-                // at this RO's position in space-time.
-                pVel = state.PlayerVelocityVector;
-            }
-
-            // However, sometimes we want a different velocity, at this space-time point,
-            // such as this RO's own velocity.
-
-            Matrix4x4 metric = GetMetric();
-
-            float timeFac = 1 / Mathf.Sqrt(1 + (float)(Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
-            if (IsNaNOrInf(timeFac))
-            {
-                timeFac = 1;
-            }
-
-            return timeFac;
+            return float.IsInfinity(p) || float.IsNaN(p);
         }
     }
 }
