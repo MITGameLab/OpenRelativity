@@ -313,7 +313,7 @@ namespace OpenRelativity.Objects
         public Vector3 piw { get; set; }
         public void ResetPiw()
         {
-            piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : transform.position;
+            piw = nonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : transform.position;
         }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
@@ -470,7 +470,7 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= GetTimeFactor();
             startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
             if (myRenderer != null)
@@ -480,7 +480,7 @@ namespace OpenRelativity.Objects
         public virtual void SetDeathTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= GetTimeFactor();
             DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
         }
@@ -882,7 +882,7 @@ namespace OpenRelativity.Objects
 
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
-            piw = nonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, Get4Acceleration()) : myRigidbody.position;
+            piw = nonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
             viw = myRigidbody.velocity.RapidityToVelocity(GetMetric());
@@ -1117,7 +1117,7 @@ namespace OpenRelativity.Objects
                     cviw = Vector3.zero;
                 } else
                 {
-                    transform.position = nonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, Get4Acceleration()) : piw;
+                    transform.position = nonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) : piw;
                 }
 
                 UpdateShaderParams();
@@ -1152,7 +1152,7 @@ namespace OpenRelativity.Objects
                 if (nonrelativisticShader)
                 {
                     transform.parent = null;
-                    testVec = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
+                    testVec = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
                     if (!IsNaNOrInf(testVec.sqrMagnitude))
                     {
                         myRigidbody.MovePosition(testVec);
@@ -1195,7 +1195,7 @@ namespace OpenRelativity.Objects
             //If we have a BoxCollider, transform its center to its optical position
             else if (myColliderIsBox)
             {
-                Vector4 aiw4 = Get4Acceleration();
+                Vector4 aiw4 = GetWorld4Acceleration();
                 Vector3 pos;
                 BoxCollider collider;
                 Vector3 testPos;
@@ -1221,7 +1221,8 @@ namespace OpenRelativity.Objects
             {
                 Vector3 tempViw = cviw.AddVelocity(viw) / (float)state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
-                Vector4 tempAiw = Get4Acceleration();
+                Vector4 tempAiw = GetWorld4Acceleration();
+                Vector4 tempPao = GetProper4Acceleration();
                 Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / (float)state.SpeedOfLight;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
@@ -1236,6 +1237,7 @@ namespace OpenRelativity.Objects
                 {
                     myRenderer.materials[i].SetVector("_viw", tempViw);
                     myRenderer.materials[i].SetVector("_aiw", tempAiw);
+                    myRenderer.materials[i].SetVector("_pao", tempPao);
                     myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                     myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
                     myRenderer.materials[i].SetVector("_vr", tempVr);
@@ -1411,9 +1413,14 @@ namespace OpenRelativity.Objects
             return viw.ToMinkowski4Viw();
         }
 
-        public Vector4 Get4Acceleration()
+        public Vector4 GetWorld4Acceleration()
         {
             return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
+        }
+
+        public Vector4 GetProper4Acceleration()
+        {
+            return properAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
         }
 
         private void UpdateRigidbodyVelocity()
@@ -1456,7 +1463,7 @@ namespace OpenRelativity.Objects
                 {
                     SetUpContractor();
                 }
-                contractor.position = ((Vector4)piw).WorldToOptical(viw, Get4Acceleration());
+                contractor.position = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
                 transform.localPosition = Vector3.zero;
                 ContractLength();
             }
