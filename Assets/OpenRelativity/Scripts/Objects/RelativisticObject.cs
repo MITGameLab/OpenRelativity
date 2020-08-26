@@ -34,10 +34,12 @@ namespace OpenRelativity.Objects
         #endregion
 
         #region Rigid body physics
-        // How long (in seconds) do we wait before we detect collisions with an object we just collided with?
-        private float collideWait = 0f;
 
         private bool isResting;
+        private bool isSleeping;
+        private const float SleepThreshold = 0.01f;
+        private const float SleepTime = 0.05f;
+        private float SleepTimer;
 
         public Vector3 _viw = Vector3.zero;
         public Vector3 viw
@@ -55,6 +57,11 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
+                if ((SleepTimer <= 0) && (value.sqrMagnitude < SleepThreshold))
+                {
+                    return;
+                }
+
                 if (isKinematic)
                 {
                     _viw = value;
@@ -62,7 +69,7 @@ namespace OpenRelativity.Objects
                 }
 
                 UpdateViwAndAccel(value, _nonGravAccel);
-                UpdateRigidbodyVelocity(_viw, _aviw);
+                UpdateRigidbodyVelocity();
             }
         }
         public Matrix4x4 viwLorentz { get; private set; }
@@ -81,7 +88,7 @@ namespace OpenRelativity.Objects
                 if (!isKinematic)
                 {
                     _aviw = value;
-                    UpdateRigidbodyVelocity(_viw, value);
+                    UpdateRigidbodyVelocity();
                 }
             }
         }
@@ -104,7 +111,7 @@ namespace OpenRelativity.Objects
                 }
 
                 UpdateViwAndAccel(_viw, value);
-                UpdateRigidbodyVelocity(_viw, _aviw);
+                UpdateRigidbodyVelocity();
             }
         }
 
@@ -136,23 +143,23 @@ namespace OpenRelativity.Objects
 
             set
             {
-                _properAccel = value - frameDragAccel;
-                Vector3 accel = _properAccel;
+                Vector3 accel = value;
 
                 if (isResting)
                 {
-                    if (useGravity)
-                    {
-                        accel += Physics.gravity;
-                    }
-
                     if (state.conformalMap != null)
                     {
                         accel -= state.conformalMap.GetRindlerAcceleration(piw);
                     }
+
+                    if (useGravity)
+                    {
+                        accel += Physics.gravity;
+                    }
                 }
 
                 nonGravAccel = accel;
+                _properAccel = monopoleAccel ? accel - frameDragAccel : accel;
             }
         }
 
@@ -162,6 +169,11 @@ namespace OpenRelativity.Objects
         {
             get
             {
+                if (SleepTimer <= 0)
+                {
+                    return Vector3.zero;
+                }
+
                 Vector3 _aiw = properAccel;
 
                 if (useGravity)
@@ -693,6 +705,7 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
+            SleepTimer = isLightMapStatic ? 0 : SleepTime;
             cviw = Vector3.zero;
             frameDragAccel = Vector3.zero;
             ResetPiw();
@@ -888,7 +901,26 @@ namespace OpenRelativity.Objects
 
             if (myRigidbody != null)
             {
-                UpdateRigidbodyVelocity(viw, aviw);
+                if ((_viw.sqrMagnitude < SleepThreshold) &&
+                (_aviw.sqrMagnitude < SleepThreshold) &&
+                (aiw.sqrMagnitude < SleepThreshold))
+                {
+                    SleepTimer -= Time.deltaTime;
+                } else
+                {
+                    SleepTimer = SleepTime;
+                }
+
+                if (SleepTimer <= 0)
+                {
+                    viw = Vector3.zero;
+                    aviw = Vector3.zero;
+                    aiw = Vector3.zero;
+
+                    myRigidbody.Sleep();
+                }
+
+                UpdateRigidbodyVelocity();
             }
 
             if (state.MovementFrozen || nonrelativisticShader || meshFilter != null)
@@ -1280,19 +1312,21 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            if (SleepTimer <= 0)
+            {
+                RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
+                if (otherRO.SleepTimer <= 0)
+                {
+                    return;
+                }
+            }         
+
             // Let's start simple:
             // At low enough velocities, where the Newtonian approximation is reasonable,
             // PhysX is probably MORE accurate for even relativistic collision than the hacky relativistic collision we had
             // (which is still in the commit history, for reference).
             EnforceCollision(collision);
             // EnforceCollision() might opt not to set didCollide
-
-            // We don't want to bug out, on many collisions with the same object
-            if (collideWait > 0)
-            {
-                Physics.IgnoreCollision(GetComponent<Collider>(), collision.collider, true);
-                StartCoroutine(EnableCollision(collideWait, collision.collider));
-            }
         }
         #endregion
 
@@ -1382,11 +1416,11 @@ namespace OpenRelativity.Objects
             return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
         }
 
-        private void UpdateRigidbodyVelocity(Vector3 mViw, Vector3 mAviw)
+        private void UpdateRigidbodyVelocity()
         {
             if (myRigidbody == null ||
                 // Not a meaningful quantity, just to check if either parameter is inf/nan
-                IsNaNOrInf((mViw + mAviw).magnitude))
+                IsNaNOrInf((_viw + _aviw).magnitude))
             {
                 return;
             }
@@ -1410,8 +1444,8 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            myRigidbody.velocity = mViw * timeFac;
-            myRigidbody.angularVelocity = mAviw * timeFac;
+            myRigidbody.velocity = _viw * timeFac;
+            myRigidbody.angularVelocity = _aviw * timeFac;
         }
 
         public void UpdateContractorPosition()
