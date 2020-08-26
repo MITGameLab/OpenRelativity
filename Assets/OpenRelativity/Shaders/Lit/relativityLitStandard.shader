@@ -21,7 +21,8 @@ Shader "Relativity/Lit/Standard" {
 		_IsStatic("Light Map Static", Range(0, 1)) = 0
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
-		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's acceleration in world coordinates
+		_pao("pao", Vector) = (0,0,0,0) //Vector that represents object's proper acceleration
+		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's proper acceleration
 	}
 		CGINCLUDE
 
@@ -90,7 +91,7 @@ Shader "Relativity/Lit/Standard" {
 			float2 uv2 : TEXCOORD3; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD4; //normal in world
-			float4 aiwt : TEXCOORD5;
+			float4 paot : TEXCOORD5;
 // This section is a mess, but the problem is that shader semantics are "prime real estate."
 // We want to use the bare minimum of TEXCOORD instances we can get away with, to support
 // the oldest and most limited possible hardware.
@@ -160,6 +161,7 @@ Shader "Relativity/Lit/Standard" {
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
+		float4 _pao = float4(0, 0, 0, 0); //proper acceleration of object
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 		float4 _pap = float4(0, 0, 0, 0); //acceleration of player
@@ -416,15 +418,18 @@ Shader "Relativity/Lit/Standard" {
 			//Apply Lorentz transform;
 			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
 			float4 aiwTransformed = mul(_viwLorentzMatrix, _aiw);
-			//Translate in time:
 			float4 riwTransformed = mul(_viwLorentzMatrix, riw);
+			float4 paoTransformed = mul(_viwLorentzMatrix, _pao);
+			//Translate in time:
 			float tisw = riwTransformed.w;
 			riwTransformed.w = 0;
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-			o.aiwt = mul(metric, aiwTransformed);
-			float aiwDotAiw = -dot(aiwTransformed, o.aiwt);
+		    float aiwt = mul(metric, aiwTransformed);
+			float aiwDotAiw = -dot(aiwTransformed, aiwt);
+			o.paot = mul(metric, paoTransformed);
+			float paoDotPao = -dot(paoTransformed, o.paot);
 
 			if (_IsStatic) {
 				float sqrtArg = riwDotRiw / _spdOfLightSqrd;
@@ -437,7 +442,7 @@ Shader "Relativity/Lit/Standard" {
 				tisw += t2;
 			}
 			else {
-				float riwDotAiw = -dot(riwTransformed, o.aiwt);
+				float riwDotAiw = -dot(riwTransformed, aiwt);
 
 				float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
 				float aiwMag = length(aiwTransformed.xyz);
@@ -483,11 +488,10 @@ Shader "Relativity/Lit/Standard" {
 #if defined(VERTEXLIGHT_ON)
 			// Red/blue shift light due to gravity
 			float4 lightColor = CAST_LIGHTCOLOR0;
-			if (aiwDotAiw > divByZeroCutoff) {
+			if (paoDotPao > divByZeroCutoff) {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
-				float posDotAiw = -dot(posTransformed, o.aiwt);
-
-				float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
+				float posDotPao = -dot(posTransformed, o.paot);
+				float shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
 				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
 			}
 
@@ -520,9 +524,9 @@ Shader "Relativity/Lit/Standard" {
 
 				// Red/blue shift light due to gravity
 				float4 lightColor = CAST_LIGHTCOLOR0;
-				if (aiwDotAiw > divByZeroCutoff) {
-					float posDotAiw = -dot(vertexToLightSource, o.aiwt);
-					float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
+				if (paoDotPao > divByZeroCutoff) {
+					float posDotPao = -dot(vertexToLightSource, o.paot);
+					float shift = 1.0f + posDotAiw / (sqrt(paoDotPao) * _spdOfLightSqrd);
 					lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.a);
 				}
 
@@ -550,11 +554,11 @@ Shader "Relativity/Lit/Standard" {
 #else 
 			// Red/blue shift light due to gravity
 			float4 lightColor = CAST_LIGHTCOLOR0;
-			if (aiwDotAiw > divByZeroCutoff) {
+			if (paoDotPao > divByZeroCutoff) {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
-				float posDotAiw = -dot(posTransformed, o.aiwt);
+				float posDotPao = -dot(posTransformed, o.paot);
 
-				float shift = 1.0f + posDotAiw / (sqrt(aiwDotAiw) * _spdOfLightSqrd);
+				float shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
 				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
 			}
 
@@ -653,18 +657,18 @@ Shader "Relativity/Lit/Standard" {
 			}
 			float nl = max(0, dot(normalDirection, lightDirection));
 
-			float aiwDotAiw = -dot(i.aiwt, i.aiwt);
+			float paoDotPao = -dot(i.paot, i.paot);
 			float4 lightColor = CAST_LIGHTCOLOR0;
-			if (aiwDotAiw > divByZeroCutoff) {
+			if (paoDotPao > divByZeroCutoff) {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
-				float posDotAiw = -dot(posTransformed, i.aiwt);
+				float posDotPao = -dot(posTransformed, i.paot);
 
-				float shift = sqrt(aiwDotAiw) * _spdOfLightSqrd;
+				float shift = sqrt(paoDotPao) * _spdOfLightSqrd;
 				if (shift < divByZeroCutoff) {
 					shift = 1.0f;
 				}
 
-				shift = 1.0f + posDotAiw / shift;
+				shift = 1.0f + posDotPao / shift;
 
 				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
 			}
