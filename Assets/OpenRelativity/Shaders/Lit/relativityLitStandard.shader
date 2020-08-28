@@ -706,7 +706,10 @@ Shader "Relativity/Lit/Standard" {
 			reflecS *= reflecS;
 			float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
 			reflecP *= reflecP;
-			specFactor = (reflecS + reflecP) / 2;
+			specFactor = (reflecS + reflecP) / 2 - 1.0f;
+			if (specFactor > 1.0f) {
+				specFactor = 1.0f;
+			}
 
 			float3 specRgb, specFinal;
 			if (specFactor > 0.0f) {
@@ -720,6 +723,7 @@ Shader "Relativity/Lit/Standard" {
 
 			// Specular reflection is added after lightmap and shadow
 			if (specFactor > 0.0f) {
+				rgbFinal *= 1.0f - specFactor;
 				rgbFinal += specFinal;
 			}
 #endif
