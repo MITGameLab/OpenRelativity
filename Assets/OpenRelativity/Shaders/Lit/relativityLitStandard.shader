@@ -695,10 +695,11 @@ Shader "Relativity/Lit/Standard" {
 				specFactor = 0.0f;
 			}
 
+			// TODO: 
 			float indexRefrac = sqrt(1 - _Specular);
 			indexRefrac = (1.0f + indexRefrac) / (1.0f - indexRefrac);
-			float angle = acos(dot(viewDir, i.normal) / length(viewDir));
-			float cosAngle = cos(angle);
+			float cosAngle = dot(viewDir, i.normal) / length(viewDir);
+			float angle = acos(cosAngle);
 			float sinFac = sin(angle) / indexRefrac;
 			sinFac *= sinFac;
 			sinFac = sqrt(1 - sinFac);
@@ -706,7 +707,7 @@ Shader "Relativity/Lit/Standard" {
 			reflecS *= reflecS;
 			float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
 			reflecP *= reflecP;
-			specFactor = (reflecS + reflecP) / 2 - 1.0f;
+			specFactor = (reflecS + reflecP) / 2;
 			if (specFactor > 1.0f) {
 				specFactor = 1.0f;
 			}
