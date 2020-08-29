@@ -652,6 +652,20 @@ Shader "Relativity/Lit/Standard" {
 
 			lightRgb = attenuation * lightRgb * _Color.rgb * nl;
 
+	#if SPECULAR
+			// Apply specular reflectance
+			// (Schlick's approximation)
+			// (Assume surrounding medium has an index of refraction of 1)
+
+			float halfAngle = dot(normalize(lightDirection + viewDir), i.normal);
+			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - halfAngle, 5)) * _Metallic;
+
+			// Specular reflection is added after lightmap and shadow
+			specFactor = min(1.0f, specFactor);
+			lightRgb *= 1.0f - specFactor;
+			lightRgb += lightRgb * specFactor;
+	#endif
+
 			// Technically this is incorrect, but helps hide jagged light edge at the object silhouettes and
 			// makes normalmaps show up.
 			//lightRgb *= saturate(dot(i.normal, lightDirection));
@@ -702,7 +716,7 @@ Shader "Relativity/Lit/Standard" {
 
 			float3 lightRgb = attenuation * lightColor.rgb * _Color.rgb * nl;
 
-#if SPECULAR
+	#if SPECULAR
 			// Apply specular reflectance
 			// (Schlick's approximation)
 			// (Assume surrounding medium has an index of refraction of 1)
@@ -714,7 +728,7 @@ Shader "Relativity/Lit/Standard" {
 			specFactor = min(1.0f, specFactor);
 			lightRgb *= 1.0f - specFactor;
 			lightRgb += lightRgb * specFactor;
-#endif
+	#endif
 			i.diff += float4(lightRgb, 0);
 #endif
 
