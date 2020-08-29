@@ -6,20 +6,22 @@ Shader "Relativity/Lit/Standard" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
+		[Toggle(UV_IR_TEXTURES)]
+		_UVAndIRTextures("UV and IR textures", Range(0, 1)) = 1
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
+		_Cutoff("Base alpha cutoff", Range(0,.9)) = 0.1
 		[Toggle(SPECULAR)]
-		_SpecularOn("Specular Reflections", Range(0, 1)) = 0
+		_SpecularOn("Specular reflections", Range(0, 1)) = 0
 		_Smoothness("Smoothness", Range(0, 1)) = 0
 		_Metallic("Metallic", Range(0, 1)) = 0
 		[Toggle(_EMISSION)]
-		_EmissionOn("Emission Lighting", Range(0, 1)) = 0
-		_EmissionMap("Emission Map", 2D) = "black" {}
-		[HDR] _EmissionColor("Emission Color", Color) = (0,0,0)
-		_EmissionMultiplier("Emission Multiplier", Range(0,10)) = 1
+		_EmissionOn("Emission lighting", Range(0, 1)) = 0
+		_EmissionMap("Emission map", 2D) = "black" {}
+		[HDR] _EmissionColor("Emission color", Color) = (0,0,0)
+		_EmissionMultiplier("Emission multiplier", Range(0,10)) = 1
 		[Toggle(IS_STATIC)]
-		_IsStatic("Light Map Static", Range(0, 1)) = 0
+		_IsStatic("Light map static", Range(0, 1)) = 0
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_pao("pao", Vector) = (0,0,0,0) //Vector that represents object's proper acceleration
@@ -335,14 +337,16 @@ Shader "Relativity/Lit/Standard" {
 			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
 		}
 
-		float3 ApplyFog(float3 color, float shift, float3 pos) {
+		float3 ApplyFog(float3 color, float UV, float IR, float shift, float3 pos) {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
 #if defined(UNITY_PASS_FORWARDBASE)
 	#if _EMISSION
 			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.r * rFac, unity_FogColor.b * bFac, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
 	#else
-			return DopplerShift(lerp(unity_FogColor.rgb, color, saturate(unityFogFactor)), unity_FogColor.r, unity_FogColor.b, shift);
+			float lightIntensity = length(unity_FogColor);
+			float saturatedFogFactor = saturate(unityFogFactor);
+			return DopplerShift(lerp(unity_FogColor.rgb, color, saturatedFogFactor), lerp(lightIntensity * bFac, UV, saturatedFogFactor), lerp(lightIntensity * rFac, IR, saturatedFogFactor), shift);
 	#endif
 #else
 			return lerp((float3)0, color, saturate(unityFogFactor));
@@ -593,11 +597,21 @@ Shader "Relativity/Lit/Standard" {
 			);
 			float4 envSample = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, reflDir);
 			float4 data = tex2D(_MainTex, i.albedoUV).rgba;
+
+#if UV_IR_TEXTURES
 			float UV = tex2D(_UVTex, i.albedoUV).r;
 			float IR = tex2D(_IRTex, i.albedoUV).r;
 
-#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
+    #endif
+#else
+			float lightIntensity;
+	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+			float3 rgbEmission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
+			lightIntensity = length(rgbEmission);
+			rgbEmission = DopplerShift(rgbEmission, lightIntensity * bFac, lightIntensity * rFac, shift);
+	#endif
 #endif
 
 			//Apply lighting in world frame:
@@ -643,7 +657,8 @@ Shader "Relativity/Lit/Standard" {
 
 				pShift = 1.0f + posDotPao / pShift;
 
-				lightRgb = DopplerShift(lms, lms.r * rFac, lms.b * bFac, pShift);
+				lightIntensity = length(lms);
+				lightRgb = DopplerShift(lms, lightIntensity * bFac, lightIntensity * rFac, pShift);
 			}
 			else {
 				lightRgb = float3(lms);
@@ -710,7 +725,8 @@ Shader "Relativity/Lit/Standard" {
 
 				pShift = 1.0f + posDotPao / pShift;
 
-				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, pShift), lightColor.w);
+				lightIntensity = length(lightColor);
+				lightColor = float4(DopplerShift(lightColor, lightIntensity * bFac, lightIntensity * rFac, pShift), lightColor.w);
 			}
 
 			float3 lightRgb = attenuation * lightColor.rgb * _Color.rgb * nl;
@@ -760,7 +776,12 @@ Shader "Relativity/Lit/Standard" {
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			//Doppler factor should be squared for reflected light:
+	#if UV_IR_TEXTURES
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
+	#else
+			lightIntensity = length(rgbFinal);
+			rgbFinal = DopplerShift(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift);
+	#endif
 
 			//Add emission:
 			rgbFinal += rgbEmission;
@@ -768,15 +789,29 @@ Shader "Relativity/Lit/Standard" {
 	#if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
 			// We're approximating a volumetric effect for a fog that's stationary relative
 			// to the untransformed world coordinates, so we just use those.
-			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
+		#if UV_IR_TEXTURES
+			rgbFinal = ApplyFog(rgbFinal, UV, IR, shift, i.pos3);
+		#else
+			lightIntensity = length(rgbFinal);
+			rgbFinal = ApplyFog(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift, i.pos3);
+		#endif
 	#endif
 #else
 	#if FORWARD_FOG
 			// Doppler shift can be combined into a single step, if there's no emission
-			rgbFinal = ApplyFog(rgbFinal, shift, i.pos3);
+		#if UV_IR_TEXTURES
+			rgbFinal = ApplyFog(rgbFinal, UV, IR, shift, i.pos3);
+		#else
+			lightIntensity = length(rgbFinal);
+			rgbFinal = ApplyFog(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift, i.pos3);
+		#endif
 	#else
-			//Doppler factor should be squared for reflected light:
+		#if UV_IR_TEXTURES
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
+		#else
+			lightIntensity = length(rgbFinal);
+			rgbFinal = DopplerShift(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift);
+		#endif
 	#endif
 #endif
 
