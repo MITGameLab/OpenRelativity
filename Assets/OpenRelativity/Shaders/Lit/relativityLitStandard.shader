@@ -87,9 +87,9 @@ Shader "Relativity/Lit/Standard" {
 		{
 			float4 pos : POSITION; //internal, used for display
 			float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
-			float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
+			float2 albedoUV : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
-			float2 uv2 : TEXCOORD3; //Lightmap TEXCOORD
+			float2 lightmapUV : TEXCOORD3; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD4; //normal in world
 			float4 paot : TEXCOORD5;
@@ -103,7 +103,7 @@ Shader "Relativity/Lit/Standard" {
 	#if FORWARD_FOG
 			float4 pos3 : TEXCOORD8; //Untransformed position in world, relative to player position in world
 		#if _EMISSION
-			float2 uv3 : TEXCOORD9; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD9; //EmisionMap TEXCOORD
 			#if defined(POINT)
 			float4 vtlt : TEXCOORD10;
 			#endif
@@ -111,7 +111,7 @@ Shader "Relativity/Lit/Standard" {
 			float4 vtlt : TEXCOORD9;
 		#endif
 	#elif _EMISSION
-			float2 uv3 : TEXCOORD8; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD8; //EmisionMap TEXCOORD
 		#if defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD9;
 		#endif
@@ -121,7 +121,7 @@ Shader "Relativity/Lit/Standard" {
 #elif FORWARD_FOG
 			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
 	#if _EMISSION
-			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD7; //EmisionMap TEXCOORD
 		#if defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD8;
 		#endif
@@ -129,7 +129,7 @@ Shader "Relativity/Lit/Standard" {
 			float4 vtlt : TEXCOORD7;
 	#endif
 #elif _EMISSION
-			float2 uv3 : TEXCOORD6; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
 	#if defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD7;
 	#endif
@@ -354,22 +354,22 @@ Shader "Relativity/Lit/Standard" {
 		{
 			v2f o;
 
-			o.uv1.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
-			o.uv2 = float2(0, 0);
+			o.albedoUV.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
+			o.lightmapUV = float2(0, 0);
 #ifdef LIGHTMAP_ON
-			o.uv2 = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
+			o.lightmapUV = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
 #endif
 #if _EMISSION
-			o.uv3 = float2(0, 0);
+			o.emissionUV = float2(0, 0);
 #endif
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 			if (_MainTex_TexelSize.y < 0)
-				o.uv1.y = 1.0f - o.uv1.y;
+				o.albedoUV.y = 1.0f - o.albedoUV.y;
 #endif 
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
-			o.uv3.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy;
+			o.emissionUV.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy;
 #endif
 
 			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
@@ -485,6 +485,7 @@ Shader "Relativity/Lit/Standard" {
 			o.pos = UnityObjectToClipPos(o.pos);
 
 			o.normal = float4(UnityObjectToWorldNormal(v.normal), 0);
+			o.normal = normalize(float4(mul(_viwLorentzMatrix, float4(o.normal.xyz, 0)).xyz, 0));
 
 #if defined(VERTEXLIGHT_ON)
 			// Red/blue shift light due to gravity
@@ -582,7 +583,7 @@ Shader "Relativity/Lit/Standard" {
 			//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent.
 
 			//Get initial color 
-			float3 viewDir = normalize(i.pos2.xyz - _WorldSpaceCameraPos.xyz);
+			float3 viewDir = normalize(mul(_viwLorentzMatrix, float4(i.pos2.xyz - _WorldSpaceCameraPos.xyz, 0)).xyz);
 			i.normal /= length(i.normal);
 			float3 reflDir = reflect(viewDir, i.normal);
 			reflDir = BoxProjection(
@@ -591,21 +592,74 @@ Shader "Relativity/Lit/Standard" {
 				unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
 			);
 			float4 envSample = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, reflDir);
-			float4 data = tex2D(_MainTex, i.uv1).rgba;
-			float UV = tex2D(_UVTex, i.uv1).r;
-			float IR = tex2D(_IRTex, i.uv1).r;
+			float4 data = tex2D(_MainTex, i.albedoUV).rgba;
+			float UV = tex2D(_UVTex, i.albedoUV).r;
+			float IR = tex2D(_IRTex, i.albedoUV).r;
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
-			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
+			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
 #endif
 
 			//Apply lighting in world frame:
 			float3 rgb = data.xyz;
 			float3 rgbFinal = DopplerShift(rgb, UV, IR, shift);
 
+			float3 lightDirection;
+			float attenuation;
 #if defined(LIGHTMAP_ON)
-			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
+			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.lightmapUV));
+
+	#if defined(DIRLIGHTMAP_COMBINED)
+			attenuation = 1.0f;
+
+			lightDirection = UNITY_SAMPLE_TEX2D_SAMPLER(
+				unity_LightmapInd, unity_Lightmap, i.lightmapUV
+			).xyz;
+
+			lightDirection = lightDirection * 2 - 1;
+
+			// The length of the direction vector is the light's "directionality", i.e. 1 for all light coming from this direction,
+			// lower values for more spread out, ambient light.
+			float directionality = max(0.001, length(lightDirection));
+			lightDirection /= directionality;
+
+			lightDirection = normalize(mul(_viwLorentzMatrix, float4(lightDirection, 0)).xyz);
+
+			// Split light into the directional and ambient parts, according to the directionality factor.
+			i.diff = float4(lms * (1 - directionality), 0);
+			lms = lms * directionality;
+
+			float nl = max(0, dot(i.normal, lightDirection));
+
+			float paoDotPao = -dot(i.paot, i.paot);
+			float3 lightRgb;
+			if (paoDotPao > divByZeroCutoff) {
+				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
+				float posDotPao = -dot(posTransformed, i.paot);
+
+				float shift = sqrt(paoDotPao) * _spdOfLightSqrd;
+				if (shift < divByZeroCutoff) {
+					shift = 1.0f;
+				}
+
+				shift = 1.0f + posDotPao / shift;
+
+				lightRgb = DopplerShift(lms, lms.r * rFac, lms.b * bFac, shift);
+			}
+			else {
+				lightRgb = float3(lms);
+			}
+
+			lightRgb = attenuation * lightRgb * _Color.rgb * nl;
+
+			// Technically this is incorrect, but helps hide jagged light edge at the object silhouettes and
+			// makes normalmaps show up.
+			//lightRgb *= saturate(dot(i.normal, lightDirection));
+
+			i.diff += float4(lightRgb, 0);
+	#else
 			i.diff = float4((float3)lms, 0);
+	#endif
 #elif defined(POINT)
 
 			// We have to compromise on accuracy for relativity in curved backgrounds, here, unfortunately.
@@ -613,9 +667,7 @@ Shader "Relativity/Lit/Standard" {
 			// inner products, but that's a little computationally extreme, for the pipeline.
 			// It's not theoretically correct, for point lights, but we assume that the frame is flat and
 			// inertial, up to acceleration of the fragment.
-
-			float3 lightDirection;
-			float attenuation;
+			
 			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
 			{
 				attenuation = 1.0f; // no attenuation
@@ -627,7 +679,7 @@ Shader "Relativity/Lit/Standard" {
 				float3 vertexToLightSource = 
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz, 0));
 				float squaredDistance = dot(vertexToLightSource.xyz, i.vtlt.xyz);
-				attenuation = 1.0f / (1.0f + 0.0005f * squaredDistance);
+				attenuation = 1.0f / (1.0f + 0.00005f * squaredDistance);
 				lightDirection = normalize(vertexToLightSource);
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
@@ -663,7 +715,7 @@ Shader "Relativity/Lit/Standard" {
 			lightRgb *= 1.0f - specFactor;
 			lightRgb += lightRgb * specFactor;
 #endif
-			i.diff += float4(lightRgb, 1);
+			i.diff += float4(lightRgb, 0);
 #endif
 
 
@@ -780,12 +832,12 @@ Shader "Relativity/Lit/Standard" {
 					// We're interested in diffuse & specular colors
 					// and surface roughness to produce final albedo.
 
-					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.uv1.xy,0,0));
+					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.albedoUV.xy,0,0));
 					UnityMetaInput o;
 					UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
-					fixed4 c = tex2D(_GIAlbedoTex, i.uv1);
+					fixed4 c = tex2D(_GIAlbedoTex, i.albedoUV);
 #if _EMISSION
-					o.Emission = (tex2D(_EmissionMap, i.uv3) * _EmissionMultiplier) * _EmissionColor;
+					o.Emission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
 #else
 					o.Emission = 0;
 #endif
