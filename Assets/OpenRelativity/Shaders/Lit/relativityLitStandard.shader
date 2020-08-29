@@ -754,6 +754,7 @@ Shader "Relativity/Lit/Standard" {
 			// Apply specular reflectance
 			// (Schlick's approximation)
 			// (Assume surrounding medium has an index of refraction of 1)
+			// WARNING: Real-time reflections will be wrong. Use baked.
 
 			float cosAngle = dot(viewDir, i.normal);
 			float specFactor2 = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
