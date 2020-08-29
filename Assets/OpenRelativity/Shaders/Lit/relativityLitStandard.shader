@@ -567,11 +567,8 @@ Shader "Relativity/Lit/Standard" {
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
-			//Used to maintian a square scale ( adjust for screen aspect ratio )
-			float3 x1y1z1 = i.pos2 * (float3)(2 * xs, 2 * xs / xyr, 1);
-
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			float shift = (1 - dot(x1y1z1, _vr.xyz) / length(x1y1z1)) / i.svc;
+			float shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
 			if (_colorShift == 0)
 			{
 				shift = 1.0f;
@@ -761,17 +758,10 @@ Shader "Relativity/Lit/Standard" {
 			float cosAngle = dot(viewDir, i.normal);
 			float specFactor2 = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
 
-			//float negShift = (1 - dot(x1y1z1, -_vr.xyz) / length(x1y1z1)) / i.svc;
-			//negShift *= negShift;
-			//negShift *= negShift;
-
 			// Specular reflection is added after lightmap and shadow
 			specFactor2 = min(1.0f, specFactor2);
 			rgbFinal *= 1.0f - specFactor2;
-			float3 specColor2 = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor2;
-			//lightIntensity = length(specColor2) / 3;
-			//rgbFinal += DopplerShift(specColor2, lightIntensity * bFac, lightIntensity * rFac, negShift);
-			rgbFinal += specColor2;
+			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor2;
 #endif
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION

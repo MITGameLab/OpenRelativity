@@ -257,11 +257,8 @@ Shader "Relativity/Unlit/ColorOnly"
 	//Per pixel shader, does color modifications
 	float4 frag(v2f i) : COLOR
 	{
-		//Used to maintian a square scale ( adjust for screen aspect ratio )
-		float3 x1y1z1 = i.pos2.xyz * (float3)(2 * xs, 2 * xs / xyr, 1);
-
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-		float shift = (1 - dot(x1y1z1, _vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
+		float shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
 		if (_colorShift == 0)
 		{
 			shift = 1.0f;
