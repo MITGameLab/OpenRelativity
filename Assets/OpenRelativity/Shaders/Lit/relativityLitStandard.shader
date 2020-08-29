@@ -509,25 +509,24 @@ Shader "Relativity/Lit/Standard" {
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 	#endif
 
-			float4 lightPosition;
+			float4 lightPosition, lightColor;
 			float3 vertexToLightSource, lightDirection, diffuseReflection;
-			float squaredDistance;
-			float attenuation;
+			float squaredDistance, attenuation, posDotPao, shift;
 			for (int index = 0; index < 4; index++)
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
 					unity_4LightPosY0[index],
 					unity_4LightPosZ0[index], 1.0f);
 				vertexToLightSource =
-					mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - o.pos2.xyz;
+					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0));
 				squaredDistance =
-					dot(vertexToLightSource, mul(metric, vertexToLightSource));
+					dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
 
 				// Red/blue shift light due to gravity
-				float4 lightColor = CAST_LIGHTCOLOR0;
+				lightColor = CAST_LIGHTCOLOR0;
 				if (paoDotPao > divByZeroCutoff) {
-					float posDotPao = -dot(vertexToLightSource, o.paot);
-					float shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
+					posDotPao = -dot(vertexToLightSource, o.paot);
+					shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
 					lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.a);
 				}
 
@@ -627,7 +626,7 @@ Shader "Relativity/Lit/Standard" {
 			{
 				float3 vertexToLightSource = 
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz, 0));
-				float squaredDistance = dot(vertexToLightSource, i.vtlt);
+				float squaredDistance = dot(vertexToLightSource.xyz, i.vtlt.xyz);
 				attenuation = 1.0f / (1.0f + 0.0005f * squaredDistance);
 				lightDirection = normalize(vertexToLightSource);
 			}
