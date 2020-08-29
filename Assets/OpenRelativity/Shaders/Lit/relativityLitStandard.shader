@@ -313,12 +313,8 @@ Shader "Relativity/Lit/Standard" {
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 
-			if (shift < divByZeroCutoff) {
+			if (shift == 0) {
 				shift = 1.0f;
-			}
-
-			if (shift == 1.0f) {
-				return rgb;
 			}
 
 			float3 xyz = RGBToXYZC(rgb);
@@ -344,7 +340,7 @@ Shader "Relativity/Lit/Standard" {
 			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.r * rFac, unity_FogColor.b * bFac, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
 	#else
-			float lightIntensity = length(unity_FogColor);
+			float lightIntensity = length(unity_FogColor) / 3;
 			float saturatedFogFactor = saturate(unityFogFactor);
 			return DopplerShift(lerp(unity_FogColor.rgb, color, saturatedFogFactor), lerp(lightIntensity * bFac, UV, saturatedFogFactor), lerp(lightIntensity * rFac, IR, saturatedFogFactor), shift);
 	#endif
@@ -609,7 +605,7 @@ Shader "Relativity/Lit/Standard" {
 			float lightIntensity;
 	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float3 rgbEmission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
-			lightIntensity = length(rgbEmission);
+			lightIntensity = length(rgbEmission) / 3;
 			rgbEmission = DopplerShift(rgbEmission, lightIntensity * bFac, lightIntensity * rFac, shift);
 	#endif
 #endif
@@ -657,7 +653,7 @@ Shader "Relativity/Lit/Standard" {
 
 				pShift = 1.0f + posDotPao / pShift;
 
-				lightIntensity = length(lms);
+				lightIntensity = length(lms) / 3;
 				lightRgb = DopplerShift(lms, lightIntensity * bFac, lightIntensity * rFac, pShift);
 			}
 			else {
@@ -725,7 +721,7 @@ Shader "Relativity/Lit/Standard" {
 
 				pShift = 1.0f + posDotPao / pShift;
 
-				lightIntensity = length(lightColor);
+				lightIntensity = length(lightColor) / 3;
 				lightColor = float4(DopplerShift(lightColor, lightIntensity * bFac, lightIntensity * rFac, pShift), lightColor.w);
 			}
 
@@ -765,21 +761,25 @@ Shader "Relativity/Lit/Standard" {
 			float cosAngle = dot(viewDir, i.normal);
 			float specFactor2 = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
 
+			//float negShift = (1 - dot(x1y1z1, -_vr.xyz) / length(x1y1z1)) / i.svc;
+			//negShift *= negShift;
+			//negShift *= negShift;
+
 			// Specular reflection is added after lightmap and shadow
 			specFactor2 = min(1.0f, specFactor2);
 			rgbFinal *= 1.0f - specFactor2;
-			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR);
+			float3 specColor2 = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor2;
+			//lightIntensity = length(specColor2) / 3;
+			//rgbFinal += DopplerShift(specColor2, lightIntensity * bFac, lightIntensity * rFac, negShift);
+			rgbFinal += specColor2;
 #endif
-
-			// Reflections (diffuse and specular) have effectively twice the velocity, for a Doppler shift.
-			shift *= shift;
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			//Doppler factor should be squared for reflected light:
 	#if UV_IR_TEXTURES
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
 	#else
-			lightIntensity = length(rgbFinal);
+			lightIntensity = length(rgbFinal) / 3;
 			rgbFinal = DopplerShift(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift);
 	#endif
 
@@ -792,24 +792,27 @@ Shader "Relativity/Lit/Standard" {
 		#if UV_IR_TEXTURES
 			rgbFinal = ApplyFog(rgbFinal, UV, IR, shift, i.pos3);
 		#else
-			lightIntensity = length(rgbFinal);
+			lightIntensity = length(rgbFinal) / 3;
 			rgbFinal = ApplyFog(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift, i.pos3);
 		#endif
 	#endif
 #else
+			// Reflections (diffuse and specular) have effectively twice the velocity, for a Doppler shift.
+			shift *= shift;
+
 	#if FORWARD_FOG
 			// Doppler shift can be combined into a single step, if there's no emission
 		#if UV_IR_TEXTURES
 			rgbFinal = ApplyFog(rgbFinal, UV, IR, shift, i.pos3);
 		#else
-			lightIntensity = length(rgbFinal);
+			lightIntensity = length(rgbFinal) / 3;
 			rgbFinal = ApplyFog(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift, i.pos3);
 		#endif
 	#else
 		#if UV_IR_TEXTURES
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
 		#else
-			lightIntensity = length(rgbFinal);
+			lightIntensity = length(rgbFinal) / 3;
 			rgbFinal = DopplerShift(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift);
 		#endif
 	#endif
