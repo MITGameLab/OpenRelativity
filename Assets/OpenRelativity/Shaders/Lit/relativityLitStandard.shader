@@ -11,7 +11,8 @@ Shader "Relativity/Lit/Standard" {
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1
 		[Toggle(SPECULAR)]
 		_SpecularOn("Specular Reflections", Range(0, 1)) = 0
-		_Specular("Normal Reflectance", Range(0, 1)) = 0
+		_Smoothness("Smoothness", Range(0, 1)) = 0
+		_Metallic("Metallic", Range(0, 1)) = 0
 		[Toggle(_EMISSION)]
 		_EmissionOn("Emission Lighting", Range(0, 1)) = 0
 		_EmissionMap("Emission Map", 2D) = "black" {}
@@ -106,33 +107,33 @@ Shader "Relativity/Lit/Standard" {
 			#if defined(POINT)
 			float4 vtlt : TEXCOORD10;
 			#endif
-		#elif defined(POINT)
+		#elif defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD9;
 		#endif
 	#elif _EMISSION
 			float2 uv3 : TEXCOORD8; //EmisionMap TEXCOORD
-		#if defined(POINT)
+		#if defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD9;
 		#endif
-	#elif defined(POINT)
+	#elif defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD8;
 	#endif
 #elif FORWARD_FOG
 			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
 	#if _EMISSION
 			float2 uv3 : TEXCOORD7; //EmisionMap TEXCOORD
-		#if defined(POINT)
+		#if defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD8;
 		#endif
-	#elif defined(POINT)
+	#elif defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD7;
 	#endif
 #elif _EMISSION
 			float2 uv3 : TEXCOORD6; //EmisionMap TEXCOORD
-	#if defined(POINT)
+	#if defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD7;
 	#endif
-#elif defined(POINT)
+#elif defined(POINT) || SPECULAR
 			float4 vtlt : TEXCOORD6;
 #endif
 		};
@@ -147,7 +148,7 @@ Shader "Relativity/Lit/Standard" {
 		uniform float4 _EmissionMap_ST;
 		float _EmissionMultiplier;
 
-		float _Specular;
+		float _Smoothness;
 
 		float _IsStatic;
 
@@ -502,11 +503,11 @@ Shader "Relativity/Lit/Standard" {
 			// factor in the light color
 			o.diff = nl * lightColor;
 			// add ambient light
-#if SHADOW_OR_SPOT
+	#if SHADOW_OR_SPOT
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
-#else
+	#else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
-#endif
+	#endif
 
 			float4 lightPosition;
 			float3 vertexToLightSource, lightDirection, diffuseReflection;
@@ -547,42 +548,17 @@ Shader "Relativity/Lit/Standard" {
 
 				o.diff.rgb += diffuseReflection;
 			}
-#elif defined(LIGHTMAP_ON)
-			//half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2DARRAY_LOD(unity_Lightmap, o.uv2, 200));
-			//o.diff = float4((float3)lms, 0);
-			o.diff = 0;
-#else 
-			// Red/blue shift light due to gravity
-			float4 lightColor = CAST_LIGHTCOLOR0;
-			if (paoDotPao > divByZeroCutoff) {
-				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - riwTransformed;
-				float posDotPao = -dot(posTransformed, o.paot);
 
-				float shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
-				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
-			}
-
-			// dot product between normal and light direction for
-			// standard diffuse (Lambert) lighting
-			float nl = dot(o.normal.xyz, _WorldSpaceLightPos0.xyz);
-			nl = max(0, nl);
-			// factor in the light color
-			o.diff = nl * lightColor;
-			// add ambient light
-#if SHADOW_OR_SPOT
-			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
-#else
-			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
-#endif
-#endif
-
-#if SHADOW_OR_SPOT
+	#if SHADOW_OR_SPOT
 			TRANSFER_SHADOW(o)
-#endif
+	#endif
 
-#if defined(POINT)
-			float4 vtl = float4(mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz) - o.pos2.xyz, 0);
-			o.vtlt = mul(metric, vtl);
+#else
+			o.diff = 0;
+
+	#if defined(POINT)
+			o.vtlt = mul(metric, mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0)));
+	#endif
 #endif
 
 			return o;
@@ -607,7 +583,7 @@ Shader "Relativity/Lit/Standard" {
 			//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent.
 
 			//Get initial color 
-			float3 viewDir = i.pos2.xyz - _WorldSpaceCameraPos.xyz;
+			float3 viewDir = normalize(i.pos2.xyz - _WorldSpaceCameraPos.xyz);
 			i.normal /= length(i.normal);
 			float3 reflDir = reflect(viewDir, i.normal);
 			reflDir = BoxProjection(
@@ -632,13 +608,13 @@ Shader "Relativity/Lit/Standard" {
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.uv2));
 			i.diff = float4((float3)lms, 0);
 #elif defined(POINT)
+
 			// We have to compromise on accuracy for relativity in curved backgrounds, here, unfortunately.
 			// Ideally, we'd pass the metric tensor into the fragment shader, for use here, to calculate
 			// inner products, but that's a little computationally extreme, for the pipeline.
 			// It's not theoretically correct, for point lights, but we assume that the frame is flat and
 			// inertial, up to acceleration of the fragment.
 
-			float3 normalDirection = normalize(i.normal.xyz);
 			float3 lightDirection;
 			float attenuation;
 			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
@@ -649,13 +625,13 @@ Shader "Relativity/Lit/Standard" {
 			}
 			else // point or spot light
 			{
-				float3 vertexToLightSource =
-					mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz).xyz - i.pos2.xyz;
+				float3 vertexToLightSource = 
+					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz, 0));
 				float squaredDistance = dot(vertexToLightSource, i.vtlt);
 				attenuation = 1.0f / (1.0f + 0.0005f * squaredDistance);
 				lightDirection = normalize(vertexToLightSource);
 			}
-			float nl = max(0, dot(normalDirection, lightDirection));
+			float nl = max(0, dot(i.normal, lightDirection));
 
 			float paoDotPao = -dot(i.paot, i.paot);
 			float4 lightColor = CAST_LIGHTCOLOR0;
@@ -673,8 +649,25 @@ Shader "Relativity/Lit/Standard" {
 				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
 			}
 
-			i.diff = float4(attenuation * lightColor.rgb * _Color.rgb * nl, 1);
+			float3 lightRgb = attenuation * lightColor.rgb * _Color.rgb * nl;
+
+#if SPECULAR
+			// Apply specular reflectance
+			// (Schlick's approximation)
+			// (Assume surrounding medium has an index of refraction of 1)
+
+			float cosAngle = dot(normalize(lightDirection + viewDir), i.normal);
+			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
+
+			// Specular reflection is added after lightmap and shadow
+			specFactor = min(1.0f, specFactor);
+			lightRgb *= 1.0f - specFactor;
+			lightRgb += lightRgb * specFactor;
 #endif
+			i.diff += float4(lightRgb, 1);
+#endif
+
+
 
 			//Apply lighting:
 #if SHADOW_OR_SPOT
@@ -684,49 +677,18 @@ Shader "Relativity/Lit/Standard" {
 			rgbFinal *= i.diff;
 #endif
 
-#if SPECULAR
-			//Apply specular reflectance
-			//(Assume surrounding medium has an index of refraction of 1)
-			float specFactor;
-			if (_Specular >= 1.0f) {
-				specFactor = 1.0f;
-			}
-			else if (_Specular <= 0.0f) {
-				specFactor = 0.0f;
-			}
+#if defined(LIGHTMAP_ON) && SPECULAR
+			// Apply specular reflectance
+			// (Schlick's approximation)
+			// (Assume surrounding medium has an index of refraction of 1)
 
-			// TODO: 
-			float indexRefrac = sqrt(1 - _Specular);
-			indexRefrac = (1.0f + indexRefrac) / (1.0f - indexRefrac);
-			float cosAngle = dot(viewDir, i.normal) / length(viewDir);
-			float angle = acos(cosAngle);
-			float sinFac = sin(angle) / indexRefrac;
-			sinFac *= sinFac;
-			sinFac = sqrt(1 - sinFac);
-			float reflecS = (cosAngle - indexRefrac * sinFac) / (cosAngle + indexRefrac * sinFac);
-			reflecS *= reflecS;
-			float reflecP = (sinFac - indexRefrac * cosAngle) / (sinFac + indexRefrac * cosAngle);
-			reflecP *= reflecP;
-			specFactor = (reflecS + reflecP) / 2;
-			if (specFactor > 1.0f) {
-				specFactor = 1.0f;
-			}
-
-			float3 specRgb, specFinal;
-			if (specFactor > 0.0f) {
-				specRgb = DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
-				specFinal = DopplerShift(specRgb, specRgb.r * rFac, specRgb.b * bFac, shift);
-			}
-			else {
-				specRgb = 0;
-				specFinal = 0;
-			}
+			float cosAngle = dot(viewDir, i.normal);
+			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			if (specFactor > 0.0f) {
-				rgbFinal *= 1.0f - specFactor;
-				rgbFinal += specFinal;
-			}
+			specFactor = min(1.0f, specFactor);
+			rgbFinal *= 1.0f - specFactor;
+			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
 #endif
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
