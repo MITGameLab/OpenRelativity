@@ -338,13 +338,12 @@ Shader "Relativity/Lit/Standard" {
 		float3 ApplyFog(float3 color, float UV, float IR, float shift, float3 pos) {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
 #if defined(UNITY_PASS_FORWARDBASE)
-			float lightIntensity = length(unity_FogColor) / 3;
 	#if _EMISSION
-			float3 fogColor = DopplerShift(unity_FogColor.rgb, lightIntensity * bFac, lightIntensity * rFac, shift);
+			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.b * bFac, unity_FogColor.r * rFac, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
 	#else
 			float saturatedFogFactor = saturate(unityFogFactor);
-			return DopplerShift(lerp(unity_FogColor.rgb, color, saturatedFogFactor), lerp(lightIntensity * bFac, UV, saturatedFogFactor), lerp(lightIntensity * rFac, IR, saturatedFogFactor), shift);
+			return DopplerShift(lerp(unity_FogColor.rgb, color, saturatedFogFactor), lerp(unity_FogColor.b * bFac, UV, saturatedFogFactor), lerp(unity_FogColor.r * rFac, IR, saturatedFogFactor), shift);
 	#endif
 #else
 			return lerp((float3)0, color, saturate(unityFogFactor));
@@ -594,11 +593,9 @@ Shader "Relativity/Lit/Standard" {
 			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
     #endif
 #else
-			float lightIntensity;
 	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float3 rgbEmission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
-			lightIntensity = length(rgbEmission) / 3;
-			rgbEmission = DopplerShift(rgbEmission, lightIntensity * bFac, lightIntensity * rFac, shift);
+			rgbEmission = DopplerShift(rgbEmission, rgbEmission.b * bFac, rgbEmission.r * rFac, shift);
 	#endif
 #endif
 
@@ -645,8 +642,7 @@ Shader "Relativity/Lit/Standard" {
 
 				pShift = 1.0f + posDotPao / pShift;
 
-				lightIntensity = length(lms) / 3;
-				lightRgb = DopplerShift(lms, lightIntensity * bFac, lightIntensity * rFac, pShift);
+				lightRgb = DopplerShift(lms, lms.b * bFac, lms.r * rFac, pShift);
 			}
 			else {
 				lightRgb = float3(lms);
@@ -713,8 +709,7 @@ Shader "Relativity/Lit/Standard" {
 
 				pShift = 1.0f + posDotPao / pShift;
 
-				lightIntensity = length(lightColor) / 3;
-				lightColor = float4(DopplerShift(lightColor, lightIntensity * bFac, lightIntensity * rFac, pShift), lightColor.w);
+				lightColor = float4(DopplerShift(lightColor, lightColor.b * bFac, lightColor.r * rFac, pShift), lightColor.w);
 			}
 
 			float3 lightRgb = attenuation * lightColor.rgb * _Color.rgb * nl;
@@ -788,8 +783,7 @@ Shader "Relativity/Lit/Standard" {
 	#if UV_IR_TEXTURES
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
 	#else
-			lightIntensity = length(rgbFinal) / 3;
-			rgbFinal = DopplerShift(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift);
+			rgbFinal = DopplerShift(rgbFinal, rgbFinal.b * bFac, rgbFinal.r * rFac, shift);
 	#endif
 
 			//Add emission:
@@ -801,8 +795,7 @@ Shader "Relativity/Lit/Standard" {
 		#if UV_IR_TEXTURES
 			rgbFinal = ApplyFog(rgbFinal, UV, IR, shift, i.pos3);
 		#else
-			lightIntensity = length(rgbFinal) / 3;
-			rgbFinal = ApplyFog(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift, i.pos3);
+			rgbFinal = ApplyFog(rgbFinal, rgbFinal.b * bFac, rgbFinal.r * rFac, shift, i.pos3);
 		#endif
 	#endif
 #else
@@ -814,15 +807,13 @@ Shader "Relativity/Lit/Standard" {
 		#if UV_IR_TEXTURES
 			rgbFinal = ApplyFog(rgbFinal, UV, IR, shift, i.pos3);
 		#else
-			lightIntensity = length(rgbFinal) / 3;
-			rgbFinal = ApplyFog(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift, i.pos3);
+			rgbFinal = ApplyFog(rgbFinal, rgbFinal.b * bFac, rgbFinal.r * rFac, shift, i.pos3);
 		#endif
 	#else
 		#if UV_IR_TEXTURES
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
 		#else
-			lightIntensity = length(rgbFinal) / 3;
-			rgbFinal = DopplerShift(rgbFinal, lightIntensity * bFac, lightIntensity * rFac, shift);
+			rgbFinal = DopplerShift(rgbFinal, rgbFinal.b * bFac, rgbFinal.r * rFac, shift);
 		#endif
 	#endif
 #endif
