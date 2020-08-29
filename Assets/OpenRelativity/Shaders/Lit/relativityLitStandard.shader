@@ -338,11 +338,11 @@ Shader "Relativity/Lit/Standard" {
 		float3 ApplyFog(float3 color, float UV, float IR, float shift, float3 pos) {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
 #if defined(UNITY_PASS_FORWARDBASE)
+			float lightIntensity = length(unity_FogColor) / 3;
 	#if _EMISSION
-			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.r * rFac, unity_FogColor.b * bFac, shift);
+			float3 fogColor = DopplerShift(unity_FogColor.rgb, lightIntensity * bFac, lightIntensity * rFac, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
 	#else
-			float lightIntensity = length(unity_FogColor) / 3;
 			float saturatedFogFactor = saturate(unityFogFactor);
 			return DopplerShift(lerp(unity_FogColor.rgb, color, saturatedFogFactor), lerp(lightIntensity * bFac, UV, saturatedFogFactor), lerp(lightIntensity * rFac, IR, saturatedFogFactor), shift);
 	#endif
