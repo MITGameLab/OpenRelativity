@@ -1,5 +1,7 @@
-﻿using System;
+﻿using OpenRelativity.Objects;
+using System;
 using System.Reflection;
+using UnityEngine;
 
 namespace Qrack
 {
@@ -28,8 +30,18 @@ namespace Qrack
                 DeltaTime = 0.0f,
                 quantumProgramUpdate = (x, deltaTime) =>
                 {
-                    QuantumSystem qs = x.QuantumSystem;
+                    QuantumSystem qs = QuantumSystem;
+                    RelativisticObject ro = RelativisticObject;
+
                     qs.TimeEvolve(deltaTime, timeEvolveOpHeaders, hamiltonian);
+
+                    float prob = qs.Prob(0);
+                    qs.H(0);
+                    float hProb = qs.Prob(0);
+                    qs.H(0);
+
+                    ro.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
+                    ro.riw = qs.transform.rotation;
                 }
             });
         }

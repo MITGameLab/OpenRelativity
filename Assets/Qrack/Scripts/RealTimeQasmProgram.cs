@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using OpenRelativity.Objects;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,8 @@ namespace Qrack
         public QuantumSystem QuantumSystem;
         public bool DoRepeat = false;
         public int InstructionIndex = 0;
+
+        public RelativisticObject RelativisticObject { get; set; }
 
         private float nextInstructionTime;
         private float lastInstructionTime;
@@ -40,6 +43,8 @@ namespace Qrack
 
         private void Start()
         {
+            RelativisticObject = QuantumSystem.GetComponent<RelativisticObject>();
+
             ProgramInstructions = new List<RealTimeQasmInstruction>();
 
             StartProgram();

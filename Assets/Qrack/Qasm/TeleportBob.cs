@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using OpenRelativity.Objects;
+using UnityEngine;
 
 namespace Qrack
 {
@@ -15,7 +16,8 @@ namespace Qrack
                 DeltaTime = 1.0f,
                 quantumProgramUpdate = (x, y) =>
                 {
-                    QuantumSystem qs = x.QuantumSystem;
+                    QuantumSystem qs = QuantumSystem;
+                    RelativisticObject ro = RelativisticObject;
 
                     if (MeasurementResults[0])
                     {
@@ -31,7 +33,9 @@ namespace Qrack
                     qs.H(0);
                     float hProb = qs.Prob(0);
                     qs.H(0);
-                    qs.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
+
+                    ro.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
+                    ro.riw = qs.transform.rotation;
                 }
             });
 
