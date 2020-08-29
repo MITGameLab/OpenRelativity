@@ -571,7 +571,7 @@ Shader "Relativity/Lit/Standard" {
 			float3 x1y1z1 = i.pos2 * (float3)(2 * xs, 2 * xs / xyr, 1);
 
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			float shift = (1 - dot(x1y1z1, _vr.xyz) / sqrt(dot(x1y1z1, x1y1z1))) / i.svc;
+			float shift = (1 - dot(x1y1z1, _vr.xyz) / length(x1y1z1)) / i.svc;
 			if (_colorShift == 0)
 			{
 				shift = 1.0f;
@@ -601,8 +601,7 @@ Shader "Relativity/Lit/Standard" {
 #endif
 
 			//Apply lighting in world frame:
-			float3 rgb = data.xyz;
-			float3 rgbFinal = DopplerShift(rgb, UV, IR, shift);
+			float3 rgbFinal = data.xyz;
 
 			float3 lightDirection;
 			float attenuation;
@@ -631,20 +630,20 @@ Shader "Relativity/Lit/Standard" {
 
 			float nl = max(0, dot(i.normal, lightDirection));
 
-			float paoDotPao = -dot(i.paot, i.paot);
+			float paoDotPao = -dot(mul(_viwLorentzMatrix, _pao), i.paot);
 			float3 lightRgb;
 			if (paoDotPao > divByZeroCutoff) {
-				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
+				float4 posTransformed = mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz, 0));
 				float posDotPao = -dot(posTransformed, i.paot);
 
-				float shift = sqrt(paoDotPao) * _spdOfLightSqrd;
-				if (shift < divByZeroCutoff) {
-					shift = 1.0f;
+				float pShift = sqrt(paoDotPao) * _spdOfLightSqrd;
+				if (pShift < divByZeroCutoff) {
+					pShift = 1.0f;
 				}
 
-				shift = 1.0f + posDotPao / shift;
+				pShift = 1.0f + posDotPao / pShift;
 
-				lightRgb = DopplerShift(lms, lms.r * rFac, lms.b * bFac, shift);
+				lightRgb = DopplerShift(lms, lms.r * rFac, lms.b * bFac, pShift);
 			}
 			else {
 				lightRgb = float3(lms);
@@ -698,20 +697,20 @@ Shader "Relativity/Lit/Standard" {
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
 
-			float paoDotPao = -dot(i.paot, i.paot);
+			float paoDotPao = -dot(mul(_viwLorentzMatrix, _pao), i.paot);
 			float4 lightColor = CAST_LIGHTCOLOR0;
 			if (paoDotPao > divByZeroCutoff) {
 				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
 				float posDotPao = -dot(posTransformed, i.paot);
 
-				float shift = sqrt(paoDotPao) * _spdOfLightSqrd;
-				if (shift < divByZeroCutoff) {
-					shift = 1.0f;
+				float pShift = sqrt(paoDotPao) * _spdOfLightSqrd;
+				if (pShift < divByZeroCutoff) {
+					pShift = 1.0f;
 				}
 
-				shift = 1.0f + posDotPao / shift;
+				pShift = 1.0f + posDotPao / pShift;
 
-				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
+				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, pShift), lightColor.w);
 			}
 
 			float3 lightRgb = attenuation * lightColor.rgb * _Color.rgb * nl;
@@ -753,8 +752,11 @@ Shader "Relativity/Lit/Standard" {
 			// Specular reflection is added after lightmap and shadow
 			specFactor2 = min(1.0f, specFactor2);
 			rgbFinal *= 1.0f - specFactor2;
-			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor2;
+			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR);
 #endif
+
+			// Reflections (diffuse and specular) have effectively twice the velocity, for a Doppler shift.
+			shift *= shift;
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			//Doppler factor should be squared for reflected light:
