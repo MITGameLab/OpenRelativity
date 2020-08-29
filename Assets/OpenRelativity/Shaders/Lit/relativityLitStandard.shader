@@ -512,7 +512,7 @@ Shader "Relativity/Lit/Standard" {
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
 	#endif
 
-			float4 lightPosition, lightColor;
+			float4 lightPosition;
 			float3 vertexToLightSource, lightDirection, diffuseReflection;
 			float squaredDistance, attenuation, posDotPao, shift;
 			for (int index = 0; index < 4; index++)
