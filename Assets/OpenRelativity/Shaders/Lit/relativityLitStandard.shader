@@ -655,8 +655,8 @@ Shader "Relativity/Lit/Standard" {
 			// (Schlick's approximation)
 			// (Assume surrounding medium has an index of refraction of 1)
 
-			float cosAngle = dot(normalize(lightDirection + viewDir), i.normal);
-			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
+			float halfAngle = dot(normalize(lightDirection + viewDir), i.normal);
+			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - halfAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
 			specFactor = min(1.0f, specFactor);
@@ -676,18 +676,18 @@ Shader "Relativity/Lit/Standard" {
 			rgbFinal *= i.diff;
 #endif
 
-#if defined(LIGHTMAP_ON) && SPECULAR
+#if SPECULAR
 			// Apply specular reflectance
 			// (Schlick's approximation)
 			// (Assume surrounding medium has an index of refraction of 1)
 
 			float cosAngle = dot(viewDir, i.normal);
-			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
+			float specFactor2 = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			specFactor = min(1.0f, specFactor);
-			rgbFinal *= 1.0f - specFactor;
-			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor;
+			specFactor2 = min(1.0f, specFactor2);
+			rgbFinal *= 1.0f - specFactor2;
+			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor2;
 #endif
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
