@@ -1,4 +1,6 @@
-﻿//NOTE: For correct relativistic behavior, all light sources must be static
+﻿// Upgrade NOTE: replaced 'UNITY_PASS_TEXCUBE(unity_SpecCube1)' with 'UNITY_PASS_TEXCUBE_SAMPLER(unity_SpecCube1,unity_SpecCube0)'
+
+//NOTE: For correct relativistic behavior, all light sources must be static
 // with respect to world coordinates! General constant velocity lights are more complicated,
 // and lights that accelerate might not be at all feasible.
 
@@ -556,7 +558,7 @@ Shader "Relativity/Lit/Standard" {
 #else
 			o.diff = 0;
 
-	#if defined(POINT)
+	#if defined(POINT) || SPECULAR
 			o.vtlt = mul(metric, mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0)));
 	#endif
 #endif
@@ -580,15 +582,8 @@ Shader "Relativity/Lit/Standard" {
 			//Assume the albedo is an intrinsic reflectance property. The reflection spectrum should not be frame dependent.
 
 			//Get initial color 
-			float3 viewDir = normalize(mul(_viwLorentzMatrix, float4(i.pos2.xyz - _WorldSpaceCameraPos.xyz, 0)).xyz);
+			float3 viewDir = normalize(mul(_viwLorentzMatrix, float4(_WorldSpaceCameraPos.xyz - i.pos2.xyz, 0)).xyz);
 			i.normal /= length(i.normal);
-			float3 reflDir = reflect(viewDir, i.normal);
-			reflDir = BoxProjection(
-				reflDir, i.pos2,
-				unity_SpecCube0_ProbePosition,
-				unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
-			);
-			float4 envSample = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, reflDir);
 			float4 data = tex2D(_MainTex, i.albedoUV).rgba;
 
 #if UV_IR_TEXTURES
@@ -756,13 +751,36 @@ Shader "Relativity/Lit/Standard" {
 			// (Assume surrounding medium has an index of refraction of 1)
 			// WARNING: Real-time reflections will be wrong. Use baked.
 
+			float3 reflectionDir = reflect(-viewDir, i.normal);
 			float cosAngle = dot(viewDir, i.normal);
 			float specFactor2 = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
 			specFactor2 = min(1.0f, specFactor2);
 			rgbFinal *= 1.0f - specFactor2;
-			rgbFinal += DecodeHDR(envSample, unity_SpecCube0_HDR) * specFactor2;
+
+			Unity_GlossyEnvironmentData envData;
+			envData.roughness = 1 - _Smoothness;
+
+			envData.reflUVW = BoxProjection(
+				reflectionDir, i.pos2,
+				unity_SpecCube0_ProbePosition,
+				unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
+			);
+			float3 probe0 = Unity_GlossyEnvironment(
+				UNITY_PASS_TEXCUBE(unity_SpecCube0), unity_SpecCube0_HDR, envData
+			);
+
+			envData.reflUVW = BoxProjection(
+				reflectionDir, i.pos2,
+				unity_SpecCube1_ProbePosition,
+				unity_SpecCube1_BoxMin, unity_SpecCube1_BoxMax
+			);
+			float3 probe1 = Unity_GlossyEnvironment(
+				UNITY_PASS_TEXCUBE_SAMPLER(unity_SpecCube1,unity_SpecCube0), unity_SpecCube0_HDR, envData
+			);
+
+			rgbFinal += lerp(probe1, probe0, unity_SpecCube0_BoxMin.w) * specFactor2;
 #endif
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
