@@ -1,7 +1,5 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using System;
 
 namespace OpenRelativity
 {
@@ -32,24 +30,10 @@ namespace OpenRelativity
             if (meshFilter != null)
             {
                 //Store a copy of our original mesh
-                original = new Mesh();
+                original = Instantiate(meshFilter.mesh);
 
-                original.vertices = meshFilter.mesh.vertices;
-                original.uv = meshFilter.mesh.uv;
-                original.triangles = meshFilter.mesh.triangles;
-
-                original.RecalculateBounds();
-                original.RecalculateNormals();
-                original.name = meshFilter.mesh.name;
                 //Prepare a new mesh for our split mesh
-                change = new Mesh();
-                change.vertices = meshFilter.mesh.vertices;
-                change.uv = meshFilter.mesh.uv;
-                change.triangles = meshFilter.mesh.triangles;
-
-                change.RecalculateBounds();
-                change.RecalculateNormals();
-                change.name = meshFilter.mesh.name;
+                change = Instantiate(meshFilter.mesh);
 
                 //Keep splitting this mesh until all of its triangles have area less than our chosen value
                 bool isDone = true;
@@ -113,43 +97,6 @@ namespace OpenRelativity
             return false;
         }
 
-
-        //These are my own version of list to Array functions, I was having trouble with the regular ones
-        // but might try them again
-
-        //Copy over triangle list to triangle array
-        int[] CopyOverT(List<int> newT, int[] T)
-        {
-            T = new int[newT.Count];
-            for (int i = 0; i < newT.Count; i++)
-            {
-                T[i] = newT[i];
-            }
-            return T;
-        }
-        //Copy vector list, return vector array
-        Vector3[] CopyOverV(List<Vector3> newT, Vector3[] T)
-        {
-            T = new Vector3[newT.Count];
-            for (int i = 0; i < newT.Count; i++)
-            {
-                T[i].x = newT[i].x;
-                T[i].y = newT[i].y;
-                T[i].z = newT[i].z;
-            }
-            return T;
-        }
-        //Copy over UV list, return UV array
-        Vector2[] CopyOverV2(List<Vector2> newT, Vector2[] T)
-        {
-            T = new Vector2[newT.Count];
-            for (int i = 0; i < newT.Count; i++)
-            {
-                T[i].x = newT[i].x;
-                T[i].y = newT[i].y;
-            }
-            return T;
-        }
         //Debug function, prints entire list of triangles and their vertices
         void printTriangles(Vector3[] oVerts, int[] triangles)
         {
@@ -162,19 +109,12 @@ namespace OpenRelativity
         //Find the midpoint between two vectors
         Vector3 Mid(Vector3 one, Vector3 two)
         {
-            Vector3 vect;
-            vect.x = (one.x + two.x) / 2;
-            vect.y = (one.y + two.y) / 2;
-            vect.z = (one.z + two.z) / 2;
-            return vect;
+            return 1.0f / 2.0f * (one + two);
         }
         //Finds midpoint of two V2s
         Vector2 Mid2(Vector2 one, Vector2 two)
         {
-            Vector2 vect;
-            vect.x = (one.x + two.x) / 2;
-            vect.y = (one.y + two.y) / 2;
-            return vect;
+            return 1.0f / 2.0f * (one + two);
         }
 
         //Just subdivide something
@@ -267,13 +207,13 @@ namespace OpenRelativity
             //Clear Mesh
             mesh.Clear();
             //Copy over Verts
-            oldVerts = CopyOverV(newVerts, oldVerts);
+            oldVerts = newVerts.ToArray();
             mesh.vertices = oldVerts;
             //Copy over UVs
-            oldUV = CopyOverV2(newUV, oldUV);
+            oldUV = newUV.ToArray();
             mesh.uv = oldUV;
             //Triangles
-            oldTriangles = CopyOverT(newTriangles, oldTriangles);
+            oldTriangles = newTriangles.ToArray();
             mesh.triangles = oldTriangles;
             //Recalculate mesh values
             mesh.RecalculateBounds();
@@ -372,7 +312,7 @@ namespace OpenRelativity
                     }
 
                 }
-                oldTriangles[q] = CopyOverT(newTriangles, oldTriangles[q]);
+                oldTriangles[q] = newTriangles.ToArray();
                 newTriangles.Clear();
             }
 
@@ -381,7 +321,7 @@ namespace OpenRelativity
             //Clear Mesh
             mesh.Clear();
             //Copy over Verts
-            oldVerts = CopyOverV(newVerts, oldVerts);
+            oldVerts = newVerts.ToArray();
             mesh.vertices = oldVerts;
             mesh.subMeshCount = count;
             for (int j = 0; j < count; j++)
@@ -389,7 +329,7 @@ namespace OpenRelativity
                 mesh.SetTriangles(oldTriangles[j], j);
             }
             //Copy over UVs
-            oldUV = CopyOverV2(newUV, oldUV);
+            oldUV = newUV.ToArray();
             mesh.uv = oldUV;
             //Recalculate mesh values
             mesh.RecalculateBounds();
