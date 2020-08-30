@@ -67,7 +67,7 @@ namespace Qrack
         {
             while ((HistoryPoints.Count > 0) && (HistoryPoints[0].WorldTime <= QuantumSystem.VisualTime))
             {
-                HistoryPoints[0].Action(HistoryPoints[0].WorldTime);
+                HistoryPoints[0].Action(QuantumSystem.VisualTime);
                 HistoryPoints.RemoveAt(0);
             }
         }
@@ -88,7 +88,7 @@ namespace Qrack
 
                 if (nextInstructionTime <= time)
                 {
-                    rtqi.quantumProgramUpdate(this, QuantumSystem.LocalTime - lastInstructionTime);
+                    rtqi.quantumProgramUpdate(this, time - lastInstructionTime);
 
                     if (IsVisualTime)
                     {

@@ -21,13 +21,12 @@ namespace Qrack
 
         void Start()
         {
-            SystemId = QuantumSystem.SystemId;
             lastQubitCount = QubitCount;
         }
 
         void Update()
         {
-            
+            SystemId = QuantumSystem.SystemId;
         }
 
         void OnDestroy()
