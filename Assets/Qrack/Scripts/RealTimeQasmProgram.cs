@@ -43,6 +43,13 @@ namespace Qrack
             StartCoroutine(RunProgram());
         }
 
+        public void SelfResetProgram()
+        {
+            InstructionIndex = 0;
+            nextInstructionTime = QuantumSystem.LocalTime + ProgramInstructions[0].DeltaTime;
+            lastInstructionTime = nextInstructionTime;
+        }
+
         private void Start()
         {
             RelativisticObject = QuantumSystem.GetComponent<RelativisticObject>();
@@ -87,7 +94,7 @@ namespace Qrack
                     {
                         if (DoRepeat)
                         {
-                            InstructionIndex = 0;
+                            SelfResetProgram();
                         }
                     }
                     else

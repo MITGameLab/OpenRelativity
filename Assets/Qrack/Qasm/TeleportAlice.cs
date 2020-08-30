@@ -48,8 +48,6 @@ namespace Qrack
                     QuantumSystem qs = QuantumSystem;
                     Bob.MeasurementResults[0] = qs.M(0);
                     Bob.MeasurementResults[1] = qs.M(1);
-
-                    Bob.ResetProgram();
                 }
             });
         }

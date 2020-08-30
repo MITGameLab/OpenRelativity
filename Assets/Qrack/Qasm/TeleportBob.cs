@@ -41,7 +41,7 @@ namespace Qrack
                         Action = (time) =>
                         {
                             ro.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
-                            ro.riw = qs.transform.rotation;
+                            ro.riw = ro.transform.rotation;
                         }
                     });
                 }
@@ -54,7 +54,6 @@ namespace Qrack
                 {
                     Eve.ResetProgram();
                     Alice.ResetProgram();
-                    ResetProgram();
                 }
             });
         }

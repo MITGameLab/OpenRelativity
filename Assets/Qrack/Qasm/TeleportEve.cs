@@ -2,8 +2,6 @@
 {
     public class TeleportEve : RealTimeQasmProgram
     {
-        public TeleportAlice Alice;
-
         // Prepare a Bell pair for Alice and Bob to share
         protected override void StartProgram()
         {
@@ -19,8 +17,6 @@
 
                     qs.H(1);
                     qs.MCX(new uint[] { 1 }, 2);
-
-                    Alice.ResetProgram();
                 }
             });
         }
