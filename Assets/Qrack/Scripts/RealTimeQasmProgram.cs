@@ -8,6 +8,7 @@ namespace Qrack
     public abstract class RealTimeQasmProgram : MonoBehaviour
     {
         public QuantumSystem QuantumSystem;
+        public bool IsVisualTime = true;
         public bool DoRepeat = false;
         public int InstructionIndex = 0;
 
@@ -83,11 +84,19 @@ namespace Qrack
 
                 RealTimeQasmInstruction rtqi = ProgramInstructions[InstructionIndex];
 
-                if (nextInstructionTime <= QuantumSystem.LocalTime)
+                float time = IsVisualTime ? QuantumSystem.VisualTime : QuantumSystem.LocalTime;
+
+                if (nextInstructionTime <= time)
                 {
                     rtqi.quantumProgramUpdate(this, QuantumSystem.LocalTime - lastInstructionTime);
 
-                    lastInstructionTime = QuantumSystem.LocalTime;
+                    if (IsVisualTime)
+                    {
+                        // Update will immediately pop visual history events off, in this case.
+                        Update();
+                    }
+
+                    lastInstructionTime = time;
                     InstructionIndex++;
 
                     if (InstructionIndex >= ProgramInstructions.Count)
