@@ -12,7 +12,7 @@ namespace Qrack
 
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 1.0f,
+                DeltaTime = 2.0f,
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = QuantumSystem;
@@ -25,8 +25,15 @@ namespace Qrack
                     float hProb = qs.Prob(0);
                     qs.H(0);
 
-                    ro.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
-                    ro.riw = qs.transform.rotation;
+                    HistoryPoints.Add(new QrackHistoryPoint
+                    {
+                        WorldTime = qs.LocalTime,
+                        Action = (time) =>
+                        {
+                            ro.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
+                            ro.riw = qs.transform.rotation;
+                        }
+                    });
 
                     qs.MCX(new uint[] { 0 }, 1);
                     qs.H(0);
@@ -43,7 +50,6 @@ namespace Qrack
                     Bob.MeasurementResults[1] = qs.M(1);
 
                     Bob.ResetProgram();
-                    gameObject.SetActive(false);
                 }
             });
         }

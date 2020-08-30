@@ -40,8 +40,15 @@ namespace Qrack
                     float hProb = qs.Prob(0);
                     qs.H(0);
 
-                    ro.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
-                    ro.riw = qs.transform.rotation;
+                    HistoryPoints.Add(new QrackHistoryPoint
+                    {
+                        WorldTime = qs.LocalTime,
+                        Action = (time) =>
+                        {
+                            ro.transform.localEulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
+                            ro.riw = qs.transform.rotation;
+                        }
+                    });
                 }
             });
         }

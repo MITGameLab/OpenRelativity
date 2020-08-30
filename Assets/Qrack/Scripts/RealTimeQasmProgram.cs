@@ -17,6 +17,7 @@ namespace Qrack
         private float lastInstructionTime;
 
         protected List<RealTimeQasmInstruction> ProgramInstructions { get; set; }
+        protected List<QrackHistoryPoint> HistoryPoints { get; set; }
         protected abstract void StartProgram();
 
         public void ResetTime()
@@ -34,10 +35,11 @@ namespace Qrack
 
         public void ResetProgram()
         {
+            InstructionIndex = 0;
+
             ResetTime();
 
-            gameObject.SetActive(true);
-
+            StopAllCoroutines();
             StartCoroutine(RunProgram());
         }
 
@@ -46,16 +48,32 @@ namespace Qrack
             RelativisticObject = QuantumSystem.GetComponent<RelativisticObject>();
 
             ProgramInstructions = new List<RealTimeQasmInstruction>();
+            HistoryPoints = new List<QrackHistoryPoint>();
 
             StartProgram();
 
             ResetProgram();
         }
 
+        private void Update()
+        {
+            while ((HistoryPoints.Count > 0) && (HistoryPoints[0].WorldTime <= QuantumSystem.VisualTime))
+            {
+                HistoryPoints[0].Action(HistoryPoints[0].WorldTime);
+                HistoryPoints.RemoveAt(0);
+            }
+        }
+
         IEnumerator RunProgram()
         {
             while (true)
             {
+                if (InstructionIndex >= ProgramInstructions.Count)
+                {
+                    StopAllCoroutines();
+                    yield return null;
+                }
+
                 RealTimeQasmInstruction rtqi = ProgramInstructions[InstructionIndex];
 
                 if (nextInstructionTime <= QuantumSystem.LocalTime)
@@ -67,10 +85,9 @@ namespace Qrack
 
                     if (InstructionIndex >= ProgramInstructions.Count)
                     {
-                        InstructionIndex = 0;
-                        if (!DoRepeat)
+                        if (DoRepeat)
                         {
-                            gameObject.SetActive(false);
+                            InstructionIndex = 0;
                         }
                     }
                     else

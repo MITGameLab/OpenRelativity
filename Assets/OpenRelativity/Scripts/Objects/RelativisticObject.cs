@@ -61,6 +61,10 @@ namespace OpenRelativity.Objects
             }
             return ((Vector4)pos.Value).GetTisw(viw, aiw);
         }
+        public float GetVisualTime()
+        {
+            return GetLocalTime() + GetTisw();
+        }
         #endregion
 
         #region 4-vector relativity

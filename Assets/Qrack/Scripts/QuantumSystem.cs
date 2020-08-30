@@ -86,6 +86,18 @@ namespace Qrack
             }
         }
 
+        public float VisualTime
+        {
+            get
+            {
+#if OPEN_RELATIVITY_INCLUDED
+                return ClockOffset + myRO.GetVisualTime();
+#else
+                return ClockOffset + Time.time;
+#endif
+            }
+        }
+
         // Start is called before the first frame update
         void Start()
         {

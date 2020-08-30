@@ -21,7 +21,6 @@
                     qs.MCX(new uint[] { 1 }, 2);
 
                     Alice.ResetProgram();
-                    gameObject.SetActive(false);
                 }
             });
         }
