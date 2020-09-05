@@ -42,16 +42,16 @@ namespace OpenRelativity.Objects
 
         #region Local Time
         //Acceleration desyncronizes our clock from the world clock:
-        public double localTimeOffset { get; private set; }
-        public double localDeltaTime { get; private set; }
-        public double localFixedDeltaTime { get; private set; }
+        public float localTimeOffset { get; private set; }
+        public float localDeltaTime { get; private set; }
+        public float localFixedDeltaTime { get; private set; }
         public float GetLocalTime()
         {
             return (float)(_state.TotalTimeWorld + localTimeOffset);
         }
         public void ResetLocalTime()
         {
-            localTimeOffset = 0.0;
+            localTimeOffset = 0.0f;
         }
         public float GetTisw(Vector3? pos = null)
         {
@@ -1500,11 +1500,6 @@ namespace OpenRelativity.Objects
             UpdateColliderPosition();
         }
         #endregion
-
-        private bool IsNaNOrInf(double p)
-        {
-            return double.IsInfinity(p) || double.IsNaN(p);
-        }
 
         private bool IsNaNOrInf(float p)
         {

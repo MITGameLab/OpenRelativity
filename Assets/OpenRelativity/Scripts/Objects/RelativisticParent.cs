@@ -309,11 +309,6 @@ namespace OpenRelativity.Objects
             }
         }
 
-        private bool IsNaNOrInf(double p)
-        {
-            return double.IsInfinity(p) || double.IsNaN(p);
-        }
-
         private bool IsNaNOrInf(float p)
         {
             return float.IsInfinity(p) || float.IsNaN(p);

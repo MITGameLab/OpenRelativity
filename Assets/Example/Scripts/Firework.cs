@@ -241,18 +241,18 @@ namespace OpenRelativity.Objects
                 if (GetComponent<Rigidbody>() != null && !isParticle)
                 {
 
-                    if (!double.IsNaN((double)state.SqrtOneMinusVSquaredCWDividedByCSquared) && (float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                    if (!float.IsNaN(state.SqrtOneMinusVSquaredCWDividedByCSquared) && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
                     {
                         Vector3 tempViw = viw;
-                        tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
+                        tempViw /= state.SqrtOneMinusVSquaredCWDividedByCSquared;
                         //Attempt to correct for acceleration:
                         Vector3 playerPos = state.playerTransform.position;
                         Vector3 playerVel = state.PlayerVelocityVector;
-                        tempViw /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos));
+                        tempViw /= 1.0f + 1.0f / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos);
                         GetComponent<Rigidbody>().velocity = tempViw;
                     }
 
-                    //if (!double.IsNaN((double)state.InverseAcceleratedGamma) && (float)state.InverseAcceleratedGamma != 0)
+                    //if (!float.IsNaN(state.InverseAcceleratedGamma) && state.InverseAcceleratedGamma != 0)
                     //{
                     //    Vector3 tempViw = viw;
                     //    tempViw /= (float)state.InverseAcceleratedGamma;

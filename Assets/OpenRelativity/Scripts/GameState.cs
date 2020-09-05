@@ -14,13 +14,13 @@ namespace OpenRelativity
         //grab the player's transform so that we can use it
         public Transform playerTransform;
         //player Velocity as a scalar magnitude
-        public double playerVelocity { get; set; }
+        public float playerVelocity { get; set; }
         //speed of light
-        private double c = 200;
+        private float c = 200;
         //Speed of light that is affected by the Unity editor
-        public double totalC = 200;
+        public float totalC = 200;
         //max speed the player can achieve (starting value accessible from Unity Editor)
-        public double maxPlayerSpeed;
+        public float maxPlayerSpeed;
         // Reduced Planck constant divided by gravitational constant
         // (WARNING: Effects implemented based on this have not been peer reviewed,
         // but that doesn't mean they wouldn't be "cool" in a video game, at least.)
@@ -74,7 +74,7 @@ namespace OpenRelativity
         public bool shaderKeyDown { get; set; }
 
         //This is the equivalent of the above value for an accelerated player frame
-        //private double inverseAcceleratedGamma;
+        //private float inverseAcceleratedGamma;
 
         //Player rotation and change in rotation since last frame
         public Vector3 playerRotation { get; set; }
@@ -98,25 +98,25 @@ namespace OpenRelativity
         public Vector3 PlayerAngularVelocityVector { get { if (DeltaTimePlayer == 0) { return Vector3.zero; } else { return (float)(deltaCameraAngle * Mathf.Deg2Rad / DeltaTimePlayer) * playerTransform.up; } } }
         public Matrix4x4 PlayerLorentzMatrix { get; private set; }
 
-        public double PlayerVelocity { get { return playerVelocity; } }
-        public double SqrtOneMinusVSquaredCWDividedByCSquared { get; private set; }
-        //public double InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
-        public double DeltaTimeWorld { get; protected set; }
-        public double FixedDeltaTimeWorld {
+        public float PlayerVelocity { get { return playerVelocity; } }
+        public float SqrtOneMinusVSquaredCWDividedByCSquared { get; private set; }
+        //public float InverseAcceleratedGamma { get { return inverseAcceleratedGamma; } }
+        public float DeltaTimeWorld { get; protected set; }
+        public float FixedDeltaTimeWorld {
             get {
                 return Time.fixedDeltaTime / SqrtOneMinusVSquaredCWDividedByCSquared;
             }
         }
-        //public double FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / inverseAcceleratedGamma; } }
-        public double DeltaTimePlayer { get; private set; }
-        public double FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
-        public double TotalTimePlayer { get; set; }
-        public double TotalTimeWorld { get; set; }
-        public double SpeedOfLight { get { return c; } set { c = value; SpeedOfLightSqrd = value * value; } }
-        public double SpeedOfLightSqrd { get; private set; }
+        //public float FixedDeltaTimeWorld { get { return Time.fixedDeltaTime / inverseAcceleratedGamma; } }
+        public float DeltaTimePlayer { get; private set; }
+        public float FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
+        public float TotalTimePlayer { get; set; }
+        public float TotalTimeWorld { get; set; }
+        public float SpeedOfLight { get { return c; } set { c = value; SpeedOfLightSqrd = value * value; } }
+        public float SpeedOfLightSqrd { get; private set; }
 
         public bool keyHit { get; set; }
-        public double MaxSpeed { get; set; }
+        public float MaxSpeed { get; set; }
 
         public bool HasWorldGravity { get; set; }
 
@@ -266,15 +266,15 @@ namespace OpenRelativity
                 * THE TIME PASSED IN WORLD FRAME
                 * ****************************/
                 //find this constant
-                SqrtOneMinusVSquaredCWDividedByCSquared = Math.Sqrt(1 - (playerVelocity * playerVelocity) / SpeedOfLightSqrd);
+                SqrtOneMinusVSquaredCWDividedByCSquared = Mathf.Sqrt(1 - (playerVelocity * playerVelocity) / SpeedOfLightSqrd);
                 //inverseAcceleratedGamma = SRelativityUtil.InverseAcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
 
                 //Set by Unity, time since last update
-                DeltaTimePlayer = (double)Time.deltaTime;
+                DeltaTimePlayer = Time.deltaTime;
                 //Get the total time passed of the player and world for display purposes
                 TotalTimePlayer += DeltaTimePlayer;
-                //if (!double.IsNaN(inverseAcceleratedGamma))
-                if (!double.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared))
+                //if (!float.IsNaN(inverseAcceleratedGamma))
+                if (!float.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared))
                 {
                     //Get the delta time passed for the world, changed by relativistic effects
                     DeltaTimeWorld = DeltaTimePlayer / SqrtOneMinusVSquaredCWDividedByCSquared;
@@ -286,7 +286,7 @@ namespace OpenRelativity
                 }
 
                 //Set our rigidbody's velocity
-                if (!double.IsNaN(DeltaTimePlayer) && !double.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared))
+                if (!float.IsNaN(DeltaTimePlayer) && !float.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared))
                 {
                     
                 }
@@ -329,9 +329,9 @@ namespace OpenRelativity
             Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
 
             if (!MovementFrozen &&
-                !double.IsNaN(DeltaTimePlayer) &&
+                !float.IsNaN(DeltaTimePlayer) &&
                 SqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
-                !double.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
+                !float.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
             {
                 if (conformalMap != null)
                 {
@@ -356,28 +356,28 @@ namespace OpenRelativity
         //This function takes in a quaternion and creates a rotation matrix from it
         public Matrix4x4 CreateFromQuaternion(Quaternion q)
         {
-            double w = q.w;
-            double x = q.x;
-            double y = q.y;
-            double z = q.z;
+            float w = q.w;
+            float x = q.x;
+            float y = q.y;
+            float z = q.z;
 
-            double wSqrd = w * w;
-            double xSqrd = x * x;
-            double ySqrd = y * y;
-            double zSqrd = z * z;
+            float wSqrd = w * w;
+            float xSqrd = x * x;
+            float ySqrd = y * y;
+            float zSqrd = z * z;
 
             Matrix4x4 matrix;
-            matrix.m00 = (float)(wSqrd + xSqrd - ySqrd - zSqrd);
-            matrix.m01 = (float)(2 * x * y - 2 * w * z);
-            matrix.m02 = (float)(2 * x * z + 2 * w * y);
-            matrix.m03 = (float)0;
-            matrix.m10 = (float)(2 * x * y + 2 * w * z);
-            matrix.m11 = (float)(wSqrd - xSqrd + ySqrd - zSqrd);
-            matrix.m12 = (float)(2 * y * z + 2 * w * x);
-            matrix.m13 = (float)0;
-            matrix.m20 = (float)(2 * x * z - 2 * w * y);
-            matrix.m21 = (float)(2 * y * z - 2 * w * x);
-            matrix.m22 = (float)(wSqrd - xSqrd - ySqrd + zSqrd);
+            matrix.m00 = wSqrd + xSqrd - ySqrd - zSqrd;
+            matrix.m01 = 2 * x * y - 2 * w * z;
+            matrix.m02 = 2 * x * z + 2 * w * y;
+            matrix.m03 = 0;
+            matrix.m10 = 2 * x * y + 2 * w * z;
+            matrix.m11 = wSqrd - xSqrd + ySqrd - zSqrd;
+            matrix.m12 = 2 * y * z + 2 * w * x;
+            matrix.m13 = 0;
+            matrix.m20 = 2 * x * z - 2 * w * y;
+            matrix.m21 = 2 * y * z - 2 * w * x;
+            matrix.m22 = wSqrd - xSqrd - ySqrd + zSqrd;
             matrix.m23 = 0;
             matrix.m30 = 0;
             matrix.m31 = 0;

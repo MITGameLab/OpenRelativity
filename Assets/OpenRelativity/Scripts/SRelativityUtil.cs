@@ -306,7 +306,6 @@ namespace OpenRelativity
             Quaternion viwToZRot = viw.sqrMagnitude < divByZeroCutoff ? Quaternion.identity : Quaternion.FromToRotation(viw, Vector3.forward);
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
             riwTransformed.w = tisw;
-            Vector3 avpTransformed = viwToZRot * avp;
             Vector3 aiwTransformed = viwToZRot * aiw;
 
             //We'll also Lorentz transform the vectors:

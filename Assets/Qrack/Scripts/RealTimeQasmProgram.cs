@@ -51,7 +51,7 @@ namespace Qrack
             lastInstructionTime = nextInstructionTime;
         }
 
-        private void Start()
+        protected virtual void Start()
         {
             RelativisticObject = QuantumSystem.GetComponent<RelativisticObject>();
 
@@ -63,7 +63,7 @@ namespace Qrack
             ResetProgram();
         }
 
-        private void Update()
+        protected virtual void Update()
         {
             while ((HistoryPoints.Count > 0) && (HistoryPoints[0].WorldTime <= QuantumSystem.VisualTime))
             {

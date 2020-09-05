@@ -17,7 +17,7 @@ namespace OpenRelativity.ConformalMaps
             isExterior = (dist > radius);
             if (!isExterior)
             {
-                state.TotalTimeWorld = Math.Tan(dist / radius * Math.PI / 2) * radius / state.SpeedOfLight;
+                state.TotalTimeWorld = Mathf.Tan(dist / radius * Mathf.PI / 2) * radius / state.SpeedOfLight;
                 state.TotalTimePlayer = state.TotalTimeWorld;
                 state.playerTransform.position = Vector3.zero;
             }
@@ -104,7 +104,7 @@ namespace OpenRelativity.ConformalMaps
             // This is speculative, but it can simply be turned off, in the editor.
             // This attempts to simulate black hole evaporation at a rate inversely proportional to Schwarzschild radius.
             // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
-            if (!double.IsInfinity(state.FixedDeltaTimeWorld) && !double.IsNaN(state.FixedDeltaTimeWorld))
+            if (!float.IsInfinity(state.FixedDeltaTimeWorld) && !float.IsNaN(state.FixedDeltaTimeWorld))
             {
                 float diffR;
                 if (radius > state.planckLength)
