@@ -8,8 +8,8 @@ namespace OpenRelativity
     {
         public const float divByZeroCutoff = 1e-8f;
 
-        public static float c { get { return (float)state.SpeedOfLight; } }
-        public static float cSqrd { get { return (float)state.SpeedOfLightSqrd; } }
+        public static float c { get { return state.SpeedOfLight; } }
+        public static float cSqrd { get { return state.SpeedOfLightSqrd; } }
 
         private static GameState _state;
         private static GameState state

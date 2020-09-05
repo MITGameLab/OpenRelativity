@@ -38,28 +38,28 @@ namespace OpenRelativity
         {
             get
             {
-                return (float)Math.Sqrt((hbar * gConst) / Math.Pow(SpeedOfLight, 3));
+                return Mathf.Sqrt((hbar * gConst) / Mathf.Pow(SpeedOfLight, 3));
             }
         }
         public float planckTime
         {
             get
             {
-                return (float)Math.Sqrt(hbar * gConst / Math.Pow(SpeedOfLight, 5));
+                return Mathf.Sqrt(hbar * gConst / Mathf.Pow(SpeedOfLight, 5));
             }
         }
         public float planckMass
         {
             get
             {
-                return (float)Math.Sqrt(hbar * gConst / SpeedOfLight);
+                return Mathf.Sqrt(hbar * gConst / SpeedOfLight);
             }
         }
         public float planckAccel
         {
             get
             {
-                return (float)(SpeedOfLight / planckTime);
+                return SpeedOfLight / planckTime;
             }
         }
         
@@ -95,7 +95,7 @@ namespace OpenRelativity
         public Vector3 PlayerVelocityVector { get; set; }
         public Vector3 PlayerComovingVelocityVector { get; set; }
         public Vector3 PlayerAccelerationVector { get; set; }
-        public Vector3 PlayerAngularVelocityVector { get { if (DeltaTimePlayer == 0) { return Vector3.zero; } else { return (float)(deltaCameraAngle * Mathf.Deg2Rad / DeltaTimePlayer) * playerTransform.up; } } }
+        public Vector3 PlayerAngularVelocityVector { get { if (DeltaTimePlayer == 0) { return Vector3.zero; } else { return (deltaCameraAngle * Mathf.Deg2Rad / DeltaTimePlayer) * playerTransform.up; } } }
         public Matrix4x4 PlayerLorentzMatrix { get; private set; }
 
         public float PlayerVelocity { get { return playerVelocity; } }
@@ -224,14 +224,14 @@ namespace OpenRelativity
 
                 //if we reached max speed, forward or backwards, keep at max speed
 
-                if (PlayerVelocityVector.magnitude >= (float)maxPlayerSpeed - .01f)
+                if (PlayerVelocityVector.magnitude >= maxPlayerSpeed - .01f)
                 {
-                    PlayerVelocityVector = PlayerVelocityVector.normalized * ((float)maxPlayerSpeed - .01f);
+                    PlayerVelocityVector = PlayerVelocityVector.normalized * (maxPlayerSpeed - .01f);
                 }
 
                 //update our player velocity
                 playerVelocity = PlayerVelocityVector.magnitude;
-                Vector4 vpc = -PlayerVelocityVector / (float)c;
+                Vector4 vpc = -PlayerVelocityVector / c;
                 PlayerLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(vpc);
 
                 //update our acceleration (which relates rapidities rather than velocities)
@@ -244,12 +244,12 @@ namespace OpenRelativity
                 //colors changing so they can apperciate the other effects
                 if (shaderOff)
                 {
-                    Shader.SetGlobalFloat("_colorShift", (float)0.0);
+                    Shader.SetGlobalFloat("_colorShift", 0.0f);
                     //shaderParams.colorShift = 0.0f;
                 }
                 else
                 {
-                    Shader.SetGlobalFloat("_colorShift", (float)1);
+                    Shader.SetGlobalFloat("_colorShift", 1);
                     //shaderParams.colorShift = 1.0f;
                 }
 
@@ -336,15 +336,15 @@ namespace OpenRelativity
                 if (conformalMap != null)
                 {
                     // Assume local player coordinates are comoving
-                    Vector4 piw4 = conformalMap.ComoveOptical((float)FixedDeltaTimePlayer, playerTransform.position);
+                    Vector4 piw4 = conformalMap.ComoveOptical(FixedDeltaTimePlayer, playerTransform.position);
                     Vector3 pDiff = (Vector3)piw4 - playerTransform.position;
-                    PlayerComovingVelocityVector = pDiff / (float)FixedDeltaTimePlayer;
+                    PlayerComovingVelocityVector = pDiff / FixedDeltaTimePlayer;
                     playerTransform.position = piw4;
-                    PlayerVelocityVector = PlayerVelocityVector.AddVelocity(conformalMap.GetRindlerAcceleration(playerTransform.position) * (float)FixedDeltaTimePlayer);
+                    PlayerVelocityVector = PlayerVelocityVector.AddVelocity(conformalMap.GetRindlerAcceleration(playerTransform.position) * FixedDeltaTimePlayer);
                 }
 
                 Vector3 velocity = -PlayerVelocityVector;
-                playerRB.velocity = velocity / (float)SqrtOneMinusVSquaredCWDividedByCSquared;
+                playerRB.velocity = velocity / SqrtOneMinusVSquaredCWDividedByCSquared;
             } else
             {
                 playerRB.velocity = Vector3.zero;

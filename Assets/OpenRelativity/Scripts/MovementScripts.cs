@@ -203,7 +203,7 @@ namespace OpenRelativity
                         // has been known since Galileo.)
                         quasiWorldAccel += frameDragAccel;
                         totalAccel += frameDragAccel;
-                        Vector3 da = -totalAccel.normalized * totalAccel.sqrMagnitude / (float)state.SpeedOfLight * Time.deltaTime;
+                        Vector3 da = -totalAccel.normalized * totalAccel.sqrMagnitude / state.SpeedOfLight * Time.deltaTime;
                         Vector3 oldFrameDragAccel = frameDragAccel;
                         frameDragAccelRemainder += da;
 
@@ -236,10 +236,10 @@ namespace OpenRelativity
                     totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
                 }
 
-                if (totalVel.magnitude >= (float)state.maxPlayerSpeed - .01f)
+                if (totalVel.magnitude >= state.maxPlayerSpeed - .01f)
                 {
                     float gamma = totalVel.Gamma();
-                    Vector3 diff = totalVel.normalized * ((float)state.maxPlayerSpeed - .01f) - totalVel;
+                    Vector3 diff = totalVel.normalized * (state.maxPlayerSpeed - .01f) - totalVel;
                     totalVel += diff;
                     totalAccel += diff * gamma;
                 } else if (float.IsInfinity(totalVel.sqrMagnitude) || float.IsNaN(totalVel.sqrMagnitude) )
@@ -265,7 +265,7 @@ namespace OpenRelativity
                 {
                     speedOfLightTarget += temp2;
 
-                    speedOfLightStep = Mathf.Abs((float)(state.SpeedOfLight - speedOfLightTarget) / 20);
+                    speedOfLightStep = Mathf.Abs((state.SpeedOfLight - speedOfLightTarget) / 20);
                 }
                 //Now, if we're not at our target, move towards the target speed that we're hoping for
                 if (state.SpeedOfLight < speedOfLightTarget * .995)
@@ -335,11 +335,11 @@ namespace OpenRelativity
                 #endregion
 
                 //Send current speed of light to the shader
-                Shader.SetGlobalFloat("_spdOfLight", (float)state.SpeedOfLight);
+                Shader.SetGlobalFloat("_spdOfLight", state.SpeedOfLight);
 
                 if (Camera.main)
                 {
-                    Shader.SetGlobalFloat("xyr", (float)Camera.main.pixelWidth / Camera.main.pixelHeight);
+                    Shader.SetGlobalFloat("xyr", Camera.main.pixelWidth / Camera.main.pixelHeight);
                     Shader.SetGlobalFloat("xs", Mathf.Tan(Mathf.Deg2Rad * Camera.main.fieldOfView / 2f));
 
                     //Don't cull because at high speeds, things come into view that are not visible normally

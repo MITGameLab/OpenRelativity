@@ -47,7 +47,7 @@ namespace OpenRelativity.Objects
         public float localFixedDeltaTime { get; private set; }
         public float GetLocalTime()
         {
-            return (float)(_state.TotalTimeWorld + localTimeOffset);
+            return _state.TotalTimeWorld + localTimeOffset;
         }
         public void ResetLocalTime()
         {
@@ -117,7 +117,7 @@ namespace OpenRelativity.Objects
 
             Matrix4x4 metric = GetMetric();
 
-            float timeFac = 1 / Mathf.Sqrt(1 + (float)(Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
+            float timeFac = 1 / Mathf.Sqrt(1 + (Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
             if (IsNaNOrInf(timeFac))
             {
                 timeFac = 1;
@@ -474,11 +474,11 @@ namespace OpenRelativity.Objects
             //Set remaining global parameters:
             colliderShaderParams.ltwMatrix = transform.localToWorldMatrix;
             colliderShaderParams.wtlMatrix = transform.worldToLocalMatrix;
-            colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
+            colliderShaderParams.vpc = -state.PlayerVelocityVector / state.SpeedOfLight;
             colliderShaderParams.pap = state.PlayerAccelerationVector;
             colliderShaderParams.avp = state.PlayerAngularVelocityVector;
             colliderShaderParams.playerOffset = state.playerTransform.position;
-            colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
+            colliderShaderParams.spdOfLight = state.SpeedOfLight;
             colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
             colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
 
@@ -625,7 +625,7 @@ namespace OpenRelativity.Objects
             if (relVelMag > (state.MaxSpeed))
             {
                 relVel.Normalize();
-                relVelMag = (float)state.MaxSpeed;
+                relVelMag = state.MaxSpeed;
                 relVel = relVelMag * relVel;
             }
 
@@ -675,9 +675,9 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = Mathf.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= GetTimeFactor();
-            startTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
+            startTime = state.TotalTimeWorld - timeDelayToPlayer;
             if (myRenderer != null)
                 myRenderer.enabled = false;
         }
@@ -686,9 +686,9 @@ namespace OpenRelativity.Objects
         public virtual void SetDeathTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = (float)Math.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = Mathf.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= GetTimeFactor();
-            DeathTime = (float)(state.TotalTimeWorld - timeDelayToPlayer);
+            DeathTime = state.TotalTimeWorld - timeDelayToPlayer;
         }
 
         void CombineParent()
@@ -915,11 +915,11 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null)
             {
-                Vector3 tempViw = cviw.AddVelocity(viw) / (float)state.SpeedOfLight;
+                Vector3 tempViw = cviw.AddVelocity(viw) / state.SpeedOfLight;
                 Vector3 tempAviw = aviw;
                 Vector4 tempAiw = GetWorld4Acceleration();
                 Vector4 tempPao = GetProper4Acceleration();
-                Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / (float)state.SpeedOfLight;
+                Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / state.SpeedOfLight;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
@@ -950,11 +950,12 @@ namespace OpenRelativity.Objects
         //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
-            float maxSpeedSqr = (float)((state.MaxSpeed - 0.01f) * (state.MaxSpeed - 0.01f));
+            float maxSpeed = state.MaxSpeed - 0.01f;
+            float maxSpeedSqr = maxSpeed * maxSpeed;
 
             if (viw.sqrMagnitude > maxSpeedSqr)
             {
-                viw = viw.normalized * (float)(state.MaxSpeed - .01f);
+                viw = viw.normalized * maxSpeed;
             }
 
             // The tangential velocities of each vertex should also not be greater than the maximum speed.
@@ -969,7 +970,7 @@ namespace OpenRelativity.Objects
                     float tanVelMagSqr = tangentialVel.sqrMagnitude;
                     if (tanVelMagSqr > maxSpeedSqr)
                     {
-                        aviw = aviw.normalized * (float)(state.MaxSpeed - 0.01f) / disp.magnitude;
+                        aviw = aviw.normalized * maxSpeed / disp.magnitude;
                     }
                 }
             }
@@ -1114,7 +1115,7 @@ namespace OpenRelativity.Objects
             //If we have a MeshRenderer on our object and it's not world-static
             if (myRenderer != null && !isLightMapStatic)
             {
-                float c = (float)state.SpeedOfLight;
+                float c = state.SpeedOfLight;
                 //And if we have a texture on our material
                 for (int i = 0; i < myRenderer.materials.Length; i++)
                 {
@@ -1149,7 +1150,7 @@ namespace OpenRelativity.Objects
 
         void Update()
         {
-            localDeltaTime = (float)(state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld);
+            localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
             if (myRigidbody != null)
             {
@@ -1252,8 +1253,8 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            float deltaTime = (float)state.FixedDeltaTimePlayer * GetTimeFactor();
-            localFixedDeltaTime = deltaTime - (float)state.FixedDeltaTimeWorld;
+            float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
+            localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
 
             if (state.conformalMap != null)
             {
@@ -1322,7 +1323,7 @@ namespace OpenRelativity.Objects
 
                 // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
                 // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
-                Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / (float)state.SpeedOfLight * deltaTime;
+                Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
                 frameDragAccel += da;
                 myAccel += da;
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,

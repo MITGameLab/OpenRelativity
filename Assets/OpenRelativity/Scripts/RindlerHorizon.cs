@@ -36,7 +36,7 @@ namespace OpenRelativity
             // Quads face "backwards," if we use a default Unity quad.
             Vector3 frwd = -pAccel / pAccelMag;
             transform.forward = frwd;
-            Vector3 pos = (frwd * (float)state.SpeedOfLightSqrd / pAccelMag) + state.playerTransform.position;
+            Vector3 pos = (frwd * state.SpeedOfLightSqrd / pAccelMag) + state.playerTransform.position;
             //transform.Translate(transform.InverseTransformPoint(pos - transform.position));
             transform.position = pos;
         }

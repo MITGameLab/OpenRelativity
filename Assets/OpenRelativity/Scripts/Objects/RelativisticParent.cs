@@ -32,12 +32,12 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-            startTime = (float)state.TotalTimeWorld;
+            startTime = state.TotalTimeWorld;
         }
         // Set the death time, so that we know at what point to destroy the object in the player's view point.
         public void SetDeathTime()
         {
-            deathTime = (float)state.TotalTimeWorld;
+            deathTime = state.TotalTimeWorld;
         }
         // This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
@@ -45,7 +45,7 @@ namespace OpenRelativity.Objects
             if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             if (viw.magnitude > state.MaxSpeed - .01)
             {
-                viw = viw.normalized * (float)(state.MaxSpeed - .01f);
+                viw = viw.normalized * (state.MaxSpeed - .01f);
             }
         }
         // Use this for initialization
@@ -199,7 +199,7 @@ namespace OpenRelativity.Objects
                 tempRenderer.materials[0] = quickSwapMaterial;
 
                 //set our start time and start position in the shader.
-                tempRenderer.materials[0].SetFloat("_strtTime", (float)startTime);
+                tempRenderer.materials[0].SetFloat("_strtTime", startTime);
                 tempRenderer.materials[0].SetVector("_strtPos", new Vector4(transform.position.x, transform.position.y, transform.position.z, 0));
             }
 
@@ -232,7 +232,7 @@ namespace OpenRelativity.Objects
                 //Send our object's v/c (Velocity over the Speed of Light) to the shader
                 if (tempRenderer != null)
                 {
-                    Vector4 tempViw = viw / (float)state.SpeedOfLight;
+                    Vector4 tempViw = viw / state.SpeedOfLight;
                     tempRenderer.materials[0].SetVector("_viw", tempViw);
                     tempRenderer.materials[0].SetVector("_aiw", Get4Acceleration());
                     Matrix4x4 minkowski = Matrix4x4.identity;
@@ -281,13 +281,13 @@ namespace OpenRelativity.Objects
 
                     float b = -(2 * Vector3.Dot(riw, storedViw)); //next get position dotted with velocity, should be only in the Z direction
 
-                    float a = (float)state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
+                    float a = state.SpeedOfLightSqrd - Vector3.Dot(storedViw, storedViw);
 
                     /****************************
                      * Start Part 6 Bullet 2
                      * **************************/
 
-                    float tisw = (float)(((-b - (Math.Sqrt((b * b) - 4f * a * c))) / (2f * a)));
+                    float tisw = (-b - (Mathf.Sqrt((b * b) - 4f * a * c))) / (2f * a);
                     //If we're past our death time (in the player's view, as seen by tisw)
                     if (state.TotalTimeWorld + tisw > deathTime)
                     {
@@ -300,7 +300,7 @@ namespace OpenRelativity.Objects
                 if (GetComponent<Rigidbody>() != null)
                 {
                     float timeFac = GetTimeFactor();
-                    if ((float)state.SqrtOneMinusVSquaredCWDividedByCSquared != 0
+                    if (state.SqrtOneMinusVSquaredCWDividedByCSquared != 0
                         && IsNaNOrInf(timeFac))
                     {
                         GetComponent<Rigidbody>().velocity = viw / timeFac;
@@ -328,7 +328,7 @@ namespace OpenRelativity.Objects
 
             Matrix4x4 metric = GetMetric();
 
-            float timeFac = 1 / Mathf.Sqrt(1 - (float)(Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
+            float timeFac = 1 / Mathf.Sqrt(1 - (Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
             if (IsNaNOrInf(timeFac))
             {
                 timeFac = 1;

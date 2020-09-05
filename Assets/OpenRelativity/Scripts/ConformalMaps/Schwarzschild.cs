@@ -45,7 +45,7 @@ namespace OpenRelativity.ConformalMaps
                 rho = (2.0f * r * Mathf.Sqrt(r / rsCubeRoot)) / (3.0f * rsCubeRoot);
             } else {
                 tau *= -1;
-                rho = (float)(state.SpeedOfLight * state.TotalTimeWorld);
+                rho = state.SpeedOfLight * state.TotalTimeWorld;
                 r = Mathf.Pow(rho / (2 * rsCubeRoot), 2.0f / 3.0f);
             }
 
@@ -74,8 +74,8 @@ namespace OpenRelativity.ConformalMaps
             if (!isExterior)
             {
                 float temp = diffT;
-                diffT = diffR / (float)state.SpeedOfLight;
-                diffR = temp * (float)state.SpeedOfLight;
+                diffT = diffR / state.SpeedOfLight;
+                diffR = temp * state.SpeedOfLight;
             }
 
             Vector4 piw4 = piw + piw.normalized * diffR;
@@ -110,10 +110,10 @@ namespace OpenRelativity.ConformalMaps
                 if (radius > state.planckLength)
                 {
                     float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                    diffR = (float)-state.FixedDeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
+                    diffR = -state.FixedDeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
                 } else
                 {
-                    diffR = (float)-state.FixedDeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+                    diffR = -state.FixedDeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
                 }
 
                 if (!isExterior)

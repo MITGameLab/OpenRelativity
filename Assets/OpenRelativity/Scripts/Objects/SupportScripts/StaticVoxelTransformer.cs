@@ -231,11 +231,11 @@ namespace OpenRelativity.Objects
 
                 colliderShaderParams.ltwMatrix = Matrix4x4.identity;
                 colliderShaderParams.wtlMatrix = Matrix4x4.identity;
-                colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
+                colliderShaderParams.vpc = -state.PlayerVelocityVector / state.SpeedOfLight;
                 colliderShaderParams.pap = state.PlayerAccelerationVector;
                 colliderShaderParams.avp = state.PlayerAngularVelocityVector;
                 colliderShaderParams.playerOffset = state.playerTransform.position;
-                colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
+                colliderShaderParams.spdOfLight = state.SpeedOfLight;
                 colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
                 colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
 
@@ -315,11 +315,11 @@ namespace OpenRelativity.Objects
 
                 colliderShaderParams.ltwMatrix = Matrix4x4.identity;
                 colliderShaderParams.wtlMatrix = Matrix4x4.identity;
-                colliderShaderParams.vpc = -state.PlayerVelocityVector / (float)state.SpeedOfLight;
+                colliderShaderParams.vpc = -state.PlayerVelocityVector / state.SpeedOfLight;
                 colliderShaderParams.pap = state.PlayerAccelerationVector;
                 colliderShaderParams.avp = state.PlayerAngularVelocityVector;
                 colliderShaderParams.playerOffset = state.playerTransform.position;
-                colliderShaderParams.spdOfLight = (float)state.SpeedOfLight;
+                colliderShaderParams.spdOfLight = state.SpeedOfLight;
                 colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
                 colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
 

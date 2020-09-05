@@ -33,7 +33,7 @@ public class SchwarzschildLens : GravityLens
         {
             lensMaterial = interiorMaterial;
             lensMaterial.SetFloat("_lensRadius", r);
-            lensMaterial.SetFloat("_playerDist", (float)(state.SpeedOfLight * state.TotalTimeWorld));
+            lensMaterial.SetFloat("_playerDist", state.SpeedOfLight * state.TotalTimeWorld);
             return;
         }
 
