@@ -43,6 +43,8 @@ namespace OpenRelativity.Objects
         private bool dispatchedShader;
         private bool wasFrozen;
 
+        private bool didInit = false;
+
         private ShaderParams colliderShaderParams;
 
         private GameState _gameState = null;
@@ -69,21 +71,25 @@ namespace OpenRelativity.Objects
         {
             finishedCoroutine = true;
             dispatchedShader = false;
-            //wasFrozen = false;
-            coroutineTimer = new System.Diagnostics.Stopwatch();
 
             Init();
         }
 
         void Init()
         {
-            if (origPositionsList == null) origPositionsList = new List<Vector3>();
-            if (queuedColliders == null) queuedColliders = new List<BoxCollider>();
-            if (queuedOrigPositionsList == null) queuedOrigPositionsList = new List<Vector3>();
-            if (allColliders == null) allColliders = new List<BoxCollider>();
-            if (batchSizeDict == null) batchSizeDict = new Dictionary<Guid, int>();
-            if (serialQueue == null) serialQueue = new List<Guid>();
-            if (queueMutex == null) queueMutex = new Mutex();
+            if (didInit)
+            {
+                return;
+            }
+
+            origPositionsList = new List<Vector3>();
+            queuedColliders = new List<BoxCollider>();
+            queuedOrigPositionsList = new List<Vector3>();
+            allColliders = new List<BoxCollider>();
+            batchSizeDict = new Dictionary<Guid, int>();
+            serialQueue = new List<Guid>();
+            coroutineTimer = new System.Diagnostics.Stopwatch();
+            queueMutex = new Mutex();
 
             colliderShaderParams = new ShaderParams()
             {
@@ -91,6 +97,8 @@ namespace OpenRelativity.Objects
                 wtlMatrix = Matrix4x4.zero,
                 viw = Vector3.zero
             };
+
+            didInit = true;
         }
 
         void RestartCoroutine()
