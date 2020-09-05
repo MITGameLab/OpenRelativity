@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using OpenRelativity;
+using System.Threading;
 
 namespace OpenRelativity.Objects
 {
@@ -16,6 +17,8 @@ namespace OpenRelativity.Objects
         private const int cullingSqrDistance = 32 * 32;
         private const int cullingFrameInterval = 10;
         private int cullingFrameCount;
+
+        private Mutex queueMutex;
 
         //We cache (static) colliders and collider positions in parallel: 
         private Vector3[] queuedOrigPositions { get; set; }
@@ -80,6 +83,7 @@ namespace OpenRelativity.Objects
             if (allColliders == null) allColliders = new List<BoxCollider>();
             if (batchSizeDict == null) batchSizeDict = new Dictionary<Guid, int>();
             if (serialQueue == null) serialQueue = new List<Guid>();
+            if (queueMutex == null) queueMutex = new Mutex();
 
             colliderShaderParams = new ShaderParams()
             {
@@ -97,6 +101,8 @@ namespace OpenRelativity.Objects
 
             Guid batchNum = Guid.NewGuid();
 
+            queueMutex.WaitOne();
+
             allColliders.AddRange(collidersToAdd);
             origPositionsList.AddRange(positionsToAdd);
 
@@ -110,53 +116,57 @@ namespace OpenRelativity.Objects
             batchSizeDict.Add(batchNum, positionsToAdd.Length);
             serialQueue.Add(batchNum);
 
+            queueMutex.ReleaseMutex();
+
             return batchNum;
         }
 
         public bool ReturnQueueNumber(Guid qn)
         {
-            if (batchSizeDict.ContainsKey(qn))
-            {
-                int startIndex = 0;
-                Guid guid;
-                for (int i = 0; i < batchSizeDict.Count; i++)
-                {
-                    if (!serialQueue[i].Equals(qn))
-                    {
-                        guid = serialQueue[i];
-                        startIndex += batchSizeDict[guid];
-                    }
-                    else
-                    {
-                        int size = batchSizeDict[qn];
-
-                        for (int j = startIndex; j < (startIndex + size); j++)
-                        {
-                            allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
-                        }
-
-                        origPositionsList.RemoveRange(startIndex, size);
-                        allColliders.RemoveRange(startIndex, size);
-
-                        //queuedOrigPositions = origPositionsList.ToArray();
-                        batchSizeDict.Remove(qn);
-                        serialQueue.RemoveAt(i);
-
-                        break;
-                    }
-                }
-
-                queuedColliders.Clear();
-                queuedColliders.AddRange(allColliders);
-                queuedOrigPositionsList.Clear();
-                queuedOrigPositionsList.AddRange(origPositionsList);
-
-                return true;
-            }
-            else
+            if (!batchSizeDict.ContainsKey(qn))
             {
                 return false;
             }
+
+            queueMutex.WaitOne();
+
+            int startIndex = 0;
+            Guid guid;
+            for (int i = 0; i < batchSizeDict.Count; i++)
+            {
+                if (!serialQueue[i].Equals(qn))
+                {
+                    guid = serialQueue[i];
+                    startIndex += batchSizeDict[guid];
+                }
+                else
+                {
+                    int size = batchSizeDict[qn];
+
+                    for (int j = startIndex; j < (startIndex + size); j++)
+                    {
+                        allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
+                    }
+
+                    origPositionsList.RemoveRange(startIndex, size);
+                    allColliders.RemoveRange(startIndex, size);
+
+                    //queuedOrigPositions = origPositionsList.ToArray();
+                    batchSizeDict.Remove(qn);
+                    serialQueue.RemoveAt(i);
+
+                    break;
+                }
+            }
+
+            queuedColliders.Clear();
+            queuedColliders.AddRange(allColliders);
+            queuedOrigPositionsList.Clear();
+            queuedOrigPositionsList.AddRange(origPositionsList);
+
+            queueMutex.ReleaseMutex();
+
+            return true;
         }
 
         private void Update()
@@ -278,6 +288,8 @@ namespace OpenRelativity.Objects
                 dispatchedShader = true;
 
                 //Update the old result while waiting:
+                queueMutex.WaitOne();
+
                 float nanInfTest;
                 for (int i = 0; i < queuedColliders.Count; i++)
                 {
@@ -286,14 +298,18 @@ namespace OpenRelativity.Objects
                     {
                         if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                         {
+                            queueMutex.ReleaseMutex();
                             coroutineTimer.Stop();
                             coroutineTimer.Reset();
                             yield return null;
                             coroutineTimer.Start();
+                            queueMutex.WaitOne();
                         }
                         queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(trnsfrmdPositions[i]);
                     }
                 }
+
+                queueMutex.ReleaseMutex();
             }
 
             finishedCoroutine = true;
@@ -306,36 +322,32 @@ namespace OpenRelativity.Objects
             coroutineTimer.Reset();
             coroutineTimer.Start();
 
+            queueMutex.WaitOne();
+
             for (int i = 0; i < queuedColliders.Count; i++)
             {
-                colliderShaderParams.viw = Vector3.zero;
-                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero, 1);
-                colliderShaderParams.viwLorentzMatrix = Matrix4x4.identity;
-                colliderShaderParams.invViwLorentzMatrix = Matrix4x4.identity;
-
-                colliderShaderParams.ltwMatrix = Matrix4x4.identity;
-                colliderShaderParams.wtlMatrix = Matrix4x4.identity;
-                colliderShaderParams.vpc = -state.PlayerVelocityVector / state.SpeedOfLight;
-                colliderShaderParams.pap = state.PlayerAccelerationVector;
-                colliderShaderParams.avp = state.PlayerAngularVelocityVector;
-                colliderShaderParams.playerOffset = state.playerTransform.position;
-                colliderShaderParams.spdOfLight = state.SpeedOfLight;
-                colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
-                colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
-
-                Vector3 newPos = queuedColliders[i].transform.InverseTransformPoint(
+                queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(
                     ((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
                 );
+
                 //Change mesh:
                 if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                 {
+                    queueMutex.ReleaseMutex();
                     coroutineTimer.Stop();
                     coroutineTimer.Reset();
                     yield return null;
                     coroutineTimer.Start();
+                    queueMutex.WaitOne();
+
+                    if (i >= queuedColliders.Count)
+                    {
+                        continue;
+                    }
                 }
-                queuedColliders[i].center = newPos;
             }
+
+            queueMutex.ReleaseMutex();
 
             finishedCoroutine = true;
             coroutineTimer.Stop();
@@ -349,6 +361,8 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
+
+            queueMutex.WaitOne();
 
             RelativisticObject[] ros = FindObjectsOfType<RelativisticObject>();
             List<Vector3> rosPiw = new List<Vector3>();
@@ -402,6 +416,8 @@ namespace OpenRelativity.Objects
                     }
                 }
             }
+
+            queueMutex.ReleaseMutex();
         }
 
         private void OnDestroy()
