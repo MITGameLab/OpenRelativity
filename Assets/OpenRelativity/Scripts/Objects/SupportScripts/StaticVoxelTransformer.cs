@@ -18,8 +18,6 @@ namespace OpenRelativity.Objects
         private const int cullingFrameInterval = 10;
         private int cullingFrameCount;
 
-        private Mutex queueMutex;
-
         //We cache (static) colliders and collider positions in parallel: 
         private Vector3[] queuedOrigPositions { get; set; }
         private List<Vector3> origPositionsList { get; set; }
@@ -89,7 +87,6 @@ namespace OpenRelativity.Objects
             batchSizeDict = new Dictionary<Guid, int>();
             serialQueue = new List<Guid>();
             coroutineTimer = new System.Diagnostics.Stopwatch();
-            queueMutex = new Mutex();
 
             colliderShaderParams = new ShaderParams()
             {
@@ -101,18 +98,45 @@ namespace OpenRelativity.Objects
             didInit = true;
         }
 
-        void RestartCoroutine()
+        void StartTransformCoroutine()
         {
+            finishedCoroutine = false;
             if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
             {
-                finishedCoroutine = false;
-                StopCoroutine("GPUUpdatePositions");
                 StartCoroutine("GPUUpdatePositions");
             }
             else
             {
-                finishedCoroutine = false;
+                StartCoroutine("CPUUpdatePositions");
+            }
+        }
+
+        void StopTransformCoroutine()
+        {
+            if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
+            {
+                StopCoroutine("GPUUpdatePositions");
+            }
+            else
+            {
                 StopCoroutine("CPUUpdatePositions");
+            }
+            finishedCoroutine = true;
+        }
+
+
+        void RestartTransformCoroutine()
+        {
+            if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
+            {
+                StopCoroutine("GPUUpdatePositions");
+                finishedCoroutine = false;
+                StartCoroutine("GPUUpdatePositions");
+            }
+            else
+            {
+                StopCoroutine("CPUUpdatePositions");
+                finishedCoroutine = false;
                 StartCoroutine("CPUUpdatePositions");
             }
         }
@@ -125,7 +149,7 @@ namespace OpenRelativity.Objects
 
             Guid batchNum = Guid.NewGuid();
 
-            queueMutex.WaitOne();
+            StopTransformCoroutine();
 
             allColliders.AddRange(collidersToAdd);
             origPositionsList.AddRange(positionsToAdd);
@@ -140,12 +164,7 @@ namespace OpenRelativity.Objects
             batchSizeDict.Add(batchNum, positionsToAdd.Length);
             serialQueue.Add(batchNum);
 
-            if (!finishedCoroutine)
-            {
-                RestartCoroutine();
-            }
-
-            queueMutex.ReleaseMutex();
+            StartTransformCoroutine();
 
             return batchNum;
         }
@@ -157,7 +176,7 @@ namespace OpenRelativity.Objects
                 return false;
             }
 
-            queueMutex.WaitOne();
+            StopTransformCoroutine();
 
             int startIndex = 0;
             Guid guid;
@@ -193,12 +212,7 @@ namespace OpenRelativity.Objects
             queuedOrigPositionsList.Clear();
             queuedOrigPositionsList.AddRange(origPositionsList);
 
-            if (!finishedCoroutine)
-            {
-                RestartCoroutine();
-            }
-
-            queueMutex.ReleaseMutex();
+            StartTransformCoroutine();
 
             return true;
         }
@@ -214,24 +228,18 @@ namespace OpenRelativity.Objects
             if (!state.MovementFrozen)
             {
                 if (sphericalCulling) cullingFrameCount++;
+
                 if (!finishedCoroutine)
                 {
                     return;
                 }
 
-                if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
-                {
-                    finishedCoroutine = false;
-                    StartCoroutine("GPUUpdatePositions");
-                }
-                else
-                {
-                    finishedCoroutine = false;
-                    StartCoroutine("CPUUpdatePositions");
-                }
+                StartTransformCoroutine();
             }
             else if (!wasFrozen)
             {
+                StopTransformCoroutine();
+
                 queuedColliders.Clear();
                 queuedColliders.AddRange(allColliders);
                 queuedOrigPositionsList.Clear();
@@ -239,7 +247,7 @@ namespace OpenRelativity.Objects
                 queuedOrigPositions = queuedOrigPositionsList.ToArray();
                 cullingFrameCount = 0;
 
-                RestartCoroutine();
+                StartTransformCoroutine();
                 wasFrozen = true;
             }
         }
@@ -311,8 +319,6 @@ namespace OpenRelativity.Objects
                 dispatchedShader = true;
 
                 //Update the old result while waiting:
-                queueMutex.WaitOne();
-
                 float nanInfTest;
                 for (int i = 0; i < queuedColliders.Count; i++)
                 {
@@ -324,17 +330,13 @@ namespace OpenRelativity.Objects
 
                     if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                     {
-                        queueMutex.ReleaseMutex();
                         coroutineTimer.Stop();
                         coroutineTimer.Reset();
                         yield return null;
                         coroutineTimer.Start();
-                        queueMutex.WaitOne();
                     }
                     queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(trnsfrmdPositions[i]);
                 }
-
-                queueMutex.ReleaseMutex();
             }
 
             finishedCoroutine = true;
@@ -351,27 +353,25 @@ namespace OpenRelativity.Objects
                 Cull();
             }
 
-            queueMutex.WaitOne();
-
             for (int i = 0; i < queuedColliders.Count; i++)
             {
+                if (i >= queuedColliders.Count || i >= queuedOrigPositions.Length)
+                {
+                    break;
+                }
                 queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(
-                    ((Vector4)(queuedOrigPositions[i])).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
+                    ((Vector4)queuedOrigPositions[i]).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
                 );
 
                 //Change mesh:
                 if ((!takePriority) && (coroutineTimer.ElapsedMilliseconds > 16))
                 {
-                    queueMutex.ReleaseMutex();
                     coroutineTimer.Stop();
                     coroutineTimer.Reset();
                     yield return null;
                     coroutineTimer.Start();
-                    queueMutex.WaitOne();
                 }
             }
-
-            queueMutex.ReleaseMutex();
 
             finishedCoroutine = true;
         }
@@ -383,8 +383,6 @@ namespace OpenRelativity.Objects
             {
                 return;
             }
-
-            queueMutex.WaitOne();
 
             RelativisticObject[] ros = FindObjectsOfType<RelativisticObject>();
             List<Vector3> rosPiw = new List<Vector3>();
@@ -438,8 +436,6 @@ namespace OpenRelativity.Objects
                     }
                 }
             }
-
-            queueMutex.ReleaseMutex();
         }
 
         private void OnDestroy()
