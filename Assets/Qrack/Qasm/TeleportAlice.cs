@@ -20,9 +20,13 @@ namespace Qrack
 
                     qs.Rand(0);
 
-                    float prob = qs.Prob(0);
+                    float zProb = qs.Prob(0);
                     qs.H(0);
-                    float hProb = qs.Prob(0);
+                    float xProb = qs.Prob(0);
+                    qs.S(0);
+                    float yProb = qs.Prob(0);
+                    qs.Z(0);
+                    qs.S(0);
                     qs.H(0);
 
                     HistoryPoints.Add(new QrackHistoryPoint
@@ -30,7 +34,7 @@ namespace Qrack
                         WorldTime = qs.LocalTime,
                         Action = (time) =>
                         {
-                            ro.transform.eulerAngles = new Vector3(prob * 360.0f, hProb * 360.0f, 0.0f);
+                            ro.transform.eulerAngles = new Vector3(xProb * 360.0f, yProb * 360.0f, zProb * 360.0f);
                             ro.riw = qs.transform.rotation;
                         }
                     });
