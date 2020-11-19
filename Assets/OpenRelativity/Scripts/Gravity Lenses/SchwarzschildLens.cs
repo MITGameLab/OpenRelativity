@@ -7,13 +7,17 @@ public class SchwarzschildLens : GravityLens
     public GameState state;
     public Schwarzschild schwarzschild;
     public GravityMirror gravityMirror;
-
     public Material interiorMaterial;
     private Material origLensMaterial;
 
     private void Start()
     {
         origLensMaterial = lensMaterial;
+
+        if (isSkybox)
+        {
+            RenderSettings.skybox = interiorMaterial;
+        }
     }
 
     // Update is called once per frame

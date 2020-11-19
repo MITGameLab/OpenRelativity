@@ -7,6 +7,7 @@ public class GravityLens : MonoBehaviour
     public Material lensMaterial;
     public GravityLens mirrorLens;
     public bool isMirror;
+    public bool isSkybox = false;
 
     protected bool doBlit;
     protected bool wasBlit;
@@ -24,6 +25,12 @@ public class GravityLens : MonoBehaviour
 
     void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
+        if (isSkybox)
+        {
+            Graphics.Blit(src, dest);
+            return;
+        }
+
         if (doBlit)
         {
             wasBlit = true;
