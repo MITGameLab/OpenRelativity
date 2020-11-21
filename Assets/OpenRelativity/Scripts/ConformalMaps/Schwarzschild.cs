@@ -98,7 +98,7 @@ namespace OpenRelativity.ConformalMaps
             return Vector3.zero;
         }
 
-        void FixedUpdate()
+        void Update()
         {
             if (radius <= 0 || !doEvaporate || state.isMovementFrozen)
             {
@@ -108,17 +108,32 @@ namespace OpenRelativity.ConformalMaps
             // This is speculative, but it can simply be turned off, in the editor.
             // This attempts to simulate black hole evaporation at a rate inversely proportional to Schwarzschild radius.
             // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
-            if (!float.IsInfinity(state.FixedDeltaTimeWorld) && !float.IsNaN(state.FixedDeltaTimeWorld))
+            if (!float.IsInfinity(state.DeltaTimeWorld) && !float.IsNaN(state.DeltaTimeWorld))
             {
                 float diffR;
                 if (radius > state.planckLength)
                 {
                     float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                    diffR = -state.FixedDeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
+                    diffR = -state.DeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
+                }
+                else if (isExterior)
+                {
+                    float timeToPlanck = Mathf.Sqrt(radius * 4.0f / state.SpeedOfLight - 4.0f * state.planckTime);
+                    if (timeToPlanck <= state.DeltaTimeWorld)
+                    {
+                        radius = state.planckLength;
+
+                        float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
+                        diffR = -(state.DeltaTimeWorld - timeToPlanck) * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
+                    }
+                    else
+                    {
+                        diffR = -state.DeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+                    }
                 }
                 else
                 {
-                    diffR = -state.FixedDeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+                    diffR = -state.DeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
                 }
 
                 if (!isExterior)
