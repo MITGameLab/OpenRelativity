@@ -89,7 +89,7 @@ namespace OpenRelativity
         #region Properties
 
         //If we've paused the game
-        public bool MovementFrozen { get; set; }
+        public bool isMovementFrozen { get; set; }
 
         public Matrix4x4 WorldRotation { get; private set; }
         public Vector3 PlayerVelocityVector { get; set; }
@@ -120,6 +120,8 @@ namespace OpenRelativity
 
         public bool HasWorldGravity { get; set; }
 
+        public bool isPlayerComoving = true;
+
         #endregion
 
         #region consts
@@ -133,7 +135,6 @@ namespace OpenRelativity
                 return SqrtOneMinusVSquaredCWDividedByCSquared != 0;
             }
         }
-
 
         public void Awake()
         {
@@ -154,7 +155,7 @@ namespace OpenRelativity
             c = totalC;
             SpeedOfLightSqrd = c * c;
             //And ensure that the game starts
-            MovementFrozen = false;
+            isMovementFrozen = false;
             menuKeyDown = false;
             shaderKeyDown = false;
             keyHit = false;
@@ -168,10 +169,10 @@ namespace OpenRelativity
         //Call this function to pause and unpause the game
         public virtual void ChangeState()
         {
-            if (MovementFrozen)
+            if (isMovementFrozen)
             {
                 //When we unpause, lock the cursor and hide it so that it doesn't get in the way
-                MovementFrozen = false;
+                isMovementFrozen = false;
                 //Cursor.visible = false;
                 Cursor.lockState = CursorLockMode.Locked;
             }
@@ -179,7 +180,7 @@ namespace OpenRelativity
             {
                 //When we pause, set our velocity to zero, show the cursor and unlock it.
                 GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
-                MovementFrozen = true;
+                isMovementFrozen = true;
                 Cursor.visible = true;
                 Cursor.lockState = CursorLockMode.None;
             }
@@ -217,7 +218,7 @@ namespace OpenRelativity
             }
 
             //If we're not paused, update everything
-            if (!MovementFrozen)
+            if (!isMovementFrozen)
             {
                 //Put our player position into the shader so that it can read it.
                 Shader.SetGlobalVector("_playerOffset", new Vector4(playerTransform.position.x, playerTransform.position.y, playerTransform.position.z, 0));
@@ -328,12 +329,12 @@ namespace OpenRelativity
         {
             Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
 
-            if (!MovementFrozen &&
+            if (!isMovementFrozen &&
                 !float.IsNaN(DeltaTimePlayer) &&
                 SqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
                 !float.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
             {
-                if (conformalMap != null)
+                if (conformalMap != null && isPlayerComoving)
                 {
                     // Assume local player coordinates are comoving
                     Vector4 piw4 = conformalMap.ComoveOptical(FixedDeltaTimePlayer, playerTransform.position);
