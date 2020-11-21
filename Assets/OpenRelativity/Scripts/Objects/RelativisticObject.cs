@@ -1126,17 +1126,18 @@ namespace OpenRelativity.Objects
                 }
             }
 
+            // TODO: Doesn't work under extreme conditions, or at all
             //This code is a hack to ensure that frustrum culling does not take place
             //It changes the render bounds so that everything is contained within them
             //At high speeds the Lorentz contraction means that some objects not normally in the view frame are actually visible
             //If we did frustrum culling, these objects would be ignored (because we cull BEFORE running the shader, which does the lorenz contraction)
-            if (meshFilter != null)
-            {
-                Transform camTransform = Camera.main.transform;
-                float distToCenter = (Camera.main.farClipPlane + Camera.main.nearClipPlane) / 2.0f;
-                Vector3 center = camTransform.position;
-                meshFilter.sharedMesh.bounds = new Bounds(distToCenter * camTransform.forward + center, 2 * distToCenter * Vector3.one);
-            }
+            // if (meshFilter != null)
+            // {
+            //     Transform camTransform = Camera.main.transform;
+            //     float distToCenter = (Camera.main.farClipPlane + Camera.main.nearClipPlane) / 2.0f;
+            //     Vector3 center = camTransform.position;
+            //     meshFilter.sharedMesh.bounds = new Bounds(distToCenter * camTransform.forward + center, 2 * distToCenter * Vector3.one);
+            // }
         }
 
         void Update()
