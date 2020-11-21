@@ -7,7 +7,6 @@ namespace OpenRelativity.ConformalMaps
     {
         public bool isExterior { get; set; }
 
-        public Transform eventHorizon;
         public bool doEvaporate = true;
         public float radius = 1;
 
@@ -153,8 +152,6 @@ namespace OpenRelativity.ConformalMaps
             {
                 radius = 0;
             }
-
-            eventHorizon.localScale = new Vector3(radius, radius, radius);
         }
     }
 }
