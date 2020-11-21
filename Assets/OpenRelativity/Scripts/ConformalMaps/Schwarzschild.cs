@@ -28,7 +28,7 @@ namespace OpenRelativity.ConformalMaps
 
                 // From the exterior Schwarzschild perspective, the player's coordinate radius from origin (less than the
                 // coordinate distance from origin to event horizon) corresponds with the interior time.
-                state.playerTransform.position = state.SpeedOfLight * state.TotalTimeWorld * state.playerTransform.position / dist;
+                state.playerTransform.position = state.SpeedOfLight * state.TotalTimeWorld * state.playerTransform.position.normalized;
 
                 originalRadius = radius;
                 originalTime = state.TotalTimeWorld;
@@ -48,7 +48,6 @@ namespace OpenRelativity.ConformalMaps
             float r;
             float tau = properTDiff;
             float rsCubeRoot = Mathf.Pow(radius, 1.0f / 3.0f);
-            // To begin, "tau" = 0;
             float rho;
 
             if (isExterior)

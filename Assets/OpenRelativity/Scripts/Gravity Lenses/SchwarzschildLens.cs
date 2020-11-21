@@ -35,9 +35,16 @@ public class SchwarzschildLens : GravityLens
 
         if (!schwarzschild.isExterior)
         {
+            if (state.TotalTimeWorld >= r)
+            {
+                state.TotalTimeWorld = r;
+                state.MovementFrozen = true;
+            }
+
             lensMaterial = interiorMaterial;
             lensMaterial.SetFloat("_lensRadius", r);
             lensMaterial.SetFloat("_playerDist", state.SpeedOfLight * state.TotalTimeWorld);
+
             return;
         }
 

@@ -111,7 +111,7 @@ namespace OpenRelativity
         public float DeltaTimePlayer { get; private set; }
         public float FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
         public float TotalTimePlayer { get; set; }
-        public float TotalTimeWorld { get; set; }
+        public float TotalTimeWorld;
         public float SpeedOfLight { get { return c; } set { c = value; SpeedOfLightSqrd = value * value; } }
         public float SpeedOfLightSqrd { get; private set; }
 
