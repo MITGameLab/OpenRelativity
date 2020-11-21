@@ -130,7 +130,7 @@ namespace OpenRelativity.Objects
             //Grab our renderer.
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
 
-            if (meshFilter != null && !state.MovementFrozen)
+            if (meshFilter != null && !state.isMovementFrozen)
             {
                 #region meshDensity
                 //This is where I'm going to change our mesh density.

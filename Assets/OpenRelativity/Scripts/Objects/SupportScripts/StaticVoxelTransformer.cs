@@ -225,7 +225,7 @@ namespace OpenRelativity.Objects
         // Update is called once per frame
         public void UpdatePositions()
         {
-            if (!state.MovementFrozen)
+            if (!state.isMovementFrozen)
             {
                 if (sphericalCulling) cullingFrameCount++;
 
@@ -379,7 +379,7 @@ namespace OpenRelativity.Objects
         private void Cull()
         {
             Init();
-            if (!sphericalCulling || state.MovementFrozen)
+            if (!sphericalCulling || state.isMovementFrozen)
             {
                 return;
             }

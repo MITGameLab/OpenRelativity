@@ -445,7 +445,7 @@ namespace OpenRelativity.Objects
         private void UpdateMeshCollider(MeshCollider transformCollider)
         {
             //Freeze the physics if the global state is frozen.
-            if (state.MovementFrozen)
+            if (state.isMovementFrozen)
             {
                 if (!wasFrozen)
                 {
@@ -985,7 +985,7 @@ namespace OpenRelativity.Objects
             }
 
             // If movement is frozen, set to zero.
-            if (state.MovementFrozen)
+            if (state.isMovementFrozen)
             {
                 myRigidbody.velocity = Vector3.zero;
                 myRigidbody.angularVelocity = Vector3.zero;
@@ -1169,7 +1169,7 @@ namespace OpenRelativity.Objects
                 UpdateRigidbodyVelocity();
             }
 
-            if (state.MovementFrozen || isNonrelativisticShader || meshFilter != null)
+            if (state.isMovementFrozen || isNonrelativisticShader || meshFilter != null)
             {
                 UpdateShaderParams();
                 return;
@@ -1232,7 +1232,7 @@ namespace OpenRelativity.Objects
 
         void FixedUpdate()
         {
-            if (state.MovementFrozen)
+            if (state.isMovementFrozen)
             {
                 // If our rigidbody is not null, and movement is frozen, then set the object to standstill.
                 if (myRigidbody != null)

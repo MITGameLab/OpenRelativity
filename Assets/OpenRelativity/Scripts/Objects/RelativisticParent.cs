@@ -226,7 +226,7 @@ namespace OpenRelativity.Objects
             //Grab our renderer.
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
 
-            if (meshFilter != null && !state.MovementFrozen)
+            if (meshFilter != null && !state.isMovementFrozen)
             {
 
                 //Send our object's v/c (Velocity over the Speed of Light) to the shader

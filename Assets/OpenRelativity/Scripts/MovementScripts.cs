@@ -76,7 +76,7 @@ namespace OpenRelativity
         {
             float viewRotX;
             //If we're not paused, update speed and rotation using player input.
-            if (!state.MovementFrozen)
+            if (!state.isMovementFrozen)
             {
                 state.deltaRotation = Vector3.zero;
 

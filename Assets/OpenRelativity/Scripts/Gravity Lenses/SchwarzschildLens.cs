@@ -38,7 +38,7 @@ public class SchwarzschildLens : GravityLens
             if (state.TotalTimeWorld >= r)
             {
                 state.TotalTimeWorld = r;
-                state.MovementFrozen = true;
+                state.isMovementFrozen = true;
             }
 
             lensMaterial = interiorMaterial;

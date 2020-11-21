@@ -10,9 +10,6 @@ namespace OpenRelativity.ConformalMaps
         public bool doEvaporate = true;
         public float radius = 1;
 
-        private float originalRadius;
-        private float originalTime;
-
         public void Start()
         {
             float dist = state.playerTransform.position.magnitude;
@@ -28,9 +25,6 @@ namespace OpenRelativity.ConformalMaps
                 // From the exterior Schwarzschild perspective, the player's coordinate radius from origin (less than the
                 // coordinate distance from origin to event horizon) corresponds with the interior time.
                 state.playerTransform.position = state.SpeedOfLight * state.TotalTimeWorld * state.playerTransform.position.normalized;
-
-                originalRadius = radius;
-                originalTime = state.TotalTimeWorld;
             }
         }
 
@@ -106,7 +100,7 @@ namespace OpenRelativity.ConformalMaps
 
         void FixedUpdate()
         {
-            if (radius <= 0 || !doEvaporate || state.MovementFrozen)
+            if (radius <= 0 || !doEvaporate || state.isMovementFrozen)
             {
                 return;
             }
@@ -116,36 +110,23 @@ namespace OpenRelativity.ConformalMaps
             // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
             if (!float.IsInfinity(state.FixedDeltaTimeWorld) && !float.IsNaN(state.FixedDeltaTimeWorld))
             {
-                if (isExterior)
+                float diffR;
+                if (radius > state.planckLength)
                 {
-                    float diffR;
-                    if (radius > state.planckLength)
-                    {
-                        float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                        diffR = -state.FixedDeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
-                    }
-                    else
-                    {
-                        diffR = -state.FixedDeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
-                    }
-
-                    radius = radius + diffR;
+                    float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
+                    diffR = -state.FixedDeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
                 }
                 else
                 {
-                    float diffR;
-                    if (radius > state.planckLength)
-                    {
-                        float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                        diffR = Mathf.Sqrt(2.0f * (state.TotalTimeWorld - originalTime) * Mathf.Sqrt(state.hbarOverG * cTo7));
-                        radius = originalRadius + diffR;
-                    }
-                    else
-                    {
-                        diffR = state.FixedDeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
-                        radius = radius + diffR;
-                    }
+                    diffR = -state.FixedDeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
                 }
+
+                if (!isExterior)
+                {
+                    diffR = -diffR;
+                }
+
+                radius = radius + diffR;
             }
 
             if (radius < 0)

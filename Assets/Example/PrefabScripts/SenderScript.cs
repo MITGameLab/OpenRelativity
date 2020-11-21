@@ -43,7 +43,7 @@ namespace OpenRelativity.PrefabScripts
         // Update is called once per frame
         void Update()
         {   //If we're not paused, increment the timer
-            if (!state.MovementFrozen)
+            if (!state.isMovementFrozen)
             {
                 launchCounter += Time.deltaTime;
             }
