@@ -482,11 +482,6 @@ namespace OpenRelativity.Objects
             colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
             colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
 
-            //Center of mass in local coordinates should be invariant,
-            // but transforming the collider verts will change it,
-            // so we save it and restore it at the end:
-            Vector3 initCOM = myRigidbody.centerOfMass;
-
             ShaderParams[] spa = new ShaderParams[1];
             spa[0] = colliderShaderParams;
 
