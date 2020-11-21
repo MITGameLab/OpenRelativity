@@ -911,7 +911,6 @@ namespace OpenRelativity.Objects
             if (myRenderer != null)
             {
                 Vector3 tempViw = cviw.AddVelocity(viw) / state.SpeedOfLight;
-                Vector3 tempAviw = aviw;
                 Vector4 tempAiw = GetWorld4Acceleration();
                 Vector4 tempPao = GetProper4Acceleration();
                 Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / state.SpeedOfLight;
@@ -1110,12 +1109,9 @@ namespace OpenRelativity.Objects
             //If we have a MeshRenderer on our object and it's not world-static
             if (myRenderer != null && !isLightMapStatic)
             {
-                float c = state.SpeedOfLight;
                 //And if we have a texture on our material
                 for (int i = 0; i < myRenderer.materials.Length; i++)
                 {
-                    //if (tempRenderer.materials[i]!=null && tempRenderer.materials[i].mainTexture != null)
-                    //{
                     //So that we can set unique values to every moving object, we have to instantiate a material
                     //It's the same as our old one, but now it's not connected to every other object with the same material
                     Material quickSwapMaterial = Instantiate(myRenderer.materials[i]) as Material;
