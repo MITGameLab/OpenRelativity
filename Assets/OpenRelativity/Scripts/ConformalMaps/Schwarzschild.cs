@@ -16,15 +16,15 @@ namespace OpenRelativity.ConformalMaps
             isExterior = (dist > radius);
             if (!isExterior)
             {
+                // From the exterior Schwarzschild perspective, the player's coordinate radius from origin (less than the
+                // coordinate distance from origin to event horizon) corresponds with the interior time.
+                state.playerTransform.position = state.SpeedOfLight * state.TotalTimeWorld * state.playerTransform.position.normalized;
+
                 // Theoretically, "first-person" local time extends infinitely back into the past and forward into the future,
                 // but the limit points for 0 Hubble sphere radius at either extreme might have a finite total time
                 // between the limit points.
                 state.TotalTimeWorld = dist / state.SpeedOfLight;
                 state.TotalTimePlayer = state.TotalTimeWorld;
-
-                // From the exterior Schwarzschild perspective, the player's coordinate radius from origin (less than the
-                // coordinate distance from origin to event horizon) corresponds with the interior time.
-                state.playerTransform.position = state.SpeedOfLight * state.TotalTimeWorld * state.playerTransform.position.normalized;
             }
         }
 
