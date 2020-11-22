@@ -45,7 +45,7 @@ namespace OpenRelativity
         // If we track small differences separately, we can get better accuracy.
         protected Vector3 frameDragAccelRemainder;
 
-        void Start()
+        public virtual void Start()
         {
             collidersBelow = new List<Collider>();
 
@@ -72,7 +72,7 @@ namespace OpenRelativity
             frames = 0;
         }
         //Again, use LateUpdate to solve some collision issues.
-        void LateUpdate()
+        public virtual void LateUpdate()
         {
             float viewRotX;
             //If we're not paused, update speed and rotation using player input.

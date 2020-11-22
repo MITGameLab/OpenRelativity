@@ -451,10 +451,17 @@ namespace OpenRelativity.Objects
                 {
                     //Read the state of the rigidbody and shut it off, once.
                     wasFrozen = true;
-                    wasKinematic = myRigidbody.isKinematic;
-                    collisionDetectionMode = myRigidbody.collisionDetectionMode;
-                    myRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-                    myRigidbody.isKinematic = true;
+                    if (myRigidbody == null)
+                    {
+                        wasKinematic = true;
+                        collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+                    } else
+                    {
+                        wasKinematic = myRigidbody.isKinematic;
+                        collisionDetectionMode = myRigidbody.collisionDetectionMode;
+                        myRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+                        myRigidbody.isKinematic = true;
+                    }
                 }
                 return;
             }
