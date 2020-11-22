@@ -7,22 +7,22 @@ namespace OpenRelativity
 {
     public class MovementScripts : MonoBehaviour
     {
-        //Consts 
-        public float SLOW_DOWN_RATE = 0.75f;
-        public float ACCEL_RATE = 8.0f;
+        //Consts
         private const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
+        public float dragConstant = 0.75f;
+        public float controllerAcceleration = 8.0f;
         public bool useGravity = false;
         //Needed to tell whether we are in free fall
-        private bool isFalling;
-        private List<Collider> collidersBelow;
+        protected bool isFalling;
+        public List<Collider> collidersBelow { get; protected set; }
         public float controllerBoost = 6000;
         //Affect our rotation speed
         public float rotSpeed;
         //Keep track of the camera transform
         public Transform camTransform;
         //Just turn this negative when they press the Y button for inversion.
-        private int inverted;
+        protected int inverted;
         //What is our current target for the speed of light?
         public int speedOfLightTarget { get; set; }
         //What is each step we take to reach that target?
@@ -34,16 +34,16 @@ namespace OpenRelativity
         //Keep track of total frames passed
         int frames;
         //Gamestate reference for quick access
-        private GameState state;
+        protected GameState state;
 
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool monopoleAccel = false;
-        private Vector3 frameDragAccel;
+        protected Vector3 frameDragAccel;
         // Float precision prevents the "frameDragAccel" from correctly returning to "world accelerated rest frame"
         // under the effect of forces like drag and friction in the at rest W.R.T. the "world."
         // If we track small differences separately, we can get better accuracy.
-        private Vector3 frameDragAccelRemainder;
+        protected Vector3 frameDragAccelRemainder;
 
         void Start()
         {
@@ -138,12 +138,12 @@ namespace OpenRelativity
 
                 float temp;
                 //Movement due to left/right input
-                totalAccel += new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * ACCEL_RATE);
+                totalAccel += new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * controllerAcceleration);
                 if (temp != 0)
                 {
                     state.keyHit = true;
                 }
-                totalAccel += new Vector3((temp = -Input.GetAxis("Horizontal")) * ACCEL_RATE, 0, 0);
+                totalAccel += new Vector3((temp = -Input.GetAxis("Horizontal")) * controllerAcceleration, 0, 0);
                 if (temp != 0)
                 {
                     state.keyHit = true;
@@ -155,7 +155,7 @@ namespace OpenRelativity
                 //AUTO SLOW DOWN CODE BLOCK
 
                 //Add a fluid drag force (as for air)
-                totalAccel -= SLOW_DOWN_RATE * playerVelocityVector.sqrMagnitude * playerVelocityVector.normalized;
+                totalAccel -= dragConstant * playerVelocityVector.sqrMagnitude * playerVelocityVector.normalized;
 
                 Vector3 quasiWorldAccel = totalAccel;
 
@@ -373,106 +373,109 @@ namespace OpenRelativity
             Rigidbody otherRB = collider.GetComponent<Rigidbody>();
             GameObject otherGO = collider.gameObject;
             RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
-            if (otherRO != null && otherRB != null && otherRB.isKinematic)
+
+            if (otherRO == null || (otherRB != null && !otherRB.isKinematic))
             {
-                Collider myColl = GetComponent<Collider>();
-                Vector3 extents = myColl.bounds.extents;
-                //We assume that the world "down" direction is the direction of gravity.
-                Vector3 playerPos = state.playerTransform.position;
-                Ray rayDown = new Ray(playerPos + extents.y * Vector3.up, Vector3.down);
-                Ray rayUp = new Ray(playerPos + extents.y * Vector3.down, Vector3.up);
-                Ray rayLeft = new Ray(playerPos + extents.x * Vector3.right, Vector3.left);
-                Ray rayRight = new Ray(playerPos + extents.x * Vector3.left, Vector3.right);
-                Ray rayForward = new Ray(playerPos + extents.z * Vector3.back, Vector3.forward);
-                Ray rayBack = new Ray(playerPos + extents.z * Vector3.forward, Vector3.back);
-                RaycastHit hitInfo;
-                float dist;
-                RaycastHit unused;
-                if (collider.Raycast(rayDown, out unused, 2.0f * extents.y))
+                return;
+            }
+
+            Collider myColl = GetComponent<Collider>();
+            Vector3 extents = myColl.bounds.extents;
+            //We assume that the world "down" direction is the direction of gravity.
+            Vector3 playerPos = state.playerTransform.position;
+            Ray rayDown = new Ray(playerPos + extents.y * Vector3.up, Vector3.down);
+            Ray rayUp = new Ray(playerPos + extents.y * Vector3.down, Vector3.up);
+            Ray rayLeft = new Ray(playerPos + extents.x * Vector3.right, Vector3.left);
+            Ray rayRight = new Ray(playerPos + extents.x * Vector3.left, Vector3.right);
+            Ray rayForward = new Ray(playerPos + extents.z * Vector3.back, Vector3.forward);
+            Ray rayBack = new Ray(playerPos + extents.z * Vector3.forward, Vector3.back);
+            RaycastHit hitInfo;
+            float dist;
+            RaycastHit unused;
+            if (collider.Raycast(rayDown, out unused, 2.0f * extents.y))
+            {
+                isFalling = false;
+                Vector3 pVel = state.PlayerVelocityVector;
+                Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
+                if (pVel.y > 0.0f)
                 {
-                    isFalling = false;
-                    Vector3 pVel = state.PlayerVelocityVector;
-                    Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
-                    if (pVel.y > 0.0f)
-                    {
-                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
-                    }
+                    state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
+                }
 
-                    Vector3 pAccel = state.PlayerAccelerationVector;
-                    if (pAccel.y < 0.0f)
-                    {
-                        pAccel.y = 0.0f;
-                        state.PlayerAccelerationVector = pAccel;
-                    }
+                Vector3 pAccel = state.PlayerAccelerationVector;
+                if (pAccel.y < 0.0f)
+                {
+                    pAccel.y = 0.0f;
+                    state.PlayerAccelerationVector = pAccel;
+                }
 
-                    otherRO.UpdateColliderPosition(collider);
-                    Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
-                    if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
+                otherRO.UpdateColliderPosition(collider);
+                Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
+                if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
+                {
+                    Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
+                    dist = transform.position.y - newPos.y;
+                    if (Mathf.Abs(dist) > 0.01f)
                     {
-                        Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
-                        dist = transform.position.y - newPos.y;
-                        if (Mathf.Abs(dist) > 0.01f)
-                        {
-                            state.playerTransform.position = newPos;
-                        }
-                    }
-
-                    bool foundCollider = false;
-                    for (int i = 0; i < collidersBelow.Count; i++)
-                    {
-                        if (collidersBelow[i].Equals(collider))
-                        {
-                            foundCollider = true;
-                        }
-                    }
-
-                    if (!foundCollider)
-                    {
-                        collidersBelow.Add(collider);
+                        state.playerTransform.position = newPos;
                     }
                 }
 
-                Vector3 direction = Vector3.zero;
-                dist = 0.0f;
-                if (collider.Raycast(rayForward, out hitInfo, 2.0f * extents.z))
+                bool foundCollider = false;
+                for (int i = 0; i < collidersBelow.Count; i++)
                 {
-                    dist = 2.0f * extents.z - hitInfo.distance;
-                    direction = Vector3.forward;
-                }
-                else if (collider.Raycast(rayBack, out hitInfo, 2.0f * extents.z))
-                {
-                    dist = 2.0f * extents.z - hitInfo.distance;
-                    direction = Vector3.back;
-                }
-                else if (collider.Raycast(rayLeft, out hitInfo, 2.0f * extents.x))
-                {
-                    dist = 2.0f * extents.x - hitInfo.distance;
-                    direction = Vector3.left;
-                }
-                else if (collider.Raycast(rayRight, out hitInfo, 2.0f * extents.x))
-                {
-                    dist = 2.0f * extents.x - hitInfo.distance;
-                    direction = Vector3.right;
-                }
-                else if (collider.Raycast(rayUp, out hitInfo, 2.0f * extents.y))
-                {
-                    dist = 2.0f * extents.y - hitInfo.distance;
-                    direction = Vector3.up;
+                    if (collidersBelow[i].Equals(collider))
+                    {
+                        foundCollider = true;
+                    }
                 }
 
-                if (dist > 0.0f)
+                if (!foundCollider)
                 {
-                    Vector3 pVel = state.PlayerVelocityVector;
-                    if (Vector3.Dot(pVel, direction) < 0.0f)
-                    {
-                        //Decompose velocity in parallel and perpendicular components:
-                        Vector3 myParraVel = Vector3.Project(pVel, direction) * 2.0f;
-                        //Vector3 myPerpVel = Vector3.Cross(direction, Vector3.Cross(direction, pVel));
-                        //Relativistically cancel the downward velocity:
-                        state.PlayerVelocityVector = state.PlayerVelocityVector - myParraVel;
-                    }
-                    state.playerTransform.position -= dist * direction;
+                    collidersBelow.Add(collider);
                 }
+            }
+
+            Vector3 direction = Vector3.zero;
+            dist = 0.0f;
+            if (collider.Raycast(rayForward, out hitInfo, 2.0f * extents.z))
+            {
+                dist = 2.0f * extents.z - hitInfo.distance;
+                direction = Vector3.forward;
+            }
+            else if (collider.Raycast(rayBack, out hitInfo, 2.0f * extents.z))
+            {
+                dist = 2.0f * extents.z - hitInfo.distance;
+                direction = Vector3.back;
+            }
+            else if (collider.Raycast(rayLeft, out hitInfo, 2.0f * extents.x))
+            {
+                dist = 2.0f * extents.x - hitInfo.distance;
+                direction = Vector3.left;
+            }
+            else if (collider.Raycast(rayRight, out hitInfo, 2.0f * extents.x))
+            {
+                dist = 2.0f * extents.x - hitInfo.distance;
+                direction = Vector3.right;
+            }
+            else if (collider.Raycast(rayUp, out hitInfo, 2.0f * extents.y))
+            {
+                dist = 2.0f * extents.y - hitInfo.distance;
+                direction = Vector3.up;
+            }
+
+            if (dist > 0.0f)
+            {
+                Vector3 pVel = state.PlayerVelocityVector;
+                if (Vector3.Dot(pVel, direction) < 0.0f)
+                {
+                    //Decompose velocity in parallel and perpendicular components:
+                    Vector3 myParraVel = Vector3.Project(pVel, direction) * 2.0f;
+                    //Vector3 myPerpVel = Vector3.Cross(direction, Vector3.Cross(direction, pVel));
+                    //Relativistically cancel the downward velocity:
+                    state.PlayerVelocityVector = state.PlayerVelocityVector - myParraVel;
+                }
+                state.playerTransform.position -= dist * direction;
             }
         }
 
