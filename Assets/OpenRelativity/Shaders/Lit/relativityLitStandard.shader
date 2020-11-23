@@ -522,7 +522,10 @@ Shader "Relativity/Lit/Standard" {
 				vertexToLightSource =
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0));
 				squaredDistance =
-					dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
+					-dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
+				if (squaredDistance < 0.0f) {
+					squaredDistance = 0.0f;
+				}
 
 				// Red/blue shift light due to gravity
 				lightColor = CAST_LIGHTCOLOR0;
@@ -690,8 +693,11 @@ Shader "Relativity/Lit/Standard" {
 			{
 				float3 vertexToLightSource = 
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz, 0));
-				float squaredDistance = dot(vertexToLightSource.xyz, i.vtlt.xyz);
-				attenuation = 1.0f / (1.0f + 0.00005f * squaredDistance);
+				float squaredDistance = -dot(vertexToLightSource.xyz, i.vtlt.xyz);
+				if (squaredDistance < 0.0f) {
+					squaredDistance = 0.0f;
+				}
+				attenuation = 1.0f / (1.0f + squaredDistance);
 				lightDirection = normalize(vertexToLightSource);
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
