@@ -521,8 +521,7 @@ Shader "Relativity/Lit/Standard" {
 					unity_4LightPosZ0[index], 1.0f);
 				vertexToLightSource =
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0));
-				squaredDistance =
-					-dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
+				squaredDistance = dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
 				if (squaredDistance < 0.0f) {
 					squaredDistance = 0.0f;
 				}
@@ -693,7 +692,7 @@ Shader "Relativity/Lit/Standard" {
 			{
 				float3 vertexToLightSource = 
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz - _playerOffset.xyz, 0));
-				float squaredDistance = -dot(vertexToLightSource.xyz, i.vtlt.xyz);
+				float squaredDistance = dot(vertexToLightSource.xyz, i.vtlt.xyz);
 				if (squaredDistance < 0.0f) {
 					squaredDistance = 0.0f;
 				}
