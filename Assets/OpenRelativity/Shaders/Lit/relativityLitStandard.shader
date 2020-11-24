@@ -561,7 +561,7 @@ Shader "Relativity/Lit/Standard" {
 			o.diff = 0;
 
 	#if defined(POINT) || SPECULAR
-			o.vtlt = mul(metric, mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0)));
+			o.vtlt = mul(metric, mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - riw.xyz, 0)));
 	#endif
 #endif
 
@@ -692,7 +692,7 @@ Shader "Relativity/Lit/Standard" {
 			else // point or spot light
 			{
 				float3 vertexToLightSource = 
-					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz, 0));
+					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz - _playerOffset.xyz, 0));
 				float squaredDistance = -dot(vertexToLightSource.xyz, i.vtlt.xyz);
 				if (squaredDistance < 0.0f) {
 					squaredDistance = 0.0f;
