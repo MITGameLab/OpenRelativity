@@ -440,27 +440,27 @@ namespace OpenRelativity
             dist = 0.0f;
             if (collider.Raycast(rayForward, out hitInfo, 2.0f * extents.z))
             {
-                dist = 2.0f * extents.z - hitInfo.distance;
+                dist = extents.z;
                 direction = Vector3.forward;
             }
             else if (collider.Raycast(rayBack, out hitInfo, 2.0f * extents.z))
             {
-                dist = 2.0f * extents.z - hitInfo.distance;
+                dist = extents.z;
                 direction = Vector3.back;
             }
             else if (collider.Raycast(rayLeft, out hitInfo, 2.0f * extents.x))
             {
-                dist = 2.0f * extents.x - hitInfo.distance;
+                dist = extents.x;
                 direction = Vector3.left;
             }
             else if (collider.Raycast(rayRight, out hitInfo, 2.0f * extents.x))
             {
-                dist = 2.0f * extents.x - hitInfo.distance;
+                dist = extents.x;
                 direction = Vector3.right;
             }
             else if (collider.Raycast(rayUp, out hitInfo, 2.0f * extents.y))
             {
-                dist = 2.0f * extents.y - hitInfo.distance;
+                dist = extents.y;
                 direction = Vector3.up;
             }
 
@@ -475,7 +475,6 @@ namespace OpenRelativity
                     //Relativistically cancel the downward velocity:
                     state.PlayerVelocityVector = state.PlayerVelocityVector - myParraVel;
                 }
-                state.playerTransform.position -= dist * direction;
             }
         }
 
