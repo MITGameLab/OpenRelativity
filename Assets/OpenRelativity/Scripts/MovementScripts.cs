@@ -14,7 +14,6 @@ namespace OpenRelativity
         public float controllerAcceleration = 8.0f;
         public bool useGravity = false;
         //Needed to tell whether we are in free fall
-        protected float isFallingHeight;
         protected bool isFalling
         {
             get
@@ -95,8 +94,6 @@ namespace OpenRelativity
                 {
                     myRigidbody.velocity = new Vector3(myRigidbody.velocity.x, 0, myRigidbody.velocity.z);
                 }
-                Vector3 myPos = state.playerTransform.position;
-                state.playerTransform.position = new Vector3(myPos.x, isFallingHeight, myPos.z);
             }
 
             float viewRotX;
@@ -442,6 +439,17 @@ namespace OpenRelativity
                     state.PlayerAccelerationVector = pAccel;
                 }
 
+                Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
+                if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
+                {
+                    Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
+                    dist = transform.position.y - newPos.y;
+                    if (Mathf.Abs(dist) > 0.01f)
+                    {
+                        state.playerTransform.position = newPos;
+                    }
+                }
+
                 bool foundCollider = false;
                 for (int i = 0; i < collidersBelow.Count; i++)
                 {
@@ -453,10 +461,6 @@ namespace OpenRelativity
 
                 if (!foundCollider)
                 {
-                    if (isFalling)
-                    {
-                        isFallingHeight = state.playerTransform.position.y;
-                    }
                     isFalling = false;
                     collidersBelow.Add(collider);
                 }
