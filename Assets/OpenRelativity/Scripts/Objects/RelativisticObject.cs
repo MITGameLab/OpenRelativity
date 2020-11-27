@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -128,7 +126,7 @@ namespace OpenRelativity.Objects
         #endregion
 
         #region Rigid body physics
-        private bool isResting;
+        private bool isSleeping;
         private const float SleepThreshold = 0.01f;
         private const float SleepTime = 0.05f;
         private float SleepTimer;
@@ -227,7 +225,7 @@ namespace OpenRelativity.Objects
             {
                 _properAccel = monopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
 
-                if (!isResting)
+                if (!isSleeping)
                 {
                     return _properAccel;
                 }
@@ -249,7 +247,7 @@ namespace OpenRelativity.Objects
             {
                 Vector3 accel = value;
 
-                if (isResting)
+                if (isSleeping)
                 {
                     if (state.conformalMap != null)
                     {
@@ -1034,7 +1032,6 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
-            SleepTimer = isLightMapStatic ? 0 : SleepTime;
             cviw = Vector3.zero;
             frameDragAccel = Vector3.zero;
             ResetPiw();
@@ -1053,6 +1050,9 @@ namespace OpenRelativity.Objects
             UpdateShaderParams();
 
             myRigidbody = GetComponent<Rigidbody>();
+
+            SleepTimer = (isLightMapStatic || myRigidbody == null || isKinematic) ? 0 : SleepTime;
+
             rawVertsBufferLength = 0;
             wasKinematic = false;
             wasFrozen = false;
@@ -1346,7 +1346,7 @@ namespace OpenRelativity.Objects
             }
 
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
-            if (isKinematic || isResting || myRigidbody == null)
+            if (isKinematic || isSleeping || myRigidbody == null)
             {
 
                 if (myRigidbody != null)
@@ -1368,7 +1368,7 @@ namespace OpenRelativity.Objects
 
                 UpdateShaderParams();
 
-                isResting = false;
+                isSleeping = true;
 
                 // We're done.
                 return;
@@ -1440,7 +1440,7 @@ namespace OpenRelativity.Objects
         #region Rigidbody mechanics
         public void OnCollision(Collision collision)
         {
-            if (myRigidbody == null || myColliders == null || myRigidbody.isKinematic)
+            if (myRigidbody == null || myColliders == null || isKinematic)
             {
                 return;
             }
@@ -1479,7 +1479,7 @@ namespace OpenRelativity.Objects
                     viw = Vector3.zero;
                     aviw = Vector3.zero;
                     cviw = Vector3.zero;
-                    isResting = true;
+                    isSleeping = true;
 
                     return;
                 }
