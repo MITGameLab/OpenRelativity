@@ -14,7 +14,7 @@ namespace OpenRelativity.Objects
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
-        private const int cullingSqrDistance = 32 * 32;
+        private const int cullingSqrDistance = 64 * 64;
         private const int cullingFrameInterval = 10;
         private int cullingFrameCount;
 
@@ -124,22 +124,6 @@ namespace OpenRelativity.Objects
             finishedCoroutine = true;
         }
 
-
-        void RestartTransformCoroutine()
-        {
-            if (colliderShader != null && SystemInfo.supportsComputeShaders && !forceCPU)
-            {
-                StopCoroutine("GPUUpdatePositions");
-                finishedCoroutine = false;
-                StartCoroutine("GPUUpdatePositions");
-            }
-            else
-            {
-                StopCoroutine("CPUUpdatePositions");
-                finishedCoroutine = false;
-                StartCoroutine("CPUUpdatePositions");
-            }
-        }
 
         //We ask for a position in the single running physics queue.
         // We are responsible for telling the transformer that we no longer need collider physics.

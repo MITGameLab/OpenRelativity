@@ -43,7 +43,7 @@ namespace OpenRelativity
         //So we can use getAxis as keyHit function
         public bool invertKeyDown { get; set; }
         //Keep track of total frames passed
-        int frames;
+        protected int frames;
         //Gamestate reference for quick access
         protected GameState state;
         protected Rigidbody myRigidbody;
@@ -421,32 +421,35 @@ namespace OpenRelativity
             if (collider.Raycast(rayDown, out unused, 2.0f * extents.y))
             {
 
-                Vector3 pVel = state.PlayerVelocityVector;
-                Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
-                if (pVel.y > 0.0f)
+                if (frames > INIT_FRAME_WAIT)
                 {
-                    state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
-                    Vector3 totalVel = state.PlayerVelocityVector;
-                    state.PlayerVelocityVector = new Vector3(totalVel.x, 0, totalVel.z);
-                    Rigidbody myRB = transform.parent.GetComponent<Rigidbody>();
-                    myRB.velocity = new Vector3(myRB.velocity.x, 0, myRB.velocity.z);
-                }
-
-                Vector3 pAccel = state.PlayerAccelerationVector;
-                if (pAccel.y > 0.0f)
-                {
-                    pAccel.y = 0.0f;
-                    state.PlayerAccelerationVector = pAccel;
-                }
-
-                Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
-                if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
-                {
-                    Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
-                    dist = transform.position.y - newPos.y;
-                    if ((dist < -0.01f) && (dist > -extents.y))
+                    Vector3 pVel = state.PlayerVelocityVector;
+                    Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
+                    if (pVel.y > 0.0f)
                     {
-                        state.playerTransform.position = newPos;
+                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
+                        Vector3 totalVel = state.PlayerVelocityVector;
+                        state.PlayerVelocityVector = new Vector3(totalVel.x, 0, totalVel.z);
+                        Rigidbody myRB = transform.parent.GetComponent<Rigidbody>();
+                        myRB.velocity = new Vector3(myRB.velocity.x, 0, myRB.velocity.z);
+                    }
+
+                    Vector3 pAccel = state.PlayerAccelerationVector;
+                    if (pAccel.y > 0.0f)
+                    {
+                        pAccel.y = 0.0f;
+                        state.PlayerAccelerationVector = pAccel;
+                    }
+
+                    Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
+                    if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
+                    {
+                        Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
+                        dist = transform.position.y - newPos.y;
+                        if ((dist < -0.01f) && (dist > -extents.y))
+                        {
+                            state.playerTransform.position = newPos;
+                        }
                     }
                 }
 
