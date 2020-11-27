@@ -236,13 +236,15 @@ namespace OpenRelativity
                     totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
                 }
 
-                if (totalVel.magnitude >= state.maxPlayerSpeed - .01f)
+                float tvMag = totalVel.magnitude;
+
+                if (tvMag >= state.maxPlayerSpeed - .01f)
                 {
                     float gamma = totalVel.Gamma();
                     Vector3 diff = totalVel.normalized * (state.maxPlayerSpeed - .01f) - totalVel;
                     totalVel += diff;
                     totalAccel += diff * gamma;
-                } else if (float.IsInfinity(totalVel.sqrMagnitude) || float.IsNaN(totalVel.sqrMagnitude) )
+                } else if (float.IsInfinity(tvMag) || float.IsNaN(tvMag) )
                 {
                     totalVel = state.PlayerVelocityVector;
                     state.PlayerAccelerationVector = Vector3.zero;
@@ -437,34 +439,28 @@ namespace OpenRelativity
             }
 
             Vector3 direction = Vector3.zero;
-            dist = 0.0f;
             if (collider.Raycast(rayForward, out hitInfo, 2.0f * extents.z))
             {
-                dist = extents.z;
                 direction = Vector3.forward;
             }
             else if (collider.Raycast(rayBack, out hitInfo, 2.0f * extents.z))
             {
-                dist = extents.z;
                 direction = Vector3.back;
             }
             else if (collider.Raycast(rayLeft, out hitInfo, 2.0f * extents.x))
             {
-                dist = extents.x;
                 direction = Vector3.left;
             }
             else if (collider.Raycast(rayRight, out hitInfo, 2.0f * extents.x))
             {
-                dist = extents.x;
                 direction = Vector3.right;
             }
             else if (collider.Raycast(rayUp, out hitInfo, 2.0f * extents.y))
             {
-                dist = extents.y;
                 direction = Vector3.up;
             }
 
-            if (dist > 0.0f)
+            if (direction != Vector3.zero)
             {
                 Vector3 pVel = state.PlayerVelocityVector;
                 if (Vector3.Dot(pVel, direction) < 0.0f)
