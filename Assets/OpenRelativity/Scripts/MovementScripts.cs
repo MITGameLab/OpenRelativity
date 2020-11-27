@@ -444,7 +444,7 @@ namespace OpenRelativity
                 {
                     Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
                     dist = transform.position.y - newPos.y;
-                    if (Mathf.Abs(dist) > 0.01f)
+                    if ((dist < -0.01f) && (dist > -extents.y))
                     {
                         state.playerTransform.position = newPos;
                     }
