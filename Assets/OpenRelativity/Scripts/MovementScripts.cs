@@ -14,7 +14,19 @@ namespace OpenRelativity
         public float controllerAcceleration = 8.0f;
         public bool useGravity = false;
         //Needed to tell whether we are in free fall
-        protected bool isFalling;
+        protected float isFallingHeight;
+        protected bool isFalling
+        {
+            get
+            {
+                return state.IsPlayerFalling;
+            }
+
+            set
+            {
+                state.IsPlayerFalling = value;
+            }
+        }
         public List<Collider> collidersBelow { get; protected set; }
         public float controllerBoost = 6000;
         //Affect our rotation speed
@@ -35,6 +47,7 @@ namespace OpenRelativity
         int frames;
         //Gamestate reference for quick access
         protected GameState state;
+        protected Rigidbody myRigidbody;
 
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
@@ -49,8 +62,10 @@ namespace OpenRelativity
         {
             collidersBelow = new List<Collider>();
 
-            //grab Game State, we need it for many actions
+            //grab GameState, we need it for many actions
             state = GetComponent<GameState>();
+            //same for RigidBody
+            myRigidbody = state.playerTransform.GetComponent<Rigidbody>();
             //Assume we are in free fall
             isFalling = true;
             //If we have gravity, this factors into transforming to optical space.
@@ -74,6 +89,16 @@ namespace OpenRelativity
         //Again, use LateUpdate to solve some collision issues.
         public virtual void LateUpdate()
         {
+            if (!isFalling)
+            {
+                if (myRigidbody.velocity.y < 0)
+                {
+                    myRigidbody.velocity = new Vector3(myRigidbody.velocity.x, 0, myRigidbody.velocity.z);
+                }
+                Vector3 myPos = state.playerTransform.position;
+                state.playerTransform.position = new Vector3(myPos.x, isFallingHeight, myPos.z);
+            }
+
             float viewRotX;
             //If we're not paused, update speed and rotation using player input.
             if (!state.isMovementFrozen)
@@ -176,6 +201,7 @@ namespace OpenRelativity
                         if (useGravity)
                         {
                             totalAccel -= Physics.gravity;
+                            quasiWorldAccel = new Vector3(quasiWorldAccel.x, 0, quasiWorldAccel.z);
                         }
 
                         if (state.conformalMap != null)
@@ -234,6 +260,7 @@ namespace OpenRelativity
                 if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude < SRelativityUtil.divByZeroCutoff))
                 {
                     totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
+                    totalVel = new Vector3(totalVel.x, 0, totalVel.z);
                 }
 
                 float tvMag = totalVel.magnitude;
@@ -396,31 +423,23 @@ namespace OpenRelativity
             RaycastHit unused;
             if (collider.Raycast(rayDown, out unused, 2.0f * extents.y))
             {
-                isFalling = false;
+
                 Vector3 pVel = state.PlayerVelocityVector;
                 Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
                 if (pVel.y > 0.0f)
                 {
                     state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
+                    Vector3 totalVel = state.PlayerVelocityVector;
+                    state.PlayerVelocityVector = new Vector3(totalVel.x, 0, totalVel.z);
+                    Rigidbody myRB = transform.parent.GetComponent<Rigidbody>();
+                    myRB.velocity = new Vector3(myRB.velocity.x, 0, myRB.velocity.z);
                 }
 
                 Vector3 pAccel = state.PlayerAccelerationVector;
-                if (pAccel.y < 0.0f)
+                if (pAccel.y > 0.0f)
                 {
                     pAccel.y = 0.0f;
                     state.PlayerAccelerationVector = pAccel;
-                }
-
-                otherRO.UpdateColliderPosition(collider);
-                Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
-                if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
-                {
-                    Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
-                    dist = transform.position.y - newPos.y;
-                    if (Mathf.Abs(dist) > 0.01f)
-                    {
-                        state.playerTransform.position = newPos;
-                    }
                 }
 
                 bool foundCollider = false;
@@ -434,6 +453,11 @@ namespace OpenRelativity
 
                 if (!foundCollider)
                 {
+                    if (isFalling)
+                    {
+                        isFallingHeight = state.playerTransform.position.y;
+                    }
+                    isFalling = false;
                     collidersBelow.Add(collider);
                 }
             }

@@ -15,6 +15,7 @@ namespace OpenRelativity
         public Transform playerTransform;
         //player Velocity as a scalar magnitude
         public float playerVelocity { get; set; }
+        public bool IsPlayerFalling { get; set; }
         //speed of light
         private float c = 200;
         //Speed of light that is affected by the Unity editor
@@ -112,7 +113,10 @@ namespace OpenRelativity
         public float FixedDeltaTimePlayer { get { return Time.fixedDeltaTime; } }
         public float TotalTimePlayer { get; set; }
         public float TotalTimeWorld;
-        public float SpeedOfLight { get { return c; } set { c = value; SpeedOfLightSqrd = value * value; } }
+        public float SpeedOfLight {
+            get { return c; }
+            set { c = value; SpeedOfLightSqrd = value * value; }
+        }
         public float SpeedOfLightSqrd { get; private set; }
 
         public bool keyHit { get; set; }
@@ -136,7 +140,7 @@ namespace OpenRelativity
             }
         }
 
-        public void Awake()
+        public virtual void Awake()
         {
             // This is the "flag" that lets us know initialization is not complete.
             SqrtOneMinusVSquaredCWDividedByCSquared = 0;
@@ -325,7 +329,7 @@ namespace OpenRelativity
             }
         }
 
-        private void FixedUpdate()
+        void FixedUpdate()
         {
             Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
 
