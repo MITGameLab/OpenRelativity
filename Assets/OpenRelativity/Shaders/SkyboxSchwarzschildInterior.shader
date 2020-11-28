@@ -22,7 +22,7 @@
 #define divByZeroCutoff 1e-8f
 #define PI_2 1.57079632679489661923
 
-            //Color shift variables, used to make Gaussians for XYZ curves
+//Color shift variables, used to make Gaussians for XYZ curves
 #define xla 0.39952807612909519
 #define xlb 444.63156780935032
 #define xlc 20.095464678736523
@@ -38,6 +38,15 @@
 #define za 2.0648400466720593
 #define zb 448.45126344558236
 #define zc 22.357297606503543
+
+//Used to determine where to center UV/IR curves
+#define IR_RANGE 400
+#define IR_START 700
+#define UV_RANGE 380
+#define UV_START 0
+
+#define bFac 0.5f
+#define rFac 0.9f
 
         half4 _Tint;
         half _Exposure;
@@ -201,6 +210,53 @@
             return o;
         }
 
+        float3 constrainRGB(float3 rgb)
+        {
+            float w;
+
+            w = (0 < rgb.r) ? 0 : rgb.r;
+            w = (w < rgb.g) ? w : rgb.b;
+            w = (w < rgb.b) ? w : rgb.g;
+
+            if (w < 0) {
+                rgb -= float3(w, w, w);
+            }
+
+            w = rgb.r;
+            w = (w < rgb.g) ? rgb.g : w;
+            w = (w < rgb.b) ? rgb.b : w;
+
+            if (w > 1)
+            {
+                rgb /= float3(w, w, w);
+            }
+
+            return rgb;
+        };
+
+        float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
+			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+
+			if (shift == 0) {
+				shift = 1.0f;
+			}
+
+			float3 xyz = RGBToXYZC(rgb);
+			float3 weights = weightFromXYZCurves(xyz);
+			float3 rParam, gParam, bParam, UVParam, IRParam;
+			rParam = float3(weights.x, 615.0f, 8.0f);
+			gParam = float3(weights.y, 550.0f, 4.0f);
+			bParam = float3(weights.z, 463.0f, 5.0f);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+
+			xyz = float3(
+				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
+				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
+				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
+			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+		}
+
         float4 skybox_frag(v2f i, sampler2D smp, half4 smpDecode) {
             half4 tex = tex2D(smp, i.texcoord);
             half3 c = DecodeHDR(tex, smpDecode);
@@ -209,23 +265,7 @@
 
             float shift = 1.0f / sqrt(_lensRadius / _playerDist - 1);
 
-            //Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-            // Ignore IR and UV
-            // Doppler shift due to player velocity is handled in skybox shader
-
-            float3 xyz = RGBToXYZC(c);
-            float3 weights = weightFromXYZCurves(xyz);
-            float3 rParam, gParam, bParam, UVParam, IRParam;
-            rParam.x = weights.x; rParam.y = (float)615; rParam.z = (float)8;
-            gParam.x = weights.y; gParam.y = (float)550; gParam.z = (float)4;
-            bParam.x = weights.z; bParam.y = (float)463; bParam.z = (float)5;
-
-            xyz.x = getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift);
-            xyz.y = getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift);
-            xyz.z = getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift);
-            c = XYZToRGBC(pow(1 / shift, 3) * xyz);
-
-            return half4(c, 1);
+            return float4(DopplerShift(c, bFac * c.b, rFac * c.r, shift), tex.w);
         }
 
         ENDCG
