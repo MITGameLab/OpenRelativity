@@ -5,25 +5,23 @@
 // and lights that accelerate might not be at all feasible.
 
 Shader "Relativity/Lit/Standard" {
+
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
-		[Toggle(UV_IR_TEXTURES)]
-		_UVAndIRTextures("UV and IR textures", Range(0, 1)) = 1
-		_UVTex("UV",2D) = "" {} //UV texture
+		[Toggle(UV_IR_TEXTURES)] _UVAndIRTextures("UV and IR textures", Range(0, 1)) = 1
+		_UVTex("UV", 2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
 		_Cutoff("Base alpha cutoff", Range(0,.9)) = 0.1
-		[Toggle(SPECULAR)]
-		_SpecularOn("Specular reflections", Range(0, 1)) = 0
+		[Toggle(SPECULAR)] _SpecularOn("Specular reflections", Range(0, 1)) = 0
 		_Smoothness("Smoothness", Range(0, 1)) = 0
 		_Metallic("Metallic", Range(0, 1)) = 0
-		[Toggle(_EMISSION)]
-		_EmissionOn("Emission lighting", Range(0, 1)) = 0
+		_Attenuation("Attenuation", Range(0, 1)) = 1
+		[Toggle(_EMISSION)] _EmissionOn("Emission lighting", Range(0, 1)) = 0
 		_EmissionMap("Emission map", 2D) = "black" {}
 		[HDR] _EmissionColor("Emission color", Color) = (0,0,0)
 		_EmissionMultiplier("Emission multiplier", Range(0,10)) = 1
-		[Toggle(IS_STATIC)]
-		_IsStatic("Light map static", Range(0, 1)) = 0
+		[Toggle(IS_STATIC)] _IsStatic("Light map static", Range(0, 1)) = 0
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_pao("pao", Vector) = (0,0,0,0) //Vector that represents object's proper acceleration
@@ -153,6 +151,8 @@ Shader "Relativity/Lit/Standard" {
 		float _EmissionMultiplier;
 
 		float _Smoothness;
+
+		float _Attenuation;
 
 		float _IsStatic;
 
@@ -521,7 +521,7 @@ Shader "Relativity/Lit/Standard" {
 					unity_4LightPosZ0[index], 1.0f);
 				vertexToLightSource =
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0));
-				squaredDistance = dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
+				squaredDistance = -dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
 				if (squaredDistance < 0.0f) {
 					squaredDistance = 0.0f;
 				}
@@ -542,7 +542,7 @@ Shader "Relativity/Lit/Standard" {
 				}
 				else {
 					attenuation = 1.0f / (1.0f +
-						unity_4LightAtten0[index] * squaredDistance);
+						unity_4LightAtten0[index] * squaredDistance * _Attenuation);
 					lightDirection = normalize(vertexToLightSource);
 				}
 				diffuseReflection = attenuation
@@ -692,11 +692,11 @@ Shader "Relativity/Lit/Standard" {
 			{
 				float3 vertexToLightSource = 
 					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz - _playerOffset.xyz, 0));
-				float squaredDistance = dot(vertexToLightSource.xyz, i.vtlt.xyz);
+				float squaredDistance = -dot(vertexToLightSource.xyz, i.vtlt.xyz);
 				if (squaredDistance < 0.0f) {
 					squaredDistance = 0.0f;
 				}
-				attenuation = 1.0f / (1.0f + squaredDistance);
+				attenuation = 1.0f / (1.0f + squaredDistance * _Attenuation);
 				lightDirection = normalize(vertexToLightSource);
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
