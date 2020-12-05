@@ -46,7 +46,7 @@ namespace Qrack
 
                     HistoryPoints.Add(new QrackHistoryPoint
                     {
-                        WorldTime = qs.LocalTime,
+                        WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
                             ro.transform.localEulerAngles = new Vector3(xProb * 360.0f, yProb * 360.0f, zProb * 360.0f);

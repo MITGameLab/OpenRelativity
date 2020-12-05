@@ -33,7 +33,7 @@ namespace Qrack
 
                     HistoryPoints.Add(new QrackHistoryPoint
                     {
-                        WorldTime = IsVisualTime ? qs.VisualTime : qs.LocalTime,
+                        WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
                             ro.transform.eulerAngles = new Vector3(xProb * 360.0f, yProb * 360.0f, zProb * 360.0f);

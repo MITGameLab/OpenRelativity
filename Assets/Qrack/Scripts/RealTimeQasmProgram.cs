@@ -24,6 +24,15 @@ namespace Qrack
         protected List<QrackHistoryPoint> HistoryPoints { get; set; }
         protected abstract void StartProgram();
 
+        // Present time, according to program settings
+        protected float ProgramTime
+        {
+            get
+            {
+                return IsVisualTime ? QuantumSystem.VisualTime : QuantumSystem.LocalTime;
+            }
+        }
+
         public void ResetTime()
         {
             nextInstructionTime = IsVisualTime ? QuantumSystem.VisualTime : QuantumSystem.LocalTime;
@@ -86,7 +95,7 @@ namespace Qrack
 
                 RealTimeQasmInstruction rtqi = ProgramInstructions[InstructionIndex];
 
-                float time = IsVisualTime ? QuantumSystem.VisualTime : QuantumSystem.LocalTime;
+                float time = ProgramTime;
 
                 if (nextInstructionTime <= time)
                 {
