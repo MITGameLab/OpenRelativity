@@ -57,7 +57,7 @@ namespace Qrack
                     qs.S(0);
                     qs.H(0);
 
-                    HistoryPoints.Add(new QrackHistoryPoint
+                    HistoryPoints.Add(new RealTimeQasmProgramHistoryPoint
                     {
                         WorldTime = qs.VisualTime,
                         Action = (time) =>

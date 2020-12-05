@@ -21,7 +21,7 @@ namespace Qrack
         private float lastInstructionTime;
 
         protected List<RealTimeQasmInstruction> ProgramInstructions { get; set; }
-        protected List<QrackHistoryPoint> HistoryPoints { get; set; }
+        protected List<RealTimeQasmProgramHistoryPoint> HistoryPoints { get; set; }
         protected abstract void StartProgram();
 
         // Present time, according to program settings
@@ -68,7 +68,7 @@ namespace Qrack
 
             isSignalledSources = new List<QcClassicalChannel>();
             ProgramInstructions = new List<RealTimeQasmInstruction>();
-            HistoryPoints = new List<QrackHistoryPoint>();
+            HistoryPoints = new List<RealTimeQasmProgramHistoryPoint>();
 
             StartProgram();
             ResetProgram();
