@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace OpenRelativity.Objects
 {
-    public class RelativisticObject : MonoBehaviour
+    public class RelativisticObject : RelativisticBehavior
     {
         #region Public Settings
         public bool isLightMapStatic = false;
@@ -45,7 +45,7 @@ namespace OpenRelativity.Objects
         public float localFixedDeltaTime { get; private set; }
         public float GetLocalTime()
         {
-            return _state.TotalTimeWorld + localTimeOffset;
+            return state.TotalTimeWorld + localTimeOffset;
         }
         public void ResetLocalTime()
         {
@@ -379,25 +379,6 @@ namespace OpenRelativity.Objects
         #endregion
 
         #region RelativisticObject properties and caching
-        //Keep track of Game State so that we can reference it quickly.
-        private void FetchState()
-        {
-            _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-        }
-        private GameState _state;
-        private GameState state
-        {
-            get
-            {
-                if (_state == null)
-                {
-                    FetchState();
-                }
-
-                return _state;
-            }
-        }
-
         //Don't render if object has relativistic parent
         private bool hasParent = false;
         //Keep track of our own Mesh Filter
