@@ -1162,9 +1162,17 @@ namespace OpenRelativity.Objects
                 UpdateRigidbodyVelocity();
             }
 
-            if (state.isMovementFrozen || isNonrelativisticShader || meshFilter != null)
+            if (state.isMovementFrozen || meshFilter != null)
             {
                 UpdateShaderParams();
+                return;
+            }
+
+            if (isNonrelativisticShader)
+            {
+                UpdateShaderParams();
+                UpdateContractorPosition();
+
                 return;
             }
 
