@@ -26,14 +26,7 @@ namespace Qrack
 
         public void ResetTime()
         {
-            if (ProgramInstructions == null)
-            {
-                ProgramInstructions = new List<RealTimeQasmInstruction>();
-
-                StartProgram();
-            }
-
-            nextInstructionTime = QuantumSystem.LocalTime;
+            nextInstructionTime = IsVisualTime ? QuantumSystem.VisualTime : QuantumSystem.LocalTime;
             if (InstructionIndex < ProgramInstructions.Count)
             {
                 nextInstructionTime += ProgramInstructions[InstructionIndex].DeltaTime;
@@ -44,24 +37,20 @@ namespace Qrack
         public void ResetProgram()
         {
             InstructionIndex = 0;
-            isSignalledSources.Clear();
-
             ResetTime();
 
             StopAllCoroutines();
-            StartCoroutine(RunProgram());
+
+            if (ProgramInstructions.Count > 0)
+            {
+                StartCoroutine(RunProgram());
+            }
         }
 
         public void SelfResetProgram()
         {
             InstructionIndex = 0;
-            isSignalledSources.Clear();
-            nextInstructionTime = QuantumSystem.LocalTime;
-            if (ProgramInstructions.Count > 0)
-            {
-                nextInstructionTime += ProgramInstructions[0].DeltaTime;
-            }
-            lastInstructionTime = nextInstructionTime;
+            ResetTime();
         }
 
         protected virtual void Start()
@@ -73,7 +62,6 @@ namespace Qrack
             HistoryPoints = new List<QrackHistoryPoint>();
 
             StartProgram();
-
             ResetProgram();
         }
 
@@ -88,7 +76,7 @@ namespace Qrack
 
         IEnumerator RunProgram()
         {
-            while (ProgramInstructions.Count > 0)
+            while (true)
             {
                 if (InstructionIndex >= ProgramInstructions.Count)
                 {

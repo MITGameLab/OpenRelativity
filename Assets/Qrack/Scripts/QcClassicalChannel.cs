@@ -85,6 +85,7 @@ namespace Qrack
             Vector3 vuPos, dispUnit, velUnit;
             float perspectiveFactor;
             int vuIndex = 0;
+            int signalIndex = 0;
             while (vuIndex < visualUnitsActive.Count) {
                 ActionIndicator vu = visualUnitsActive[vuIndex];
                 RelativisticObject vuRO = vu.GetComponent<RelativisticObject>();
@@ -98,7 +99,7 @@ namespace Qrack
                 if (disp.sqrMagnitude > (destPos - vuPos).sqrMagnitude)
                 {
                     visualUnitsActive.Remove(vu);
-                    destination.ClassicalBitRegisters[transmittingDestinations[vuIndex]] = transmittingSignals[vuIndex];
+                    destination.ClassicalBitRegisters[transmittingDestinations[signalIndex]] = transmittingSignals[signalIndex];
                     destination.isSignalledSources.Add(this);
                     visualUnitsFree.Add(vu);
                     vu.SetState(false);
@@ -109,6 +110,7 @@ namespace Qrack
                     vuRO.piw = vu.transform.position;
                     vuIndex++;
                 }
+                signalIndex++;
             }
             oldCameraPos = cameraPos;
         }

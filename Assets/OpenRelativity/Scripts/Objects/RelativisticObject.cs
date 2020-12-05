@@ -406,11 +406,6 @@ namespace OpenRelativity.Objects
         private Vector3[] rawVertsBuffer;
         //To avoid garbage collection, we might over-allocate the buffer:
         private int rawVertsBufferLength;
-        //When was this object created? use for moving objects
-        private float startTime = float.NegativeInfinity;
-        //When should we die? again, for moving objects
-        private float _DeathTime = float.PositiveInfinity;
-        public float DeathTime { get { return _DeathTime; } set { _DeathTime = value; } }
 
         //We save and reuse the transformed vert array to avoid garbage collection 
         private Vector3[] trnsfrmdMeshVerts;
@@ -671,25 +666,6 @@ namespace OpenRelativity.Objects
         #endregion
 
         #region RelativisticObject internals
-        // Get the start time of our object, so that we know where not to draw it
-        public void SetStartTime()
-        {
-            Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = Mathf.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= GetTimeFactor();
-            startTime = state.TotalTimeWorld - timeDelayToPlayer;
-            if (myRenderer != null)
-                myRenderer.enabled = false;
-        }
-
-        //Set the death time, so that we know at what point to destroy the object in the player's view point.
-        public virtual void SetDeathTime()
-        {
-            Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = Mathf.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
-            timeDelayToPlayer *= GetTimeFactor();
-            DeathTime = state.TotalTimeWorld - timeDelayToPlayer;
-        }
 
         void CombineParent()
         {
@@ -973,11 +949,6 @@ namespace OpenRelativity.Objects
                     }
                 }
             }
-        }
-
-        public void ResetDeathTime()
-        {
-            DeathTime = float.PositiveInfinity;
         }
 
         private void UpdateRigidbodyVelocity()
@@ -1266,46 +1237,6 @@ namespace OpenRelativity.Objects
             if (!IsNaNOrInf(localFixedDeltaTime))
             {
                 localTimeOffset += localFixedDeltaTime;
-            }
-
-            if (meshFilter != null)
-            {
-                //As long as our object is actually alive, perform these calculations
-                if (transform != null)
-                {
-                    /***************************
-                     * Start Part 6 Bullet 1
-                     * *************************/
-
-                    float tisw = GetTisw();
-
-                    /****************************
-                     * Start Part 6 Bullet 2
-                     * **************************/
-
-                    //If we're past our death time (in the player's view, as seen by tisw)
-                    if (state.TotalTimeWorld + localTimeOffset + tisw > DeathTime)
-                    {
-                        KillObject();
-                    }
-                    else if ((state.TotalTimeWorld + localTimeOffset + tisw > startTime))
-                    {
-                        //Grab our renderer.
-                        Renderer tempRenderer = GetComponent<Renderer>();
-                        if (!tempRenderer.enabled)
-                        {
-                            tempRenderer.enabled = !hasParent;
-                            AudioSource[] audioSources = GetComponents<AudioSource>();
-                            if (audioSources.Length > 0)
-                            {
-                                for (int i = 0; i < audioSources.Length; i++)
-                                {
-                                    audioSources[i].enabled = true;
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             UpdateColliderPosition();

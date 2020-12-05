@@ -14,7 +14,7 @@ namespace Qrack
 
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 1.0f,
+                DeltaTime = 2.0f,
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = QuantumSystem;
@@ -33,7 +33,7 @@ namespace Qrack
 
                     HistoryPoints.Add(new QrackHistoryPoint
                     {
-                        WorldTime = qs.LocalTime,
+                        WorldTime = IsVisualTime ? qs.VisualTime : qs.LocalTime,
                         Action = (time) =>
                         {
                             ro.transform.eulerAngles = new Vector3(xProb * 360.0f, yProb * 360.0f, zProb * 360.0f);
