@@ -14,6 +14,9 @@ namespace Qrack
 
         public RelativisticObject RelativisticObject { get; set; }
 
+        public List<bool> ClassicalBitRegisters;
+        public List<QcClassicalChannel> isSignalledSources;
+
         private float nextInstructionTime;
         private float lastInstructionTime;
 
@@ -30,13 +33,18 @@ namespace Qrack
                 StartProgram();
             }
 
-            nextInstructionTime = QuantumSystem.LocalTime + ProgramInstructions[InstructionIndex].DeltaTime;
+            nextInstructionTime = QuantumSystem.LocalTime;
+            if (InstructionIndex < ProgramInstructions.Count)
+            {
+                nextInstructionTime += ProgramInstructions[InstructionIndex].DeltaTime;
+            }
             lastInstructionTime = nextInstructionTime;
         }
 
         public void ResetProgram()
         {
             InstructionIndex = 0;
+            isSignalledSources.Clear();
 
             ResetTime();
 
@@ -47,7 +55,12 @@ namespace Qrack
         public void SelfResetProgram()
         {
             InstructionIndex = 0;
-            nextInstructionTime = QuantumSystem.LocalTime + ProgramInstructions[0].DeltaTime;
+            isSignalledSources.Clear();
+            nextInstructionTime = QuantumSystem.LocalTime;
+            if (ProgramInstructions.Count > 0)
+            {
+                nextInstructionTime += ProgramInstructions[0].DeltaTime;
+            }
             lastInstructionTime = nextInstructionTime;
         }
 
@@ -55,6 +68,7 @@ namespace Qrack
         {
             RelativisticObject = QuantumSystem.GetComponent<RelativisticObject>();
 
+            isSignalledSources = new List<QcClassicalChannel>();
             ProgramInstructions = new List<RealTimeQasmInstruction>();
             HistoryPoints = new List<QrackHistoryPoint>();
 
@@ -74,7 +88,7 @@ namespace Qrack
 
         IEnumerator RunProgram()
         {
-            while (true)
+            while (ProgramInstructions.Count > 0)
             {
                 if (InstructionIndex >= ProgramInstructions.Count)
                 {

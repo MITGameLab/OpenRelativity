@@ -8,24 +8,42 @@ namespace Qrack
         public TeleportEve Eve;
         public TeleportAlice Alice;
 
-        public bool[] MeasurementResults = new bool[2];
+        public QcClassicalChannel channelFromAlice;
+
+        protected override void Update()
+        {
+            if (isSignalledSources.Count > 0)
+            {
+                isSignalledSources.Clear();
+                ProgramInstructions.Clear();
+                StartTriggeredProgram();
+                ResetProgram();
+            }
+
+            base.Update();
+        }
 
         protected override void StartProgram()
         {
+            // Do not start on Awake().
+        }
+
+        protected void StartTriggeredProgram()
+        {
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 4.0f,
+                DeltaTime = 0.1f,
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = QuantumSystem;
                     RelativisticObject ro = RelativisticObject;
 
-                    if (MeasurementResults[0])
+                    if (ClassicalBitRegisters[0])
                     {
                         qs.Z(0);
                     }
 
-                    if (MeasurementResults[1])
+                    if (ClassicalBitRegisters[1])
                     {
                         qs.X(0);
                     }
@@ -58,6 +76,7 @@ namespace Qrack
                 {
                     Eve.ResetProgram();
                     Alice.ResetProgram();
+                    ProgramInstructions.Clear();
                 }
             });
         }

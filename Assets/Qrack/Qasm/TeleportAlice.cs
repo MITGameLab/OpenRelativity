@@ -7,12 +7,14 @@ namespace Qrack
     {
         public TeleportBob Bob;
 
+        public QcClassicalChannel channelToBob;
+
         protected override void StartProgram()
         {
 
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 2.0f,
+                DeltaTime = 1.0f,
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = QuantumSystem;
@@ -46,12 +48,13 @@ namespace Qrack
 
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 1.0f,
+                DeltaTime = 0.1f,
                 quantumProgramUpdate = (x, y) =>
                 {
-                    QuantumSystem qs = QuantumSystem;
-                    Bob.MeasurementResults[0] = qs.M(0);
-                    Bob.MeasurementResults[1] = qs.M(1);
+                    ClassicalBitRegisters[0] = QuantumSystem.M(0);
+                    ClassicalBitRegisters[1] = QuantumSystem.M(1);
+                    channelToBob.EmitBit(0, 0);
+                    channelToBob.EmitBit(1, 1);
                 }
             });
         }
