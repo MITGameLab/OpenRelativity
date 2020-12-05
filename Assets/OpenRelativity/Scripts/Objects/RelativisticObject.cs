@@ -641,16 +641,19 @@ namespace OpenRelativity.Objects
 
         public void UpdateContractorPosition()
         {
-            if (isNonrelativisticShader)
+            if (!isNonrelativisticShader)
             {
-                if (contractor == null)
-                {
-                    SetUpContractor();
-                }
-                contractor.position = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
-                transform.localPosition = Vector3.zero;
-                ContractLength();
+                return;
             }
+
+            if (contractor == null)
+            {
+                SetUpContractor();
+            }
+
+            contractor.position = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+            transform.localPosition = Vector3.zero;
+            ContractLength();
         }
         #endregion
 
@@ -1162,7 +1165,7 @@ namespace OpenRelativity.Objects
                 UpdateRigidbodyVelocity();
             }
 
-            if (state.isMovementFrozen || meshFilter != null)
+            if (state.isMovementFrozen)
             {
                 UpdateShaderParams();
                 return;
@@ -1173,6 +1176,12 @@ namespace OpenRelativity.Objects
                 UpdateShaderParams();
                 UpdateContractorPosition();
 
+                return;
+            }
+
+            if (meshFilter == null)
+            {
+                UpdateShaderParams();
                 return;
             }
 
@@ -1445,6 +1454,14 @@ namespace OpenRelativity.Objects
                 RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
                 if (otherRO.SleepTimer <= 0)
                 {
+                    Vector3 extents = myColliders[0].bounds.extents;
+                    Ray rayDown = new Ray(transform.position + extents.y * Vector3.up, Vector3.down);
+                    RaycastHit hitInfo;
+                    if (myColliders[0].Raycast(rayDown, out hitInfo, 2.0f * extents.y))
+                    {
+                        piw = new Vector3(piw.x, piw.y + extents.y - hitInfo.distance, piw.z);
+                    }
+
                     return;
                 }
             }         
