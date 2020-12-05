@@ -1113,6 +1113,7 @@ namespace OpenRelativity.Objects
                     Material quickSwapMaterial = Instantiate(myRenderer.materials[i]) as Material;
                     //Then, set the value that we want
                     quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 1));
+                    quickSwapMaterial.SetVector("_vr", new Vector4(0, 0, 0, 1));
                     quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
                     quickSwapMaterial.SetMatrix("_viwLorentzMatrix", Matrix4x4.identity);
 

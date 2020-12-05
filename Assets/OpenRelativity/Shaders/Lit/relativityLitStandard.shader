@@ -13,6 +13,7 @@ Shader "Relativity/Lit/Standard" {
 		_UVTex("UV", 2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
 		_Cutoff("Base alpha cutoff", Range(0,.9)) = 0.1
+		[Toggle(DOPPLER_SHIFT)] _dopplerShift("Doppler shift", Range(0,1)) = 1
 		[Toggle(SPECULAR)] _SpecularOn("Specular reflections", Range(0, 1)) = 0
 		_Smoothness("Smoothness", Range(0, 1)) = 0
 		_Metallic("Metallic", Range(0, 1)) = 0
@@ -23,6 +24,7 @@ Shader "Relativity/Lit/Standard" {
 		_EmissionMultiplier("Emission multiplier", Range(0,10)) = 1
 		[Toggle(IS_STATIC)] _IsStatic("Light map static", Range(0, 1)) = 0
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
+		_vr("vr", Vector)   = (0,0,0,0) //Vector that represents object's velocity relative to player (determined in scripts)
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_pao("pao", Vector) = (0,0,0,0) //Vector that represents object's proper acceleration
 		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's proper acceleration
@@ -165,6 +167,7 @@ Shader "Relativity/Lit/Standard" {
 
 		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
+		float4 _vr = float4(0, 0, 0, 0); //velocity of object relative to player
 		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 		float4 _pao = float4(0, 0, 0, 0); //proper acceleration of object
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
@@ -172,10 +175,8 @@ Shader "Relativity/Lit/Standard" {
 		float4 _pap = float4(0, 0, 0, 0); //acceleration of player
 		float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
-		float4 _vr;
 		float _spdOfLight = 100; //current speed of light;
 		float _spdOfLightSqrd = 10000;
-		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 		float xyr = 1; // xy ratio
 		float xs = 1; // x scale
@@ -313,10 +314,10 @@ Shader "Relativity/Lit/Standard" {
 		}
 
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
+#if DOPPLER_SHIFT
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-
-			if (shift == 0) {
-				shift = 1.0f;
+			if (shift < divByZeroCutoff) {
+				shift = divByZeroCutoff;
 			}
 
 			float3 xyz = RGBToXYZC(rgb);
@@ -333,6 +334,9 @@ Shader "Relativity/Lit/Standard" {
 				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
 				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
 			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+#else
+			return rgb;
+#endif
 		}
 
 		float3 ApplyFog(float3 color, float UV, float IR, float shift, float3 pos) {
@@ -570,12 +574,19 @@ Shader "Relativity/Lit/Standard" {
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
+#if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			float shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
-			if (_colorShift == 0)
-			{
+			float shift;
+			if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)){
 				shift = 1.0f;
 			}
+			else
+			{
+				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
+			}
+#else
+			float shift = 1.0f;
+#endif
 
 			//The Doppler factor is squared for (diffuse or specular) reflected light.
 			//The light color is given in the world frame. That is, the Doppler-shifted "photons" in the world frame
@@ -845,6 +856,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdbase
 				#pragma multi_compile_fog
+			    #pragma shader_feature DOPPLER_SHIFT
 				#pragma shader_feature SPECULAR
 			    #pragma shader_feature _EMISSION
 
@@ -866,6 +878,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdadd
 				#pragma multi_compile_fog
+				#pragma shader_feature DOPPLER_SHIFT
 				#pragma shader_feature SPECULAR
 				#pragma shader_feature _EMISSION
 
@@ -907,6 +920,7 @@ Shader "Relativity/Lit/Standard" {
 
 				#pragma vertex vert_meta
 				#pragma fragment frag_meta2
+				#pragma shader_feature DOPPLER_SHIFT
 				#pragma shader_feature _EMISSION
 
 				#pragma shader_feature _METALLICGLOSSMAP

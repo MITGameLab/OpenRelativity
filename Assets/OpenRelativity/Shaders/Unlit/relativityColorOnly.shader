@@ -76,7 +76,6 @@ Shader "Relativity/Unlit/ColorOnly"
 	float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 	float4 _vr;
 	float _spdOfLight = 100; //current speed of light
-	float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 	float xyr = 1; // xy ratio
 	float xs = 1; // x scale
@@ -232,10 +231,14 @@ Shader "Relativity/Unlit/ColorOnly"
 	};
 
 	float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
-		//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
+			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 
-		if (shift < divByZeroCutoff) {
-			shift = 1.0f;
+		if (shift == 1.0f) {
+			return rgb;
+		}
+
+		if (shift < 0.01f) {
+			shift = 0.01f;
 		}
 
 		float3 xyz = RGBToXYZC(rgb);
@@ -252,17 +255,13 @@ Shader "Relativity/Unlit/ColorOnly"
 			(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
 			(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
 		return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
-	}
+		}
 
 	//Per pixel shader, does color modifications
 	float4 frag(v2f i) : COLOR
 	{
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 		float shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
-		if (_colorShift == 0)
-		{
-			shift = 1.0f;
-		}
 
 		//This is a debatable and stylistic point,
 		// but, if we think of the albedo as due to (diffuse) reflectance, we should do this:
