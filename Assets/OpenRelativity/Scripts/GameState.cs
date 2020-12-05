@@ -145,11 +145,6 @@ namespace OpenRelativity
             // This is the "flag" that lets us know initialization is not complete.
             SqrtOneMinusVSquaredCWDividedByCSquared = 0;
 
-            if (conformalMap != null)
-            {
-                conformalMap.state = this;
-            }
-
             //Initialize the player's speed to zero
             playerVelocity = 0;
             
