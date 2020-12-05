@@ -9,11 +9,13 @@ Shader "Relativity/Lit/Standard" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
+		[Toggle(DOPPLER_SHIFT)] _dopplerShift("Doppler shift", Range(0,1)) = 1
+		_dopplerIntensity("UV/IR mix-in intensity", Range(0,1)) = 1
+		[Toggle(DOPPLER_MIX)] _dopplerMix("Responsive Doppler shift intensity", Range(0,1)) = 0
 		[Toggle(UV_IR_TEXTURES)] _UVAndIRTextures("UV and IR textures", Range(0, 1)) = 1
 		_UVTex("UV", 2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
 		_Cutoff("Base alpha cutoff", Range(0,.9)) = 0.1
-		[Toggle(DOPPLER_SHIFT)] _dopplerShift("Doppler shift", Range(0,1)) = 1
 		[Toggle(SPECULAR)] _SpecularOn("Specular reflections", Range(0, 1)) = 0
 		_Smoothness("Smoothness", Range(0, 1)) = 0
 		_Metallic("Metallic", Range(0, 1)) = 0
@@ -24,7 +26,6 @@ Shader "Relativity/Lit/Standard" {
 		_EmissionMultiplier("Emission multiplier", Range(0,10)) = 1
 		[Toggle(IS_STATIC)] _IsStatic("Light map static", Range(0, 1)) = 0
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
-		_vr("vr", Vector)   = (0,0,0,0) //Vector that represents object's velocity relative to player (determined in scripts)
 		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_pao("pao", Vector) = (0,0,0,0) //Vector that represents object's proper acceleration
 		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's proper acceleration
@@ -36,6 +37,8 @@ Shader "Relativity/Lit/Standard" {
 // TODO: Shouldn't be necessary to define this if headers are included in shadow variants/passes only
 #define TRANSFER_SHADOW(a) a._ShadowCoord = mul( unity_WorldToShadow[0], mul( unity_ObjectToWorld, v.vertex ) );
 #include "UnityStandardCore.cginc"
+
+#define M_PI 3.14159265358979323846f
 
 //Color shift variables, used to make gaussians for XYZ curves
 #define xla 0.39952807612909519f
@@ -158,6 +161,8 @@ Shader "Relativity/Lit/Standard" {
 
 		float _IsStatic;
 
+		float _dopplerIntensity;
+
 		//Lorentz transforms from player to world and from object to world are the same for all points in an object,
 		// so it saves redundant GPU time to calculate them beforehand.
 		float4x4 _vpcLorentzMatrix;
@@ -216,7 +221,7 @@ Shader "Relativity/Lit/Standard" {
 		float getXFromCurve(float3 param, float shift)
 		{
 			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
-			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+			const float sqrt2Pi = sqrt(2 * M_PI);
 
 			//Re-use memory to save per-vertex operations:
 			float bottom2 = param.z * shift;
@@ -240,7 +245,7 @@ Shader "Relativity/Lit/Standard" {
 		float getYFromCurve(float3 param, float shift)
 		{
 			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
-			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+			const float sqrt2Pi = sqrt(2 * M_PI);
 
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
@@ -259,7 +264,7 @@ Shader "Relativity/Lit/Standard" {
 		float getZFromCurve(float3 param, float shift)
 		{
 			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
-			const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
+			const float sqrt2Pi = sqrt(2 * M_PI);
 
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
@@ -320,6 +325,15 @@ Shader "Relativity/Lit/Standard" {
 				shift = divByZeroCutoff;
 			}
 
+			float mixIntensity = _dopplerIntensity;
+
+#if DOPPLER_MIX
+			// This isn't a physical effect, but we might want to normalize the material color to albedo/light map
+			// for the case of 0 relative velocity. Unless we responsively reduce the effect of UV and IR,
+			// this isn't the case, with this Doppler shift function. This "mixIntensity" makes it so.
+		    mixIntensity *= abs((2 / M_PI) * atan(log(shift) / log(2)));
+#endif
+
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
@@ -330,9 +344,9 @@ Shader "Relativity/Lit/Standard" {
 			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
 
 			xyz = float3(
-				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
-				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
-				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
+				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + mixIntensity * (getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift))),
+				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + mixIntensity * (getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift))),
+				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + mixIntensity * (getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift))));
 			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
 #else
 			return rgb;
@@ -857,6 +871,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma multi_compile_fwdbase
 				#pragma multi_compile_fog
 			    #pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature DOPPLER_MIX
 				#pragma shader_feature SPECULAR
 			    #pragma shader_feature _EMISSION
 
@@ -879,6 +894,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma multi_compile_fwdadd
 				#pragma multi_compile_fog
 				#pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature DOPPLER_MIX
 				#pragma shader_feature SPECULAR
 				#pragma shader_feature _EMISSION
 
@@ -921,6 +937,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma vertex vert_meta
 				#pragma fragment frag_meta2
 				#pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature DOPPLER_MIX
 				#pragma shader_feature _EMISSION
 
 				#pragma shader_feature _METALLICGLOSSMAP
