@@ -96,35 +96,24 @@ Shader "Relativity/Lit/Standard" {
 			float2 lightmapUV : TEXCOORD3; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD4; //normal in world
-			float4 paot : TEXCOORD5;
 // This section is a mess, but the problem is that shader semantics are "prime real estate."
 // We want to use the bare minimum of TEXCOORD instances we can get away with, to support
 // the oldest and most limited possible hardware.
 // TODO: Prettify the syntax of this section.
 #if SHADOW_OR_SPOT
-			float4 ambient : TEXCOORD6;
-			SHADOW_COORDS(7)
+			float4 ambient : TEXCOORD5;
+			SHADOW_COORDS(6)
 	#if FORWARD_FOG
-			float4 pos3 : TEXCOORD8; //Untransformed position in world, relative to player position in world
+			float4 pos3 : TEXCOORD7; //Untransformed position in world, relative to player position in world
 		#if _EMISSION
-			float2 emissionUV : TEXCOORD9; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD8; //EmisionMap TEXCOORD
 			#if defined(POINT)
-			float4 lstv : TEXCOORD10;
+			float4 lstv : TEXCOORD9;
 			#endif
 		#elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD9;
+			float4 lstv : TEXCOORD10;
 		#endif
 	#elif _EMISSION
-			float2 emissionUV : TEXCOORD8; //EmisionMap TEXCOORD
-		#if defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD9;
-		#endif
-	#elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD8;
-	#endif
-#elif FORWARD_FOG
-			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
-	#if _EMISSION
 			float2 emissionUV : TEXCOORD7; //EmisionMap TEXCOORD
 		#if defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD8;
@@ -132,13 +121,23 @@ Shader "Relativity/Lit/Standard" {
 	#elif defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD7;
 	#endif
-#elif _EMISSION
+#elif FORWARD_FOG
+			float4 pos3 : TEXCOORD5; //Untransformed position in world, relative to player position in world
+	#if _EMISSION
 			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
-	#if defined(POINT) || SPECULAR
+		#if defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD7;
+		#endif
+	#elif defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD6;
+	#endif
+#elif _EMISSION
+			float2 emissionUV : TEXCOORD5; //EmisionMap TEXCOORD
+	#if defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD6;
 	#endif
 #elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD6;
+			float4 lstv : TEXCOORD5;
 #endif
 		};
 
@@ -171,11 +170,10 @@ Shader "Relativity/Lit/Standard" {
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _vr = float4(0, 0, 0, 0); //velocity of object relative to player
 		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
-		float4 _pao = float4(0, 0, 0, 0); //proper acceleration of object
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
-		float4 _pap = float4(0, 0, 0, 0); //acceleration of player
 		float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
+		float4 _pap = float4(0, 0, 0, 0); //proper acceleration of object
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 		float _spdOfLight = 100; //current speed of light;
 		float _spdOfLightSqrd = 10000;
@@ -401,7 +399,10 @@ Shader "Relativity/Lit/Standard" {
 
 			//relative speed
 			float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
-			o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
+			//float pspeedr = sqrt(dot(_viw.xyz, _viw.xyz));
+			// To decrease number of operations in fragment shader, we're storing this value:
+			//o.svc = float2(sqrt(1 - speedr * speedr), sqrt(1 - pspeedr * pspeedr));
+			o.svc = sqrt(1 - speedr * speedr);
 
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
@@ -436,7 +437,6 @@ Shader "Relativity/Lit/Standard" {
 			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
 			float4 aiwTransformed = mul(_viwLorentzMatrix, _aiw);
 			float4 riwTransformed = mul(_viwLorentzMatrix, riw);
-			float4 paoTransformed = mul(_viwLorentzMatrix, _pao);
 			//Translate in time:
 			float tisw = riwTransformed.w;
 			riwTransformed.w = 0;
@@ -445,8 +445,6 @@ Shader "Relativity/Lit/Standard" {
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 		    float aiwt = mul(metric, aiwTransformed);
 			float aiwDotAiw = -dot(aiwTransformed, aiwt);
-			o.paot = mul(metric, paoTransformed);
-			float paoDotPao = -dot(paoTransformed, o.paot);
 
 			if (_IsStatic) {
 				float sqrtArg = riwDotRiw / _spdOfLightSqrd;
@@ -506,12 +504,6 @@ Shader "Relativity/Lit/Standard" {
 #if defined(VERTEXLIGHT_ON)
 			// Red/blue shift light due to gravity
 			float4 lightColor = CAST_LIGHTCOLOR0;
-			if (paoDotPao > divByZeroCutoff) {
-				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
-				float posDotPao = -dot(posTransformed, o.paot);
-				float shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
-				lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.w);
-			}
 
 			// dot product between normal and light direction for
 			// standard diffuse (Lambert) lighting
@@ -528,7 +520,7 @@ Shader "Relativity/Lit/Standard" {
 
 			float4 lightPosition;
 			float3 lightSourceToVertex, lightDirection, diffuseReflection;
-			float squaredDistance, attenuation, posDotPao, shift;
+			float squaredDistance, attenuation, shift;
 			for (int index = 0; index < 4; index++)
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
@@ -543,11 +535,6 @@ Shader "Relativity/Lit/Standard" {
 
 				// Red/blue shift light due to gravity
 				lightColor = CAST_LIGHTCOLOR0;
-				if (paoDotPao > divByZeroCutoff) {
-					posDotPao = -dot(lightSourceToVertex, o.paot);
-					shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
-					lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.a);
-				}
 
 				if (unity_SpotDirection[index].z != 1) // directional light?
 				{
@@ -588,15 +575,18 @@ Shader "Relativity/Lit/Standard" {
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 			float shift;
-			if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)){
+			if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)) {
 				shift = 1.0f;
 			}
 			else
 			{
 				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
 			}
+
+			// Would be svc.x and svc.y for shift and pShift, if we needed the Doppler shift apparent to the object itself.
 #else
 			float shift = 1.0f;
+			//float pShift = 1.0f;
 #endif
 
 			//The Doppler factor is squared for (diffuse or specular) reflected light.
@@ -615,7 +605,7 @@ Shader "Relativity/Lit/Standard" {
 
 	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
-    #endif
+	#endif
 #else
 	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float3 rgbEmission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
@@ -653,28 +643,10 @@ Shader "Relativity/Lit/Standard" {
 
 			float nl = max(0, dot(i.normal, lightDirection));
 
-			float paoDotPao = -dot(mul(_viwLorentzMatrix, _pao), i.paot);
-			float3 lightRgb;
-			if (paoDotPao > divByZeroCutoff) {
-				float4 posTransformed = mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz, 0));
-				float posDotPao = -dot(posTransformed, i.paot);
-
-				float pShift = sqrt(paoDotPao) * _spdOfLightSqrd;
-				if (pShift < divByZeroCutoff) {
-					pShift = 1.0f;
-				}
-
-				pShift = 1.0f + posDotPao / pShift;
-
-				lightRgb = DopplerShift(lms, lms.b * bFac, lms.r * rFac, pShift);
-			}
-			else {
-				lightRgb = float3(lms);
-			}
-
+			float3 lightRgb = DopplerShift(lms, lms.b * bFac, lms.r * rFac, shift);
 			lightRgb = attenuation * lightRgb * _Color.rgb * nl;
 
-	#if SPECULAR
+		#if SPECULAR
 			// Apply specular reflectance
 			// (Schlick's approximation)
 			// (Assume surrounding medium has an index of refraction of 1)
@@ -686,33 +658,25 @@ Shader "Relativity/Lit/Standard" {
 			specFactor = min(1.0f, specFactor);
 			lightRgb *= 1.0f - specFactor;
 			lightRgb += lightRgb * specFactor;
-	#endif
+		#endif
 
 			// Technically this is incorrect, but helps hide jagged light edge at the object silhouettes and
 			// makes normalmaps show up.
-			//lightRgb *= saturate(dot(i.normal, lightDirection));
+			lightRgb *= saturate(dot(i.normal, lightDirection));
 
 			i.diff += float4(lightRgb, 0);
 	#else
 			i.diff = float4((float3)lms, 0);
 	#endif
 #elif defined(POINT)
-
-			// We have to compromise on accuracy for relativity in curved backgrounds, here, unfortunately.
-			// Ideally, we'd pass the metric tensor into the fragment shader, for use here, to calculate
-			// inner products, but that's a little computationally extreme, for the pipeline.
-			// It's not theoretically correct, for point lights, but we assume that the frame is flat and
-			// inertial, up to acceleration of the fragment.
-			
 			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
 			{
 				attenuation = 1.0f; // no attenuation
-				lightDirection =
-					normalize(_WorldSpaceLightPos0.xyz);
+				lightDirection = normalize(_WorldSpaceLightPos0.xyz);
 			}
 			else // point or spot light
 			{
-				float3 lightSourceToVertex = 
+				float3 lightSourceToVertex =
 					mul(_viwLorentzMatrix, float4((i.pos2.xyz + _playerOffset.xyz) - _WorldSpaceLightPos0.xyz, 0));
 				float squaredDistance = -dot(lightSourceToVertex.xyz, i.lstv.xyz);
 				if (squaredDistance < 0.0f) {
@@ -723,21 +687,7 @@ Shader "Relativity/Lit/Standard" {
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
 
-			float paoDotPao = -dot(mul(_viwLorentzMatrix, _pao), i.paot);
 			float4 lightColor = CAST_LIGHTCOLOR0;
-			if (paoDotPao > divByZeroCutoff) {
-				float4 posTransformed = mul(_viwLorentzMatrix, _WorldSpaceLightPos0.xyz);
-				float posDotPao = -dot(posTransformed, i.paot);
-
-				float pShift = sqrt(paoDotPao) * _spdOfLightSqrd;
-				if (pShift < divByZeroCutoff) {
-					pShift = 1.0f;
-				}
-
-				pShift = 1.0f + posDotPao / pShift;
-
-				lightColor = float4(DopplerShift(lightColor, lightColor.b * bFac, lightColor.r * rFac, pShift), lightColor.w);
-			}
 
 			float3 lightRgb = attenuation * lightColor.rgb * _Color.rgb * nl;
 
