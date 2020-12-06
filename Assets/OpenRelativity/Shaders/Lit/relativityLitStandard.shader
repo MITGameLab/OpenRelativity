@@ -7,6 +7,7 @@
 Shader "Relativity/Lit/Standard" {
 
 	Properties{
+		[Toggle(IS_STATIC)] _IsStatic("Light map static", Range(0, 1)) = 0
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
 		[Toggle(DOPPLER_SHIFT)] _dopplerShift("Doppler shift", Range(0,1)) = 1
@@ -15,7 +16,6 @@ Shader "Relativity/Lit/Standard" {
 		[Toggle(UV_IR_TEXTURES)] _UVAndIRTextures("UV and IR textures", Range(0, 1)) = 1
 		_UVTex("UV", 2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_Cutoff("Base alpha cutoff", Range(0,.9)) = 0.1
 		[Toggle(SPECULAR)] _SpecularOn("Specular reflections", Range(0, 1)) = 0
 		_Smoothness("Smoothness", Range(0, 1)) = 0
 		_Metallic("Metallic", Range(0, 1)) = 0
@@ -24,11 +24,8 @@ Shader "Relativity/Lit/Standard" {
 		_EmissionMap("Emission map", 2D) = "black" {}
 		[HDR] _EmissionColor("Emission color", Color) = (0,0,0)
 		_EmissionMultiplier("Emission multiplier", Range(0,10)) = 1
-		[Toggle(IS_STATIC)] _IsStatic("Light map static", Range(0, 1)) = 0
-		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
-		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
-		_pao("pao", Vector) = (0,0,0,0) //Vector that represents object's proper acceleration
 		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's proper acceleration
+		_Cutoff("Base alpha cutoff", Range(0,.9)) = 0.1
 	}
 		CGINCLUDE
 
@@ -975,6 +972,8 @@ Shader "Relativity/Lit/Standard" {
 				ENDCG
 			}
 		}
+
+		CustomEditor "StandardRelativityGUI"
 
 		FallBack "Relativity/Unlit/ColorLorentz"
 }

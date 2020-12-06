@@ -8,8 +8,6 @@ Shader "Relativity/Unlit/ColorOnly"
 		[Toggle(UV_IR_TEXTURES)] _UVAndIRTextures("UV and IR textures", Range(0, 1)) = 1
 		_UVTex("UV", 2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
-		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
-		_aiw("aiw", Vector) = (0,0,0,0) //Vector that represents object's acceleration in world coordinates
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1 //Used to determine when not to render alpha materials
 	}
 
@@ -294,12 +292,10 @@ Shader "Relativity/Unlit/ColorOnly"
 
 		//Get initial color 
 		float4 data = tex2D(_MainTex, i.uv1);
-		float UV = tex2D(_UVTex, i.uv1).r;
-		float IR = tex2D(_IRTex, i.uv1).r;
 
 #if UV_IR_TEXTURES
-		float UV = tex2D(_UVTex, i.albedoUV).r;
-		float IR = tex2D(_IRTex, i.albedoUV).r;
+		float UV = tex2D(_UVTex, i.uv1).r;
+		float IR = tex2D(_IRTex, i.uv1).r;
 
 		return float4(DopplerShift(data.rgb, UV, IR, shift), data.a);
 #else
@@ -335,6 +331,8 @@ Shader "Relativity/Unlit/ColorOnly"
 			ENDCG
 		}
 	}
+
+	CustomEditor "ColorOnlyRelativityGUI"
 
 	Fallback "Unlit/Transparent"
 
