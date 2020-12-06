@@ -1,11 +1,12 @@
-﻿using UnityEngine;
+﻿#if OPEN_RELATIVITY_INCLUDED
+using UnityEngine;
 using System.Collections.Generic;
 using OpenRelativity;
 using OpenRelativity.Objects;
 
 namespace Qrack
 {
-    public class QcClassicalChannel : MonoBehaviour
+    public class QcClassicalChannel : RelativisticBehavior
     {
         public ActionIndicator visualUnitPrefab;
         private List<ActionIndicator> visualUnitsActive;
@@ -17,24 +18,6 @@ namespace Qrack
         public RealTimeQasmProgram destination;
         public float emissionInterval = 1.0f;
         public float historyLength = 50.0f;
-
-        private void FetchState()
-        {
-            _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-        }
-        private GameState _state;
-        private GameState state
-        {
-            get
-            {
-                if (_state == null)
-                {
-                    FetchState();
-                }
-
-                return _state;
-            }
-        }
 
         private Vector3 oldCameraPos;
 
@@ -72,10 +55,13 @@ namespace Qrack
 
         public void FixedUpdate()
         {
-            TranslateSignals(Time.fixedDeltaTime);
+            if (!state.isMovementFrozen)
+            {
+                TranslateSignals(state.FixedDeltaTimeWorld);
+            }
         }
 
-        private void TranslateSignals(float deltaPlayerTime)
+        private void TranslateSignals(float deltaWordTime)
         {
             Vector3 cameraPos = state.playerTransform.position;
 
@@ -95,7 +81,7 @@ namespace Qrack
                 perspectiveFactor = Mathf.Pow(2, Vector3.Dot((cameraPos - vuPos).normalized, dispUnit));
                 cameraDispChange = (oldCameraPos - vuPos).magnitude - (cameraPos - vuPos).magnitude;
                 gtt = vuRO.GetTimeFactor();
-                Vector3 disp = ((gtt * deltaPlayerTime) * velUnit + cameraDispChange * dispUnit) * perspectiveFactor;
+                Vector3 disp = (gtt * deltaWordTime * velUnit + cameraDispChange * dispUnit) * perspectiveFactor;
                 if (disp.sqrMagnitude > (destPos - vuPos).sqrMagnitude)
                 {
                     visualUnitsActive.Remove(vu);
@@ -116,3 +102,4 @@ namespace Qrack
         }
     }
 }
+#endif
