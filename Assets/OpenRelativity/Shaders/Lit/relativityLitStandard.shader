@@ -109,36 +109,36 @@ Shader "Relativity/Lit/Standard" {
 		#if _EMISSION
 			float2 emissionUV : TEXCOORD9; //EmisionMap TEXCOORD
 			#if defined(POINT)
-			float4 vtlt : TEXCOORD10;
+			float4 lstv : TEXCOORD10;
 			#endif
 		#elif defined(POINT) || SPECULAR
-			float4 vtlt : TEXCOORD9;
+			float4 lstv : TEXCOORD9;
 		#endif
 	#elif _EMISSION
 			float2 emissionUV : TEXCOORD8; //EmisionMap TEXCOORD
 		#if defined(POINT) || SPECULAR
-			float4 vtlt : TEXCOORD9;
+			float4 lstv : TEXCOORD9;
 		#endif
 	#elif defined(POINT) || SPECULAR
-			float4 vtlt : TEXCOORD8;
+			float4 lstv : TEXCOORD8;
 	#endif
 #elif FORWARD_FOG
 			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
 	#if _EMISSION
 			float2 emissionUV : TEXCOORD7; //EmisionMap TEXCOORD
 		#if defined(POINT) || SPECULAR
-			float4 vtlt : TEXCOORD8;
+			float4 lstv : TEXCOORD8;
 		#endif
 	#elif defined(POINT) || SPECULAR
-			float4 vtlt : TEXCOORD7;
+			float4 lstv : TEXCOORD7;
 	#endif
 #elif _EMISSION
 			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
 	#if defined(POINT) || SPECULAR
-			float4 vtlt : TEXCOORD7;
+			float4 lstv : TEXCOORD7;
 	#endif
 #elif defined(POINT) || SPECULAR
-			float4 vtlt : TEXCOORD6;
+			float4 lstv : TEXCOORD6;
 #endif
 		};
 
@@ -527,16 +527,16 @@ Shader "Relativity/Lit/Standard" {
 	#endif
 
 			float4 lightPosition;
-			float3 vertexToLightSource, lightDirection, diffuseReflection;
+			float3 lightSourceToVertex, lightDirection, diffuseReflection;
 			float squaredDistance, attenuation, posDotPao, shift;
 			for (int index = 0; index < 4; index++)
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
 					unity_4LightPosY0[index],
 					unity_4LightPosZ0[index], 1.0f);
-				vertexToLightSource =
-					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - o.pos2.xyz, 0));
-				squaredDistance = -dot(vertexToLightSource.xyz, mul(metric, vertexToLightSource).xyz);
+				lightSourceToVertex =
+					mul(_viwLorentzMatrix, float4((o.pos2.xyz + _playerOffset.xyz) - _WorldSpaceLightPos0.xyz, 0));
+				squaredDistance = -dot(lightSourceToVertex.xyz, mul(metric, lightSourceToVertex).xyz);
 				if (squaredDistance < 0.0f) {
 					squaredDistance = 0.0f;
 				}
@@ -544,7 +544,7 @@ Shader "Relativity/Lit/Standard" {
 				// Red/blue shift light due to gravity
 				lightColor = CAST_LIGHTCOLOR0;
 				if (paoDotPao > divByZeroCutoff) {
-					posDotPao = -dot(vertexToLightSource, o.paot);
+					posDotPao = -dot(lightSourceToVertex, o.paot);
 					shift = 1.0f + posDotPao / (sqrt(paoDotPao) * _spdOfLightSqrd);
 					lightColor = float4(DopplerShift(lightColor, lightColor.r * rFac, lightColor.b * bFac, shift), lightColor.a);
 				}
@@ -558,7 +558,7 @@ Shader "Relativity/Lit/Standard" {
 				else {
 					attenuation = 1.0f / (1.0f +
 						unity_4LightAtten0[index] * squaredDistance * _Attenuation);
-					lightDirection = normalize(vertexToLightSource);
+					lightDirection = normalize(-lightSourceToVertex);
 				}
 				diffuseReflection = attenuation
 					* lightColor * _Color.rgb
@@ -575,7 +575,7 @@ Shader "Relativity/Lit/Standard" {
 			o.diff = 0;
 
 	#if defined(POINT) || SPECULAR
-			o.vtlt = mul(metric, mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - riw.xyz, 0)));
+			o.lstv = mul(metric, mul(_viwLorentzMatrix, float4(riw.xyz - _WorldSpaceLightPos0.xyz, 0)));
 	#endif
 #endif
 
@@ -712,14 +712,14 @@ Shader "Relativity/Lit/Standard" {
 			}
 			else // point or spot light
 			{
-				float3 vertexToLightSource = 
-					mul(_viwLorentzMatrix, float4(_WorldSpaceLightPos0.xyz - i.pos2.xyz - _playerOffset.xyz, 0));
-				float squaredDistance = -dot(vertexToLightSource.xyz, i.vtlt.xyz);
+				float3 lightSourceToVertex = 
+					mul(_viwLorentzMatrix, float4((i.pos2.xyz + _playerOffset.xyz) - _WorldSpaceLightPos0.xyz, 0));
+				float squaredDistance = -dot(lightSourceToVertex.xyz, i.lstv.xyz);
 				if (squaredDistance < 0.0f) {
 					squaredDistance = 0.0f;
 				}
 				attenuation = 1.0f / (1.0f + squaredDistance * _Attenuation);
-				lightDirection = normalize(vertexToLightSource);
+				lightDirection = normalize(-lightSourceToVertex);
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
 
