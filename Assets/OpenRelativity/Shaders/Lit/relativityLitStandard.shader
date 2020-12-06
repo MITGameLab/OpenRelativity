@@ -92,7 +92,7 @@ Shader "Relativity/Lit/Standard" {
 			float4 pos : POSITION; //internal, used for display
 			float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
 			float2 albedoUV : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
-			float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
+			float2 svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 			float2 lightmapUV : TEXCOORD3; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : TEXCOORD4; //normal in world
@@ -399,10 +399,9 @@ Shader "Relativity/Lit/Standard" {
 
 			//relative speed
 			float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
-			//float pspeedr = sqrt(dot(_viw.xyz, _viw.xyz));
+			float pspeedr = sqrt(dot(_viw.xyz, _viw.xyz));
 			// To decrease number of operations in fragment shader, we're storing this value:
-			//o.svc = float2(sqrt(1 - speedr * speedr), sqrt(1 - pspeedr * pspeedr));
-			o.svc = sqrt(1 - speedr * speedr);
+			o.svc = float2(sqrt(1 - speedr * speedr), sqrt(1 - pspeedr * pspeedr));
 
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
@@ -572,21 +571,12 @@ Shader "Relativity/Lit/Standard" {
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
+			float shift = 1.0f;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			float shift;
-			if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)) {
-				shift = 1.0f;
+			if ((i.svc.x > divByZeroCutoff) && (dot(_vr.xyz, _vr.xyz) > divByZeroCutoff)) {
+				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc.x;
 			}
-			else
-			{
-				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
-			}
-
-			// Would be svc.x and svc.y for shift and pShift, if we needed the Doppler shift apparent to the object itself.
-#else
-			float shift = 1.0f;
-			//float pShift = 1.0f;
 #endif
 
 			//The Doppler factor is squared for (diffuse or specular) reflected light.
@@ -687,9 +677,30 @@ Shader "Relativity/Lit/Standard" {
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
 
-			float4 lightColor = CAST_LIGHTCOLOR0;
+			// We're "cheating" a bit with the Doppler shift, here.
+			// The idea is that the object's albedo should reflect proportional to the color of light that the object sees.
+			// We could shift the light color according to the object's velocity relative to world coordinates,
+			// (assuming that all lights must be static and stationary relative to world coordinates, which we generally require,)
+			// and Doppler shift back to world coordinates after "reflecting," ultimately Doppler shifting according to player
+			// perspective at the end.
+			//
+			// However, the Doppler shift method we have from the original OpenRelativity project doesn't actually self-invert
+			// when applying the inverse of the shift paramter, which the Doppler shift should do. (This is a reasonable limitation.)
+			// Assuming the Doppler shift were perfect, this should behave similarly to INVERSE Doppler shifting the albedo color
+			// to calculate the reflectance, but this probably isn't physically meaningful: the albedo is a proper intrinsic property.
 
-			float3 lightRgb = attenuation * lightColor.rgb * _Color.rgb * nl;
+			float pShift = 1.0f;
+			if ((i.svc.y > divByZeroCutoff) && (dot(_viw.xyz, _viw.xyz) > divByZeroCutoff)) {
+				pShift = (1 - dot(lightDirection, _viw.xyz)) / i.svc.x;
+			}
+
+			float3 albedoColor = _Color.rgb;
+
+			if (pShift != 1.0f) {
+				albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1.0f / pShift);
+			}
+
+			float3 lightRgb = attenuation * CAST_LIGHTCOLOR0.rgb * albedoColor * nl;
 
 	#if SPECULAR
 			// Apply specular reflectance
