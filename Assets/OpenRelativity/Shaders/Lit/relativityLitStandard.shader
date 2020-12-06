@@ -587,11 +587,11 @@ Shader "Relativity/Lit/Standard" {
 			//Get initial color 
 			float3 viewDir = normalize(mul(_viwLorentzMatrix, float4(_WorldSpaceCameraPos.xyz - i.pos2.xyz, 0)).xyz);
 			i.normal /= length(i.normal);
-			float4 data = tex2D(_MainTex, i.albedoUV).rgba;
+			float4 data = tex2D(_MainTex, i.albedoUV) * _Color;
 
 #if UV_IR_TEXTURES
-			float UV = tex2D(_UVTex, i.albedoUV).r;
-			float IR = tex2D(_IRTex, i.albedoUV).r;
+			float UV = tex2D(_UVTex, i.albedoUV).r * _Color.b;
+			float IR = tex2D(_IRTex, i.albedoUV).r * _Color.r;
 
 	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
@@ -845,6 +845,7 @@ Shader "Relativity/Lit/Standard" {
 				Tags{ "LightMode" = "ForwardAdd" }
 				// pass for additional light sources
 				Blend One One // additive blending 
+				ZWrite Off
 				LOD 200
 
 				CGPROGRAM
@@ -869,6 +870,7 @@ Shader "Relativity/Lit/Standard" {
 			{
 				Name "META"
 				Tags{ "LightMode" = "Meta" }
+				Cull Off
 				CGPROGRAM
 
 				#include "UnityStandardMeta.cginc"
