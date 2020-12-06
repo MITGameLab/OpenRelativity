@@ -111,12 +111,9 @@ Shader "Relativity/Unlit/ColorOnly"
 		float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
 		o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
 
-		//riw = location in world, for reference
-		float4 riw = float4(piw.xyz + _playerOffset.xyz, 0); //Position that will be used in the output
-
 		//Transform the vertex back into local space for the mesh to use
 		o.pos = UnityObjectToClipPos(v.vertex.xyz);
-		o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
+		o.pos2 = float4(piw.xyz, 0);
 
 		return o;
 	}

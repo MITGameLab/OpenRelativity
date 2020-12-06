@@ -7,6 +7,7 @@
 Shader "Relativity/Lit/Standard" {
 
 	Properties{
+		[Toggle(LORENTZ_TRANSFORM)] _Lorentz("Lorentz Transform", Range(0, 1)) = 1
 		[Toggle(IS_STATIC)] _IsStatic("Light map static", Range(0, 1)) = 0
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo", 2D) = "white" {}
@@ -406,6 +407,7 @@ Shader "Relativity/Lit/Standard" {
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
 
+#if LORENTZ_TRANSFORM || defined(POINT) || SPECULAR
 			//Boost to rest frame of player:
 			float4 riwForMetric = mul(_vpcLorentzMatrix, riw);
 
@@ -431,9 +433,11 @@ Shader "Relativity/Lit/Standard" {
 			metric = mul(transpose(_invVpcLorentzMatrix), mul(metric, _invVpcLorentzMatrix));
 
 			//We'll also Lorentz transform the vectors:
-
 			//Apply Lorentz transform;
 			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
+#endif
+
+#if LORENTZ_TRANSFORM
 			float4 aiwTransformed = mul(_viwLorentzMatrix, _aiw);
 			float4 riwTransformed = mul(_viwLorentzMatrix, riw);
 			//Translate in time:
@@ -445,33 +449,32 @@ Shader "Relativity/Lit/Standard" {
 		    float aiwt = mul(metric, aiwTransformed);
 			float aiwDotAiw = -dot(aiwTransformed, aiwt);
 
-			if (_IsStatic) {
-				float sqrtArg = riwDotRiw / _spdOfLightSqrd;
+#if IS_STATIC
+			float sqrtArg = riwDotRiw / _spdOfLightSqrd;
 
-				float t2 = 0;
-				if (sqrtArg > 0)
-				{
-					t2 = -sqrt(sqrtArg);
-				}
-				tisw += t2;
+			float t2 = 0;
+			if (sqrtArg > 0)
+			{
+				t2 = -sqrt(sqrtArg);
 			}
-			else {
-				float riwDotAiw = -dot(riwTransformed, aiwt);
+			tisw += t2;
+#else
+			float riwDotAiw = -dot(riwTransformed, aiwt);
 
-				float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
-				float aiwMag = length(aiwTransformed.xyz);
-				float t2 = 0;
-				if (sqrtArg > 0)
-				{
-					t2 = -sqrt(sqrtArg);
-				}
-				tisw += t2;
-				//add the position offset due to acceleration
-				if (aiwMag > divByZeroCutoff)
-				{
-					riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
-				}
+			float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
+			float aiwMag = length(aiwTransformed.xyz);
+			float t2 = 0;
+			if (sqrtArg > 0)
+			{
+				t2 = -sqrt(sqrtArg);
 			}
+			tisw += t2;
+			//add the position offset due to acceleration
+			if (aiwMag > divByZeroCutoff)
+			{
+				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+			}
+#endif
 			riwTransformed.w = tisw;
 
 			//Inverse Lorentz transform the position:
@@ -496,6 +499,11 @@ Shader "Relativity/Lit/Standard" {
 			o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
 
 			o.pos = UnityObjectToClipPos(o.pos);
+#else
+			//Transform the vertex back into local space for the mesh to use
+			o.pos2 = o.pos;
+			o.pos = UnityObjectToClipPos(v.vertex.xyz);
+#endif
 
 			o.normal = float4(UnityObjectToWorldNormal(v.normal), 0);
 			o.normal = normalize(float4(mul(_viwLorentzMatrix, float4(o.normal.xyz, 0)).xyz, 0));
@@ -828,6 +836,8 @@ Shader "Relativity/Lit/Standard" {
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdbase
 				#pragma multi_compile_fog
+				#pragma shader_feature IS_STATIC
+				#pragma shader_feature LORENTZ_TRANSFORM
 			    #pragma shader_feature DOPPLER_SHIFT
 				#pragma shader_feature UV_IR_TEXTURES
 				#pragma shader_feature DOPPLER_MIX
@@ -853,6 +863,8 @@ Shader "Relativity/Lit/Standard" {
 				#pragma fragmentoption ARB_precision_hint_nicest
 				#pragma multi_compile_fwdadd
 				#pragma multi_compile_fog
+				#pragma shader_feature IS_STATIC
+				#pragma shader_feature LORENTZ_TRANSFORM
 				#pragma shader_feature DOPPLER_SHIFT
 				#pragma shader_feature UV_IR_TEXTURES
 				#pragma shader_feature DOPPLER_MIX
@@ -898,6 +910,8 @@ Shader "Relativity/Lit/Standard" {
 
 				#pragma vertex vert_meta
 				#pragma fragment frag_meta2
+				#pragma shader_feature IS_STATIC
+				#pragma shader_feature LORENTZ_TRANSFORM
 				#pragma shader_feature DOPPLER_SHIFT
 				#pragma shader_feature UV_IR_TEXTURES
 				#pragma shader_feature DOPPLER_MIX
