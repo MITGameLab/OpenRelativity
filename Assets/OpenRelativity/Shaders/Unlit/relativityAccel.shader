@@ -3,6 +3,10 @@ Shader "Relativity/Unlit/ColorLorentz"
 	Properties
 	{
 		_MainTex("Base (RGB)", 2D) = "" {} //Visible Spectrum Texture ( RGB )
+		[Toggle(DOPPLER_SHIFT)] _dopplerShift("Doppler shift", Range(0,1)) = 1
+		_dopplerIntensity("UV/IR mix-in intensity", Range(0,1)) = 1
+		[Toggle(DOPPLER_MIX)] _dopplerMix("Responsive Doppler shift intensity", Range(0,1)) = 0
+		[Toggle(UV_IR_TEXTURES)] _UVAndIRTextures("UV and IR textures", Range(0, 1)) = 1
 		_UVTex("UV",2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
 		_viw("viw", Vector) = (0,0,0,0) //Vector that represents object's velocity in synchronous frame
@@ -42,6 +46,9 @@ Shader "Relativity/Unlit/ColorLorentz"
 
 #define zcSqr 499.848756265769052653089671552849f
 
+#define bFac 0.5f
+#define rFac 0.9f
+
 //Used to determine where to center UV/IR curves
 #define IR_RANGE 400
 #define IR_START 700
@@ -71,6 +78,8 @@ Shader "Relativity/Unlit/ColorLorentz"
 		uniform float4 _UVTex_ST;
 		sampler2D _CameraDepthTexture;
 
+		float _dopplerIntensity;
+
 		//Lorentz transforms from player to world and from object to world are the same for all points in an object,
 		// so it saves redundant GPU time to calculate them beforehand.
 		float4x4 _vpcLorentzMatrix;
@@ -88,7 +97,6 @@ Shader "Relativity/Unlit/ColorLorentz"
 		float4 _playerOffset = float4(0, 0, 0, 0); //player position in world
 		float4 _vr;
 		float _spdOfLight = 100; //current speed of ligh;
-		float _colorShift = 1; //actually a boolean, should use color effects or not ( doppler + spotlight). 
 
 		float xyr = 1; // xy ratio
 		float xs = 1; // x scale
@@ -319,11 +327,20 @@ Shader "Relativity/Unlit/ColorLorentz"
 		};
 
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
+#if DOPPLER_SHIFT
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-
 			if (shift < divByZeroCutoff) {
-				shift = 1.0f;
+				shift = divByZeroCutoff;
 			}
+
+			float mixIntensity = _dopplerIntensity;
+
+#if DOPPLER_MIX
+			// This isn't a physical effect, but we might want to normalize the material color to albedo/light map
+			// for the case of 0 relative velocity. Unless we responsively reduce the effect of UV and IR,
+			// this isn't the case, with this Doppler shift function. This "mixIntensity" makes it so.
+			mixIntensity *= abs((2 / M_PI) * atan(log(shift) / log(2)));
+#endif
 
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
@@ -335,21 +352,31 @@ Shader "Relativity/Unlit/ColorLorentz"
 			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
 
 			xyz = float3(
-				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
-				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
-				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
+				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + mixIntensity * (getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift))),
+				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + mixIntensity * (getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift))),
+				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + mixIntensity * (getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift))));
 			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+#else
+			return rgb;
+#endif
 		}
 
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
+#if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			float shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
-			if (_colorShift == 0)
-			{
+			float shift;
+			if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)) {
 				shift = 1.0f;
 			}
+			else
+			{
+				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
+			}
+#else
+			float shift = 1.0f;
+#endif
 
 			//This is a debatable and stylistic point,
 			// but, if we think of the albedo as due to (diffuse) reflectance, we should do this:
@@ -363,10 +390,14 @@ Shader "Relativity/Unlit/ColorLorentz"
 
 			//Get initial color 
 			float4 data = tex2D(_MainTex, i.uv1);
-			float UV = tex2D(_UVTex, i.uv1).r;
-			float IR = tex2D(_IRTex, i.uv1).r;
+#if UV_IR_TEXTURES
+			float UV = tex2D(_UVTex, i.albedoUV).r;
+			float IR = tex2D(_IRTex, i.albedoUV).r;
 
-			return float4(DopplerShift(data.rgb, UV, IR, shift), data.a); //use me for any real build
+			return float4(DopplerShift(data.rgb, UV, IR, shift), data.a);
+#else
+			return float4(DopplerShift(data.rgb, data.b * bFac, data.r * rFac, shift), data.a);
+#endif
 		}
 
 			ENDCG
@@ -386,6 +417,10 @@ Shader "Relativity/Unlit/ColorLorentz"
 				CGPROGRAM
 
 				#pragma fragmentoption ARB_precision_hint_nicest
+
+				#pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature UV_IR_TEXTURES
+				#pragma shader_feature DOPPLER_MIX
 
 				#pragma vertex vert
 				#pragma fragment frag

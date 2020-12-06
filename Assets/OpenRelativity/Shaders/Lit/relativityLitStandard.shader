@@ -871,6 +871,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma multi_compile_fwdbase
 				#pragma multi_compile_fog
 			    #pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature UV_IR_TEXTURES
 				#pragma shader_feature DOPPLER_MIX
 				#pragma shader_feature SPECULAR
 			    #pragma shader_feature _EMISSION
@@ -894,6 +895,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma multi_compile_fwdadd
 				#pragma multi_compile_fog
 				#pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature UV_IR_TEXTURES
 				#pragma shader_feature DOPPLER_MIX
 				#pragma shader_feature SPECULAR
 				#pragma shader_feature _EMISSION
@@ -937,6 +939,7 @@ Shader "Relativity/Lit/Standard" {
 				#pragma vertex vert_meta
 				#pragma fragment frag_meta2
 				#pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature UV_IR_TEXTURES
 				#pragma shader_feature DOPPLER_MIX
 				#pragma shader_feature _EMISSION
 
