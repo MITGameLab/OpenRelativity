@@ -85,7 +85,6 @@ Shader "Relativity/Unlit/ColorLorentz"
 		float4x4 _invVpcLorentzMatrix;
 		float4x4 _invViwLorentzMatrix;
 
-		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
@@ -121,8 +120,8 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
 			//relative speed
-			float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
-			o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
+			float speedRSqr = dot(_vr.xyz, _vr.xyz);
+			o.svc = sqrt(1 - speedRSqr); // To decrease number of operations in fragment shader, we're storing this value
 
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output

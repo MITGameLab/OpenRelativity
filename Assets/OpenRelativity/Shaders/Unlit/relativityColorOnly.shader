@@ -108,8 +108,8 @@ Shader "Relativity/Unlit/ColorOnly"
 		//vw + vp/(1+vw*vp/c^2)
 
 		//relative speed
-		float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
-		o.svc = sqrt(1 - speedr * speedr); // To decrease number of operations in fragment shader, we're storing this value
+		float speedRSqr = dot(_vr.xyz, _vr.xyz);
+		o.svc = sqrt(1 - speedRSqr); // To decrease number of operations in fragment shader, we're storing this value
 
 		//Transform the vertex back into local space for the mesh to use
 		o.pos = UnityObjectToClipPos(v.vertex.xyz);

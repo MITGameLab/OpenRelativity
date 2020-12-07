@@ -167,7 +167,6 @@ Shader "Relativity/Lit/Standard" {
 		float4x4 _invVpcLorentzMatrix;
 		float4x4 _invViwLorentzMatrix;
 
-		//float4 _piw = float4(0, 0, 0, 0); //position of object in world
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _vr = float4(0, 0, 0, 0); //velocity of object relative to player
 		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
@@ -399,10 +398,10 @@ Shader "Relativity/Lit/Standard" {
 			_spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
 			//relative speed
-			float speedr = sqrt(dot(_vr.xyz, _vr.xyz));
-			float pspeedr = sqrt(dot(_viw.xyz, _viw.xyz));
+			float speedRSqr = dot(_vr.xyz, _vr.xyz);
+			float pSpeedRSqr = dot(_viw.xyz, _viw.xyz);
 			// To decrease number of operations in fragment shader, we're storing this value:
-			o.svc = float2(sqrt(1 - speedr * speedr), sqrt(1 - pspeedr * pspeedr));
+			o.svc = sqrt(float2(1 - speedRSqr, 1 - pSpeedRSqr));
 
 			//riw = location in world, for reference
 			float4 riw = float4(o.pos.xyz, 0); //Position that will be used in the output
