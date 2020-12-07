@@ -54,15 +54,14 @@ Shader "Relativity/Unlit/ColorOnly"
 		//Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
 
-		//This is the data sent from the vertex shader to the fragment shader
-		struct v2f
+	//This is the data sent from the vertex shader to the fragment shader
+	struct v2f
 	{
 		float4 pos : POSITION; //internal, used for display
 		float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
 		float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 		float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 		float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
-							   //float draw : TEXCOORD4; //Draw the vertex?  Used to not draw objects that are calculated to be seen before they were created. Object's start time is used to determine this. If something comes out of a building, it should not draw behind the building.
 	};
 
 						   //Variables that we use to access texture data

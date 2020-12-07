@@ -96,35 +96,25 @@ Shader "Relativity/Lit/Standard" {
 			float2 svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
 			float2 lightmapUV : TEXCOORD3; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
-			float4 normal : TEXCOORD4; //normal in world
+			float4 normal : NORMAL; //normal in world
 // This section is a mess, but the problem is that shader semantics are "prime real estate."
 // We want to use the bare minimum of TEXCOORD instances we can get away with, to support
 // the oldest and most limited possible hardware.
 // TODO: Prettify the syntax of this section.
 #if SHADOW_OR_SPOT
-			float4 ambient : TEXCOORD5;
-			SHADOW_COORDS(6)
+			float4 ambient : TEXCOORD4;
+			SHADOW_COORDS(5)
 	#if FORWARD_FOG
-			float4 pos3 : TEXCOORD7; //Untransformed position in world, relative to player position in world
+			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
 		#if _EMISSION
-			float2 emissionUV : TEXCOORD8; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD7; //EmisionMap TEXCOORD
 			#if defined(POINT)
-			float4 lstv : TEXCOORD9;
+			float4 lstv : TEXCOORD8;
 			#endif
 		#elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD10;
+			float4 lstv : TEXCOORD9;
 		#endif
 	#elif _EMISSION
-			float2 emissionUV : TEXCOORD7; //EmisionMap TEXCOORD
-		#if defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD8;
-		#endif
-	#elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD7;
-	#endif
-#elif FORWARD_FOG
-			float4 pos3 : TEXCOORD5; //Untransformed position in world, relative to player position in world
-	#if _EMISSION
 			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
 		#if defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD7;
@@ -132,13 +122,23 @@ Shader "Relativity/Lit/Standard" {
 	#elif defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD6;
 	#endif
-#elif _EMISSION
+#elif FORWARD_FOG
+			float4 pos3 : TEXCOORD4; //Untransformed position in world, relative to player position in world
+	#if _EMISSION
 			float2 emissionUV : TEXCOORD5; //EmisionMap TEXCOORD
-	#if defined(POINT) || SPECULAR
+		#if defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD6;
+		#endif
+	#elif defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD5;
+	#endif
+#elif _EMISSION
+			float2 emissionUV : TEXCOORD4; //EmisionMap TEXCOORD
+	#if defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD5;
 	#endif
 #elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD5;
+			float4 lstv : TEXCOORD4;
 #endif
 		};
 
