@@ -17,6 +17,8 @@ Shader "Relativity/Unlit/ColorOnly"
 #pragma glsl
 #include "UnityCG.cginc"
 
+#define M_PI 3.14159265358979323846f
+
 			//Color shift variables, used to make guassians for XYZ curves
 #define xla 0.39952807612909519f
 #define xlb 444.63156780935032f

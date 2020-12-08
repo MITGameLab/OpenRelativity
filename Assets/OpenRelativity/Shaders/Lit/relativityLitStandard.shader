@@ -295,7 +295,6 @@ Shader "Relativity/Lit/Standard" {
 
 			return top / bottom;
 		}
-
 		float getZFromCurve(float3 param, float shift)
 		{
 			//Use constant memory, or let the compiler optimize constants, where we can get away with it:
@@ -633,7 +632,8 @@ Shader "Relativity/Lit/Standard" {
 			//Get initial color 
 			float3 viewDir = normalize(mul(_viwLorentzMatrix, float4(_WorldSpaceCameraPos.xyz - i.pos2.xyz, 0)).xyz);
 			i.normal /= length(i.normal);
-			float4 data = tex2D(_MainTex, i.albedoUV) * _Color;
+			float4 data = tex2D(_MainTex, i.albedoUV);
+			data = float4(data.rgb * _Color.xyz, data.a);
 
 #if UV_IR_TEXTURES
 			float UV = tex2D(_UVTex, i.albedoUV).r * _Color.b;
