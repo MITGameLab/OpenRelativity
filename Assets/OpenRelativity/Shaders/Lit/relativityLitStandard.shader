@@ -94,51 +94,95 @@ Shader "Relativity/Lit/Standard" {
 			float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
 			float2 albedoUV : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 			float2 svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
-			float2 lightmapUV : TEXCOORD3; //Lightmap TEXCOORD
 			float4 diff : COLOR0; //Diffuse lighting color in world rest frame
 			float4 normal : NORMAL; //normal in world
-// This section is a mess, but the problem is that shader semantics are "prime real estate."
-// We want to use the bare minimum of TEXCOORD instances we can get away with, to support
-// the oldest and most limited possible hardware.
-// TODO: Prettify the syntax of this section.
-#if SHADOW_OR_SPOT
+
+            // This section is a mess, but the problem is that shader semantics are "prime real estate."
+            // We want to use the bare minimum of TEXCOORD instances we can get away with, to support
+            // the oldest and most limited possible hardware.
+
+            // TODO: Prettify the syntax of this section.
+#if LIGHTMAP_ON
+			float2 lightmapUV : TEXCOORD3; //Lightmap TEXCOORD
+    #if SHADOW_OR_SPOT
 			float4 ambient : TEXCOORD4;
 			SHADOW_COORDS(5)
-	#if FORWARD_FOG
+	    #if FORWARD_FOG
 			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
-		#if _EMISSION
+		    #if _EMISSION
 			float2 emissionUV : TEXCOORD7; //EmisionMap TEXCOORD
-			#if defined(POINT)
+			    #if defined(POINT)
 			float4 lstv : TEXCOORD8;
-			#endif
-		#elif defined(POINT) || SPECULAR
+			    #endif
+		    #elif defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD9;
-		#endif
-	#elif _EMISSION
+		    #endif
+	    #elif _EMISSION
 			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
-		#if defined(POINT) || SPECULAR
+		    #if defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD7;
-		#endif
-	#elif defined(POINT) || SPECULAR
+		    #endif
+	    #elif defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD6;
-	#endif
-#elif FORWARD_FOG
+	    #endif
+    #elif FORWARD_FOG
 			float4 pos3 : TEXCOORD4; //Untransformed position in world, relative to player position in world
-	#if _EMISSION
+	    #if _EMISSION
 			float2 emissionUV : TEXCOORD5; //EmisionMap TEXCOORD
-		#if defined(POINT) || SPECULAR
+		    #if defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD6;
-		#endif
-	#elif defined(POINT) || SPECULAR
+		    #endif
+	    #elif defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD5;
-	#endif
-#elif _EMISSION
+	    #endif
+    #elif _EMISSION
 			float2 emissionUV : TEXCOORD4; //EmisionMap TEXCOORD
-	#if defined(POINT) || SPECULAR
+	    #if defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD5;
-	#endif
-#elif defined(POINT) || SPECULAR
+	    #endif
+    #elif defined(POINT) || SPECULAR
 			float4 lstv : TEXCOORD4;
+    #endif
+#else
+	#if SHADOW_OR_SPOT
+			float4 ambient : TEXCOORD3;
+			SHADOW_COORDS(4)
+	    #if FORWARD_FOG
+			float4 pos3 : TEXCOORD5; //Untransformed position in world, relative to player position in world
+		    #if _EMISSION
+			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
+			    #if defined(POINT)
+			float4 lstv : TEXCOORD7;
+			    #endif
+		    #elif defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD8;
+		    #endif
+	    #elif _EMISSION
+			float2 emissionUV : TEXCOORD5; //EmisionMap TEXCOORD
+		    #if defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD6;
+		    #endif
+	    #elif defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD5;
+	    #endif
+    #elif FORWARD_FOG
+			float4 pos3 : TEXCOORD3; //Untransformed position in world, relative to player position in world
+	    #if _EMISSION
+			float2 emissionUV : TEXCOORD4; //EmisionMap TEXCOORD
+		    #if defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD5;
+		    #endif
+	    #elif defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD4;
+	    #endif
+    #elif _EMISSION
+			float2 emissionUV : TEXCOORD3; //EmisionMap TEXCOORD
+	    #if defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD4;
+	    #endif
+    #elif defined(POINT) || SPECULAR
+			float4 lstv : TEXCOORD3;
+    #endif
 #endif
 		};
 
@@ -147,7 +191,6 @@ Shader "Relativity/Lit/Standard" {
 		uniform float4 _IRTex_ST;
 		sampler2D _UVTex;
 		uniform float4 _UVTex_ST;
-		sampler2D _CameraDepthTexture;
 
 		uniform float4 _EmissionMap_ST;
 		float _EmissionMultiplier;
@@ -155,8 +198,6 @@ Shader "Relativity/Lit/Standard" {
 		float _Smoothness;
 
 		float _Attenuation;
-
-		float _IsStatic;
 
 		float _dopplerIntensity;
 
@@ -182,7 +223,6 @@ Shader "Relativity/Lit/Standard" {
 		float xs = 1; // x scale
 
 		uniform float4 _MainTex_TexelSize;
-		uniform float4 _CameraDepthTexture_ST;
 
 		//Color functions
 		float3 RGBToXYZC(float3 rgb)
@@ -222,7 +262,7 @@ Shader "Relativity/Lit/Standard" {
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
 			if (bottom2 < divByZeroCutoff) {
-				bottom2 = 1.0;
+				bottom2 = divByZeroCutoff;
 			}
 
 			float paramYShift = param.y * shift;
@@ -246,7 +286,7 @@ Shader "Relativity/Lit/Standard" {
 			float bottom = param.z * shift;
 			bottom *= bottom;
 			if (bottom < divByZeroCutoff) {
-				bottom = 1.0f;
+				bottom = divByZeroCutoff;
 			}
 
 			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
@@ -265,7 +305,7 @@ Shader "Relativity/Lit/Standard" {
 			float bottom = param.z * shift;
 			bottom *= bottom;
 			if (bottom < divByZeroCutoff) {
-				bottom = 1.0f;
+				bottom = divByZeroCutoff;
 			}
 
 			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
@@ -369,7 +409,6 @@ Shader "Relativity/Lit/Standard" {
 			v2f o;
 
 			o.albedoUV.xy = (v.texcoord + _MainTex_ST.zw) * _MainTex_ST.xy; //get the UV coordinate for the current vertex, will be passed to fragment shader
-			o.lightmapUV = float2(0, 0);
 #ifdef LIGHTMAP_ON
 			o.lightmapUV = v.texcoord1 * unity_LightmapST.xy + unity_LightmapST.zw;
 #endif
@@ -448,7 +487,7 @@ Shader "Relativity/Lit/Standard" {
 		    float aiwt = mul(metric, aiwTransformed);
 			float aiwDotAiw = -dot(aiwTransformed, aiwt);
 
-#if IS_STATIC
+    #if IS_STATIC
 			float sqrtArg = riwDotRiw / _spdOfLightSqrd;
 
 			float t2 = 0;
@@ -457,7 +496,7 @@ Shader "Relativity/Lit/Standard" {
 				t2 = -sqrt(sqrtArg);
 			}
 			tisw += t2;
-#else
+    #else
 			float riwDotAiw = -dot(riwTransformed, aiwt);
 
 			float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
@@ -473,7 +512,7 @@ Shader "Relativity/Lit/Standard" {
 			{
 				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
 			}
-#endif
+    #endif
 			riwTransformed.w = tisw;
 
 			//Inverse Lorentz transform the position:
@@ -703,9 +742,7 @@ Shader "Relativity/Lit/Standard" {
 
 			float3 albedoColor = _Color.rgb;
 
-			if (pShift != 1.0f) {
-				albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1.0f / pShift);
-			}
+			albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1.0f / pShift);
 
 			float3 lightRgb = attenuation * CAST_LIGHTCOLOR0.rgb * albedoColor * nl;
 

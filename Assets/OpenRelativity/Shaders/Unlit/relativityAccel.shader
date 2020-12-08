@@ -73,7 +73,6 @@ Shader "Relativity/Unlit/ColorLorentz"
 		uniform float4 _IRTex_ST;
 		sampler2D _UVTex;
 		uniform float4 _UVTex_ST;
-		sampler2D _CameraDepthTexture;
 
 		float _dopplerIntensity;
 
@@ -98,7 +97,6 @@ Shader "Relativity/Unlit/ColorLorentz"
 		float xs = 1; // x scale
 
 		uniform float4 _MainTex_TexelSize;
-		uniform float4 _CameraDepthTexture_ST;
 
 		//Per vertex operations
 		v2f vert(appdata_img v)
