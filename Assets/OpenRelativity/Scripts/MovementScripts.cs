@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using OpenRelativity.Objects;
 
@@ -8,7 +7,7 @@ namespace OpenRelativity
     public class MovementScripts : MonoBehaviour
     {
         //Consts
-        private const int INIT_FRAME_WAIT = 5;
+        protected const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
         public float dragConstant = 0.75f;
         public float controllerAcceleration = 8.0f;
@@ -409,7 +408,7 @@ namespace OpenRelativity
             Vector3 extents = myColl.bounds.extents;
             //We assume that the world "down" direction is the direction of gravity.
             Vector3 playerPos = state.playerTransform.position;
-            Ray rayDown = new Ray(playerPos + extents.y * Vector3.up, Vector3.down);
+            Ray rayDown = new Ray(playerPos + 0.5f * extents.y * Vector3.down, Vector3.down);
             Ray rayUp = new Ray(playerPos + extents.y * Vector3.down, Vector3.up);
             Ray rayLeft = new Ray(playerPos + extents.x * Vector3.right, Vector3.left);
             Ray rayRight = new Ray(playerPos + extents.x * Vector3.left, Vector3.right);
@@ -417,8 +416,7 @@ namespace OpenRelativity
             Ray rayBack = new Ray(playerPos + extents.z * Vector3.forward, Vector3.back);
             RaycastHit hitInfo;
             float dist;
-            RaycastHit unused;
-            if (collider.Raycast(rayDown, out unused, 2.0f * extents.y))
+            if (collider.Raycast(rayDown, out hitInfo, 0.5f * extents.y))
             {
 
                 if (frames > INIT_FRAME_WAIT)
@@ -441,15 +439,12 @@ namespace OpenRelativity
                         state.PlayerAccelerationVector = pAccel;
                     }
 
-                    Ray longDown = new Ray(playerPos + 8.0f * extents.y * Vector3.up, Vector3.down);
-                    if (collider.Raycast(longDown, out hitInfo, 16.0f * extents.y))
+                    
+                    dist = 0.5f * extents.y - hitInfo.distance;
+                    if (dist > 0.01f)
                     {
-                        Vector3 newPos = hitInfo.point + new Vector3(0.0f, extents.y - 0.1f, 0.0f);
-                        dist = transform.position.y - newPos.y;
-                        if ((dist < -0.01f) && (dist > -extents.y))
-                        {
-                            state.playerTransform.position = newPos;
-                        }
+                        Vector3 pos = state.playerTransform.position;
+                        state.playerTransform.position = new Vector3(pos.x, pos.y + dist, pos.z);
                     }
                 }
 
