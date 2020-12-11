@@ -371,14 +371,24 @@ namespace OpenRelativity
             return est;
         }
 
-        public static float Gamma(this Vector3 velocity)
+        public static float Gamma(this Vector3 velocity, Matrix4x4? metric = null)
         {
-            return 1.0f / Mathf.Sqrt(1.0f - velocity.sqrMagnitude / cSqrd);
+            if (metric == null)
+            {
+                return 1.0f / Mathf.Sqrt(1.0f - velocity.sqrMagnitude / cSqrd);
+            }
+            
+            return 1.0f / Mathf.Sqrt(1.0f - (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
         }
 
-        public static float InverseGamma(this Vector3 velocity)
+        public static float InverseGamma(this Vector3 velocity, Matrix4x4? metric = null)
         {
-            return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / cSqrd);
+            if (metric == null)
+            {
+                return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / cSqrd);
+            }
+
+            return 1.0f / Mathf.Sqrt(1.0f + (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
         }
 
         public static Vector3 RapidityToVelocity(this Vector3 rapidity, Matrix4x4? metric = null)
