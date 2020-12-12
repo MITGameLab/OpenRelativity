@@ -139,7 +139,7 @@ namespace OpenRelativity.Objects
         public Vector3 opticalPiw {
             get
             {
-                return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration(), viwLorentz);
+                return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
             }
         }
 
@@ -150,7 +150,6 @@ namespace OpenRelativity.Objects
         //Store rotation quaternion
         public Quaternion riw { get; set; }
 
-        public Matrix4x4 viwLorentz { get; private set; }
         public Vector3 cviw { get; private set; }
 
         public Vector3 _viw = Vector3.zero;
@@ -576,7 +575,7 @@ namespace OpenRelativity.Objects
                 {
                     collider = (BoxCollider)myColliders[i];
                     pos = transform.TransformPoint((Vector4)colliderPiw[i]);
-                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw4, viwLorentz));
+                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw4));
                     testMag = testPos.sqrMagnitude;
                     if (!IsNaNOrInf(testMag))
                     {
@@ -1022,7 +1021,6 @@ namespace OpenRelativity.Objects
             //Get the player's GameState, use it later for general information
             FetchState();
 
-            viwLorentz = Matrix4x4.identity;
             _localScale = transform.localScale;
         }
 
@@ -1263,8 +1261,6 @@ namespace OpenRelativity.Objects
                 // We're done.
                 return;
             }
-
-            viwLorentz = SRelativityUtil.GetLorentzTransformMatrix(state.PlayerVelocityVector / state.SpeedOfLight);
 
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
