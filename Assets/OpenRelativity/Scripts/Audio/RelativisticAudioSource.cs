@@ -137,6 +137,16 @@ namespace OpenRelativity.Audio
 
         private void Update()
         {
+            if (state.isMovementFrozen)
+            {
+                for (int i = 0; i < audioSources.Length; i++)
+                {
+                    audioSources[i].pitch = 0;
+                }
+
+                return;
+            }
+
             float soundWorldTime = state.TotalTimeWorld - soundLightDelayTime;
 
             metric = SRelativityUtil.GetRindlerMetric(piw);
