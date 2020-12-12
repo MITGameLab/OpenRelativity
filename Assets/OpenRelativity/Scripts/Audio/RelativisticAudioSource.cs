@@ -88,7 +88,7 @@ namespace OpenRelativity.Audio
             {
                 // opticalPiw is theoretically invariant under velocity changes
                 // and therefore need not be cached
-                return relativisticObject.opticalPiw + soundLightDelayTime * viw;
+                return piw + soundLightDelayTime * viw;
             }
         }
 
@@ -104,6 +104,9 @@ namespace OpenRelativity.Audio
         }
 
         private bool firstFrame;
+
+        protected float lastSoundWorldTime = float.NegativeInfinity;
+        protected Vector3 lastViw;
 
         // Start is called before the first frame update
         void Start()
@@ -138,9 +141,27 @@ namespace OpenRelativity.Audio
 
             metric = SRelativityUtil.GetRindlerMetric(piw);
 
-            AudioSourceTransform.position = soundPosition;
+            if (lastSoundWorldTime <= soundWorldTime)
+            {
+                AudioSourceTransform.position = soundPosition;
+
+                if (!firstFrame)
+                {
+                    lastSoundWorldTime = soundWorldTime;
+                    lastViw = viw;
+                }
+            }
+            else
+            {
+                // If velocity changes, this helps smooth out a collision that puts the new sound time behind the old sound time.
+                AudioSourceTransform.position = Vector3.Lerp(AudioSourceTransform.position, soundPosition, Mathf.Min(1.0f, Time.deltaTime / (lastSoundWorldTime - soundWorldTime)));
+                // If the sound time suddenly increases, we don't have a compressed interval to Lerp(), so just move immediately up to date.
+                // TODO: (There are literally smoother ways we could handle this.)
+            }
 
             audioSystem.WorldSoundDopplerShift(this);
+
+            firstFrame = false;
 
             if (playTimeHistory.Count == 0)
             {
