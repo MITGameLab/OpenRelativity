@@ -28,6 +28,21 @@ namespace OpenRelativity.Audio
 
         protected List<RelativisticAudioSourcePlayTimeHistoryPoint> playTimeHistory;
 
+        protected class RelativisticAudioSourceViwHistoryPoint
+        {
+            public Vector3 viw { get; set; }
+
+            public float tihw { get; set; }
+
+            public RelativisticAudioSourceViwHistoryPoint(Vector3 v, float t)
+            {
+                viw = v;
+                tihw = t;
+            }
+        }
+
+        protected List<RelativisticAudioSourceViwHistoryPoint> viwHistory;
+
         public Vector3 piw
         {
             get
@@ -113,6 +128,7 @@ namespace OpenRelativity.Audio
             audioSystem = RelativisticAudioSystem.Instance;
             relativisticObject = GetComponent<RelativisticObject>();
             playTimeHistory = new List<RelativisticAudioSourcePlayTimeHistoryPoint>();
+            viwHistory = new List<RelativisticAudioSourceViwHistoryPoint>();
 
             if (audioSources == null || audioSources.Length == 0)
             {
@@ -132,6 +148,8 @@ namespace OpenRelativity.Audio
             }
 
             firstFrame = true;
+            lastViw = viw;
+            viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, float.NegativeInfinity));
         }
 
         private void Update()
@@ -168,6 +186,22 @@ namespace OpenRelativity.Audio
                 // TODO: (There are literally smoother ways we could handle this.)
             }
 
+            if (lastViw != viw)
+            {
+                viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, soundWorldTime));
+            }
+
+            while (viwHistory.Count > 1)
+            {
+                if (viwHistory[1].tihw <= soundWorldTime)
+                {
+                    viwHistory.RemoveAt(0);
+                } else
+                {
+                    break;
+                }
+            }
+
             WorldSoundDopplerShift();
 
             firstFrame = false;
@@ -186,14 +220,14 @@ namespace OpenRelativity.Audio
 
         public void WorldSoundDopplerShift()
         {
-            Vector3 unitDisplacementSR = listenerPiw - piw;
+            Vector3 unitDisplacementSR = listenerPiw - soundPosition;
             unitDisplacementSR.Normalize();
             if (unitDisplacementSR == Vector3.zero)
             {
                 unitDisplacementSR = Vector3.up;
             }
 
-            Vector3 sourceRapidity = viw;
+            Vector3 sourceRapidity = viwHistory[0].viw;
             sourceRapidity = sourceRapidity * sourceRapidity.InverseGamma(metric);
 
             Vector3 receiverRapidity = listenerViw;
