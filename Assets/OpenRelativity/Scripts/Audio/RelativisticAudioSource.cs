@@ -98,7 +98,7 @@ namespace OpenRelativity.Audio
             {
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
 
-                return tisw * Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight;
+                return tisw * (1 - Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight);
             }
         }
 
