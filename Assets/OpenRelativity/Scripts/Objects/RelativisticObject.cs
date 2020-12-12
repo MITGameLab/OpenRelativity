@@ -139,12 +139,7 @@ namespace OpenRelativity.Objects
         public Vector3 opticalPiw {
             get
             {
-                if (isNonrelativisticShader && contractor != null)
-                {
-                    return contractor.position;
-                }
-
-                return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+                return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration(), viwLorentz);
             }
         }
 
@@ -664,7 +659,7 @@ namespace OpenRelativity.Objects
                 SetUpContractor();
             }
 
-            contractor.position = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+            contractor.position = opticalPiw;
             transform.localPosition = Vector3.zero;
             ContractLength();
         }
@@ -676,7 +671,7 @@ namespace OpenRelativity.Objects
         public void SetStartTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = Mathf.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = Mathf.Sqrt((opticalPiw - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= GetTimeFactor();
             StartTime = state.TotalTimeWorld - timeDelayToPlayer;
             hasStarted = false;
@@ -688,7 +683,7 @@ namespace OpenRelativity.Objects
         public virtual void SetDeathTime()
         {
             Vector3 playerPos = state.playerTransform.position;
-            float timeDelayToPlayer = Mathf.Sqrt((((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
+            float timeDelayToPlayer = Mathf.Sqrt((opticalPiw - playerPos).sqrMagnitude / state.SpeedOfLightSqrd);
             timeDelayToPlayer *= GetTimeFactor();
             DeathTime = state.TotalTimeWorld - timeDelayToPlayer;
         }
@@ -1269,6 +1264,8 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            viwLorentz = SRelativityUtil.GetLorentzTransformMatrix(state.PlayerVelocityVector / state.SpeedOfLight);
+
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
 
@@ -1381,7 +1378,7 @@ namespace OpenRelativity.Objects
                 }
                 else
                 {
-                    transform.position = isNonrelativisticShader ? ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration()) : piw;
+                    transform.position = isNonrelativisticShader ? opticalPiw : piw;
                 }
 
                 UpdateShaderParams();
@@ -1416,7 +1413,7 @@ namespace OpenRelativity.Objects
                 if (isNonrelativisticShader)
                 {
                     transform.parent = null;
-                    testVec = ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+                    testVec = opticalPiw;
                     if (!IsNaNOrInf(testVec.sqrMagnitude))
                     {
                         myRigidbody.MovePosition(testVec);
