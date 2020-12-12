@@ -115,7 +115,7 @@ namespace OpenRelativity.Objects
 
             Matrix4x4 metric = GetMetric();
 
-            float timeFac = 1 / Mathf.Sqrt(1 + (Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
+            float timeFac = pVel.Value.InverseGamma(metric);
             if (IsNaNOrInf(timeFac))
             {
                 timeFac = 1;
@@ -135,6 +135,19 @@ namespace OpenRelativity.Objects
 
         //Store world position, mostly for a nonrelativistic shader:
         public Vector3 piw { get; set; }
+
+        public Vector3 opticalPiw {
+            get
+            {
+                if (isNonrelativisticShader && contractor != null)
+                {
+                    return contractor.position;
+                }
+
+                return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+            }
+        }
+
         public void ResetPiw()
         {
             piw = isNonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : transform.position;

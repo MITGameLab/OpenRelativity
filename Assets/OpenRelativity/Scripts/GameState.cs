@@ -7,6 +7,12 @@ namespace OpenRelativity
 {
     public class GameState : MonoBehaviour
     {
+        #region Static Variables
+        // We want a "System" (in Entity-Component-Systems) to be unique.
+        private static GameState _instance;
+        public static GameState Instance { get { return _instance; } }
+        #endregion
+
         #region Member Variables
 
         public ConformalMap conformalMap;
@@ -142,6 +148,16 @@ namespace OpenRelativity
 
         public virtual void Awake()
         {
+            // Ensure a singleton
+            if (_instance != null && _instance != this)
+            {
+                Destroy(this.gameObject);
+            }
+            else
+            {
+                _instance = this;
+            }
+
             // This is the "flag" that lets us know initialization is not complete.
             SqrtOneMinusVSquaredCWDividedByCSquared = 0;
 

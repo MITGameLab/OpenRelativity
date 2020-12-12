@@ -7,7 +7,7 @@ namespace OpenRelativity
         private GameState _state;
         protected void FetchState()
         {
-            _state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
+            _state = GameState.Instance;
         }
         public GameState state
         {
