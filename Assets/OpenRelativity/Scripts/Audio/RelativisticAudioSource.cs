@@ -95,8 +95,7 @@ namespace OpenRelativity.Audio
         {
             get
             {
-                // opticalPiw is (piw + tisw * viw), with sound lagged behind it.
-                return piw + (tihw - tisw) * viw;
+                return piw + tihw * viw;
             }
         }
 
@@ -109,8 +108,6 @@ namespace OpenRelativity.Audio
                 return tisw  * state.SpeedOfLight / Vector3.Project(soundVelocity, dispUnit).magnitude;
             }
         }
-
-        private bool firstFrame;
 
         protected float lastSoundWorldTime = float.NegativeInfinity;
         protected Vector3 lastViw;
@@ -140,7 +137,6 @@ namespace OpenRelativity.Audio
                 }
             }
 
-            firstFrame = true;
             lastViw = viw;
             viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, float.NegativeInfinity));
         }
@@ -160,16 +156,12 @@ namespace OpenRelativity.Audio
             metric = SRelativityUtil.GetRindlerMetric(piw);
             tisw = relativisticObject.GetTisw();
 
-            float soundWorldTime = state.TotalTimeWorld + tisw + tihw;
+            float soundWorldTime = state.TotalTimeWorld + tihw;
 
             if (lastSoundWorldTime <= soundWorldTime)
             {
+                lastSoundWorldTime = soundWorldTime;
                 AudioSourceTransform.position = soundPosition;
-
-                if (!firstFrame)
-                {
-                    lastSoundWorldTime = soundWorldTime;
-                }
             }
             else
             {
@@ -197,8 +189,6 @@ namespace OpenRelativity.Audio
             }
 
             WorldSoundDopplerShift();
-
-            firstFrame = false;
 
             if (playTimeHistory.Count == 0)
             {
