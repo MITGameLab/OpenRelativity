@@ -228,6 +228,8 @@ namespace OpenRelativity.Audio
                 unitDisplacementSR = Vector3.up;
             }
 
+            float rsSqr = audioSystem.RapidityOfSound * audioSystem.RapidityOfSound;
+
             Vector3 sourceRapidity = viwHistory[0].viw;
             sourceRapidity = sourceRapidity * sourceRapidity.Gamma(metric);
             sourceRapidity -= audioSystem.WorldSoundMediumRapidity;
@@ -235,8 +237,6 @@ namespace OpenRelativity.Audio
             {
                 sourceRapidity *= -1;
             }
-
-            float rsSqr = audioSystem.RapidityOfSound * audioSystem.RapidityOfSound;
 
             Vector3 receiverRapidity = listenerViw;
             receiverRapidity = receiverRapidity * receiverRapidity.Gamma();
