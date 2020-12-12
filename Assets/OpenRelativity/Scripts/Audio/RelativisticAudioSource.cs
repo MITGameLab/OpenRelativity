@@ -88,12 +88,13 @@ namespace OpenRelativity.Audio
             {
                 // opticalPiw is theoretically invariant under velocity changes
                 // and therefore need not be cached
-                return piw + soundLightDelayTime * viw;
+                return relativisticObject.opticalPiw - soundLightDelayTime * viw;
             }
         }
 
         protected float soundLightDelayTime
         {
+            // soundLightDelayTime is negative.
             get
             {
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
