@@ -16,12 +16,15 @@ namespace OpenRelativity.Audio
 
         protected class RelativisticAudioSourcePlayTimeHistoryPoint
         {
-            public Vector4 sourceWorldSpaceTimePos { get; set; }
+            public Vector3 piw { get; set; }
+
+            public float tihw { get; set; }
             public int audioSourceIndex { get; set; }
 
-            public RelativisticAudioSourcePlayTimeHistoryPoint(Vector4 sourceWorldSTPos, int audioSource)
+            public RelativisticAudioSourcePlayTimeHistoryPoint(float t, Vector3 p, int audioSource)
             {
-                sourceWorldSpaceTimePos = sourceWorldSTPos;
+                tihw = t;
+                piw = p;
                 audioSourceIndex = audioSource;
             }
         }
@@ -211,12 +214,7 @@ namespace OpenRelativity.Audio
 
             WorldSoundDopplerShift();
 
-            if (playTimeHistory.Count == 0)
-            {
-                return;
-            }
-
-            while (playTimeHistory[0].sourceWorldSpaceTimePos.w >= soundWorldTime)
+            while ((playTimeHistory.Count > 0) && (playTimeHistory[0].tihw <= soundWorldTime))
             {
                 audioSources[playTimeHistory[0].audioSourceIndex].Play();
                 playTimeHistory.RemoveAt(0);
@@ -252,9 +250,9 @@ namespace OpenRelativity.Audio
             }
         }
 
-        public void PlayOnWorldClock(int audioSourceIndex = 0)
+        public void PlayOpticalOnWorldClock(int audioSourceIndex = 0)
         {
-            playTimeHistory.Add(new RelativisticAudioSourcePlayTimeHistoryPoint(relativisticObject.piw, audioSourceIndex));
+            playTimeHistory.Add(new RelativisticAudioSourcePlayTimeHistoryPoint(state.TotalTimeWorld + tisw, relativisticObject.piw, audioSourceIndex));
         }
     }
 }
