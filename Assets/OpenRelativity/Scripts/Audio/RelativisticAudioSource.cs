@@ -96,17 +96,17 @@ namespace OpenRelativity.Audio
             get
             {
                 // opticalPiw is (piw + tisw * viw), with sound lagged behind it.
-                return piw + (tisw + soundLightDelayTime) * viw;
+                return piw + (tihw - tisw) * viw;
             }
         }
 
-        protected float soundLightDelayTime
+        public float tihw
         {
             // soundLightDelayTime is negative
             get
             {
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
-                return tisw * Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight;
+                return tisw  * state.SpeedOfLight / Vector3.Project(soundVelocity, dispUnit).magnitude;
             }
         }
 
@@ -160,7 +160,7 @@ namespace OpenRelativity.Audio
             metric = SRelativityUtil.GetRindlerMetric(piw);
             tisw = relativisticObject.GetTisw();
 
-            float soundWorldTime = state.TotalTimeWorld + tisw + soundLightDelayTime;
+            float soundWorldTime = state.TotalTimeWorld + tisw + tihw;
 
             if (lastSoundWorldTime <= soundWorldTime)
             {
