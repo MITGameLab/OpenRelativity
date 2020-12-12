@@ -28,20 +28,20 @@ namespace OpenRelativity.Audio
 
         protected List<RelativisticAudioSourcePlayTimeHistoryPoint> playTimeHistory;
 
-        protected class RelativisticAudioSourceViwHistoryPoint
+        protected class RelativisticAudioSourcePVHistoryPoint
         {
             public Vector3 viw { get; set; }
 
             public float tihw { get; set; }
 
-            public RelativisticAudioSourceViwHistoryPoint(Vector3 v, float t)
+            public RelativisticAudioSourcePVHistoryPoint(Vector3 v, float t)
             {
                 viw = v;
                 tihw = t;
             }
         }
 
-        protected List<RelativisticAudioSourceViwHistoryPoint> viwHistory;
+        protected List<RelativisticAudioSourcePVHistoryPoint> viwHistory;
 
         public Vector3 piw
         {
@@ -109,8 +109,11 @@ namespace OpenRelativity.Audio
             }
         }
 
-        protected float lastSoundWorldTime = float.NegativeInfinity;
         protected Vector3 lastViw;
+
+        protected bool isSmoothingCollision;
+        protected float currentSmoothingTime;
+        protected float collisionSmoothingSeconds;
 
         // Start is called before the first frame update
         void Start()
@@ -118,7 +121,7 @@ namespace OpenRelativity.Audio
             audioSystem = RelativisticAudioSystem.Instance;
             relativisticObject = GetComponent<RelativisticObject>();
             playTimeHistory = new List<RelativisticAudioSourcePlayTimeHistoryPoint>();
-            viwHistory = new List<RelativisticAudioSourceViwHistoryPoint>();
+            viwHistory = new List<RelativisticAudioSourcePVHistoryPoint>();
 
             if (audioSources == null || audioSources.Length == 0)
             {
@@ -137,8 +140,9 @@ namespace OpenRelativity.Audio
                 }
             }
 
+            isSmoothingCollision = false;
             lastViw = viw;
-            viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, float.NegativeInfinity));
+            viwHistory.Add(new RelativisticAudioSourcePVHistoryPoint(viw, float.NegativeInfinity));
         }
 
         private void Update()
@@ -158,23 +162,13 @@ namespace OpenRelativity.Audio
 
             float soundWorldTime = state.TotalTimeWorld + tihw;
 
-            if (lastSoundWorldTime <= soundWorldTime)
-            {
-                lastSoundWorldTime = soundWorldTime;
-                AudioSourceTransform.position = soundPosition;
-            }
-            else
-            {
-                // If velocity changes, this helps smooth out a collision that puts the new sound time behind the old sound time.
-                AudioSourceTransform.position = Vector3.Lerp(AudioSourceTransform.position, soundPosition, Mathf.Min(1.0f, Time.deltaTime / (lastSoundWorldTime - soundWorldTime)));
-                // If the sound time suddenly increases, we don't have a compressed interval to Lerp(), so just move immediately up to date.
-                // TODO: (There are literally smoother ways we could handle this.)
-            }
-
             if (lastViw != viw)
             {
                 lastViw = viw;
-                viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, state.TotalTimeWorld + tisw));
+                isSmoothingCollision = true;
+                currentSmoothingTime = 0;
+                collisionSmoothingSeconds = tisw - tihw;
+                viwHistory.Add(new RelativisticAudioSourcePVHistoryPoint(viw, state.TotalTimeWorld + tisw));
             }
 
             while (viwHistory.Count > 1)
@@ -182,10 +176,26 @@ namespace OpenRelativity.Audio
                 if (viwHistory[1].tihw <= soundWorldTime)
                 {
                     viwHistory.RemoveAt(0);
-                } else
+                }
+                else
                 {
                     break;
                 }
+            }
+
+            if (isSmoothingCollision)
+            {
+                // If velocity changes, this helps smooth out a collision that puts the new sound time behind the old sound time.
+                currentSmoothingTime += Time.deltaTime;
+                AudioSourceTransform.position = Vector3.Lerp(AudioSourceTransform.position, soundPosition, Mathf.Min(1.0f, currentSmoothingTime / collisionSmoothingSeconds));
+                if (currentSmoothingTime >= collisionSmoothingSeconds)
+                {
+                    isSmoothingCollision = false;
+                }
+            }
+            else
+            {
+                AudioSourceTransform.position = soundPosition;
             }
 
             WorldSoundDopplerShift();
@@ -204,7 +214,7 @@ namespace OpenRelativity.Audio
 
         public void WorldSoundDopplerShift()
         {
-            Vector3 unitDisplacementSR = listenerPiw - soundPosition;
+            Vector3 unitDisplacementSR = listenerPiw - (piw + tihw * viwHistory[0].viw);
             unitDisplacementSR.Normalize();
             if (unitDisplacementSR == Vector3.zero)
             {
