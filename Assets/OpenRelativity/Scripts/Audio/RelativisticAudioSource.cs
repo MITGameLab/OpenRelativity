@@ -16,15 +16,13 @@ namespace OpenRelativity.Audio
 
         protected class RelativisticAudioSourcePlayTimeHistoryPoint
         {
-            public Vector3 piw { get; set; }
 
             public float tihw { get; set; }
             public int audioSourceIndex { get; set; }
 
-            public RelativisticAudioSourcePlayTimeHistoryPoint(float t, Vector3 p, int audioSource)
+            public RelativisticAudioSourcePlayTimeHistoryPoint(float t, int audioSource)
             {
                 tihw = t;
-                piw = p;
                 audioSourceIndex = audioSource;
             }
         }
@@ -256,7 +254,16 @@ namespace OpenRelativity.Audio
         /// <param name="audioSourceIndex"></param>
         public void PlaySeenNow(int audioSourceIndex = 0)
         {
-            playTimeHistory.Add(new RelativisticAudioSourcePlayTimeHistoryPoint(state.TotalTimeWorld + tisw, relativisticObject.piw, audioSourceIndex));
+            playTimeHistory.Add(new RelativisticAudioSourcePlayTimeHistoryPoint(state.TotalTimeWorld + tisw, audioSourceIndex));
+        }
+
+        /// <summary>
+        /// Play a sound delayed to match happening "now" on the world frame clock
+        /// </summary>
+        /// <param name="audioSourceIndex"></param>
+        public void PlayOnWorldClock(int audioSourceIndex = 0)
+        {
+            playTimeHistory.Add(new RelativisticAudioSourcePlayTimeHistoryPoint(state.TotalTimeWorld, audioSourceIndex));
         }
 
         /// <summary>
