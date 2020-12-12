@@ -57,7 +57,7 @@ namespace OpenRelativity.Objects
             {
                 pos = piw;
             }
-            return ((Vector4)pos.Value).GetTisw(viw, aiw);
+            return ((Vector4)pos.Value).GetTisw(viw, GetWorld4Acceleration());
         }
         public float GetVisualTime()
         {

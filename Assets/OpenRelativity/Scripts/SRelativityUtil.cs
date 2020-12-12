@@ -139,52 +139,74 @@ namespace OpenRelativity
             return metric;
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null)
         {
-            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
+            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, null, viwLorentzMatrix);
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
 
             //riw = location in world, for reference
-            Vector4 riw = stpiw - (Vector4)origin;
- 
-            Matrix4x4 vpcLorentzMatrix = GetLorentzTransformMatrix(vpc);
+            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
+
+            if (vpcLorentzMatrix == null)
+            {
+                vpcLorentzMatrix = GetLorentzTransformMatrix(vpc);
+            }
             // Boost to rest frame of player
-            Vector4 riwForMetric = vpcLorentzMatrix * riw;
+            Vector4 riwForMetric = vpcLorentzMatrix.Value * riw;
+
             //Find metric based on player acceleration and rest frame:
             Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
 
-            //Lorentz boost back to world frame:
-            vpcLorentzMatrix = vpcLorentzMatrix.inverse;
-            // The Lorentz transformation is just a coordinate transformation:
-            metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
+            //Lorentz boost back to world frame;
+            vpcLorentzMatrix = vpcLorentzMatrix.Value.inverse;
+            metric = vpcLorentzMatrix.Value.transpose * metric * vpcLorentzMatrix.Value;
 
             //We'll also Lorentz transform the vectors:
-            Matrix4x4 viwLorentzMatrix = GetLorentzTransformMatrix(viw);
+            if (viwLorentzMatrix == null)
+            {
+                viwLorentzMatrix = GetLorentzTransformMatrix(viw);
+            }
 
-            //Apply Lorentz transform:
-            Vector4 riwTransformed = viwLorentzMatrix * riw;
-            Vector4 aiwTransformed = viwLorentzMatrix * aiw;
-
-            //We need these values:
+            //Apply Lorentz transform;
+            metric = viwLorentzMatrix.Value.transpose * metric * viwLorentzMatrix.Value;
+            Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
+            Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
+            //Translate in time:
             float tisw = riwTransformed.w;
+            riwForMetric.w = 0;
+            riw = vpcLorentzMatrix.Value * riwForMetric;
+            riwTransformed = viwLorentzMatrix.Value * riw;
             riwTransformed.w = 0;
-            aiwTransformed.w = 0;
+
+            //(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
             float riwDotRiw = -Vector4.Dot(riwTransformed, metric * riwTransformed);
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
 
             float sqrtArg = riwDotRiw * (cSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * cSqrd)) / ((cSqrd - riwDotAiw) * (cSqrd - riwDotAiw));
+            float aiwMag = aiwTransformed.magnitude;
             float t2 = 0;
             if (sqrtArg > 0)
             {
                 t2 = -Mathf.Sqrt(sqrtArg);
             }
+
             tisw += t2;
+            //add the position offset due to acceleration
+            if (aiwMag > divByZeroCutoff)
+            {
+                riwTransformed = riwTransformed - aiwTransformed / aiwMag * cSqrd * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
+            }
+            riwTransformed.w = tisw;
+            //Inverse Lorentz transform the position:
+            viwLorentzMatrix = viwLorentzMatrix.Value.inverse;
+            riw = viwLorentzMatrix.Value * riwTransformed;
+            tisw = riw.w;
 
             return tisw;
         }

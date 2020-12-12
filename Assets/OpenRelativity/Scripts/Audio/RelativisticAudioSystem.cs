@@ -47,44 +47,5 @@ namespace OpenRelativity.Audio
         // Static system physical constants:
         public float RapidityOfSound = 343.0f;
         public Vector3 WorldSoundMediumRapidity = Vector3.zero;
-
-        public void WorldSoundDopplerShift(RelativisticAudioSource source)
-        {
-            Vector3 unitDisplacementSR = PlayerAudioListener.piw - source.piw;
-            unitDisplacementSR.Normalize();
-            if (unitDisplacementSR == Vector3.zero)
-            {
-                unitDisplacementSR = Vector3.up;
-            }
-
-            Vector3 sourceRapidity = source.viw;
-            sourceRapidity = sourceRapidity * sourceRapidity.InverseGamma(source.metric);
-
-            Vector3 receiverRapidity = PlayerAudioListener.viw;
-            receiverRapidity = receiverRapidity * receiverRapidity.InverseGamma();
-
-            float frequencyFactor = (RapidityOfSound + Vector3.Dot(sourceRapidity - WorldSoundMediumRapidity, unitDisplacementSR))
-                / (RapidityOfSound + Vector3.Dot(receiverRapidity - WorldSoundMediumRapidity, -unitDisplacementSR));
-
-            source.ShiftPitches(frequencyFactor);
-        }
-
-        public float WorldSoundVelocityDelay(RelativisticAudioSource source)
-        {
-            Vector3 displacement = PlayerAudioListener.piw - source.piw;
-            float distance = displacement.magnitude;
-
-            if (distance == 0)
-            {
-                return 0;
-            }
-
-            Vector3 dispUnit = displacement / distance;
-
-            Matrix4x4 m = source.metric;
-            float gamma = source.viw.Gamma(m);
-
-            return distance / (gamma * Vector3.Project(source.viw, dispUnit)).RapidityToVelocity(m).AddVelocity(source.soundVelocity).magnitude;
-        }
     }
 }

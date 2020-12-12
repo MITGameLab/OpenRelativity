@@ -94,12 +94,11 @@ namespace OpenRelativity.Audio
 
         protected float soundLightDelayTime
         {
-            // soundLightDelayTime is negative.
             get
             {
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
 
-                return tisw * (1 - Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight);
+                return tisw * Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight;
             }
         }
 
@@ -169,7 +168,7 @@ namespace OpenRelativity.Audio
                 // TODO: (There are literally smoother ways we could handle this.)
             }
 
-            audioSystem.WorldSoundDopplerShift(this);
+            WorldSoundDopplerShift();
 
             firstFrame = false;
 
@@ -178,11 +177,32 @@ namespace OpenRelativity.Audio
                 return;
             }
 
-            while (playTimeHistory[0].sourceWorldSpaceTimePos.w >= (state.TotalTimeWorld - audioSystem.WorldSoundVelocityDelay(this)))
+            while (playTimeHistory[0].sourceWorldSpaceTimePos.w >= soundWorldTime)
             {
                 audioSources[playTimeHistory[0].audioSourceIndex].Play();
                 playTimeHistory.RemoveAt(0);
             }
+        }
+
+        public void WorldSoundDopplerShift()
+        {
+            Vector3 unitDisplacementSR = listenerPiw - piw;
+            unitDisplacementSR.Normalize();
+            if (unitDisplacementSR == Vector3.zero)
+            {
+                unitDisplacementSR = Vector3.up;
+            }
+
+            Vector3 sourceRapidity = viw;
+            sourceRapidity = sourceRapidity * sourceRapidity.InverseGamma(metric);
+
+            Vector3 receiverRapidity = listenerViw;
+            receiverRapidity = receiverRapidity * receiverRapidity.InverseGamma();
+
+            float frequencyFactor = (audioSystem.RapidityOfSound + Vector3.Dot(sourceRapidity - audioSystem.WorldSoundMediumRapidity, unitDisplacementSR))
+                / (audioSystem.RapidityOfSound + Vector3.Dot(receiverRapidity - audioSystem.WorldSoundMediumRapidity, -unitDisplacementSR));
+
+            ShiftPitches(frequencyFactor);
         }
 
         public void ShiftPitches(float frequencyFactor)
