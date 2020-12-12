@@ -188,6 +188,7 @@ namespace OpenRelativity.Audio
 
             if (lastViw != viw)
             {
+                lastViw = viw;
                 viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, soundWorldTime));
             }
 
