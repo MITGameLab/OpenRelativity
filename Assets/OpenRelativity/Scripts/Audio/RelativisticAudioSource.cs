@@ -87,6 +87,11 @@ namespace OpenRelativity.Audio
             {
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
 
+                if (dispUnit.sqrMagnitude < 0.5f)
+                {
+                    return dispUnit = audioSystem.WorldSoundMediumRapidity.normalized;
+                }
+
                 return (audioSystem.RapidityOfSound * dispUnit + audioSystem.WorldSoundMediumRapidity)
                     .RapidityToVelocity(metric);
             }
@@ -105,6 +110,12 @@ namespace OpenRelativity.Audio
             get
             {
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
+
+                if (dispUnit.sqrMagnitude < 0.5f)
+                {
+                    return 0;
+                }
+
                 return tisw  * state.SpeedOfLight / Vector3.Project(soundVelocity, dispUnit).magnitude;
             }
         }
