@@ -100,14 +100,9 @@ namespace OpenRelativity.Audio
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
 
                 return (1 - ((Vector3.Dot(audioSystem.WorldSoundMediumRapidity, dispUnit) + audioSystem.RapidityOfSound) * dispUnit)
-                    .RapidityToVelocity(metric).magnitude / state.SpeedOfLight) * tisw;
+                return tisw * Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight;
             }
         }
-
-        private bool firstFrame;
-
-        protected float lastSoundWorldTime = float.NegativeInfinity;
-        protected Vector3 lastViw;
 
         // Start is called before the first frame update
         void Start()
@@ -132,8 +127,6 @@ namespace OpenRelativity.Audio
                     audioSources[i].dopplerLevel = 0;
                 }
             }
-
-            firstFrame = true;
         }
 
         private void Update()
@@ -148,31 +141,11 @@ namespace OpenRelativity.Audio
                 return;
             }
 
-            float soundWorldTime = state.TotalTimeWorld - soundLightDelayTime;
-
             metric = SRelativityUtil.GetRindlerMetric(piw);
 
-            if (lastSoundWorldTime <= soundWorldTime)
-            {
-                AudioSourceTransform.position = soundPosition;
-
-                if (!firstFrame)
-                {
-                    lastSoundWorldTime = soundWorldTime;
-                    lastViw = viw;
-                }
-            }
-            else
-            {
-                // If velocity changes, this helps smooth out a collision that puts the new sound time behind the old sound time.
-                AudioSourceTransform.position = Vector3.Lerp(AudioSourceTransform.position, soundPosition, Mathf.Min(1.0f, Time.deltaTime / (lastSoundWorldTime - soundWorldTime)));
-                // If the sound time suddenly increases, we don't have a compressed interval to Lerp(), so just move immediately up to date.
-                // TODO: (There are literally smoother ways we could handle this.)
-            }
+            AudioSourceTransform.position = soundPosition;
 
             audioSystem.WorldSoundDopplerShift(this);
-
-            firstFrame = false;
 
             if (playTimeHistory.Count == 0)
             {
