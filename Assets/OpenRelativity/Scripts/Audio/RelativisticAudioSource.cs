@@ -233,18 +233,10 @@ namespace OpenRelativity.Audio
             Vector3 sourceRapidity = viwHistory[0].viw;
             sourceRapidity = sourceRapidity * sourceRapidity.Gamma(metric);
             sourceRapidity -= audioSystem.WorldSoundMediumRapidity;
-            if (sourceRapidity.sqrMagnitude > rsSqr)
-            {
-                sourceRapidity *= -1;
-            }
 
             Vector3 receiverRapidity = listenerViw;
             receiverRapidity = receiverRapidity * receiverRapidity.Gamma();
             receiverRapidity -= audioSystem.WorldSoundMediumRapidity;
-            if (receiverRapidity.sqrMagnitude > rsSqr)
-            {
-                receiverRapidity *= -1;
-            }
 
             float frequencyFactor = (audioSystem.RapidityOfSound + Vector3.Dot(sourceRapidity, unitDisplacementSR))
                 / (audioSystem.RapidityOfSound + Vector3.Dot(receiverRapidity, -unitDisplacementSR));
