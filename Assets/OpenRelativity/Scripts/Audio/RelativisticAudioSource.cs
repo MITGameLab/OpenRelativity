@@ -63,13 +63,7 @@ namespace OpenRelativity.Audio
         // but it would be better 
         public Matrix4x4 metric { get; protected set; }
 
-        protected float tisw
-        {
-            get
-            {
-                return relativisticObject.GetTisw();
-            }
-        }
+        protected float tisw;
 
         protected Vector3 listenerPiw
         {
@@ -101,19 +95,18 @@ namespace OpenRelativity.Audio
         {
             get
             {
-                // opticalPiw is theoretically invariant under velocity changes
-                // and therefore need not be cached
-                return relativisticObject.opticalPiw + soundLightDelayTime * viw;
+                // opticalPiw is (piw + tisw * viw), with sound lagged behind it.
+                return piw + (tisw + soundLightDelayTime) * viw;
             }
         }
 
         protected float soundLightDelayTime
         {
+            // soundLightDelayTime is negative
             get
             {
                 Vector3 dispUnit = (listenerPiw - piw).normalized;
-
-                return tisw * (1 - Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight);
+                return tisw * Vector3.Project(soundVelocity, dispUnit).magnitude / state.SpeedOfLight;
             }
         }
 
@@ -165,8 +158,9 @@ namespace OpenRelativity.Audio
             }
 
             metric = SRelativityUtil.GetRindlerMetric(piw);
+            tisw = relativisticObject.GetTisw();
 
-            float soundWorldTime = state.TotalTimeWorld - soundLightDelayTime;
+            float soundWorldTime = state.TotalTimeWorld + tisw + soundLightDelayTime;
 
             if (lastSoundWorldTime <= soundWorldTime)
             {
@@ -175,7 +169,6 @@ namespace OpenRelativity.Audio
                 if (!firstFrame)
                 {
                     lastSoundWorldTime = soundWorldTime;
-                    lastViw = viw;
                 }
             }
             else
@@ -189,12 +182,12 @@ namespace OpenRelativity.Audio
             if (lastViw != viw)
             {
                 lastViw = viw;
-                viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, soundWorldTime));
+                viwHistory.Add(new RelativisticAudioSourceViwHistoryPoint(viw, state.TotalTimeWorld + tisw));
             }
 
             while (viwHistory.Count > 1)
             {
-                if (viwHistory[1].tihw >= state.TotalTimeWorld)
+                if (viwHistory[1].tihw <= soundWorldTime)
                 {
                     viwHistory.RemoveAt(0);
                 } else
