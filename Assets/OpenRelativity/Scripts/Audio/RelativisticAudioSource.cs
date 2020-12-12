@@ -194,7 +194,7 @@ namespace OpenRelativity.Audio
 
             while (viwHistory.Count > 1)
             {
-                if (viwHistory[1].tihw <= state.TotalTimeWorld)
+                if (viwHistory[1].tihw >= state.TotalTimeWorld)
                 {
                     viwHistory.RemoveAt(0);
                 } else
