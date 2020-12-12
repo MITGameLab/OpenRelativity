@@ -250,9 +250,22 @@ namespace OpenRelativity.Audio
             }
         }
 
-        public void PlayOpticalOnWorldClock(int audioSourceIndex = 0)
+        /// <summary>
+        /// Play a sound delayed to match being seen happen now.
+        /// </summary>
+        /// <param name="audioSourceIndex"></param>
+        public void PlaySeenNow(int audioSourceIndex = 0)
         {
             playTimeHistory.Add(new RelativisticAudioSourcePlayTimeHistoryPoint(state.TotalTimeWorld + tisw, relativisticObject.piw, audioSourceIndex));
+        }
+
+        /// <summary>
+        /// Play a sound heard right now.
+        /// </summary>
+        /// <param name="audioSourceIndex"></param>
+        public void PlayHeardNow(int audioSourceIndex = 0)
+        {
+            audioSources[audioSourceIndex].Play();
         }
     }
 }
