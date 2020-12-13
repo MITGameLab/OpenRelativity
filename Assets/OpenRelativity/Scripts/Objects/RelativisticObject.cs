@@ -126,7 +126,6 @@ namespace OpenRelativity.Objects
         #endregion
 
         #region Rigid body physics
-        private bool isSleeping;
         private const float SleepThreshold = 0.01f;
         private const float SleepTime = 0.05f;
         private float SleepTimer;
@@ -140,6 +139,10 @@ namespace OpenRelativity.Objects
             get
             {
                 return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+            }
+            set
+            {
+                piw = ((Vector4)value).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration());
             }
         }
 
@@ -232,7 +235,7 @@ namespace OpenRelativity.Objects
             {
                 _properAccel = monopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
 
-                if (!isSleeping)
+                if (SleepTimer > 0)
                 {
                     return _properAccel;
                 }
@@ -254,7 +257,7 @@ namespace OpenRelativity.Objects
             {
                 Vector3 accel = value;
 
-                if (isSleeping)
+                if (SleepTimer <= 0)
                 {
                     if (state.conformalMap != null)
                     {
@@ -1356,21 +1359,10 @@ namespace OpenRelativity.Objects
                 properAccel = myAccel;
             }
 
-            if (isSleeping && useGravity)
-            {
-                Collider myCollider = GetComponent<Collider>();
-                Vector3 gravUnit = Physics.gravity.normalized;
-                Vector3 dir = Vector3.Project(myCollider.bounds.extents, gravUnit);
-                Ray ray = new Ray(myCollider.bounds.center, gravUnit);
-                RaycastHit hitInfo;
-                if (!myCollider.Raycast(ray, out hitInfo, dir.magnitude))
-                {
-                    isSleeping = false;
-                }
-            }
+            CheckSleepPosition();
 
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
-            if (isKinematic || isSleeping || myRigidbody == null)
+            if (isKinematic || SleepTimer <= 0 || myRigidbody == null)
             {
 
                 if (myRigidbody != null)
@@ -1392,7 +1384,7 @@ namespace OpenRelativity.Objects
 
                 UpdateShaderParams();
 
-                isSleeping = true;
+                SleepTimer = 0;
 
                 // We're done.
                 return;
@@ -1445,6 +1437,32 @@ namespace OpenRelativity.Objects
             myRigidbody.angularVelocity = gamma * aviw;
         }
 
+        protected void CheckSleepPosition()
+        {
+            if (SleepTimer > 0 || !useGravity)
+            {
+                return;
+            }
+
+            Collider myCollider = GetComponent<Collider>();
+            Vector3 gravUnit = Physics.gravity.normalized;
+            Vector3 dir = Vector3.Project(myCollider.bounds.extents, gravUnit);
+            float dist = dir.magnitude;
+            Ray ray = new Ray(myCollider.bounds.center - 0.99f * dist * gravUnit, gravUnit);
+            RaycastHit hitInfo;
+            if (Physics.Raycast(ray, out hitInfo, 2.0f * dist) && (hitInfo.distance > 0.01f * dist))
+            {
+                Collider oCollider = hitInfo.collider;
+                opticalPiw -= (1.99f * dist - hitInfo.distance) * gravUnit;
+                UpdateContractorPosition();
+                UpdateColliderPosition();
+            }
+            else
+            {
+                SleepTimer = SleepTime;
+            }
+        }
+
         public void OnCollisionEnter(Collision collision)
         {
             OnCollision(collision);
@@ -1474,14 +1492,7 @@ namespace OpenRelativity.Objects
                 RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
                 if (otherRO.SleepTimer <= 0)
                 {
-                    Vector3 extents = myColliders[0].bounds.extents;
-                    Ray rayDown = new Ray(transform.position + extents.y * Vector3.up, Vector3.down);
-                    RaycastHit hitInfo;
-                    if (myColliders[0].Raycast(rayDown, out hitInfo, 2.0f * extents.y))
-                    {
-                        piw = new Vector3(piw.x, piw.y + extents.y - hitInfo.distance, piw.z);
-                    }
-
+                    CheckSleepPosition();
                     return;
                 }
             }         
@@ -1508,16 +1519,20 @@ namespace OpenRelativity.Objects
                 ContactPoint contact = collision.contacts[0];
                 if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
                 {
+                    Vector3 oPos = opticalPiw;
+
                     viw = Vector3.zero;
                     aviw = Vector3.zero;
                     cviw = Vector3.zero;
-                    isSleeping = true;
+                    SleepTimer = 0;
+
+                    opticalPiw = oPos;
 
                     return;
                 }
             }
 
-            isSleeping = false;
+            SleepTimer = SleepTime;
 
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
