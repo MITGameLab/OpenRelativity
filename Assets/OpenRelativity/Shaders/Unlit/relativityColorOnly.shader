@@ -9,6 +9,7 @@ Shader "Relativity/Unlit/ColorOnly"
 		_UVTex("UV", 2D) = "" {} //UV texture
 		_IRTex("IR",2D) = "" {} //IR texture
 		_Cutoff("Base Alpha cutoff", Range(0,.9)) = 0.1 //Used to determine when not to render alpha materials
+		[HideInInspector] _lastUpdateSeconds("_lastUpdateSeconds", Range(0, 2500000)) = 0
 	}
 
 		CGINCLUDE

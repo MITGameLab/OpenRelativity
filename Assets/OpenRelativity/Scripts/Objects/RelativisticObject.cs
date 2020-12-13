@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -959,9 +960,9 @@ namespace OpenRelativity.Objects
             if (myRenderer != null)
             {
                 Vector3 tempViw = cviw.AddVelocity(viw) / state.SpeedOfLight;
-                Vector4 tempAiw = updateWorld4Acceleration;
+                Vector4 tempAiw = GetWorld4Acceleration();
                 Vector4 tempPao = GetProper4Acceleration();
-                Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / state.SpeedOfLight;
+                Vector4 tempVr = tempViw.AddVelocity(-state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector)) / state.SpeedOfLight;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
@@ -979,6 +980,7 @@ namespace OpenRelativity.Objects
                     myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                     myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
                     myRenderer.materials[i].SetVector("_vr", tempVr);
+                    myRenderer.materials[i].SetFloat("_lastUpdateSeconds", Time.time);
                 }
             }
         }
@@ -1209,6 +1211,36 @@ namespace OpenRelativity.Objects
 
         void Update()
         {
+            if (isLightMapStatic)
+            {
+                if (myRenderer == null || isNonrelativisticShader)
+                {
+                    return;
+                }
+
+                bool doUpdate = false;
+
+                float comparisonTime;
+                for (int i = 0; i < myRenderer.materials.Length; i++)
+                {
+                    comparisonTime = myRenderer.materials[i].GetFloat("_lastUpdateSeconds");
+
+                    // 1/60th of a second
+                    if ((Time.time - comparisonTime) > (1.0f / 60.0f))
+                    {
+                        doUpdate = true;
+                        break;
+                    }
+                }
+
+                if (doUpdate)
+                {
+                    UpdateShaderParams();
+                }
+
+                return;
+            }
+
             UpdatePhysicsCaches();
 
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;

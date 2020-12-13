@@ -27,6 +27,7 @@ Shader "Relativity/Lit/Standard" {
 		_EmissionMultiplier("Emission multiplier", Range(0,10)) = 1
 		_pap("pap", Vector) = (0,0,0,0) //Vector that represents the player's proper acceleration
 		_Cutoff("Base alpha cutoff", Range(0,.9)) = 0.1
+		[HideInInspector] _lastUpdateSeconds("_lastUpdateSeconds", Range(0, 2500000)) = 0
 	}
 		CGINCLUDE
 
