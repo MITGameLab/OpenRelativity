@@ -209,13 +209,13 @@ namespace OpenRelativity.Audio
                 // If velocity changes, this helps smooth out a collision that puts the new sound time behind the old sound time.
                 currentSmoothingTime += Time.deltaTime;
 
-                if (currentSmoothingTime < 1.0f)
+                if (currentSmoothingTime < collisionSmoothingSeconds)
                 {
-                    AudioSourceTransform.position = Vector3.Lerp(collisionSoundPos, collisionOpticalPos, Mathf.Min(1.0f, currentSmoothingTime / collisionSmoothingSeconds));
+                    AudioSourceTransform.position = Vector3.Lerp(collisionSoundPos, collisionOpticalPos, currentSmoothingTime / collisionSmoothingSeconds);
                 }
-
-                if (currentSmoothingTime >= collisionSmoothingSeconds)
+                else
                 {
+                    AudioSourceTransform.position = soundPosition;
                     isSmoothingCollision = false;
                 }
             }
