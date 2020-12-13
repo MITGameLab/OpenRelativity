@@ -1332,6 +1332,12 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            if (isLightMapStatic)
+            {
+                UpdateColliderPosition();
+                return;
+            }
+
             UpdatePhysicsCaches();
 
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
