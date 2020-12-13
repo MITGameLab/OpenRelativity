@@ -1450,14 +1450,14 @@ namespace OpenRelativity.Objects
             float dist = dir.magnitude;
             Ray ray = new Ray(myCollider.bounds.center - 0.99f * dist * gravUnit, gravUnit);
             RaycastHit hitInfo;
-            if (Physics.Raycast(ray, out hitInfo, 2.0f * dist) && (hitInfo.distance > 0.01f * dist))
+            if (Physics.Raycast(ray, out hitInfo, 1.99f * dist))
             {
                 Collider oCollider = hitInfo.collider;
                 opticalPiw -= (1.99f * dist - hitInfo.distance) * gravUnit;
                 UpdateContractorPosition();
                 UpdateColliderPosition();
             }
-            else
+            else if (!Physics.Raycast(ray, out hitInfo, 2.05f * dist))
             {
                 SleepTimer = SleepTime;
             }
