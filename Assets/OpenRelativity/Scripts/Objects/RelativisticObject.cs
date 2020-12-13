@@ -1356,6 +1356,19 @@ namespace OpenRelativity.Objects
                 properAccel = myAccel;
             }
 
+            if (isSleeping && useGravity)
+            {
+                Collider myCollider = GetComponent<Collider>();
+                Vector3 gravUnit = Physics.gravity.normalized;
+                Vector3 dir = Vector3.Project(myCollider.bounds.extents, gravUnit);
+                Ray ray = new Ray(myCollider.bounds.center, gravUnit);
+                RaycastHit hitInfo;
+                if (!myCollider.Raycast(ray, out hitInfo, dir.magnitude))
+                {
+                    isSleeping = false;
+                }
+            }
+
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
             if (isKinematic || isSleeping || myRigidbody == null)
             {
@@ -1503,6 +1516,8 @@ namespace OpenRelativity.Objects
                     return;
                 }
             }
+
+            isSleeping = false;
 
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
