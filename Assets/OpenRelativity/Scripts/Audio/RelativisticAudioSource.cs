@@ -123,7 +123,6 @@ namespace OpenRelativity.Audio
 
         protected Vector3 lastViw;
 
-        protected bool isSmoothingCollision;
         protected float currentSmoothingTime;
         protected float collisionSmoothingSeconds;
         protected Vector3 collisionSoundPos;
@@ -154,7 +153,6 @@ namespace OpenRelativity.Audio
                 }
             }
 
-            isSmoothingCollision = false;
             lastViw = viw;
             viwHistory.Add(new RelativisticAudioSourcePVHistoryPoint(viw, float.NegativeInfinity));
         }
@@ -179,9 +177,9 @@ namespace OpenRelativity.Audio
             if (lastViw != viw)
             {
                 lastViw = viw;
-                isSmoothingCollision = true;
                 currentSmoothingTime = 0;
                 collisionSmoothingSeconds = tisw - tihw;
+
                 // This is a hack, but acceptable for gaming. If multiple collisions happen,
                 // the audio source will interpolate between in-flight position and ultimate end point
                 // from light and collision physics simulation.
@@ -204,7 +202,7 @@ namespace OpenRelativity.Audio
                 }
             }
 
-            if (isSmoothingCollision)
+            if (currentSmoothingTime < collisionSmoothingSeconds)
             {
                 // If velocity changes, this helps smooth out a collision that puts the new sound time behind the old sound time.
                 currentSmoothingTime += Time.deltaTime;
@@ -216,7 +214,6 @@ namespace OpenRelativity.Audio
                 else
                 {
                     AudioSourceTransform.position = soundPosition;
-                    isSmoothingCollision = false;
                 }
             }
             else
