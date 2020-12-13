@@ -78,6 +78,19 @@ namespace OpenRelativity.Objects
         // In free-fall, gravitational fields disappear. Hence, when the player is in free-fall, their acceleration is considered to be zero,
         // while it is considered to be "upwards" when they are at rest under the effects of gravity, so they don't fall through the surface they're feeling pushed into.)
         // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
+
+        protected float updateViwTimeFactor;
+        protected float updatePlayerViwTimeFactor;
+        protected Matrix4x4 updateMetric;
+        protected Vector4 updateWorld4Acceleration;
+        protected Vector3 updateOpticalPos
+        {
+            get
+            {
+                return ((Vector4)piw).WorldToOptical(viw, updateWorld4Acceleration);
+            }
+        }
+
         public Matrix4x4 GetMetric()
         {
             return SRelativityUtil.GetRindlerMetric(piw);
@@ -331,7 +344,9 @@ namespace OpenRelativity.Objects
             _viw = vf;
             _nonGravAccel = af;
 
-            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi, GetTimeFactor()))).OpticalToWorldHighPrecision(vf, aiw.ProperToWorldAccel(vf, GetTimeFactor()));
+            float timeFac = GetTimeFactor();
+
+            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi, timeFac))).OpticalToWorldHighPrecision(vf, aiw.ProperToWorldAccel(vf, timeFac));
 
             if (!IsNaNOrInf(piw.magnitude))
             {
@@ -665,6 +680,23 @@ namespace OpenRelativity.Objects
             transform.localPosition = Vector3.zero;
             ContractLength();
         }
+
+        protected void CacheUpdateContractorPosition()
+        {
+            if (!isNonrelativisticShader)
+            {
+                return;
+            }
+
+            if (contractor == null)
+            {
+                SetUpContractor();
+            }
+
+            contractor.position = updateOpticalPos;
+            transform.localPosition = Vector3.zero;
+            ContractLength();
+        }
         #endregion
 
         #region RelativisticObject internals
@@ -919,7 +951,7 @@ namespace OpenRelativity.Objects
             if (myRenderer != null)
             {
                 Vector3 tempViw = cviw.AddVelocity(viw) / state.SpeedOfLight;
-                Vector4 tempAiw = GetWorld4Acceleration();
+                Vector4 tempAiw = updateWorld4Acceleration;
                 Vector4 tempPao = GetProper4Acceleration();
                 Vector4 tempVr = tempViw.AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector))) / state.SpeedOfLight;
 
@@ -997,8 +1029,7 @@ namespace OpenRelativity.Objects
             }
 
             // If we're in an invalid state, (such as before full initialization,) set to zero.
-            float timeFac = GetTimeFactor();
-            if (IsNaNOrInf(timeFac) || timeFac == 0)
+            if (updatePlayerViwTimeFactor == 0)
             {
                 myRigidbody.velocity = Vector3.zero;
                 myRigidbody.angularVelocity = Vector3.zero;
@@ -1006,8 +1037,8 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            myRigidbody.velocity = _viw * timeFac;
-            myRigidbody.angularVelocity = _aviw * timeFac;
+            myRigidbody.velocity = _viw * updatePlayerViwTimeFactor;
+            myRigidbody.angularVelocity = _aviw * updatePlayerViwTimeFactor;
         }
         #endregion
 
@@ -1150,6 +1181,19 @@ namespace OpenRelativity.Objects
         {
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
+            updateMetric = GetMetric();
+            updatePlayerViwTimeFactor = state.PlayerVelocityVector.InverseGamma(updateMetric);
+            if (IsNaNOrInf(updateViwTimeFactor))
+            {
+                updateViwTimeFactor = 1;
+            }
+            updateViwTimeFactor = viw.InverseGamma(updateMetric);
+            if (IsNaNOrInf(updateViwTimeFactor))
+            {
+                updateViwTimeFactor = 1;
+            }
+            updateWorld4Acceleration = aiw.ProperToWorldAccel(viw, updateViwTimeFactor);
+
             if (myRigidbody != null)
             {
                 if ((_viw.sqrMagnitude < SleepThreshold) &&
@@ -1184,7 +1228,7 @@ namespace OpenRelativity.Objects
             if (isNonrelativisticShader)
             {
                 UpdateShaderParams();
-                UpdateContractorPosition();
+                CacheUpdateContractorPosition();
 
                 return;
             }
@@ -1265,7 +1309,20 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
+            updateMetric = GetMetric();
+            updatePlayerViwTimeFactor = state.PlayerVelocityVector.InverseGamma(updateMetric);
+            if (IsNaNOrInf(updateViwTimeFactor))
+            {
+                updateViwTimeFactor = 1;
+            }
+            updateViwTimeFactor = viw.InverseGamma(updateMetric);
+            if (IsNaNOrInf(updateViwTimeFactor))
+            {
+                updateViwTimeFactor = 1;
+            }
+            updateWorld4Acceleration = aiw.ProperToWorldAccel(viw, updateViwTimeFactor);
+
+            float deltaTime = state.FixedDeltaTimePlayer * updatePlayerViwTimeFactor;
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
 
             if (state.conformalMap != null)
@@ -1379,7 +1436,7 @@ namespace OpenRelativity.Objects
                 }
                 else
                 {
-                    transform.position = isNonrelativisticShader ? opticalPiw : piw;
+                    transform.position = isNonrelativisticShader ? updateOpticalPos : piw;
                 }
 
                 UpdateShaderParams();
@@ -1414,7 +1471,7 @@ namespace OpenRelativity.Objects
                 if (isNonrelativisticShader)
                 {
                     transform.parent = null;
-                    testVec = opticalPiw;
+                    testVec = updateOpticalPos;
                     if (!IsNaNOrInf(testVec.sqrMagnitude))
                     {
                         myRigidbody.MovePosition(testVec);
@@ -1432,9 +1489,8 @@ namespace OpenRelativity.Objects
             #endregion
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
-            float gamma = GetTimeFactor(viw);
-            myRigidbody.velocity = gamma * viw;
-            myRigidbody.angularVelocity = gamma * aviw;
+            myRigidbody.velocity = updateViwTimeFactor * viw;
+            myRigidbody.angularVelocity = updateViwTimeFactor * aviw;
         }
 
         protected void CheckSleepPosition()
@@ -1454,7 +1510,7 @@ namespace OpenRelativity.Objects
             {
                 Collider oCollider = hitInfo.collider;
                 opticalPiw -= (1.99f * dist - hitInfo.distance) * gravUnit;
-                UpdateContractorPosition();
+                CacheUpdateContractorPosition();
                 UpdateColliderPosition();
             }
             else if (!Physics.Raycast(ray, out hitInfo, 2.05f * dist))
@@ -1519,14 +1575,10 @@ namespace OpenRelativity.Objects
                 ContactPoint contact = collision.contacts[0];
                 if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
                 {
-                    Vector3 oPos = opticalPiw;
-
                     viw = Vector3.zero;
                     aviw = Vector3.zero;
                     cviw = Vector3.zero;
                     SleepTimer = 0;
-
-                    opticalPiw = oPos;
 
                     return;
                 }
@@ -1536,16 +1588,16 @@ namespace OpenRelativity.Objects
 
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
-            piw = isNonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : myRigidbody.position;
+            piw = isNonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, updateWorld4Acceleration) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
-            viw = myRigidbody.velocity.RapidityToVelocity(GetMetric());
-            aviw = myRigidbody.angularVelocity / GetTimeFactor();
+            viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
+            aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
 
             // Make sure we're not updating to faster than max speed
             checkSpeed();
 
-            UpdateContractorPosition();
+            CacheUpdateContractorPosition();
             UpdateColliderPosition();
         }
         #endregion
