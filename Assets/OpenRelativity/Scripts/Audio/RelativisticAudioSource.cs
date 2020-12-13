@@ -182,7 +182,12 @@ namespace OpenRelativity.Audio
                 isSmoothingCollision = true;
                 currentSmoothingTime = 0;
                 collisionSmoothingSeconds = tisw - tihw;
+                // This is a hack, but acceptable for gaming. If multiple collisions happen,
+                // the audio source will interpolate between in-flight position and ultimate end point
+                // from light and collision physics simulation.
+                // TODO: Consider tracing exact idealized in-flight collision history.
                 collisionSoundPos = AudioSourceTransform.position;
+
                 collisionOpticalPos = relativisticObject.opticalPiw;
                 viwHistory.Add(new RelativisticAudioSourcePVHistoryPoint(viw, state.TotalTimeWorld + tisw));
             }
