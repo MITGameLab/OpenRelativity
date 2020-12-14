@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -1213,7 +1212,13 @@ namespace OpenRelativity.Objects
         {
             if (isLightMapStatic)
             {
-                if (myRenderer == null || isNonrelativisticShader)
+                if (isNonrelativisticShader)
+                {
+                    UpdateContractorPosition();
+                    return;
+                }
+
+                if (myRenderer == null)
                 {
                     return;
                 }
