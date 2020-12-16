@@ -64,7 +64,6 @@ Shader "Relativity/Unlit/ColorOnly"
 		float4 pos2 : TEXCOORD0; //Position in world, relative to player position in world
 		float2 uv1 : TEXCOORD1; //Used to specify what part of the texture to grab in the fragment shader(not relativity specific, general shader variable)
 		float svc : TEXCOORD2; //sqrt( 1 - (v-c)^2), calculated in vertex shader to save operations in fragment. It's a term used often in lorenz and doppler shift calculations, so we need to keep it cached to save computing
-		float4 vr : TEXCOORD3; //Relative velocity of object vpc - viw
 	};
 
 						   //Variables that we use to access texture data
