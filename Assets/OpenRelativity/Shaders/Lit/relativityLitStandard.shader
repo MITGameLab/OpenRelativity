@@ -33,8 +33,6 @@ Shader "Relativity/Lit/Standard" {
 
 #pragma exclude_renderers xbox360
 #pragma glsl
-// TODO: Shouldn't be necessary to define this if headers are included in shadow variants/passes only
-#define TRANSFER_SHADOW(a) a._ShadowCoord = mul( unity_WorldToShadow[0], mul( unity_ObjectToWorld, v.vertex ) );
 #include "UnityStandardCore.cginc"
 
 #define M_PI 3.14159265358979323846f

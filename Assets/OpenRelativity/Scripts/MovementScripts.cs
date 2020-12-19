@@ -418,7 +418,6 @@ namespace OpenRelativity
             float dist;
             if (collider.Raycast(rayDown, out hitInfo, 0.5f * extents.y))
             {
-
                 if (frames > INIT_FRAME_WAIT)
                 {
                     Vector3 pVel = state.PlayerVelocityVector;
@@ -441,7 +440,7 @@ namespace OpenRelativity
 
                     
                     dist = 0.5f * extents.y - hitInfo.distance;
-                    if (dist > 0.01f)
+                    if (dist > 0.1f)
                     {
                         Vector3 pos = state.playerTransform.position;
                         state.playerTransform.position = new Vector3(pos.x, pos.y + dist, pos.z);
