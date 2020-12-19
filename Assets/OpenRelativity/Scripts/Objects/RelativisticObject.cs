@@ -589,10 +589,8 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public void UpdateColliderPosition(Collider toUpdate = null)
+        public void UpdateColliderPosition()
         {
-            Matrix4x4 vpcLorentz = state.PlayerLorentzMatrix;
-
             if (myColliderIsVoxel || isNonrelativisticShader || myColliders == null || myColliders.Length == 0)
             {
                 return;
