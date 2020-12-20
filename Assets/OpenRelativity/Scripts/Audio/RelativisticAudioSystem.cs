@@ -5,24 +5,19 @@ namespace OpenRelativity.Audio
 {
     public class RelativisticAudioSystem : RelativisticBehavior
     {
-        // We want a "System" (in Entity-Component-Systems) to be unique.
-        // Ensure a singleton:
-
-        private static RelativisticAudioSystem _instance;
-
-        public static RelativisticAudioSystem Instance { get { return _instance; } }
+        public static RelativisticAudioSystem Instance { get; private set; }
 
         public static RelativisticAudioListener PlayerAudioListener;
 
         private void Awake()
         {
-            if (_instance != null && _instance != this)
+            if (Instance != null && Instance != this)
             {
                 Destroy(this.gameObject);
             }
             else
             {
-                _instance = this;
+                Instance = this;
 
                 PlayerAudioListener = Camera.main.GetComponent<RelativisticAudioListener>();
             }

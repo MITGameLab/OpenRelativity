@@ -397,12 +397,6 @@ namespace OpenRelativity
 
             Rigidbody otherRB = collider.GetComponent<Rigidbody>();
             GameObject otherGO = collider.gameObject;
-            RelativisticObject otherRO = otherGO.GetComponent<RelativisticObject>();
-
-            if (otherRO == null || (otherRB != null && !otherRB.isKinematic))
-            {
-                return;
-            }
 
             Collider myColl = GetComponent<Collider>();
             Vector3 extents = myColl.bounds.extents;

@@ -1604,7 +1604,7 @@ namespace OpenRelativity.Objects
             if (SleepTimer <= 0)
             {
                 RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
-                if (otherRO.SleepTimer <= 0)
+                if (otherRO == null || otherRO.SleepTimer <= 0)
                 {
                     CheckSleepPosition();
                     return;
