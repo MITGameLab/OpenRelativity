@@ -19,7 +19,6 @@ namespace OpenRelativity.Objects
         private int cullingFrameCount;
 
         //We cache (static) colliders and collider positions in parallel: 
-        private Vector3[] queuedOrigPositions { get; set; }
         private List<Vector3> origPositionsList { get; set; }
         private List<Vector3> queuedOrigPositionsList { get; set; }
         private List<BoxCollider> allColliders { get; set; }
