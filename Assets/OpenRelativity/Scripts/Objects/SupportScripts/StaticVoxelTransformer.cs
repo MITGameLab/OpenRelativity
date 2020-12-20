@@ -32,7 +32,6 @@ namespace OpenRelativity.Objects
         private ComputeBuffer paramsBuffer;
         private ComputeBuffer posBuffer;
         //To avoid garbage collection, we might over-allocate the buffer:
-        private int origPositionsBufferLength;
         private Vector3[] trnsfrmdPositions;
 
         System.Diagnostics.Stopwatch coroutineTimer;
@@ -140,8 +139,6 @@ namespace OpenRelativity.Objects
 
             queuedColliders.AddRange(collidersToAdd);
             queuedOrigPositionsList.AddRange(positionsToAdd);
-            queuedOrigPositions = queuedOrigPositionsList.ToArray();
-            origPositionsBufferLength = queuedOrigPositions.Length;
 
             Cull();
 
@@ -226,9 +223,6 @@ namespace OpenRelativity.Objects
 
                 queuedColliders.Clear();
                 queuedColliders.AddRange(allColliders);
-                queuedOrigPositionsList.Clear();
-                queuedOrigPositionsList.AddRange(origPositionsList);
-                queuedOrigPositions = queuedOrigPositionsList.ToArray();
                 cullingFrameCount = 0;
 
                 StartTransformCoroutine();
@@ -247,7 +241,7 @@ namespace OpenRelativity.Objects
                 Cull();
             }
 
-            if (origPositionsBufferLength > 0)
+            if (queuedOrigPositionsList.Count > 0)
             {
                 colliderShaderParams.viw = Vector3.zero;
                 colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero, 1);
@@ -275,14 +269,14 @@ namespace OpenRelativity.Objects
                 paramsBuffer.SetData(spa);
                 if (posBuffer == null)
                 {
-                    posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+                    posBuffer = new ComputeBuffer(queuedOrigPositionsList.Count, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
                 }
-                else if (posBuffer.count < origPositionsBufferLength)
+                else if (posBuffer.count < queuedOrigPositionsList.Count)
                 {
                     posBuffer.Dispose();
-                    posBuffer = new ComputeBuffer(origPositionsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+                    posBuffer = new ComputeBuffer(queuedOrigPositionsList.Count, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
                 }
-                if (trnsfrmdPositions == null || (trnsfrmdPositions.Length < queuedOrigPositions.Length))
+                if (trnsfrmdPositions == null || (trnsfrmdPositions.Length < queuedOrigPositionsList.Count))
                 {
                     trnsfrmdPositions = queuedOrigPositionsList.ToArray();
                 }
@@ -293,13 +287,13 @@ namespace OpenRelativity.Objects
                     dispatchedShader = false;
                 }
 
-                posBuffer.SetData(queuedOrigPositions);
+                posBuffer.SetData(queuedOrigPositionsList.ToArray());
                 int kernel = colliderShader.FindKernel("CSMain");
                 colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
                 colliderShader.SetBuffer(kernel, "verts", posBuffer);
 
                 //Dispatch doesn't block, but it might take multiple frames to return:
-                colliderShader.Dispatch(kernel, origPositionsBufferLength, 1, 1);
+                colliderShader.Dispatch(kernel, queuedOrigPositionsList.Count, 1, 1);
                 dispatchedShader = true;
 
                 //Update the old result while waiting:
@@ -339,12 +333,12 @@ namespace OpenRelativity.Objects
 
             for (int i = 0; i < queuedColliders.Count; i++)
             {
-                if (i >= queuedColliders.Count || i >= queuedOrigPositions.Length)
+                if (i >= queuedColliders.Count || i >= queuedOrigPositionsList.Count)
                 {
                     break;
                 }
                 queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(
-                    ((Vector4)queuedOrigPositions[i]).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
+                    ((Vector4)queuedOrigPositionsList[i]).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
                 );
 
                 //Change mesh:
@@ -372,9 +366,9 @@ namespace OpenRelativity.Objects
             List<Vector3> rosPiw = new List<Vector3>();
             for (int i = 0; i < ros.Length; i++)
             {
-                if (ros[i].GetComponent<Rigidbody>() != null)
+                if (!ros[i].isLightMapStatic && ros[i].GetComponent<Rigidbody>() != null)
                 {
-                    Collider roC = ros[i].GetComponent<Collider>();
+                    Collider roC = ros[i].GetComponent<BoxCollider>();
                     if ((roC != null) && roC.enabled)
                     {
                         rosPiw.Add(ros[i].piw);
