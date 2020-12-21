@@ -1183,6 +1183,11 @@ namespace OpenRelativity.Objects
             //     Vector3 center = camTransform.position;
             //     meshFilter.sharedMesh.bounds = new Bounds(distToCenter * camTransform.forward + center, 2 * distToCenter * Vector3.one);
             // }
+
+            if (isNonrelativisticShader)
+            {
+                UpdateContractorPosition();
+            }
         }
 
         protected bool isPhysicsCacheValid;

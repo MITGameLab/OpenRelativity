@@ -14,8 +14,8 @@ namespace OpenRelativity.Objects
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
-        private const int cullingSqrDistance = 64 * 64;
-        private const int cullingFrameInterval = 10;
+        private const int cullingSqrDistance = 8 * 8;
+        private const int cullingFrameInterval = 8;
         private int cullingFrameCount;
 
         //We cache (static) colliders and collider positions in parallel: 
