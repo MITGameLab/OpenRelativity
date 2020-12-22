@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -433,10 +434,6 @@ namespace OpenRelativity.Objects
         private bool hasParent = false;
         //Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
-        //Store our raw vertices in this variable, so that we can refer to them later.
-        private Vector3[] rawVertsBuffer;
-        //To avoid garbage collection, we might over-allocate the buffer:
-        private int rawVertsBufferLength;
 
         //When was this object created? use for moving objects
         private bool hasStarted;
@@ -507,9 +504,22 @@ namespace OpenRelativity.Objects
                 myRigidbody.collisionDetectionMode = collisionDetectionMode;
             }
 
-            if (rawVertsBufferLength == 0)
+            if (colliderShaderMesh == null || colliderShaderMesh.vertexCount == 0)
             {
                 return;
+            }
+
+            if (paramsBuffer == null)
+            {
+                paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
+
+                // Skip the first frame, so PhysX can clean the mesh;
+                return;
+            }
+
+            if (vertBuffer == null)
+            {
+                vertBuffer = new ComputeBuffer(colliderShaderMesh.vertexCount, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
             }
 
             //Set remaining global parameters:
@@ -525,27 +535,13 @@ namespace OpenRelativity.Objects
 
             ShaderParams[] spa = new ShaderParams[1];
             spa[0] = colliderShaderParams;
-
             //Put verts in R/W buffer and dispatch:
-            if (paramsBuffer == null)
-            {
-                paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
-            }
             paramsBuffer.SetData(spa);
-            if (vertBuffer == null)
-            {
-                vertBuffer = new ComputeBuffer(rawVertsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
-            }
-            else if (vertBuffer.count != rawVertsBufferLength)
-            {
-                vertBuffer.Dispose();
-                vertBuffer = new ComputeBuffer(rawVertsBufferLength, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
-            }
-            vertBuffer.SetData(rawVertsBuffer);
+            vertBuffer.SetData(colliderShaderMesh.vertices);
             int kernel = colliderShader.FindKernel("CSMain");
             colliderShader.SetBuffer(kernel, "glblPrms", paramsBuffer);
             colliderShader.SetBuffer(kernel, "verts", vertBuffer);
-            colliderShader.Dispatch(kernel, rawVertsBufferLength, 1, 1);
+            colliderShader.Dispatch(kernel, colliderShaderMesh.vertexCount, 1, 1);
             vertBuffer.GetData(trnsfrmdMeshVerts);
 
             //Change mesh:
@@ -556,40 +552,29 @@ namespace OpenRelativity.Objects
 
         private void UpdateCollider()
         {
+            MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
+
+            //Get the vertices of our mesh
+            if ((colliderShaderMesh == null) && (meshFilter != null) && meshFilter.sharedMesh.isReadable)
+            {
+                colliderShaderMesh = Instantiate(meshFilter.sharedMesh);
+            }
+
+            if (colliderShaderMesh != null)
+            {
+                trnsfrmdMesh = Instantiate(colliderShaderMesh);
+                trnsfrmdMeshVerts = (Vector3[])trnsfrmdMesh.vertices.Clone();
+                trnsfrmdMesh.MarkDynamic();
+            }
+
             if (GetComponent<ObjectBoxColliderDensity>() == null)
             {
-                MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
                 myColliders = myMeshColliders;
                 if (myColliders.Length > 0)
                 {
                     isMyColliderMesh = true;
                     isMyColliderBox = false;
                     isMyColliderVoxel = false;
-
-                    //Get the vertices of our mesh
-                    if ((colliderShaderMesh == null) && (meshFilter != null) && meshFilter.sharedMesh.isReadable)
-                    {
-                        rawVertsBuffer = meshFilter.sharedMesh.vertices;
-                        rawVertsBufferLength = rawVertsBuffer.Length;
-                        trnsfrmdMesh = meshFilter.sharedMesh;
-                        myMeshColliders[0].sharedMesh = trnsfrmdMesh;
-                    }
-                    else if ((colliderShaderMesh != null) && colliderShaderMesh.isReadable)
-                    {
-                        rawVertsBuffer = colliderShaderMesh.vertices;
-                        rawVertsBufferLength = rawVertsBuffer.Length;
-                        trnsfrmdMesh = colliderShaderMesh;
-                        myMeshColliders[0].sharedMesh = trnsfrmdMesh;
-                    }
-                    else
-                    {
-                        rawVertsBuffer = null;
-                        rawVertsBufferLength = 0;
-                    }
-
-                    trnsfrmdMesh = Instantiate(trnsfrmdMesh);
-                    myMeshColliders[0].sharedMesh = trnsfrmdMesh;
-                    trnsfrmdMesh.MarkDynamic();
                 }
                 else
                 {
@@ -597,14 +582,6 @@ namespace OpenRelativity.Objects
                     isMyColliderBox = (myColliders.Length > 0);
                     isMyColliderMesh = false;
                     isMyColliderVoxel = false;
-
-                    //Get the vertices of our mesh
-                    if ((meshFilter != null) && meshFilter.sharedMesh.isReadable)
-                    {
-                        rawVertsBuffer = meshFilter.sharedMesh.vertices;
-                        rawVertsBufferLength = rawVertsBuffer.Length;
-                        colliderShaderMesh = null;
-                    }
                 }
             }
             else
@@ -612,14 +589,6 @@ namespace OpenRelativity.Objects
                 isMyColliderVoxel = true;
                 isMyColliderBox = false;
                 isMyColliderMesh = false;
-
-                //Get the vertices of our mesh
-                if ((meshFilter != null) && meshFilter.sharedMesh.isReadable)
-                {
-                    rawVertsBuffer = meshFilter.sharedMesh.vertices;
-                    rawVertsBufferLength = rawVertsBuffer.Length;
-                    colliderShaderMesh = null;
-                }
             }
         }
 
@@ -631,12 +600,9 @@ namespace OpenRelativity.Objects
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (isMyColliderMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
+            if (isMyColliderMesh && (colliderShader != null) && (myColliders.Length > 0) && SystemInfo.supportsComputeShaders && state.IsInitDone)
             {
-                for (int i = 0; i < myColliders.Length; i++)
-                {
-                    UpdateMeshCollider((MeshCollider)myColliders[i]);
-                }
+                UpdateMeshCollider((MeshCollider)myColliders[0]);
             }
             //If we have a BoxCollider, transform its center to its optical position
             else if (isMyColliderBox)
@@ -1124,7 +1090,6 @@ namespace OpenRelativity.Objects
 
             SleepTimer = (isLightMapStatic || myRigidbody == null || isKinematic) ? 0 : SleepTime;
 
-            rawVertsBufferLength = 0;
             wasKinematic = false;
             wasFrozen = false;
 
@@ -1137,30 +1102,13 @@ namespace OpenRelativity.Objects
             {
                 CombineParent();
             }
-            meshFilter = GetComponent<MeshFilter>();
 
-            if (isMyColliderMesh && (myColliders != null))
-            {
-                for (int i = 0; i < myColliders.Length; i++)
-                {
-                    if (((MeshCollider)myColliders[i]).sharedMesh != null)
-                    {
-                        ((MeshCollider)myColliders[i]).sharedMesh.MarkDynamic();
-                    }
-                }
-            }
+            meshFilter = GetComponent<MeshFilter>();
 
             if (myRigidbody != null)
             {
                 //Native rigidbody gravity should never be used:
                 myRigidbody.useGravity = false;
-            }
-
-            //Once we have the mesh vertices, allocate and immediately transform the collider:
-            if (isMyColliderMesh && rawVertsBufferLength > 0 && (myColliders != null))
-            {
-                trnsfrmdMeshVerts = new Vector3[rawVertsBufferLength];
-                //Debug.Log("Initialized verts.");
             }
 
             colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
@@ -1330,50 +1278,6 @@ namespace OpenRelativity.Objects
                 isPhysicsCacheValid = false;
                 return;
             }
-
-            #region meshDensity
-            //This is where I'm going to change our mesh density.
-            //I'll take the model, and pass MeshDensity the mesh and unchanged vertices
-            //If it comes back as having changed something, I'll edit the mesh.
-
-            //Only run MeshDensity if the mesh needs to change, and if it's passed a threshold distance.
-            if (rawVertsBuffer != null && density.change != null)
-            {
-                //This checks if we're within our large range, first mesh density circle
-                //If we're within a distance of 40, split this mesh
-                if (!(density.state) && (meshFilter.transform.TransformPoint(rawVertsBuffer[0]).sqrMagnitude < (21000 * 21000)))
-                {
-                    Mesh meshFilterMesh = meshFilter.mesh;
-                    if (density.ReturnVerts(meshFilterMesh, true))
-                    {
-                        Vector3[] meshVerts = meshFilterMesh.vertices;
-                        rawVertsBufferLength = meshVerts.Length;
-                        if (rawVertsBuffer.Length < rawVertsBufferLength)
-                        {
-                            rawVertsBuffer = new Vector3[rawVertsBufferLength];
-                        }
-                        System.Array.Copy(meshVerts, rawVertsBuffer, rawVertsBufferLength);
-                    }
-                }
-
-                //If the object leaves our wide range, revert mesh to original state
-                else if (density.state && (meshFilter.transform.TransformPoint(rawVertsBuffer[0]).sqrMagnitude > (21000 * 21000)))
-                {
-                    Mesh meshFilterMesh = meshFilter.mesh;
-                    if (density.ReturnVerts(meshFilterMesh, false))
-                    {
-                        Vector3[] meshVerts = meshFilterMesh.vertices;
-                        rawVertsBufferLength = meshVerts.Length;
-                        if (rawVertsBuffer.Length < rawVertsBufferLength)
-                        {
-                            rawVertsBuffer = new Vector3[rawVertsBufferLength];
-                        }
-                        System.Array.Copy(meshVerts, rawVertsBuffer, rawVertsBufferLength);
-                    }
-                }
-
-            }
-            #endregion
 
             UpdateShaderParams();
             isPhysicsCacheValid = false;
