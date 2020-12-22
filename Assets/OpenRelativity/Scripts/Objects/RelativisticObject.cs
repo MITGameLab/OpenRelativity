@@ -565,14 +565,32 @@ namespace OpenRelativity.Objects
                     isMyColliderMesh = true;
                     isMyColliderBox = false;
                     isMyColliderVoxel = false;
-                    for (int i = 0; i < myMeshColliders.Length; i++)
+                    if (myMeshColliders[0].sharedMesh != null)
                     {
-                        if (myMeshColliders[i].sharedMesh != null)
+                        //Get the vertices of our mesh
+                        if ((colliderShaderMesh == null) && (meshFilter != null) && meshFilter.sharedMesh.isReadable)
                         {
-                            trnsfrmdMesh = Instantiate(colliderShaderMesh);
-                            myMeshColliders[i].sharedMesh = trnsfrmdMesh;
-                            trnsfrmdMesh.MarkDynamic();
+                            rawVertsBuffer = meshFilter.sharedMesh.vertices;
+                            rawVertsBufferLength = rawVertsBuffer.Length;
+                            trnsfrmdMesh = meshFilter.sharedMesh;
+                            colliderShaderMesh = null;
                         }
+                        else if ((colliderShaderMesh != null) && colliderShaderMesh.isReadable)
+                        {
+                            rawVertsBuffer = colliderShaderMesh.vertices;
+                            rawVertsBufferLength = rawVertsBuffer.Length;
+                            trnsfrmdMesh = colliderShaderMesh;
+                        }
+                        else
+                        {
+                            rawVertsBuffer = null;
+                            rawVertsBufferLength = 0;
+                            colliderShaderMesh = null;
+                        }
+
+                        trnsfrmdMesh = Instantiate(trnsfrmdMesh);
+                        myMeshColliders[0].sharedMesh = trnsfrmdMesh;
+                        trnsfrmdMesh.MarkDynamic();
                     }
                 }
                 else
@@ -581,6 +599,14 @@ namespace OpenRelativity.Objects
                     isMyColliderBox = (myColliders.Length > 0);
                     isMyColliderMesh = false;
                     isMyColliderVoxel = false;
+
+                    //Get the vertices of our mesh
+                    if ((meshFilter != null) && meshFilter.sharedMesh.isReadable)
+                    {
+                        rawVertsBuffer = meshFilter.sharedMesh.vertices;
+                        rawVertsBufferLength = rawVertsBuffer.Length;
+                        colliderShaderMesh = null;
+                    }
                 }
             }
             else
@@ -588,6 +614,14 @@ namespace OpenRelativity.Objects
                 isMyColliderVoxel = true;
                 isMyColliderBox = false;
                 isMyColliderMesh = false;
+
+                //Get the vertices of our mesh
+                if ((meshFilter != null) && meshFilter.sharedMesh.isReadable)
+                {
+                    rawVertsBuffer = meshFilter.sharedMesh.vertices;
+                    rawVertsBufferLength = rawVertsBuffer.Length;
+                    colliderShaderMesh = null;
+                }
             }
         }
 
@@ -1122,24 +1156,6 @@ namespace OpenRelativity.Objects
             {
                 //Native rigidbody gravity should never be used:
                 myRigidbody.useGravity = false;
-            }
-
-            //Get the vertices of our mesh
-            if ((meshFilter != null) && meshFilter.sharedMesh.isReadable)
-            {
-                rawVertsBuffer = meshFilter.sharedMesh.vertices;
-                rawVertsBufferLength = rawVertsBuffer.Length;
-                colliderShaderMesh = null;
-            }
-            else if (isMyColliderMesh && (colliderShaderMesh != null) && (colliderShaderMesh.isReadable))
-            {
-                rawVertsBuffer = colliderShaderMesh.vertices;
-                rawVertsBufferLength = rawVertsBuffer.Length;
-            }
-            else
-            {
-                rawVertsBuffer = null;
-                rawVertsBufferLength = 0;
             }
 
             //Once we have the mesh vertices, allocate and immediately transform the collider:
