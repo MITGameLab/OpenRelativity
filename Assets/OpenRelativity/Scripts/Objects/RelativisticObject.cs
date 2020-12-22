@@ -408,15 +408,15 @@ namespace OpenRelativity.Objects
             }
         }
         //If we specifically have a mesh collider, we need to know to transform the verts of the mesh itself.
-        private bool myColliderIsMesh;
-        private bool myColliderIsBox;
-        private bool myColliderIsVoxel;
+        private bool isMyColliderMesh;
+        private bool isMyColliderBox;
+        private bool isMyColliderVoxel;
         //If we have a collider to transform, we cache it here
         private Collider[] myColliders;
         private Vector3[] colliderPiw { get; set; }
         public void MarkStaticColliderPos()
         {
-            if (myColliderIsBox && myColliders != null)
+            if (isMyColliderBox && myColliders != null)
             {
                 List<Vector3> sttcPosList = new List<Vector3>();
                 for (int i = 0; i < myColliders.Length; i++)
@@ -467,6 +467,8 @@ namespace OpenRelativity.Objects
         #region Collider transformation and update
         // We use an attached shader to transform the collider verts:
         public ComputeShader colliderShader;
+        // If the object is light map static, we need a duplicate of its mesh
+        public Mesh colliderShaderMesh;
         // We set global constants in a struct
         private ShaderParams colliderShaderParams;
         // Mesh collider params
@@ -560,14 +562,14 @@ namespace OpenRelativity.Objects
                 myColliders = myMeshColliders;
                 if (myColliders.Length > 0)
                 {
-                    myColliderIsMesh = true;
-                    myColliderIsBox = false;
-                    myColliderIsVoxel = false;
+                    isMyColliderMesh = true;
+                    isMyColliderBox = false;
+                    isMyColliderVoxel = false;
                     for (int i = 0; i < myMeshColliders.Length; i++)
                     {
                         if (myMeshColliders[i].sharedMesh != null)
                         {
-                            trnsfrmdMesh = Instantiate(myMeshColliders[i].sharedMesh);
+                            trnsfrmdMesh = Instantiate(colliderShaderMesh);
                             myMeshColliders[i].sharedMesh = trnsfrmdMesh;
                             trnsfrmdMesh.MarkDynamic();
                         }
@@ -576,28 +578,28 @@ namespace OpenRelativity.Objects
                 else
                 {
                     myColliders = GetComponents<BoxCollider>();
-                    myColliderIsBox = (myColliders.Length > 0);
-                    myColliderIsMesh = false;
-                    myColliderIsVoxel = false;
+                    isMyColliderBox = (myColliders.Length > 0);
+                    isMyColliderMesh = false;
+                    isMyColliderVoxel = false;
                 }
             }
             else
             {
-                myColliderIsVoxel = true;
-                myColliderIsBox = false;
-                myColliderIsMesh = false;
+                isMyColliderVoxel = true;
+                isMyColliderBox = false;
+                isMyColliderMesh = false;
             }
         }
 
         public void UpdateColliderPosition()
         {
-            if (myColliderIsVoxel || isNonrelativisticShader || myColliders == null || myColliders.Length == 0)
+            if (isMyColliderVoxel || isNonrelativisticShader || myColliders == null || myColliders.Length == 0)
             {
                 return;
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (myColliderIsMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
+            if (isMyColliderMesh && (colliderShader != null) && SystemInfo.supportsComputeShaders && state.IsInitDone)
             {
                 for (int i = 0; i < myColliders.Length; i++)
                 {
@@ -605,7 +607,7 @@ namespace OpenRelativity.Objects
                 }
             }
             //If we have a BoxCollider, transform its center to its optical position
-            else if (myColliderIsBox)
+            else if (isMyColliderBox)
             {
                 Vector4 aiw4 = GetWorld4Acceleration();
                 Vector3 pos;
@@ -1105,7 +1107,7 @@ namespace OpenRelativity.Objects
             }
             meshFilter = GetComponent<MeshFilter>();
 
-            if (myColliderIsMesh && (myColliders != null))
+            if (isMyColliderMesh && (myColliders != null))
             {
                 for (int i = 0; i < myColliders.Length; i++)
                 {
@@ -1125,8 +1127,14 @@ namespace OpenRelativity.Objects
             //Get the vertices of our mesh
             if ((meshFilter != null) && meshFilter.sharedMesh.isReadable)
             {
-                rawVertsBufferLength = meshFilter.sharedMesh.vertices.Length;
                 rawVertsBuffer = meshFilter.sharedMesh.vertices;
+                rawVertsBufferLength = rawVertsBuffer.Length;
+                colliderShaderMesh = null;
+            }
+            else if (isMyColliderMesh && (colliderShaderMesh != null) && (colliderShaderMesh.isReadable))
+            {
+                rawVertsBuffer = colliderShaderMesh.vertices;
+                rawVertsBufferLength = rawVertsBuffer.Length;
             }
             else
             {
@@ -1135,7 +1143,7 @@ namespace OpenRelativity.Objects
             }
 
             //Once we have the mesh vertices, allocate and immediately transform the collider:
-            if (myColliderIsMesh && rawVertsBufferLength > 0 && (myColliders != null))
+            if (isMyColliderMesh && rawVertsBufferLength > 0 && (myColliders != null))
             {
                 trnsfrmdMeshVerts = new Vector3[rawVertsBufferLength];
                 //Debug.Log("Initialized verts.");
