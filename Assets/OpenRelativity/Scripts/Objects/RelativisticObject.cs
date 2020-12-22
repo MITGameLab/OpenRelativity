@@ -565,33 +565,31 @@ namespace OpenRelativity.Objects
                     isMyColliderMesh = true;
                     isMyColliderBox = false;
                     isMyColliderVoxel = false;
-                    if (myMeshColliders[0].sharedMesh != null)
-                    {
-                        //Get the vertices of our mesh
-                        if ((colliderShaderMesh == null) && (meshFilter != null) && meshFilter.sharedMesh.isReadable)
-                        {
-                            rawVertsBuffer = meshFilter.sharedMesh.vertices;
-                            rawVertsBufferLength = rawVertsBuffer.Length;
-                            trnsfrmdMesh = meshFilter.sharedMesh;
-                            colliderShaderMesh = null;
-                        }
-                        else if ((colliderShaderMesh != null) && colliderShaderMesh.isReadable)
-                        {
-                            rawVertsBuffer = colliderShaderMesh.vertices;
-                            rawVertsBufferLength = rawVertsBuffer.Length;
-                            trnsfrmdMesh = colliderShaderMesh;
-                        }
-                        else
-                        {
-                            rawVertsBuffer = null;
-                            rawVertsBufferLength = 0;
-                            colliderShaderMesh = null;
-                        }
 
-                        trnsfrmdMesh = Instantiate(trnsfrmdMesh);
+                    //Get the vertices of our mesh
+                    if ((colliderShaderMesh == null) && (meshFilter != null) && meshFilter.sharedMesh.isReadable)
+                    {
+                        rawVertsBuffer = meshFilter.sharedMesh.vertices;
+                        rawVertsBufferLength = rawVertsBuffer.Length;
+                        trnsfrmdMesh = meshFilter.sharedMesh;
                         myMeshColliders[0].sharedMesh = trnsfrmdMesh;
-                        trnsfrmdMesh.MarkDynamic();
                     }
+                    else if ((colliderShaderMesh != null) && colliderShaderMesh.isReadable)
+                    {
+                        rawVertsBuffer = colliderShaderMesh.vertices;
+                        rawVertsBufferLength = rawVertsBuffer.Length;
+                        trnsfrmdMesh = colliderShaderMesh;
+                        myMeshColliders[0].sharedMesh = trnsfrmdMesh;
+                    }
+                    else
+                    {
+                        rawVertsBuffer = null;
+                        rawVertsBufferLength = 0;
+                    }
+
+                    trnsfrmdMesh = Instantiate(trnsfrmdMesh);
+                    myMeshColliders[0].sharedMesh = trnsfrmdMesh;
+                    trnsfrmdMesh.MarkDynamic();
                 }
                 else
                 {
