@@ -20,7 +20,7 @@ namespace OpenRelativity.Objects
         public List<BoxCollider> change { get; set; }
 
         //This constant determines maximum box size. We subdivide boxes until all their dimensions are less than this length.
-        private float constant = 24;
+        private float constant = 16;
 
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
@@ -53,7 +53,7 @@ namespace OpenRelativity.Objects
 
         private void TakeQueueNumber()
         {
-            StaticVoxelTransformer svt = FindObjectOfType<StaticVoxelTransformer>();
+            StaticVoxelSystem svt = StaticVoxelSystem.Instance;
             if (svt != null)
             {
                 Vector3[] worldPositions = new Vector3[origPositions.Length];
@@ -67,7 +67,7 @@ namespace OpenRelativity.Objects
 
         private void ReturnQueueNumber()
         {
-            StaticVoxelTransformer svt = FindObjectOfType<StaticVoxelTransformer>();
+            StaticVoxelSystem svt = StaticVoxelSystem.Instance;
             if (svt != null)
             {
                 svt.ReturnQueueNumber(staticQueueNumber);

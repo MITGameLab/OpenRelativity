@@ -2,19 +2,33 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
-using OpenRelativity;
-using System.Threading;
+using OpenRelativity.Objects;
 
-namespace OpenRelativity.Objects
+namespace OpenRelativity
 {
-    public class StaticVoxelTransformer : MonoBehaviour
+    public class StaticVoxelSystem : MonoBehaviour
     {
+        public static StaticVoxelSystem Instance { get; private set; }
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(this.gameObject);
+            }
+            else
+            {
+                Instance = this;
+                Init();
+            }
+        }
+
         public bool forceCPU = true;
         public bool takePriority = true;
         public bool sphericalCulling = false;
         public ComputeShader colliderShader;
 
-        private const int cullingSqrDistance = 8 * 8;
+        private const int cullingSqrDistance = 64 * 64;
         private const int cullingFrameInterval = 8;
         private int cullingFrameCount;
 
@@ -55,11 +69,6 @@ namespace OpenRelativity.Objects
 
                 return _gameState;
             }
-        }
-
-        private void Awake()
-        {
-            Init();
         }
 
         // Use this for initialization

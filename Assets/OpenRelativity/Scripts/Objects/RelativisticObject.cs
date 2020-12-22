@@ -1105,11 +1105,11 @@ namespace OpenRelativity.Objects
             }
             meshFilter = GetComponent<MeshFilter>();
 
-            if (myColliders != null)
+            if (myColliderIsMesh && (myColliders != null))
             {
                 for (int i = 0; i < myColliders.Length; i++)
                 {
-                    if (myColliderIsMesh && ((MeshCollider)myColliders[i]).sharedMesh != null)
+                    if (((MeshCollider)myColliders[i]).sharedMesh != null)
                     {
                         ((MeshCollider)myColliders[i]).sharedMesh.MarkDynamic();
                     }
@@ -1123,10 +1123,10 @@ namespace OpenRelativity.Objects
             }
 
             //Get the vertices of our mesh
-            if ((meshFilter != null) && meshFilter.mesh.isReadable)
+            if ((meshFilter != null) && meshFilter.sharedMesh.isReadable)
             {
-                rawVertsBufferLength = meshFilter.mesh.vertices.Length;
-                rawVertsBuffer = meshFilter.mesh.vertices;
+                rawVertsBufferLength = meshFilter.sharedMesh.vertices.Length;
+                rawVertsBuffer = meshFilter.sharedMesh.vertices;
             }
             else
             {

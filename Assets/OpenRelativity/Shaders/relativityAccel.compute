@@ -102,16 +102,17 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	//Apply Lorentz transform;
 	metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
-	float4 aiwTransformed = mul(viwLorentzMatrix, aiw);
-	//Translate in time:
 	float4 riwTransformed = mul(viwLorentzMatrix, riw);
+	//Translate in time:
 	float tisw = riwTransformed.w;
 	riwTransformed.w = 0;
 
 	//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
+	float4 aiwTransformed = mul(viwLorentzMatrix, aiw);
 	float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-	float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
-	float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
+	float4 aiwt = mul(metric, aiwTransformed);
+	float aiwDotAiw = -dot(aiwTransformed, aiwt);
+	float riwDotAiw = -dot(riwTransformed, aiwt);
 
 	float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
 	float aiwMag = length(aiwTransformed.xyz);
@@ -131,7 +132,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	//Inverse Lorentz transform the position:
 	riw = mul(invViwLorentzMatrix, riwTransformed);
 	tisw = riw.w;
-
 	riw = float4(riw.xyz + tisw * spdOfLight * viw.xyz, 0);
 
 	float newz = speed * spdOfLight * tisw;
@@ -146,5 +146,5 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	//Transform the vertex back into local space for the mesh to use it
 	tempPos = mul(wtlMatrix, float4(riw.xyz, 1.0f));
-	verts[id.x] = float3(tempPos.x, tempPos.y, tempPos.z) / tempPos.w;
+	verts[id.x] = tempPos.xyz / tempPos.w;
 }

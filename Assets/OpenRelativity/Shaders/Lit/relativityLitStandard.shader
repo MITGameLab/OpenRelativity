@@ -482,8 +482,8 @@ Shader "Relativity/Lit/Standard" {
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-		    float aiwt = mul(metric, aiwTransformed);
-			float aiwDotAiw = -dot(aiwTransformed, aiwt);
+		    float4 aiwt = mul(metric, aiwTransformed);
+			float4 aiwDotAiw = -dot(aiwTransformed, aiwt);
 
     #if IS_STATIC
 			float sqrtArg = riwDotRiw / _spdOfLightSqrd;

@@ -151,19 +151,20 @@ Shader "Relativity/Unlit/ColorLorentz"
 			metric = mul(transpose(_invVpcLorentzMatrix), mul(metric, _invVpcLorentzMatrix));
 
 			//We'll also Lorentz transform the vectors:
-
 			//Apply Lorentz transform;
 			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
+
 			float4 aiwTransformed = mul(_viwLorentzMatrix, _aiw);
-			//Translate in time:
 			float4 riwTransformed = mul(_viwLorentzMatrix, riw);
+			//Translate in time:
 			float tisw = riwTransformed.w;
 			riwTransformed.w = 0;
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-			float aiwDotAiw = -dot(aiwTransformed, mul(metric, aiwTransformed));
-			float riwDotAiw = -dot(riwTransformed, mul(metric, aiwTransformed));
+			float4 aiwt = mul(metric, aiwTransformed);
+			float aiwDotAiw = -dot(aiwTransformed, aiwt);
+			float riwDotAiw = -dot(riwTransformed, aiwt);
 
 			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
 			float aiwMag = length(aiwTransformed.xyz);
@@ -183,7 +184,6 @@ Shader "Relativity/Unlit/ColorLorentz"
 			//Inverse Lorentz transform the position:
 			riw = mul(_invViwLorentzMatrix, riwTransformed);
 			tisw = riw.w;
-
 			riw = float4(riw.xyz + tisw * _spdOfLight * _viw.xyz, 0);
 
 			float newz = speed * _spdOfLight * tisw;
@@ -203,7 +203,6 @@ Shader "Relativity/Unlit/ColorLorentz"
 			o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
 
 			o.pos = UnityObjectToClipPos(o.pos);
-
 
 			return o;
 		}
@@ -361,18 +360,12 @@ Shader "Relativity/Unlit/ColorLorentz"
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
+			float shift = 1.0f;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			float shift;
-			if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)) {
-				shift = 1.0f;
+			if ((i.svc.x > divByZeroCutoff) && (dot(_vr.xyz, _vr.xyz) > divByZeroCutoff)) {
+				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc.x;
 			}
-			else
-			{
-				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc;
-			}
-#else
-			float shift = 1.0f;
 #endif
 
 			//This is a debatable and stylistic point,
