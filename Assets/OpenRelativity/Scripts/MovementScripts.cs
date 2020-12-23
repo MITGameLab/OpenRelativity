@@ -450,7 +450,7 @@ namespace OpenRelativity
 
                     
                     dist = 0.5f * extents.y - hitInfo.distance;
-                    if (dist > 0.1f)
+                    if (dist > 0.02f)
                     {
                         Vector3 pos = state.playerTransform.position;
                         state.playerTransform.position = new Vector3(pos.x, pos.y + dist, pos.z);
