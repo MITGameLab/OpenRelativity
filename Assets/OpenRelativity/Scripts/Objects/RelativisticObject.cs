@@ -547,6 +547,7 @@ namespace OpenRelativity.Objects
             //Change mesh:
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
             trnsfrmdMesh.RecalculateBounds();
+            trnsfrmdMesh.RecalculateNormals();
             transformCollider.sharedMesh = trnsfrmdMesh;
         }
 
@@ -565,6 +566,11 @@ namespace OpenRelativity.Objects
                 trnsfrmdMesh = Instantiate(colliderShaderMesh);
                 trnsfrmdMeshVerts = (Vector3[])trnsfrmdMesh.vertices.Clone();
                 trnsfrmdMesh.MarkDynamic();
+
+                if (!enabled || !gameObject.activeInHierarchy)
+                {
+                    UpdateMeshCollider(myMeshColliders[0]);
+                }
             }
 
             if (GetComponent<ObjectBoxColliderDensity>() == null)
