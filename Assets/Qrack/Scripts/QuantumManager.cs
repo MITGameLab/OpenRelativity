@@ -12,6 +12,9 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_count")]
         public static extern uint Init(uint numQubits);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_clone")]
+        public static extern uint Clone(uint simId);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "destroy")]
         public static extern void Destroy(uint simId);
 
@@ -146,6 +149,13 @@ namespace Qrack
             uint simId = Init(numQubits);
             SimulatorIds.Add(simId);
             return simId;
+        }
+
+        public uint CloneSimulator(uint simId)
+        {
+            uint nSimId = Clone(simId);
+            SimulatorIds.Add(nSimId);
+            return nSimId;
         }
 
         public void DeallocateSimulator(uint simId)
