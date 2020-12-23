@@ -87,6 +87,18 @@ namespace OpenRelativity
         //Again, use LateUpdate to solve some collision issues.
         public virtual void LateUpdate()
         {
+            if (!state.isMovementFrozen)
+            {
+                Collider myColl = GetComponent<Collider>();
+                Vector3 extents = myColl.bounds.extents;
+                //We assume that the world "down" direction is the direction of gravity.
+                Vector3 playerPos = state.playerTransform.position;
+                Ray rayDown = new Ray(playerPos + 0.5f * extents.y * Vector3.down, Vector3.down);
+                RaycastHit hitInfo;
+                // TODO: Layer mask
+                isFalling = !Physics.Raycast(rayDown, out hitInfo, 0.5f * extents.y);
+            }
+
             if (!isFalling)
             {
                 if (myRigidbody.velocity.y < 0)
@@ -444,21 +456,6 @@ namespace OpenRelativity
                         state.playerTransform.position = new Vector3(pos.x, pos.y + dist, pos.z);
                     }
                 }
-
-                bool foundCollider = false;
-                for (int i = 0; i < collidersBelow.Count; i++)
-                {
-                    if (collidersBelow[i].Equals(collider))
-                    {
-                        foundCollider = true;
-                    }
-                }
-
-                if (!foundCollider)
-                {
-                    isFalling = false;
-                    collidersBelow.Add(collider);
-                }
             }
 
             Vector3 direction = Vector3.zero;
@@ -494,15 +491,6 @@ namespace OpenRelativity
                     //Relativistically cancel the downward velocity:
                     state.PlayerVelocityVector = state.PlayerVelocityVector - myParraVel;
                 }
-            }
-        }
-
-        void OnTriggerExit(Collider collider)
-        {
-            collidersBelow.Remove(collider);
-            if (collidersBelow.Count == 0)
-            {
-                isFalling = true;
             }
         }
     }
