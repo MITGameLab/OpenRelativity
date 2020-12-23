@@ -50,7 +50,7 @@ namespace Qrack
             transmittingDestinations.Add(destIndex);
             emittedVU.SetState(true);
             emittedVU.transform.parent = transform;
-            emittedVU.transform.position = source.transform.position;
+            emittedVU.transform.position = source.RelativisticObject.opticalPiw;
         }
 
         public void FixedUpdate()
@@ -67,7 +67,7 @@ namespace Qrack
 
             float cameraDispChange;
             float gtt;
-            Vector3 destPos = destination.transform.position;
+            Vector3 destPos = destination.RelativisticObject.opticalPiw;
             Vector3 vuPos, dispUnit, velUnit;
             float perspectiveFactor;
             int vuIndex = 0;
