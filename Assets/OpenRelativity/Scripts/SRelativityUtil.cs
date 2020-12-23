@@ -11,18 +11,11 @@ namespace OpenRelativity
         public static float c { get { return state.SpeedOfLight; } }
         public static float cSqrd { get { return state.SpeedOfLightSqrd; } }
 
-        private static GameState _state;
         private static GameState state
         {
             get
             {
-                if (_state == null)
-                {
-                    GameObject cameraGO = GameObject.FindGameObjectWithTag(Tags.player);
-                    _state = cameraGO.GetComponent<GameState>();
-                }
-
-                return _state;
+                return GameState.Instance;
             }
         }
 

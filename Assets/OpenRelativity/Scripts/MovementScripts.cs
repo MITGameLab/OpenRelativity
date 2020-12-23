@@ -4,7 +4,7 @@ using OpenRelativity.Objects;
 
 namespace OpenRelativity
 {
-    public class MovementScripts : MonoBehaviour
+    public class MovementScripts : RelativisticBehavior
     {
         //Consts
         protected const int INIT_FRAME_WAIT = 5;
@@ -43,8 +43,6 @@ namespace OpenRelativity
         public bool invertKeyDown { get; set; }
         //Keep track of total frames passed
         protected int frames;
-        //Gamestate reference for quick access
-        protected GameState state;
         protected Rigidbody myRigidbody;
 
         // Based on Strano 2019, (preprint).
@@ -60,8 +58,6 @@ namespace OpenRelativity
         {
             collidersBelow = new List<Collider>();
 
-            //grab GameState, we need it for many actions
-            state = GetComponent<GameState>();
             //same for RigidBody
             myRigidbody = state.playerTransform.GetComponent<Rigidbody>();
             //Assume we are in free fall
@@ -69,8 +65,6 @@ namespace OpenRelativity
             //If we have gravity, this factors into transforming to optical space.
             if (useGravity) state.HasWorldGravity = true;
 
-            //grab Game State, we need it for many actions
-            state = GetComponent<GameState>();
             //Lock and hide cursor
             Cursor.lockState = CursorLockMode.Locked;
             //Cursor.visible = false;

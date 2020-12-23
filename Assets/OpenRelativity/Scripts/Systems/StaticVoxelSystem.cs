@@ -6,7 +6,7 @@ using OpenRelativity.Objects;
 
 namespace OpenRelativity
 {
-    public class StaticVoxelSystem : MonoBehaviour
+    public class StaticVoxelSystem : RelativisticBehavior
     {
         public static StaticVoxelSystem Instance { get; private set; }
 
@@ -56,20 +56,6 @@ namespace OpenRelativity
         private bool didInit = false;
 
         private ShaderParams colliderShaderParams;
-
-        private GameState _gameState = null;
-        private GameState state
-        {
-            get
-            {
-                if (_gameState == null)
-                {
-                    _gameState = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-                }
-
-                return _gameState;
-            }
-        }
 
         // Use this for initialization
         private void Start()
@@ -131,6 +117,10 @@ namespace OpenRelativity
             finishedCoroutine = true;
         }
 
+        void OnDisable()
+        {
+            StopTransformCoroutine();
+        }
 
         //We ask for a position in the single running physics queue.
         // We are responsible for telling the transformer that we no longer need collider physics.

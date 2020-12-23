@@ -1073,9 +1073,6 @@ namespace OpenRelativity.Objects
 
         void Awake()
         {
-            //Get the player's GameState, use it later for general information
-            FetchState();
-
             _localScale = transform.localScale;
         }
 
