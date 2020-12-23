@@ -997,6 +997,11 @@ namespace OpenRelativity.Objects
         //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
+            if (isLightMapStatic)
+            {
+                return;
+            }
+
             float maxSpeed = state.MaxSpeed - 0.01f;
             float maxSpeedSqr = maxSpeed * maxSpeed;
 
@@ -1004,21 +1009,23 @@ namespace OpenRelativity.Objects
             {
                 viw = viw.normalized * maxSpeed;
             }
+            
+            if (trnsfrmdMeshVerts == null)
+            {
+                return;
+            }
 
             // The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
-            
-            if (trnsfrmdMeshVerts != null)
+
+            for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
             {
-                for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+                Vector3 disp = Vector3.Scale(trnsfrmdMeshVerts[i], transform.lossyScale);
+                Vector3 tangentialVel = Vector3.Cross(aviw, disp);
+                float tanVelMagSqr = tangentialVel.sqrMagnitude;
+                if (tanVelMagSqr > maxSpeedSqr)
                 {
-                    Vector3 disp = Vector3.Scale(trnsfrmdMeshVerts[i], transform.lossyScale);
-                    Vector3 tangentialVel = Vector3.Cross(aviw, disp);
-                    float tanVelMagSqr = tangentialVel.sqrMagnitude;
-                    if (tanVelMagSqr > maxSpeedSqr)
-                    {
-                        aviw = aviw.normalized * maxSpeed / disp.magnitude;
-                    }
+                    aviw = aviw.normalized * maxSpeed / disp.magnitude;
                 }
             }
         }
