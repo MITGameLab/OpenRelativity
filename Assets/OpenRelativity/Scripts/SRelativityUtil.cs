@@ -11,6 +11,10 @@ namespace OpenRelativity
         public static float c { get { return state.SpeedOfLight; } }
         public static float cSqrd { get { return state.SpeedOfLightSqrd; } }
 
+        public static float sigmaPlanck { get { return 8 * Mathf.Pow(Mathf.PI, 5) / (15 * Mathf.Pow(2 * Mathf.PI, 3)); } }
+
+        public static float avogadroNumber = 6.02214e23f;
+
         private static GameState state
         {
             get
@@ -435,6 +439,26 @@ namespace OpenRelativity
             Vector4 fourAccel = gammaSqrd * propAccel + gammaFourthADotVDivCSqrd * viw;
             fourAccel.w = gammaFourthADotVDivCSqrd * c;
             return fourAccel;
+        }
+
+        // From https://gamedev.stackexchange.com/questions/165643/how-to-calculate-the-surface-area-of-a-mesh
+        public static float SurfaceArea(this Mesh mesh)
+        {
+            var triangles = mesh.triangles;
+            var vertices = mesh.vertices;
+
+            double sum = 0.0;
+
+            for (int i = 0; i < triangles.Length; i += 3)
+            {
+                Vector3 corner = vertices[triangles[i]];
+                Vector3 a = vertices[triangles[i + 1]] - corner;
+                Vector3 b = vertices[triangles[i + 2]] - corner;
+
+                sum += Vector3.Cross(a, b).magnitude;
+            }
+
+            return (float)(sum / 2.0);
         }
     }
 }

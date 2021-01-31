@@ -15,6 +15,10 @@ namespace OpenRelativity.Objects
         public bool isCombinedColliderParent = false;
         // Use this if not using an explicitly relativistic shader
         public bool isNonrelativisticShader = false;
+        // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
+        public float gravitonEmissivity = 0.1f;
+        // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
+        public float averageMolarMass = 0.012f;
 
         // Set with Rigidbody isKinematic flag instead
         public bool isKinematic
@@ -171,6 +175,14 @@ namespace OpenRelativity.Objects
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
 
+        public float baryonCount
+        {
+            get
+            {
+                return myRigidbody == null ? 0 : (myRigidbody.mass + frameDragMass) / averageMolarMass * SRelativityUtil.avogadroNumber;
+            }
+        }
+
         //Store world position, mostly for a nonrelativistic shader:
         public Vector3 piw { get; set; }
 
@@ -272,7 +284,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                _properAccel = monopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
+                _properAccel = isMonopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
 
                 if (SleepTimer > 0)
                 {
@@ -310,7 +322,7 @@ namespace OpenRelativity.Objects
                 }
 
                 nonGravAccel = accel;
-                _properAccel = monopoleAccel ? accel - frameDragAccel : accel;
+                _properAccel = isMonopoleAccel ? accel - frameDragAccel : accel;
             }
         }
 
@@ -457,8 +469,9 @@ namespace OpenRelativity.Objects
 
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
-        public bool monopoleAccel = false;
+        public bool isMonopoleAccel = false;
         private Vector3 frameDragAccel;
+        private float frameDragMass;
         #endregion
 
         #region Collider transformation and update
@@ -1377,7 +1390,7 @@ namespace OpenRelativity.Objects
 
             #region rigidbody
 
-            if (monopoleAccel)
+            if (isMonopoleAccel)
             {
                 Vector3 myAccel = properAccel;
                 Vector3 pAccel = state.PlayerAccelerationVector;
@@ -1390,22 +1403,34 @@ namespace OpenRelativity.Objects
                 Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
                 frameDragAccel += da;
                 myAccel += da;
+
+                float myTemperature = 0;
+
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
-                // there is also a change in mass. However, the monopole waves responsible for this is seen from a first-person perspective,
+                // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
                 // (i.e. as due to "player" acceleration).
-                if (myRigidbody != null)
+                if ((myRigidbody != null) && (SleepTimer == 0))
                 {
-                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                    // (which seems to imply the Higgs field vacuum)
-                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                    // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
-                    float gravAccel = useGravity ? Physics.gravity.magnitude : 0;
-                    gravAccel += state.conformalMap == null ? 0 : state.conformalMap.GetRindlerAcceleration(piw).magnitude;
-                    myRigidbody.mass += state.planckMass * (state.gConst * myRigidbody.mass / state.planckMass) * ((state.fluxPerAccel * gravAccel - pAccel.magnitude) / state.planckAccel) * (deltaTime / state.planckTime);
+                    if (SleepTimer == 0)
+                    {
+                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                        // (which seems to imply the Higgs field vacuum)
+                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                        // gravitational constant "G" times (baryon) constituent particle rest mass.
+                        Vector3 gravAccel = useGravity ? -Physics.gravity : Vector3.zero;
+                        gravAccel += state.conformalMap == null ? Vector3.zero : state.conformalMap.GetRindlerAcceleration(piw);
+                        float bdm = (myRigidbody.mass / state.planckMass) * Mathf.Abs((gravAccel + frameDragAccel).magnitude / state.planckAccel) * (deltaTime / state.planckTime) / baryonCount;
+                        myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
+                    }
                 }
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
+
+                float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
+                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
+
+                frameDragMass += dm;
+                myRigidbody.mass -= dm;
 
                 properAccel = myAccel;
             }

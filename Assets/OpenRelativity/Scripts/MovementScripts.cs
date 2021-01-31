@@ -47,12 +47,28 @@ namespace OpenRelativity
 
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
-        public bool monopoleAccel = false;
+        public bool isMonopoleAccel = false;
+        // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
+        public float gravitonEmissivity = 0.1f;
+        // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
+        public float averageMolarMass = 0.012f;
         protected Vector3 frameDragAccel;
         // Float precision prevents the "frameDragAccel" from correctly returning to "world accelerated rest frame"
         // under the effect of forces like drag and friction in the at rest W.R.T. the "world."
         // If we track small differences separately, we can get better accuracy.
         protected Vector3 frameDragAccelRemainder;
+        protected float frameDragMass;
+
+        public float baryonCount
+        {
+            get
+            {
+                return myRigidbody == null ? 0 : (myRigidbody.mass + frameDragMass) / averageMolarMass * SRelativityUtil.avogadroNumber;
+            }
+        }
+
+        //Keep track of our own Mesh Filter
+        private MeshFilter meshFilter;
 
         public virtual void Start()
         {
@@ -77,6 +93,8 @@ namespace OpenRelativity
             frameDragAccel = Vector3.zero;
 
             frames = 0;
+
+            meshFilter = transform.parent.GetComponent<MeshFilter>();
         }
         //Again, use LateUpdate to solve some collision issues.
         public virtual void LateUpdate()
@@ -216,7 +234,7 @@ namespace OpenRelativity
                         quasiWorldAccel -= Physics.gravity;
                     }
 
-                    if (monopoleAccel)
+                    if (isMonopoleAccel)
                     {
                         // This isn't "smooth," but the player shouldn't fall through the floor.
                         if (!isFalling && frameDragAccel.y < 0)
@@ -253,6 +271,20 @@ namespace OpenRelativity
 
                         // The "AUTO SLOW DOWN CODE BLOCK" above gives a qualitative "drag" effect, (as by friction with air or the floor,)
                         // that should ultimately "lock" the player's frame of accelerated rest back to "world coordinates," at the limit.
+
+                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                        // (which seems to imply the Higgs field vacuum)
+                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                        // gravitational constant "G" times (baryon) constituent particle rest mass.
+                        // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
+                        float bdm = (myRigidbody.mass / state.planckMass) * Mathf.Abs((totalAccel + frameDragAccelRemainder).magnitude / state.planckAccel) * (state.DeltaTimePlayer / state.planckTime) / baryonCount;
+                        float myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
+
+                        float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
+                        float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
+
+                        frameDragMass += dm;
+                        myRigidbody.mass -= dm;
                     }
                 }
 
