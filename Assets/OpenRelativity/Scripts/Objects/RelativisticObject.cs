@@ -1417,9 +1417,7 @@ namespace OpenRelativity.Objects
                         // (which seems to imply the Higgs field vacuum)
                         // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                         // gravitational constant "G" times (baryon) constituent particle rest mass.
-                        Vector3 gravAccel = useGravity ? -Physics.gravity : Vector3.zero;
-                        gravAccel += state.conformalMap == null ? Vector3.zero : state.conformalMap.GetRindlerAcceleration(piw);
-                        float bdm = (myRigidbody.mass / state.planckMass) * Mathf.Abs((gravAccel + frameDragAccel).magnitude / state.planckAccel) * (deltaTime / state.planckTime) / baryonCount;
+                        float bdm = ((myRigidbody.mass / baryonCount) / state.planckMass) * (deltaTime / state.planckTime);
                         myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
                     }
                 }
