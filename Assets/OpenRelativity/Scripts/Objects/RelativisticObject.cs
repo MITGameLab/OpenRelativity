@@ -18,7 +18,8 @@ namespace OpenRelativity.Objects
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
-        public float averageMolarMass = 0.012f;
+        public float currentAverageMolarMass = 0.012f;
+        public float fundamentalAverageMolarMass = 0.012f;
 
         // Set with Rigidbody isKinematic flag instead
         public bool isKinematic
@@ -179,7 +180,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                return myRigidbody == null ? 0 : (myRigidbody.mass + frameDragMass) / averageMolarMass * SRelativityUtil.avogadroNumber;
+                return myRigidbody == null ? 0 : (myRigidbody.mass + frameDragMass) / currentAverageMolarMass * SRelativityUtil.avogadroNumber;
             }
         }
 
@@ -1406,20 +1407,21 @@ namespace OpenRelativity.Objects
 
                 float myTemperature = 0;
 
+                float bCount = baryonCount;
+                float baryonMass = myRigidbody.mass / bCount;
+                float fundamentalBaryonMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
                 // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
                 // (i.e. as due to "player" acceleration).
-                if ((myRigidbody != null) && (SleepTimer == 0))
+                if ((myRigidbody != null) && (baryonMass > fundamentalBaryonMass))
                 {
-                    if (SleepTimer == 0)
-                    {
-                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                        // (which seems to imply the Higgs field vacuum)
-                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                        // gravitational constant "G" times (baryon) constituent particle rest mass.
-                        float bdm = ((myRigidbody.mass / baryonCount) / state.planckMass) * (deltaTime / state.planckTime);
-                        myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
-                    }
+                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                    // (which seems to imply the Higgs field vacuum)
+                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                    // gravitational constant "G" times (baryon) constituent particle rest mass.
+                    float bdm = ((myRigidbody.mass / bCount) / state.planckMass) * (deltaTime / state.planckTime);
+                    myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
                 }
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
@@ -1427,8 +1429,14 @@ namespace OpenRelativity.Objects
                 float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
                 float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
 
+                if (((myRigidbody.mass - dm) / bCount) < fundamentalBaryonMass) {
+                    dm = myRigidbody.mass - fundamentalBaryonMass * bCount;
+                }
+
                 frameDragMass += dm;
                 myRigidbody.mass -= dm;
+
+                currentAverageMolarMass = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
 
                 properAccel = myAccel;
             }
