@@ -286,7 +286,7 @@ namespace OpenRelativity
 
                         float myTemperature = 0;
                         if (nuclearMass > fundamentalNuclearMass) {
-                            float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * ((myRigidbody.mass / bCount) - fundamentalNuclearMass) / state.planckLength;
+                            float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * (myRigidbody.mass / bCount) / state.planckLength; ;
                             float bdm = 1 / (2.0f * sRadius);
                             myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
                         }
