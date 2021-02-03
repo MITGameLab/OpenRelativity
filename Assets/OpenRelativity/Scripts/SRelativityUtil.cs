@@ -15,6 +15,8 @@ namespace OpenRelativity
 
         public static float avogadroNumber = 6.02214e23f;
 
+        public static float wiensConstant = 2.8214391f;
+
         private static GameState state
         {
             get
