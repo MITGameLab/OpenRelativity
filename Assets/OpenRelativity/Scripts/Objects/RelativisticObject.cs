@@ -1429,14 +1429,11 @@ namespace OpenRelativity.Objects
                 float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
                 float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
 
-                if (((myRigidbody.mass - dm) / bCount) < fundamentalNuclearMass) {
-                    dm = myRigidbody.mass - fundamentalNuclearMass * bCount;
-                }
-
                 frameDragMass += dm;
                 myRigidbody.mass -= dm;
 
-                currentAverageMolarMass = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
+                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
+                currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
 
                 properAccel = myAccel;
             }
