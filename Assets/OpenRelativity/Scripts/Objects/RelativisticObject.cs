@@ -1408,19 +1408,19 @@ namespace OpenRelativity.Objects
                 float myTemperature = 0;
 
                 float bCount = baryonCount;
-                float baryonMass = myRigidbody.mass / bCount;
-                float fundamentalBaryonMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+                float nuclearMass = myRigidbody.mass / bCount;
+                float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
                 // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
                 // (i.e. as due to "player" acceleration).
-                if ((myRigidbody != null) && (baryonMass > fundamentalBaryonMass))
+                if ((myRigidbody != null) && (nuclearMass > fundamentalNuclearMass))
                 {
                     // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
                     // (which seems to imply the Higgs field vacuum)
                     // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                     // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * (myRigidbody.mass / bCount) / state.planckLength;
+                    float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * ((myRigidbody.mass / bCount) - fundamentalNuclearMass) / state.planckLength;
                     float bdm = 1 / (2.0f * sRadius);
                     myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
                 }
@@ -1430,8 +1430,8 @@ namespace OpenRelativity.Objects
                 float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
                 float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
 
-                if (((myRigidbody.mass - dm) / bCount) < fundamentalBaryonMass) {
-                    dm = myRigidbody.mass - fundamentalBaryonMass * bCount;
+                if (((myRigidbody.mass - dm) / bCount) < fundamentalNuclearMass) {
+                    dm = myRigidbody.mass - fundamentalNuclearMass * bCount;
                 }
 
                 frameDragMass += dm;

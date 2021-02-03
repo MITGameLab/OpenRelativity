@@ -281,12 +281,12 @@ namespace OpenRelativity
                         // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
 
                         float bCount = baryonCount;
-                        float baryonMass = myRigidbody.mass / bCount;
-                        float fundamentalBaryonMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+                        float nuclearMass = myRigidbody.mass / bCount;
+                        float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
                         float myTemperature = 0;
-                        if (baryonMass > fundamentalBaryonMass) {
-                            float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * (myRigidbody.mass / bCount) / state.planckLength;
+                        if (nuclearMass > fundamentalNuclearMass) {
+                            float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * ((myRigidbody.mass / bCount) - fundamentalNuclearMass) / state.planckLength;
                             float bdm = 1 / (2.0f * sRadius);
                             myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
                         }
@@ -294,9 +294,9 @@ namespace OpenRelativity
                         float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
                         float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
 
-                        if (((myRigidbody.mass - dm) / bCount) < fundamentalBaryonMass)
+                        if (((myRigidbody.mass - dm) / bCount) < fundamentalNuclearMass)
                         {
-                            dm = myRigidbody.mass - fundamentalBaryonMass * bCount;
+                            dm = myRigidbody.mass - fundamentalNuclearMass * bCount;
                         }
 
                         frameDragMass += dm;
