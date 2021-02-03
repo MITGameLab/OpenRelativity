@@ -1420,7 +1420,8 @@ namespace OpenRelativity.Objects
                     // (which seems to imply the Higgs field vacuum)
                     // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                     // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    float bdm = ((myRigidbody.mass / bCount) / state.planckMass) * (deltaTime / state.planckTime);
+                    float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * (myRigidbody.mass / bCount) / state.planckLength;
+                    float bdm = 1 / (2.0f * sRadius);
                     myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
                 }
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.

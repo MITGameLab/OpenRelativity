@@ -284,11 +284,12 @@ namespace OpenRelativity
                         float baryonMass = myRigidbody.mass / bCount;
                         float fundamentalBaryonMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
-                        float bdm = 0;
+                        float myTemperature = 0;
                         if (baryonMass > fundamentalBaryonMass) {
-                            bdm = (myRigidbody.mass / state.planckMass) * Mathf.Abs((totalAccel + frameDragAccelRemainder).magnitude / state.planckAccel) * (state.DeltaTimePlayer / state.planckTime) / baryonCount;
+                            float sRadius = (2.0f * state.gConst / state.SpeedOfLightSqrd) * (myRigidbody.mass / bCount) / state.planckLength;
+                            float bdm = 1 / (2.0f * sRadius);
+                            myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
                         }
-                        float myTemperature = Mathf.Pow(bdm / (SRelativityUtil.sigmaPlanck / 2), 0.25f);
 
                         float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
                         float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
