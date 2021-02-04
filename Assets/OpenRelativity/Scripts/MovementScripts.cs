@@ -286,7 +286,7 @@ namespace OpenRelativity
 
                         float myTemperature = 0;
                         if (nuclearMass > fundamentalNuclearMass) {
-                            float mode = Mathf.Sqrt(4.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass));
+                            float mode = 4.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
                             myTemperature = mode / SRelativityUtil.wiensConstant;
                         }
 
