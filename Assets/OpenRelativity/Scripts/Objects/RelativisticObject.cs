@@ -1420,7 +1420,7 @@ namespace OpenRelativity.Objects
                     // (which seems to imply the Higgs field vacuum)
                     // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                     // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    float mode = 4.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                    float mode = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
                     myTemperature = mode / SRelativityUtil.wiensConstant;
                 }
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
