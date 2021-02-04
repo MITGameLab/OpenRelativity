@@ -286,8 +286,7 @@ namespace OpenRelativity
 
                         float myTemperature = 0;
                         if (nuclearMass > fundamentalNuclearMass) {
-                            float mode = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
-                            myTemperature = mode / SRelativityUtil.wiensConstant;
+                            myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
                         }
 
                         float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
