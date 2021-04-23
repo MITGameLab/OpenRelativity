@@ -103,28 +103,7 @@ Shader "Relativity/Lit/Standard" {
             // TODO: Prettify the syntax of this section.
 #if LIGHTMAP_ON
 			float2 lightmapUV : TEXCOORD3; //Lightmap TEXCOORD
-    #if SHADOW_OR_SPOT
-			float4 ambient : TEXCOORD4;
-			SHADOW_COORDS(5)
-	    #if FORWARD_FOG
-			float4 pos3 : TEXCOORD6; //Untransformed position in world, relative to player position in world
-		    #if _EMISSION
-			float2 emissionUV : TEXCOORD7; //EmisionMap TEXCOORD
-			    #if defined(POINT)
-			float4 lstv : TEXCOORD8;
-			    #endif
-		    #elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD9;
-		    #endif
-	    #elif _EMISSION
-			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
-		    #if defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD7;
-		    #endif
-	    #elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD6;
-	    #endif
-    #elif FORWARD_FOG
+    #if FORWARD_FOG
 			float4 pos3 : TEXCOORD4; //Untransformed position in world, relative to player position in world
 	    #if _EMISSION
 			float2 emissionUV : TEXCOORD5; //EmisionMap TEXCOORD
@@ -145,24 +124,23 @@ Shader "Relativity/Lit/Standard" {
 #else
 	#if SHADOW_OR_SPOT
 			float4 ambient : TEXCOORD3;
-			SHADOW_COORDS(4)
 	    #if FORWARD_FOG
-			float4 pos3 : TEXCOORD5; //Untransformed position in world, relative to player position in world
+			float4 pos3 : TEXCOORD4; //Untransformed position in world, relative to player position in world
 		    #if _EMISSION
-			float2 emissionUV : TEXCOORD6; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD5; //EmisionMap TEXCOORD
 			    #if defined(POINT)
-			float4 lstv : TEXCOORD7;
+			float4 lstv : TEXCOORD6;
 			    #endif
 		    #elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD8;
+			float4 lstv : TEXCOORD7;
 		    #endif
 	    #elif _EMISSION
-			float2 emissionUV : TEXCOORD5; //EmisionMap TEXCOORD
+			float2 emissionUV : TEXCOORD4; //EmisionMap TEXCOORD
 		    #if defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD6;
+			float4 lstv : TEXCOORD5;
 		    #endif
 	    #elif defined(POINT) || SPECULAR
-			float4 lstv : TEXCOORD5;
+			float4 lstv : TEXCOORD4;
 	    #endif
     #elif FORWARD_FOG
 			float4 pos3 : TEXCOORD3; //Untransformed position in world, relative to player position in world
@@ -597,10 +575,6 @@ Shader "Relativity/Lit/Standard" {
 				o.diff.rgb += diffuseReflection;
 			}
 
-	#if SHADOW_OR_SPOT
-			TRANSFER_SHADOW(o)
-	#endif
-
 #else
 			o.diff = 0;
 
@@ -765,8 +739,7 @@ Shader "Relativity/Lit/Standard" {
 
 			//Apply lighting:
 #if SHADOW_OR_SPOT
-			fixed shadow = SHADOW_ATTENUATION(i);
-			rgbFinal *= (i.diff * shadow + i.ambient);
+			rgbFinal *= (i.diff + i.ambient);
 #else
 			rgbFinal *= i.diff;
 #endif
@@ -855,6 +828,8 @@ Shader "Relativity/Lit/Standard" {
 		ENDCG
 
 		Subshader {
+
+			Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" }
 
 			Pass{
 				//Shader properties, for things such as transparency

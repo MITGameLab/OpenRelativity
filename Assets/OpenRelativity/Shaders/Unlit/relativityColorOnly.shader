@@ -303,29 +303,30 @@ Shader "Relativity/Unlit/ColorOnly"
 
 		Subshader {
 
-		Pass{
-			//Shader properties, for things such as transparency
-			Cull Off ZWrite On
-			ZTest LEqual
-			Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
 			Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" }
 
-			AlphaTest Greater[_Cutoff]
-			Blend SrcAlpha OneMinusSrcAlpha
+			Pass{
+				//Shader properties, for things such as transparency
+				Cull Off ZWrite On
+				ZTest LEqual
+				Fog{ Mode off } //Fog does not shift properly and there is no way to do so with this fog
 
-			CGPROGRAM
+				AlphaTest Greater[_Cutoff]
+				Blend SrcAlpha OneMinusSrcAlpha
 
-			#pragma fragmentoption ARB_precision_hint_nicest
+				CGPROGRAM
 
-			#pragma shader_feature UV_IR_TEXTURES
-			#pragma shader_feature DOPPLER_MIX
+				#pragma fragmentoption ARB_precision_hint_nicest
 
-			#pragma vertex vert
-			#pragma fragment frag
-			#pragma target 3.0
+				#pragma shader_feature UV_IR_TEXTURES
+				#pragma shader_feature DOPPLER_MIX
 
-			ENDCG
-		}
+				#pragma vertex vert
+				#pragma fragment frag
+				#pragma target 3.0
+
+				ENDCG
+			}
 	}
 
 	CustomEditor "ColorOnlyRelativityGUI"

@@ -394,31 +394,31 @@ Shader "Relativity/Unlit/ColorLorentz"
 
 			Subshader {
 
-			Pass{
-				//Shader properties, for things such as transparency
-				ZWrite On
-				ZTest LEqual
-				Fog { Mode off } //Fog does not shift properly and there is no way to do so with this fog
-				Tags {"RenderType" = "Transparent" "Queue" = "Transparent"}
+				Tags{ "RenderType" = "Transparent" "Queue" = "Transparent" }
 
-				AlphaTest Greater[_Cutoff]
-				Blend SrcAlpha OneMinusSrcAlpha
+				Pass{
+					//Shader properties, for things such as transparency
+					Fog { Mode off } //Fog does not shift properly and there is no way to do so with this fog
+					ZWrite On
+					ZTest LEqual
+					AlphaTest Greater[_Cutoff]
+					Blend SrcAlpha OneMinusSrcAlpha
 
-				CGPROGRAM
+					CGPROGRAM
 
-				#pragma fragmentoption ARB_precision_hint_nicest
+					#pragma fragmentoption ARB_precision_hint_nicest
 
-				#pragma shader_feature DOPPLER_SHIFT
-				#pragma shader_feature UV_IR_TEXTURES
-				#pragma shader_feature DOPPLER_MIX
+					#pragma shader_feature DOPPLER_SHIFT
+					#pragma shader_feature UV_IR_TEXTURES
+					#pragma shader_feature DOPPLER_MIX
 
-				#pragma vertex vert
-				#pragma fragment frag
-				#pragma target 3.0
+					#pragma vertex vert
+					#pragma fragment frag
+					#pragma target 3.0
 
-				ENDCG
+					ENDCG
+				}
 			}
-		}
 
 		CustomEditor "AcceleratedRelativityGUI"
 
