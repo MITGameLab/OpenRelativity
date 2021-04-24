@@ -162,6 +162,17 @@ Shader "Relativity/Lit/Standard" {
 #endif
 		};
 
+		struct f2o {
+#if defined(UNITY_PASS_DEFERRED)
+			float4 gBuffer0 : SV_TARGET0;
+			float4 gBuffer1 : SV_TARGET1;
+			float4 gBuffer2 : SV_TARGET2;
+			float4 gBuffer3 : SV_TARGET3;
+#else
+			float4 color : SV_TARGET;
+#endif
+		};
+
 		//Variables that we use to access texture data
 		sampler2D _IRTex;
 		uniform float4 _IRTex_ST;
@@ -365,7 +376,7 @@ Shader "Relativity/Lit/Standard" {
 
 		float3 ApplyFog(float3 color, float UV, float IR, float shift, float3 pos) {
 			UNITY_CALC_FOG_FACTOR_RAW(length(pos));
-#if defined(UNITY_PASS_FORWARDBASE)
+#if defined(UNITY_PASS_FORWARDBASE) || defined(UNITY_PASS_DEFERRED)
 	#if _EMISSION
 			float3 fogColor = DopplerShift(unity_FogColor.rgb, unity_FogColor.b * bFac, unity_FogColor.r * rFac, shift);
 			return lerp(fogColor, color, saturate(unityFogFactor));
@@ -604,7 +615,7 @@ Shader "Relativity/Lit/Standard" {
 		}
 
 		//Per pixel shader, does color modifications
-		float4 frag(v2f i) : COLOR
+		f2o frag(v2f i) : COLOR
 		{
 			float shift = 1.0f;
 #if DOPPLER_SHIFT
@@ -622,32 +633,33 @@ Shader "Relativity/Lit/Standard" {
 			//Get initial color 
 			float3 viewDir = normalize(mul(_viwLorentzMatrix, float4(_WorldSpaceCameraPos.xyz - i.pos2.xyz, 0)).xyz);
 			i.normal /= length(i.normal);
-			float4 data = tex2D(_MainTex, i.albedoUV);
-			data = float4(data.rgb * _Color.xyz, data.a);
+			float4 albedo = tex2D(_MainTex, i.albedoUV);
+			albedo = float4(albedo.rgb * _Color.xyz, albedo.a);
 
 #if UV_IR_TEXTURES
 			float UV = tex2D(_UVTex, i.albedoUV).r * _Color.b;
 			float IR = tex2D(_IRTex, i.albedoUV).r * _Color.r;
 
-	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+	#if (defined(UNITY_PASS_FORWARDBASE) || defined(UNITY_PASS_DEFERRED)) && _EMISSION
 			float3 rgbEmission = DopplerShift((tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor, UV, IR, shift);
 	#endif
 #else
-	#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+	#if (defined(UNITY_PASS_FORWARDBASE) || defined(UNITY_PASS_DEFERRED)) && _EMISSION
 			float3 rgbEmission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
 			rgbEmission = DopplerShift(rgbEmission, rgbEmission.b * bFac, rgbEmission.r * rFac, shift);
 	#endif
 #endif
 
 			//Apply lighting in world frame:
-			float3 rgbFinal = data.xyz;
+			float3 rgbFinal = albedo.xyz;
 
+#if !defined(UNITY_PASS_DEFERRED)
 			float3 lightDirection;
 			float attenuation;
-#if defined(LIGHTMAP_ON)
+	#if defined(LIGHTMAP_ON)
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.lightmapUV));
 
-	#if defined(DIRLIGHTMAP_COMBINED)
+		#if defined(DIRLIGHTMAP_COMBINED)
 			attenuation = 1.0f;
 
 			lightDirection = UNITY_SAMPLE_TEX2D_SAMPLER(
@@ -672,7 +684,7 @@ Shader "Relativity/Lit/Standard" {
 			float3 lightRgb = DopplerShift(lms, lms.b * bFac, lms.r * rFac, shift);
 			lightRgb = FadeShadows(i, attenuation) * lightRgb * _Color.rgb * nl;
 
-		#if SPECULAR
+			#if SPECULAR
 			// Apply specular reflectance
 			// (Schlick's approximation)
 			// (Assume surrounding medium has an index of refraction of 1)
@@ -684,17 +696,17 @@ Shader "Relativity/Lit/Standard" {
 			specFactor = min(1.0f, specFactor);
 			lightRgb *= 1.0f - specFactor;
 			lightRgb += lightRgb * specFactor;
-		#endif
+			#endif
 
 			// Technically this is incorrect, but helps hide jagged light edge at the object silhouettes and
 			// makes normalmaps show up.
 			lightRgb *= saturate(dot(i.normal, lightDirection));
 
 			i.diff += float4(lightRgb, 0);
-	#else
+		#else
 			i.diff = float4((float3)lms, 0);
-	#endif
-#elif defined(POINT)
+		#endif
+	#elif defined(POINT)
 			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
 			{
 				attenuation = 1.0f; // no attenuation
@@ -721,7 +733,7 @@ Shader "Relativity/Lit/Standard" {
 			// perspective at the end.
 			//
 			// However, the Doppler shift method we have from the original OpenRelativity project doesn't actually self-invert
-			// when applying the inverse of the shift paramter, which the Doppler shift should do. (This is a reasonable limitation.)
+			// when applying the inverse of the shift parameter, which the Doppler shift should do. (This is a reasonable limitation.)
 			// Assuming the Doppler shift were perfect, this should behave similarly to INVERSE Doppler shifting the albedo color
 			// to calculate the reflectance, but this probably isn't physically meaningful: the albedo is a proper intrinsic property.
 
@@ -736,7 +748,7 @@ Shader "Relativity/Lit/Standard" {
 
 			float3 lightRgb = FadeShadows(i, attenuation) * CAST_LIGHTCOLOR0.rgb * albedoColor * nl;
 
-	#if SPECULAR
+		#if SPECULAR
 			// Apply specular reflectance
 			// (Schlick's approximation)
 			// (Assume surrounding medium has an index of refraction of 1)
@@ -748,8 +760,9 @@ Shader "Relativity/Lit/Standard" {
 			specFactor = min(1.0f, specFactor);
 			lightRgb *= 1.0f - specFactor;
 			lightRgb += lightRgb * specFactor;
-	#endif
+		#endif
 			i.diff += float4(lightRgb, 0);
+	#endif
 #endif
 
 
@@ -775,6 +788,7 @@ Shader "Relativity/Lit/Standard" {
 			specFactor2 = min(1.0f, specFactor2);
 			rgbFinal *= 1.0f - specFactor2;
 
+	#if !(defined(UNITY_PASS_DEFERRED) && UNITY_ENABLE_REFLECTION_BUFFERS)
 			Unity_GlossyEnvironmentData envData;
 			envData.roughness = 1 - _Smoothness;
 
@@ -797,9 +811,10 @@ Shader "Relativity/Lit/Standard" {
 			);
 
 			rgbFinal += lerp(probe1, probe0, unity_SpecCube0_BoxMin.w) * specFactor2;
+	#endif
 #endif
 
-#if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
+#if (defined(UNITY_PASS_FORWARDBASE) || defined(UNITY_PASS_DEFERRED)) && _EMISSION
 			//Doppler factor should be squared for reflected light:
 	#if UV_IR_TEXTURES
 			rgbFinal = DopplerShift(rgbFinal, UV, IR, shift);
@@ -839,7 +854,22 @@ Shader "Relativity/Lit/Standard" {
 	#endif
 #endif
 
-			return float4(rgbFinal.rgb, data.a); //use me for any real build
+			f2o output;
+#if defined(UNITY_PASS_DEFERRED)
+			output.gBuffer0.rgb = albedo.rgb;
+			output.gBuffer0.a = 0;
+			output.gBuffer1.rgb = float3(1.0f, 1.0f, 1.0f);
+			output.gBuffer1.a = _Smoothness;
+			output.gBuffer2 = float4(i.normal.xyz * 0.5f + 0.5f, 1.0f);
+			output.gBuffer3 = float4(rgbFinal.rgb, albedo.a);
+#if !defined(UNITY_HDR_ON)
+			output.gBuffer3.rgb = exp2(-output.gBuffer3.rgb);
+#endif
+#else
+			output.color = float4(rgbFinal.rgb, albedo.a);
+#endif
+
+			return output;
 		}
 
 		ENDCG
@@ -973,6 +1003,39 @@ Shader "Relativity/Lit/Standard" {
 				{
 					SHADOW_CASTER_FRAGMENT(i)
 				}
+				ENDCG
+			}
+
+			Pass{
+				
+				ZWrite On
+				ZTest LEqual
+				Tags { "LightMode" = "Deferred" }
+				LOD 100
+
+				AlphaTest Greater[_Cutoff]
+				Blend SrcAlpha OneMinusSrcAlpha
+
+				CGPROGRAM
+
+				#pragma exclude_renderers nomrt
+
+				#pragma fragmentoption ARB_precision_hint_nicest
+				#pragma multi_compile_fwdbase
+				#pragma multi_compile_fog
+				#pragma multi_compile _ UNITY_HDR_ON
+				#pragma shader_feature IS_STATIC
+				#pragma shader_feature LORENTZ_TRANSFORM
+				#pragma shader_feature DOPPLER_SHIFT
+				#pragma shader_feature UV_IR_TEXTURES
+				#pragma shader_feature DOPPLER_MIX
+				#pragma shader_feature SPECULAR
+				#pragma shader_feature _EMISSION
+
+				#pragma vertex vert
+				#pragma fragment frag
+				#pragma target 3.0
+
 				ENDCG
 			}
 		}
