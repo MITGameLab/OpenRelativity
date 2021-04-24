@@ -72,7 +72,6 @@ Shader "Relativity/Lit/Standard" {
 #define UV_START 0
 
 #define FORWARD_FOG (!defined(UNITY_PASS_DEFERRED) && defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
-#define SHADOW_OR_SPOT (defined(SHADOWS_SCREEN) || defined(SHADOWS_CUBE) || (defined(SHADOWS_DEPTH) && defined(SPOT)))
 
 //Prevent NaN and Inf
 #define divByZeroCutoff 1e-8f
@@ -122,7 +121,7 @@ Shader "Relativity/Lit/Standard" {
 			float4 lstv : TEXCOORD4;
     #endif
 #else
-	#if SHADOW_OR_SPOT
+	#if defined(SPOT)
 			float4 ambient : TEXCOORD3;
 	    #if FORWARD_FOG
 			float4 pos3 : TEXCOORD4; //Untransformed position in world, relative to player position in world
@@ -533,7 +532,7 @@ Shader "Relativity/Lit/Standard" {
 			// factor in the light color
 			o.diff = nl * lightColor;
 			// add ambient light
-	#if SHADOW_OR_SPOT
+	#if defined(SPOT)
 			o.ambient = float4(max(0, ShadeSH9(half4(o.normal))), 0);
 	#else
 			o.diff.rgb += max(0, ShadeSH9(half4(o.normal)));
@@ -738,7 +737,7 @@ Shader "Relativity/Lit/Standard" {
 
 
 			//Apply lighting:
-#if SHADOW_OR_SPOT
+#if !defined(LIGHTMAP_ON) && defined(SPOT)
 			rgbFinal *= (i.diff + i.ambient);
 #else
 			rgbFinal *= i.diff;
