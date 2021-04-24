@@ -378,6 +378,24 @@ Shader "Relativity/Lit/Standard" {
 #endif
 		}
 
+		float FadeShadows(v2f i, float attenuation) {
+#if HANDLE_SHADOWS_BLENDING_IN_GI
+			float3 pos = i.pos2.xyz + _playerOffset.xyz
+			float3 offset = mul(_viwLorentzMatrix, float4(_WorldSpaceCameraPos - pos, 0)).xyz;
+			float viewZ =
+				dot(offset, UNITY_MATRIX_V[2].xyz);
+			float shadowFadeDistance =
+				UnityComputeShadowFadeDistance(pos, viewZ);
+			float shadowFade = UnityComputeShadowFade(shadowFadeDistance);
+			float bakedAttenuation =
+				UnitySampleBakedOcclusion(i.lightmapUV, pos);
+			attenuation = UnityMixRealtimeAndBakedShadows(
+				attenuation, bakedAttenuation, shadowFade
+			);
+#endif
+			return attenuation;
+		}
+
 		//Per vertex operations
 		v2f vert(appdata v)
 		{
@@ -652,7 +670,7 @@ Shader "Relativity/Lit/Standard" {
 			float nl = max(0, dot(i.normal, lightDirection));
 
 			float3 lightRgb = DopplerShift(lms, lms.b * bFac, lms.r * rFac, shift);
-			lightRgb = attenuation * lightRgb * _Color.rgb * nl;
+			lightRgb = FadeShadows(i, attenuation) * lightRgb * _Color.rgb * nl;
 
 		#if SPECULAR
 			// Apply specular reflectance
@@ -716,7 +734,7 @@ Shader "Relativity/Lit/Standard" {
 
 			albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1.0f / pShift);
 
-			float3 lightRgb = attenuation * CAST_LIGHTCOLOR0.rgb * albedoColor * nl;
+			float3 lightRgb = FadeShadows(i, attenuation) * CAST_LIGHTCOLOR0.rgb * albedoColor * nl;
 
 	#if SPECULAR
 			// Apply specular reflectance
