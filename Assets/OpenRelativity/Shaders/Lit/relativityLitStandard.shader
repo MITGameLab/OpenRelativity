@@ -857,7 +857,7 @@ Shader "Relativity/Lit/Standard" {
 			f2o output;
 #if defined(UNITY_PASS_DEFERRED)
 			output.gBuffer0.rgb = albedo.rgb;
-			output.gBuffer0.a = 0;
+			output.gBuffer0.a = 1; // No occlusion
 			output.gBuffer1.rgb = float3(1.0f, 1.0f, 1.0f);
 			output.gBuffer1.a = _Smoothness;
 			output.gBuffer2 = float4(i.normal.xyz * 0.5f + 0.5f, 1.0f);
