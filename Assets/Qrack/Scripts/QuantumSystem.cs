@@ -152,7 +152,7 @@ namespace Qrack
             }
         }
 
-        private uint[] MapControls(uint[] controls, int controlLen = -1)
+        private uint[] MapQubits(uint[] controls, int controlLen = -1)
         {
             if (controls == null)
             {
@@ -297,7 +297,7 @@ namespace Qrack
         public void MCSingleBitGate(uint[] controls, uint targetId, Action<uint, uint, uint[], uint> func)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapControls(controls);
+            uint[] mappedControls = MapQubits(controls);
             List<uint> bits = new List<uint> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
@@ -348,7 +348,7 @@ namespace Qrack
         public void MCU(uint[] controls, uint targetId, double theta, double phi, double lambda)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapControls(controls);
+            uint[] mappedControls = MapQubits(controls);
             List<uint> bits = new List<uint> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
@@ -359,7 +359,7 @@ namespace Qrack
         public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapControls(controls);
+            uint[] mappedControls = MapQubits(controls);
             List<uint> bits = new List<uint> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
@@ -372,7 +372,7 @@ namespace Qrack
         protected void MCSingleBitRotation(uint[] controls, uint targetId, double phi, MCRot func)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapControls(controls);
+            uint[] mappedControls = MapQubits(controls);
             List<uint> bits = new List<uint> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
@@ -530,13 +530,29 @@ namespace Qrack
             }
         }
 
+        public bool TrySeparate(uint q)
+        {
+            return QuantumManager.TrySeparate(SystemId, GetSystemIndex(q));
+        }
+
+        public bool TrySeparate(uint q1, uint q2)
+        {
+            return QuantumManager.TrySeparate(SystemId, GetSystemIndex(q1), GetSystemIndex(q2));
+        }
+
+        public bool TrySeparate(uint[] q, double error_tol)
+        {
+            uint[] mappedQ = MapQubits(q);
+            return QuantumManager.TrySeparate(SystemId, (uint)mappedQ.Length, mappedQ, error_tol);
+        }
+
         public void TimeEvolve(double t, TimeEvolveOpHeader[] teos, double[] mtrx)
         {
             TimeEvolveOpHeader[] mappedTeos = new TimeEvolveOpHeader[teos.Length];
             for (int i = 0; i < teos.Length; i++)
             {
                 mappedTeos[i].target = GetSystemIndex(teos[i].target);
-                mappedTeos[i].controls = MapControls(teos[i].controls, (int)teos[i].controlLen);
+                mappedTeos[i].controls = MapQubits(teos[i].controls, (int)teos[i].controlLen);
                 List<uint> bits = new List<uint> { mappedTeos[i].target };
                 bits.AddRange(mappedTeos[i].controls);
                 CheckAlloc(bits);
