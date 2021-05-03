@@ -126,6 +126,15 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Prob")]
         public static extern double Prob(uint simId, uint qubitId);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TrySeparate1Qb")]
+        public static extern bool TrySeparate1Qb(uint simId, uint q);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TrySeparate2Qb")]
+        public static extern bool TrySeparate2Qb(uint simId, uint q1, uint q2);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TrySeparateTol")]
+        public static extern bool TrySeparateTol(uint simId, uint n, uint[] q, double error_tol);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TimeEvolve")]
         public static extern void TimeEvolve(uint simId, double t, uint n, TimeEvolveOpHeader[] teos, uint mn, double[] mtrx);
 
@@ -222,5 +231,19 @@ namespace Qrack
             MCR(simId, 2, phi, controlLen, controls, target);
         }
 
+        public static bool TrySeparate(uint simId, uint q)
+        {
+            return TrySeparate1Qb(simId, q);
+        }
+
+        public static bool TrySeparate(uint simId, uint q1, uint q2)
+        {
+            return TrySeparate2Qb(simId, q1, q2);
+        }
+
+        public static bool TrySeparate(uint simId, uint n, uint[] q, double error_tol)
+        {
+            return TrySeparateTol(simId, n, q, error_tol);
+        }
     }
 }
