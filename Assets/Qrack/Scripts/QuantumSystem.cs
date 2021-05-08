@@ -546,6 +546,11 @@ namespace Qrack
             return QuantumManager.TrySeparate(SystemId, (uint)mappedQ.Length, mappedQ, error_tol);
         }
 
+        public void SetReactiveSeparate(bool irs)
+        {
+            QuantumManager.SetReactiveSeparate(SystemId, irs);
+        }
+
         public void TimeEvolve(double t, TimeEvolveOpHeader[] teos, double[] mtrx)
         {
             TimeEvolveOpHeader[] mappedTeos = new TimeEvolveOpHeader[teos.Length];
