@@ -1,15 +1,47 @@
 ﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace Qrack
 {
     public class QuantumFourierTransform : RealTimeQasmProgram
     {
+        public OpenRelativity.GameState state;
+        public OpenRelativity.ConformalMaps.Schwarzschild schwarzschild;
+
         public int maxQubits = 28;
-        // Prepare a Bell pair for Alice and Bob to share
+
+        protected class QftHistoryPoint
+        {
+            public float Time { get; set; }
+            public float Radius { get; set; }
+        }
+
+        protected void InitRandomQubit(QuantumSystem qs, uint i)
+        {
+            System.Random rng = new System.Random();
+            double a1 = 2 * Math.PI * rng.NextDouble();
+            double a2 = 2 * Math.PI * rng.NextDouble();
+            double a3 = 2 * Math.PI * rng.NextDouble();
+            qs.U(i, a1, a2, a3);
+        }
+
+        protected List<QftHistoryPoint> expectationFrames = new List<QftHistoryPoint>();
         protected override void StartProgram()
         {
-            uint i;
-            for (i = 0; i < maxQubits; i++)
+            InitRandomQubit(QuantumSystem, 0);
+            QuantumSystem.H(0);
+            uint[] bits = new uint[1] { 0 };
+
+            expectationFrames.Add(new QftHistoryPoint
+            {
+                Time = state.planckTime,
+                Radius = QuantumSystem.PermutationExpectation(bits)
+            });
+
+            schwarzschild.radius = expectationFrames[0].Radius / 2;
+
+            for (uint i = 1; i < maxQubits; i++)
             {
                 AddLayer(i);
             }
@@ -17,19 +49,21 @@ namespace Qrack
 
         private void AddLayer(uint i)
         {
+            // We need to calculate 1 time ahead of the current fold.
+            // We also need to calculate all folds before the starting TotalTimeWorld.
+            float totTime = (float)(state.planckTime * Math.Pow(2, i));
+            float deltaTime = totTime / 2;
+            if (deltaTime < state.TotalTimeWorld)
+            {
+                deltaTime = 0;
+            }
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 1.0f,
+                DeltaTime = deltaTime,
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = x.QuantumSystem;
-
-                    Random rng = new Random();
-                    double a1 = 2 * Math.PI * rng.NextDouble();
-                    double a2 = 2 * Math.PI * rng.NextDouble();
-                    double a3 = 2 * Math.PI * rng.NextDouble();
-
-                    qs.U(i, a1, a2, a3);
+                    InitRandomQubit(qs, i);
 
                     for (uint j = 0; j < i; j++)
                     {
@@ -39,8 +73,66 @@ namespace Qrack
                         qs.MCU(c, t, 0, 0, lambda);
                     }
                     qs.H(i);
+                    List<uint> expBits = new List<uint>();
+                    for (uint bit = 0; bit <= i; bit++)
+                    {
+                        expBits.Add(bit);
+                    }
+                    // For the output terms of the DFT, X_k, lower wavenumber "k" has longer wavelength.
+                    // However, the QFT _ALREADY_ reverses the output order of the (inverse) DFT.
+                    // expBits.Reverse();
+
+                    expectationFrames.Add(new QftHistoryPoint
+                    {
+                        Time = totTime,
+                        Radius = qs.PermutationExpectation(expBits.ToArray())
+                    });
+
+                    if (qs.QubitCount < maxQubits)
+                    {
+                        qs.QubitCount++;
+                    }
                 }
             });
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            if (state.isMovementFrozen || (expectationFrames.Count == 0))
+            {
+                return;
+            }
+
+            schwarzschild.EnforceHorizon();
+
+            int nextFrame = 1;
+
+            while ((nextFrame < expectationFrames.Count) && (expectationFrames[nextFrame].Time < state.TotalTimeWorld))
+            {
+                nextFrame++;
+            }
+
+            if ((nextFrame >= expectationFrames.Count) || (expectationFrames[nextFrame].Time >= state.TotalTimeWorld))
+            {
+                schwarzschild.doEvaporate = true;
+                return;
+            }
+
+            schwarzschild.doEvaporate = false;
+
+            int lastFrame = nextFrame - 1;
+
+            float r0 = expectationFrames[lastFrame].Radius;
+            float t0 = expectationFrames[lastFrame].Time;
+            float r1 = expectationFrames[nextFrame].Radius;
+            float t1 = expectationFrames[nextFrame].Time;
+            float t = state.TotalTimeWorld;
+
+            schwarzschild.radius = r0 + t * (r1 - r0) / (t1 - t0);
+
+            schwarzschild.EnforceHorizon();
         }
     }
 }

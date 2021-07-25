@@ -8,7 +8,7 @@ namespace OpenRelativity.ConformalMaps
         public bool isExterior { get; set; }
 
         public bool doEvaporate = true;
-        public float radius = 1;
+        public float radius = 0.5f;
 
         public void Start()
         {
@@ -98,8 +98,19 @@ namespace OpenRelativity.ConformalMaps
             return Vector3.zero;
         }
 
+        public void EnforceHorizon()
+        {
+            if (!isExterior && (state.TotalTimeWorld >= radius))
+            {
+                state.TotalTimeWorld = radius / state.SpeedOfLight;
+                state.isMovementFrozen = true;
+            }
+        }
+
         void Update()
         {
+            EnforceHorizon();
+
             if (radius <= 0 || !doEvaporate || state.isMovementFrozen)
             {
                 return;

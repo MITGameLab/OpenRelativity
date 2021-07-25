@@ -1,4 +1,5 @@
 ﻿#if OPEN_RELATIVITY_INCLUDED
+using OpenRelativity;
 using OpenRelativity.Objects;
 using System;
 #endif
@@ -8,7 +9,11 @@ using UnityEngine;
 
 namespace Qrack
 {
+#if OPEN_RELATIVITY_INCLUDED
+    public class QuantumSystem : RelativisticBehavior
+#else
     public class QuantumSystem : MonoBehaviour
+#endif
     {
 
         public uint QubitCount = 1;
@@ -55,7 +60,7 @@ namespace Qrack
             get
             {
 #if OPEN_RELATIVITY_INCLUDED
-                return ClockOffset + myRO.GetLocalTime();
+                return ClockOffset + (myRO ? myRO.GetLocalTime() : state.TotalTimeWorld);
 #else
                 return ClockOffset + Time.time;
 #endif
@@ -67,7 +72,7 @@ namespace Qrack
             get
             {
 #if OPEN_RELATIVITY_INCLUDED
-                return (float)myRO.localDeltaTime;
+                return (float)(myRO ? myRO.localDeltaTime : state.DeltaTimeWorld);
 #else
                 return Time.deltaTime;
 #endif
@@ -79,7 +84,7 @@ namespace Qrack
             get
             {
 #if OPEN_RELATIVITY_INCLUDED
-                return (float)myRO.localFixedDeltaTime;
+                return (float)(myRO ? myRO.localFixedDeltaTime : state.FixedDeltaTimeWorld);
 #else
                 return Time.fixedDeltaTime;
 #endif
@@ -91,15 +96,15 @@ namespace Qrack
             get
             {
 #if OPEN_RELATIVITY_INCLUDED
-                return ClockOffset + myRO.GetVisualTime();
+                return ClockOffset + (myRO ? myRO.GetVisualTime() : state.TotalTimeWorld);
 #else
                 return ClockOffset + Time.time;
 #endif
             }
         }
 
-        // Start is called before the first frame update
-        void Start()
+        // Awake() is called before Start()
+        void Awake()
         {
             SystemId = qMan.AllocateSimulator(QubitCount);
             lastQubitCount = QubitCount;
@@ -127,6 +132,11 @@ namespace Qrack
 
             if (lastQubitCount < QubitCount)
             {
+                if (Debug.isDebugBuild)
+                {
+                    Debug.Log("Automatically allocated qubits in system " + SystemId + ", original: " + lastQubitCount + ", new: " + QubitCount);
+                }
+
                 for (uint i = lastQubitCount; i < QubitCount; i++)
                 {
                     QuantumManager.AllocateQubit(SystemId, i);
@@ -135,6 +145,11 @@ namespace Qrack
 
             if (lastQubitCount > QubitCount)
             {
+                if (Debug.isDebugBuild)
+                {
+                    Debug.Log("Automatically deallocated qubits in system " + SystemId + ", original: " + lastQubitCount + ", new: " + QubitCount);
+                }
+
                 for (uint i = (lastQubitCount - 1); i >= QubitCount; i--)
                 {
                     QuantumManager.ReleaseQubit(SystemId, i);
@@ -190,7 +205,6 @@ namespace Qrack
                     Debug.Log("Automatically allocated qubits in system " + SystemId + ", original: " + QubitCount + ", new: " + (highBit + 1));
                 }
 
-                lastQubitCount = QubitCount;
                 QubitCount = highBit + 1;
 
                 for (uint i = lastQubitCount; i < QubitCount; i++)
@@ -517,6 +531,15 @@ namespace Qrack
             }
 
             return (float)QuantumManager.Prob(SystemId, GetSystemIndex(targetId));
+        }
+
+        public float PermutationExpectation(uint[] bits)
+        {
+            uint[] mappedBits = MapQubits(bits);
+            List<uint> mappedList = new List<uint>(mappedBits);
+            CheckAlloc(mappedList);
+
+            return (float)QuantumManager.PermutationExpectation(SystemId, (uint)mappedBits.Length, mappedBits);
         }
 
         public void SetBit(uint targetID, bool tOrF)

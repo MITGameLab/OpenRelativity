@@ -97,7 +97,7 @@ namespace Qrack
 
                 float time = ProgramTime;
 
-                if (nextInstructionTime <= time)
+                if (lastInstructionTime < time && nextInstructionTime <= time)
                 {
                     rtqi.quantumProgramUpdate(this, time - lastInstructionTime);
 
