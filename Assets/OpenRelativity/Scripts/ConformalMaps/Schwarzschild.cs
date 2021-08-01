@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
@@ -10,7 +9,7 @@ namespace OpenRelativity.ConformalMaps
         public bool doEvaporate = true;
         public float radius = 0.5f;
 
-        public void Start()
+        virtual public void Start()
         {
             float dist = state.playerTransform.position.magnitude;
             isExterior = (dist > radius);
@@ -107,20 +106,18 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
-        void Update()
+        virtual protected float deltaRadius
         {
-            EnforceHorizon();
-
-            if (radius <= 0 || !doEvaporate || state.isMovementFrozen)
+            get
             {
-                return;
-            }
+                // This is speculative, but it can simply be turned off, in the editor.
+                // This attempts to simulate black hole evaporation at a rate inversely proportional to Schwarzschild radius.
+                // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
+                if (float.IsInfinity(state.DeltaTimeWorld) || float.IsNaN(state.DeltaTimeWorld))
+                {
+                    return 0;
+                }
 
-            // This is speculative, but it can simply be turned off, in the editor.
-            // This attempts to simulate black hole evaporation at a rate inversely proportional to Schwarzschild radius.
-            // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
-            if (!float.IsInfinity(state.DeltaTimeWorld) && !float.IsNaN(state.DeltaTimeWorld))
-            {
                 float diffR;
                 if (radius > state.planckLength)
                 {
@@ -152,8 +149,20 @@ namespace OpenRelativity.ConformalMaps
                     diffR = -diffR;
                 }
 
-                radius = radius + diffR;
+                return diffR;
             }
+        }
+
+        virtual public void Update()
+        {
+            EnforceHorizon();
+
+            if (radius <= 0 || !doEvaporate || state.isMovementFrozen)
+            {
+                return;
+            }
+
+            radius = radius + deltaRadius;
 
             if (radius < 0)
             {
