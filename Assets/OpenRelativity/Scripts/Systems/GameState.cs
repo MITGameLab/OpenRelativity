@@ -24,10 +24,10 @@ namespace OpenRelativity
         public bool IsPlayerFalling { get; set; }
         //speed of light
         private float c = 200;
-        //Speed of light that is affected by the Unity editor
-        public float totalC = 200;
         //max speed the player can achieve (starting value accessible from Unity Editor)
         public float maxPlayerSpeed;
+        //Speed of light that is affected by the Unity editor
+        public float totalC = 200;
         // Reduced Planck constant divided by gravitational constant
         // (WARNING: Effects implemented based on this have not been peer reviewed,
         // but that doesn't mean they wouldn't be "cool" in a video game, at least.)
