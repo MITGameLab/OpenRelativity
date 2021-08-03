@@ -35,11 +35,7 @@ namespace OpenRelativity.ConformalMaps
             }
 
             float f = fold;
-            float deltaF = deltaT / (state.planckTime * Mathf.Pow(2.0f, f));
-            if (isExterior)
-            {
-                deltaF *= -1;
-            }
+            float deltaF = (isExterior ? -deltaT : deltaT) / (state.planckTime * Mathf.Pow(2.0f, f));
 
             float deltaR = Mathf.Pow(2.0f, f) * deltaF * (float)rng.NextDouble() / 2.0f;
             float thermoDeltaR = deltaRadius;
