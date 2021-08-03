@@ -5,27 +5,16 @@ namespace OpenRelativity.ConformalMaps
     public class SemiQftSchwarzschild : Schwarzschild
     {
         protected System.Random rng = new System.Random();
-        protected float startFold;
 
         protected float fold
         {
             get
             {
-                float tf = startFold + (isExterior ? -1 : 1) * Mathf.Log(state.TotalTimeWorld / state.planckTime) / Mathf.Log(2);
-                float rf = Mathf.Log(radius / state.planckLength) / Mathf.Log(2);
-                return (rf > tf) ? rf : tf;
+                // Can we actually back-track to perfect 0 folds on the basis of exterior time?
+                // We don't know exactly how long the evaporation will take, in the quantum limit.
+                // If the black hole is "hairless," shouldn't this only depend on radius, rather than time?
+                return Mathf.Log(radius / state.planckLength) / Mathf.Log(2);
             }
-        }
-
-        protected virtual void SetStartFold()
-        {
-            startFold = Mathf.Log(radius / state.planckLength) / Mathf.Log(2);
-        }
-
-        public override void Start()
-        {
-            base.Start();
-            SetStartFold();
         }
 
         // Update is called once per frame
