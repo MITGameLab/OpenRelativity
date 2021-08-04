@@ -40,13 +40,17 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
-        override public Vector4 ComoveOptical(float properTDiff, Vector3 piw)
+        override public Comotion ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if (radius <= 0)
             {
                 Vector4 toRet = piw;
                 toRet.w = properTDiff;
-                return toRet;
+                return new Comotion
+                {
+                    piw = toRet,
+                    riw = riw
+                };
             }
 
             // Assume that the spatial component is in world coordinates, and the time is a local time differential 
@@ -97,7 +101,11 @@ namespace OpenRelativity.ConformalMaps
             Vector4 piw4 = piw + piw.normalized * diffR;
             piw4.w = diffT;
 
-            return piw4;
+            return new Comotion
+            {
+                piw = piw4,
+                riw = riw
+            };
         }
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)

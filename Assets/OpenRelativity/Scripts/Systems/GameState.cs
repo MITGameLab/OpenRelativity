@@ -367,7 +367,9 @@ namespace OpenRelativity
                 if (conformalMap != null && isPlayerComoving)
                 {
                     // Assume local player coordinates are comoving
-                    Vector4 piw4 = conformalMap.ComoveOptical(FixedDeltaTimePlayer, playerTransform.position);
+                    Comotion cm = conformalMap.ComoveOptical(FixedDeltaTimePlayer, playerTransform.position, playerTransform.rotation);
+                    playerTransform.rotation = cm.riw;
+                    Vector4 piw4 = cm.piw;
                     Vector3 pDiff = (Vector3)piw4 - playerTransform.position;
                     PlayerComovingVelocityVector = pDiff / FixedDeltaTimePlayer;
                     playerTransform.position = piw4;

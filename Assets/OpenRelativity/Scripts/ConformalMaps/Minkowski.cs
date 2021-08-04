@@ -4,11 +4,15 @@ namespace OpenRelativity.ConformalMaps
 {
     public class Minkowski : ConformalMap
     {
-        override public Vector4 ComoveOptical(float properTDiff, Vector3 piw)
+        override public Comotion ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             Vector4 piw4 = piw;
             piw4.w = properTDiff;
-            return piw4;
+            return new Comotion
+            {
+                piw = piw4,
+                riw = riw
+            };
         }
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)

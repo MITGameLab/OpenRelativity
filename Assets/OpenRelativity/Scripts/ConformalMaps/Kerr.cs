@@ -29,11 +29,11 @@ namespace OpenRelativity.ConformalMaps
             return omega;
         }
 
-        override public Vector4 ComoveOptical(float properTDiff, Vector3 piw)
+        override public Comotion ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
             {
-                return base.ComoveOptical(properTDiff, piw);
+                return base.ComoveOptical(properTDiff, piw, riw);
             }
 
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
@@ -58,8 +58,9 @@ namespace OpenRelativity.ConformalMaps
 
             piw = frameDragRot * piw;
             piw = Quaternion.Inverse(rot) * piw;
+            riw = frameDragRot * riw;
 
-            return base.ComoveOptical(properTDiff, piw);
+            return base.ComoveOptical(properTDiff, piw, riw);
         }
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)

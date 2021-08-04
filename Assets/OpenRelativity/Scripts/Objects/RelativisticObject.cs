@@ -1,3 +1,4 @@
+using OpenRelativity.ConformalMaps;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -1335,7 +1336,10 @@ namespace OpenRelativity.Objects
 
             if (state.conformalMap != null)
             {
-                Vector4 nPiw4 = state.conformalMap.ComoveOptical(deltaTime, piw);
+                
+                Comotion cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
+                riw = cm.riw;
+                Vector4 nPiw4 = cm.piw;
                 Vector3 pDiff = (Vector3)nPiw4 - piw;
                 cviw = pDiff / deltaTime;
                 piw = nPiw4;
