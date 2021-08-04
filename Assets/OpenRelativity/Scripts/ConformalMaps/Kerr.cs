@@ -9,8 +9,12 @@ namespace OpenRelativity.ConformalMaps
 
         public float GetOmega(Vector3 piw)
         {
-            float rSqr = piw.sqrMagnitude;
+            if (!isExterior)
+            {
+                piw = state.TotalTimeWorld * piw.normalized;
+            }
 
+            float rSqr = piw.sqrMagnitude;
             // Radius:
             float r = Mathf.Sqrt(rSqr);
             // Inclination:
@@ -32,7 +36,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector4 ComoveOptical(float properTDiff, Vector3 piw)
         {
-            if (spinMomentum < SRelativityUtil.divByZeroCutoff)
+            if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
             {
                 return base.ComoveOptical(properTDiff, piw);
             }
@@ -54,7 +58,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
         {
-            if (spinMomentum < SRelativityUtil.divByZeroCutoff)
+            if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
             {
                 return base.GetRindlerAcceleration(piw);
             }
