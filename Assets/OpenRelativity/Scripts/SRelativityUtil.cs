@@ -75,7 +75,7 @@ namespace OpenRelativity
         public static Vector3 InverseContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
             float speedSqr = velocity.sqrMagnitude;
-            if (float.IsNaN(speedSqr) || float.IsInfinity(speedSqr) || speedSqr < divByZeroCutoff)
+            if (float.IsNaN(speedSqr) || float.IsInfinity(speedSqr) || speedSqr <= divByZeroCutoff)
             {
                 return interval;
             }
@@ -124,7 +124,7 @@ namespace OpenRelativity
             float angFac = Vector3.Dot(avp, riw) / c;
             angFac *= angFac;
             float avpMagSqr = avp.sqrMagnitude;
-            Vector3 angVec = avpMagSqr < divByZeroCutoff ? Vector3.zero : 2 * angFac / (c * avpMagSqr) * avp.normalized;
+            Vector3 angVec = avpMagSqr <= divByZeroCutoff ? Vector3.zero : 2 * angFac / (c * avpMagSqr) * avp.normalized;
 
             Matrix4x4 metric = new Matrix4x4(
                 new Vector4(-1, 0, 0, -angVec.x),
@@ -322,7 +322,7 @@ namespace OpenRelativity
             }
 
             //Rotate all our vectors so that velocity is entirely along z direction:
-            Quaternion viwToZRot = viw.sqrMagnitude < divByZeroCutoff ? Quaternion.identity : Quaternion.FromToRotation(viw, Vector3.forward);
+            Quaternion viwToZRot = viw.sqrMagnitude <= divByZeroCutoff ? Quaternion.identity : Quaternion.FromToRotation(viw, Vector3.forward);
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
             riwTransformed.w = tisw;
             Vector3 aiwTransformed = viwToZRot * aiw;
@@ -340,7 +340,7 @@ namespace OpenRelativity
             float t2 = riwTransformed.w;
 
             float aiwMag = aiwTransformed.magnitude;
-            if (aiwMag> divByZeroCutoff)
+            if (aiwMag > divByZeroCutoff)
             {
                 //add the position offset due to acceleration
                 riwTransformed += (Vector4)(aiwTransformed) / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
@@ -424,7 +424,7 @@ namespace OpenRelativity
 
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)
         {
-            if (c < divByZeroCutoff)
+            if (c <= divByZeroCutoff)
             {
                 return Vector4.zero;
             }

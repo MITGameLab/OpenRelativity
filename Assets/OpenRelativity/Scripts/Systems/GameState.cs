@@ -69,6 +69,20 @@ namespace OpenRelativity
                 return SpeedOfLight / planckTime;
             }
         }
+        public float planckMomentum
+        {
+            get
+            {
+                return Mathf.Sqrt(hbar * gConst * SpeedOfLight);
+            }
+        }
+        public float planckAngularMomentum
+        {
+            get
+            {
+                return (hbar * gConst) / SpeedOfLight;
+            }
+        }
 
         // In Planck units
         public float gravityBackgroundTemperature = 2.53466e-31f;

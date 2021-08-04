@@ -303,7 +303,7 @@ namespace OpenRelativity
                 //3-acceleration acts as classically on the rapidity, rather than velocity.
                 Vector3 totalVel = playerVelocityVector.AddVelocity((quasiWorldAccel * Time.deltaTime).RapidityToVelocity());
                 Vector3 projVOnG = Vector3.Project(totalVel, Physics.gravity);
-                if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude < SRelativityUtil.divByZeroCutoff))
+                if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
                 {
                     totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
                     totalVel = new Vector3(totalVel.x, 0, totalVel.z);

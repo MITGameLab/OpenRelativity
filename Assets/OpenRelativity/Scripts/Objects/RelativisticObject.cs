@@ -218,7 +218,7 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if (IsNaNOrInf(value.sqrMagnitude) || (value - _viw).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
+                if (IsNaNOrInf(value.sqrMagnitude) || (value - _viw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
                 {
                     return;
                 }
@@ -269,7 +269,7 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if (isKinematic || IsNaNOrInf(value.sqrMagnitude) || (value - _nonGravAccel).sqrMagnitude < SRelativityUtil.divByZeroCutoff)
+                if (isKinematic || IsNaNOrInf(value.sqrMagnitude) || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
                 {
                     return;
                 }
@@ -1478,7 +1478,7 @@ namespace OpenRelativity.Objects
             {
                 float aviwMag = aviw.magnitude;
                 Quaternion diffRot;
-                if (aviwMag < SRelativityUtil.divByZeroCutoff)
+                if (aviwMag <= SRelativityUtil.divByZeroCutoff)
                 {
                     diffRot = Quaternion.identity;
                 }
