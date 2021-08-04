@@ -44,7 +44,7 @@ namespace OpenRelativity.ConformalMaps
             if (!isExterior)
             {
                 piw = state.SpeedOfLight * state.TotalTimeWorld * piw / r;
-                tDiff = r;
+                tDiff = -r;
             }
 
             float omega = GetOmega(piw);
