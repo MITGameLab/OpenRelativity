@@ -9,11 +9,6 @@ namespace OpenRelativity.ConformalMaps
 
         public float GetOmega(Vector3 piw)
         {
-            if (!isExterior)
-            {
-                piw = state.SpeedOfLight * state.TotalTimeWorld * piw.normalized;
-            }
-
             float rSqr = piw.sqrMagnitude;
             // Radius:
             float r = Mathf.Sqrt(rSqr);
@@ -44,11 +39,22 @@ namespace OpenRelativity.ConformalMaps
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
 
+            float r = piw.magnitude;
+            float tDiff = properTDiff;
+            if (!isExterior)
+            {
+                piw = state.SpeedOfLight * state.TotalTimeWorld * piw / r;
+                tDiff = r;
+            }
+
             float omega = GetOmega(piw);
+            float frameDragAngle = omega * tDiff;
+            Quaternion frameDragRot = Quaternion.AngleAxis(frameDragAngle, spinAxis);
 
-            float frameDragAngle = omega * properTDiff;
-
-            Quaternion frameDragRot = Quaternion.AxisAngle(spinAxis, frameDragAngle);
+            if (!isExterior)
+            {
+                piw = r * piw / (state.SpeedOfLight * state.TotalTimeWorld);
+            }
 
             piw = frameDragRot * piw;
             piw = Quaternion.Inverse(rot) * piw;
@@ -65,6 +71,12 @@ namespace OpenRelativity.ConformalMaps
 
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             Vector3 lpiw = rot * piw;
+
+            float r = lpiw.magnitude;
+            if (!isExterior)
+            {
+                lpiw = state.SpeedOfLight * state.TotalTimeWorld * lpiw / r;
+            }
 
             float omega = GetOmega(lpiw);
             Vector3 frameDragAccel = (omega * omega / lpiw.magnitude) * spinAxis;
