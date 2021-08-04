@@ -9,8 +9,6 @@ namespace OpenRelativity.ConformalMaps
 
         public float GetOmega(Vector3 piw)
         {
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
-            piw = rot * piw;
             float rSqr = piw.sqrMagnitude;
 
             // Radius:
@@ -45,9 +43,8 @@ namespace OpenRelativity.ConformalMaps
             float omega = GetOmega(piw);
 
             float frameDragAngle = omega * properTDiff;
-            Quaternion frameDragRot = (Mathf.Abs(frameDragAngle) <= SRelativityUtil.divByZeroCutoff)
-                ? Quaternion.identity
-                : frameDragRot = Quaternion.Euler(0, frameDragAngle, 0);
+
+            Quaternion frameDragRot = Quaternion.AxisAngle(spinAxis, frameDragAngle);
 
             piw = frameDragRot * piw;
             piw = Quaternion.Inverse(rot) * piw;
