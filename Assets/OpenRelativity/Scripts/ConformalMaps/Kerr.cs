@@ -11,7 +11,7 @@ namespace OpenRelativity.ConformalMaps
         {
             if (!isExterior)
             {
-                piw = state.TotalTimeWorld * piw.normalized;
+                piw = state.SpeedOfLight * state.TotalTimeWorld * piw.normalized;
             }
 
             float rSqr = piw.sqrMagnitude;
