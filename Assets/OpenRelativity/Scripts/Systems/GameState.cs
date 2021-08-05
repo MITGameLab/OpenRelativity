@@ -33,6 +33,7 @@ namespace OpenRelativity
         // but that doesn't mean they wouldn't be "cool" in a video game, at least.)
         public float hbar = 1e-12f;
         public float gConst = 1;
+        public float boltzmannConstant = 1;
         public float vacuumPermeability = 1.0f;
         public float vacuumPermittivity
         {
@@ -68,6 +69,13 @@ namespace OpenRelativity
             get
             {
                 return Mathf.Sqrt(hbar * gConst / SpeedOfLight);
+            }
+        }
+        public float planckTemperature
+        {
+            get
+            {
+                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5.0f) / (gConst * boltzmannConstant * boltzmannConstant));
             }
         }
         public float planckAccel

@@ -23,6 +23,33 @@ namespace OpenRelativity
             }
         }
 
+        public static float SchwarzRadiusToPlanckScaleTemp(float radius)
+        {
+            float rsp = radius / state.planckLength;
+            return Mathf.Pow(sigmaPlanck * 8.0f * Mathf.PI * Mathf.Pow(rsp, 3.0f), -1.0f / 4.0f);
+        }
+
+        public static float PlanckScaleTempToSchwarzRadius(float temp)
+        {
+            return state.planckLength / Mathf.Pow(sigmaPlanck * 8.0f * Mathf.PI * Mathf.Pow(temp, 4.0f), 1.0f / 3.0f);
+        }
+
+        public static float EffectiveRaditiativeRadius(float radius, float backgroundTemp)
+        {
+            if (backgroundTemp <= divByZeroCutoff)
+            {
+                return radius;
+            }
+
+            float rsp = radius / state.planckLength;
+            return PlanckScaleTempToSchwarzRadius(
+                4.0f * Mathf.PI * rsp * rsp * (
+                    Mathf.Pow(SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(radius), 4.0f) -
+                    Mathf.Pow(backgroundTemp / state.planckTemperature, 4.0f)
+                )
+            );
+        }
+
         public static Vector3 AddVelocity(this Vector3 orig, Vector3 toAdd)
         {
             Vector3 parra = Vector3.Project(toAdd, orig);

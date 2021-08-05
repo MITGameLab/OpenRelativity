@@ -139,21 +139,23 @@ namespace OpenRelativity.ConformalMaps
                     return 0;
                 }
 
+                float r = SRelativityUtil.EffectiveRaditiativeRadius(radius, state.gravityBackgroundTemperature);
+
                 float diffR;
-                if (radius > state.planckLength)
+                if (r > state.planckLength)
                 {
                     float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                    diffR = -state.DeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
+                    diffR = -state.DeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / r;
                 }
                 else if (isExterior)
                 {
-                    float timeToPlanck = Mathf.Sqrt(radius * 4.0f / state.SpeedOfLight - 4.0f * state.planckTime);
+                    float timeToPlanck = Mathf.Sqrt(r * 4.0f / state.SpeedOfLight - 4.0f * state.planckTime);
                     if (timeToPlanck <= state.DeltaTimeWorld)
                     {
-                        radius = state.planckLength;
+                        r = state.planckLength;
 
                         float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                        diffR = -(state.DeltaTimeWorld - timeToPlanck) * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / radius;
+                        diffR = -(state.DeltaTimeWorld - timeToPlanck) * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / r;
                     }
                     else
                     {
