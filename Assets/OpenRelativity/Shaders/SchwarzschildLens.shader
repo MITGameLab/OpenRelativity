@@ -207,7 +207,7 @@
 				!(_hasEventHorizon && deflectionAngle >= PI_2))
 				&& inversionCount % 2 == (_isMirror < 0.5 ? 0 : 1))
 			{
-				lensPlaneCoords = _playerDist * tan(sourceAngle - (deflectionAngle + spinBoostAngle)) * lensPlaneCoords / r;
+				lensPlaneCoords = _playerDist * tan(sourceAngle + spinBoostAngle - deflectionAngle) * lensPlaneCoords / r;
 				float cosSpin = cos(spinAngle);
 				float sinSpin = sin(spinAngle);
 				lensPlaneCoords = float2(cosSpin * lensPlaneCoords.x - sinSpin * lensPlaneCoords.y, sinSpin * lensPlaneCoords.x + cosSpin * lensPlaneCoords.y);
