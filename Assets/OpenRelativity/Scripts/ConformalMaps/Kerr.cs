@@ -36,9 +36,11 @@ namespace OpenRelativity.ConformalMaps
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
 
+            // Adjust the global spin axis
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
 
+            // If interior, flip the metric signature between time-like and radial coordinates.
             float r = piw.magnitude;
             float tDiff = properTDiff;
             if (!isExterior)
@@ -47,20 +49,58 @@ namespace OpenRelativity.ConformalMaps
                 tDiff = -r;
             }
 
+            // Get the angular frame-dragging velocity at the START of the finite difference time step.
             float omega = GetOmega(piw);
             float frameDragAngle = omega * tDiff;
-            Quaternion frameDragRot = Quaternion.AngleAxis(frameDragAngle, spinAxis);
+            // We will apply HALF the rotation, at BOTH ends of the finite difference time interval.
+            Quaternion frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2.0f, spinAxis);
 
+            // If interior... (reverse signature change).
+            if (!isExterior)
+            {
+                piw = r * piw / (state.SpeedOfLight * state.TotalTimeWorld);
+            }
+
+            // Apply (half) the frame-dragging rotation.
+            piw = frameDragRot * piw;
+            riw = frameDragRot * riw;
+
+            // Apply (full) Schwarzschild ComoveOptical() step.
+            piw = Quaternion.Inverse(rot) * piw;
+            Comotion forwardComotion = base.ComoveOptical(properTDiff, piw, riw);
+            piw = forwardComotion.piw;
+            piw = rot * piw;
+
+            // If interior, flip the metric signature between time-like and radial coordinates.
+            if (!isExterior)
+            {
+                piw = state.SpeedOfLight * state.TotalTimeWorld * piw / r;
+                tDiff = -r;
+            }
+
+            // Get the angular frame-dragging velocity at the END of the finite difference time step.
+            omega = GetOmega(piw);
+            frameDragAngle = omega * tDiff;
+            // We will apply HALF the rotation, at BOTH ends of the finite difference time interval.
+            frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2.0f, spinAxis);
+
+            // If interior... (reverse signature change).
             if (!isExterior)
             {
                 piw = r * piw / (state.SpeedOfLight * state.TotalTimeWorld);
             }
 
             piw = frameDragRot * piw;
-            piw = Quaternion.Inverse(rot) * piw;
             riw = frameDragRot * riw;
 
-            return base.ComoveOptical(properTDiff, piw, riw);
+            // Reverse spin axis rotation.
+            piw = Quaternion.Inverse(rot) * piw;
+
+            // Load the return object.
+            forwardComotion.piw = piw;
+            forwardComotion.riw = riw;
+
+            return forwardComotion;
         }
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
