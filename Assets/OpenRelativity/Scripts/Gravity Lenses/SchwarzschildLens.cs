@@ -25,6 +25,9 @@ public class SchwarzschildLens : GravityLens
     {
         float r = schwarzschild.radius;
 
+        // TODO: Only handles looking directly along spin axis, so far:
+        float j = (schwarzschild is Kerr) ? (schwarzschild as Kerr).spinMomentum : 0.0f;
+
         if (r == 0)
         {
             doBlit = false;
@@ -37,6 +40,7 @@ public class SchwarzschildLens : GravityLens
         {
             lensMaterial = interiorMaterial;
             lensMaterial.SetFloat("_lensRadius", r);
+            lensMaterial.SetFloat("_lensSpin", j);
             lensMaterial.SetFloat("_playerDist", state.SpeedOfLight * state.TotalTimeWorld);
 
             return;
@@ -61,6 +65,7 @@ public class SchwarzschildLens : GravityLens
         lensMaterial.SetFloat("_playerDist", playerDist);
         lensMaterial.SetFloat("_playerAngle", playerAngle);
         lensMaterial.SetFloat("_lensRadius", r);
+        lensMaterial.SetFloat("_lensSpin", j);
         lensMaterial.SetFloat("_lensUPos", lensUVPos.x);
         lensMaterial.SetFloat("_lensVPos", lensUVPos.y);
         lensMaterial.SetFloat("_frustumWidth", frustumWidth);

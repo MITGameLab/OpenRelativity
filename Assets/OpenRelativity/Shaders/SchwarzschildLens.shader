@@ -10,6 +10,7 @@
 		_lensVPos("Lens Position (V)", float) = 0
 		_frustumWidth("Frustum Width", float) = 0
 		_frustumHeight("Frustum Height", float) = 0
+		_lensSpin("Lens Spin", float) = 0
 		_lensTex("Lens-Pass Texture", 2D) = "black" {}
 		[Toggle] _isMirror("Gravity Mirror", float) = 0
 		[Toggle] _hasEventHorizon("Block event horizon", float) = 0
@@ -42,7 +43,7 @@
 
 	sampler2D _MainTex;
 	sampler2D _lensTex;
-	float _playerDist, _playerAngle, _lensRadius;
+	float _playerDist, _playerAngle, _lensRadius, _lensSpin;
 	float _lensUPos, _lensVPos;
 	float _frustumWidth, _frustumHeight;
 	float _isMirror;
@@ -187,6 +188,7 @@
 		if (!_hasEventHorizon || r > _lensRadius || _playerAngle > PI_2) {
 			float sourceAngle = atan2(r, _playerDist);
 			float deflectionAngle = 2 * (_lensRadius / r) * cos(_playerAngle / 2) / _cameraScale;
+			float spinAngle = deflectionAngle * _lensSpin / _lensRadius;
 
 			uint inversionCount = abs(deflectionAngle) / PI_2;
 			if ((_playerAngle > PI_2 ||
@@ -194,6 +196,9 @@
 				&& inversionCount % 2 == (_isMirror < 0.5 ? 0 : 1))
 			{
 				lensPlaneCoords = _playerDist * tan(sourceAngle - deflectionAngle) * lensPlaneCoords / r;
+				float cosSpin = cos(spinAngle);
+				float sinSpin = sin(spinAngle);
+				lensPlaneCoords = float2(cosSpin * lensPlaneCoords.x - sinSpin * lensPlaneCoords.y, sinSpin * lensPlaneCoords.x + cosSpin * lensPlaneCoords.y);
 				float2 uvProj = lensPlaneCoords / frustumSize;
 				float scale = length(i.uv - lensUVPos) / length(uvProj);
 				uvProj = (uvProj + lensUVPos);
