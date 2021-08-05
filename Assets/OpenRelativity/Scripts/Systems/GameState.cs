@@ -33,6 +33,14 @@ namespace OpenRelativity
         // but that doesn't mean they wouldn't be "cool" in a video game, at least.)
         public float hbar = 1e-12f;
         public float gConst = 1;
+        public float vacuumPermeability = 1.0f;
+        public float vacuumPermittivity
+        {
+            get
+            {
+                return 1.0f / (vacuumPermeability * SpeedOfLightSqrd);
+            }
+        }
         public float hbarOverG
         {
             // Physically would be ~7.038e-45f m^5/s^3, in our universe
