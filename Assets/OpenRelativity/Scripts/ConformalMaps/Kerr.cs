@@ -29,7 +29,7 @@ namespace OpenRelativity.ConformalMaps
             return omega;
         }
 
-        override public Comotion ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
+        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
             {
@@ -67,7 +67,7 @@ namespace OpenRelativity.ConformalMaps
 
             // Apply (full) Schwarzschild ComoveOptical() step.
             piw = Quaternion.Inverse(rot) * piw;
-            Comotion forwardComotion = base.ComoveOptical(properTDiff, piw, riw);
+            Comovement forwardComotion = base.ComoveOptical(properTDiff, piw, riw);
             piw = forwardComotion.piw;
             piw = rot * piw;
 

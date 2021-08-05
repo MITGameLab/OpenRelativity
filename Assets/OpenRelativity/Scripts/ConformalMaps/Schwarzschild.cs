@@ -40,13 +40,13 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
-        override public Comotion ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
+        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if (radius <= 0)
             {
                 Vector4 toRet = piw;
                 toRet.w = properTDiff;
-                return new Comotion
+                return new Comovement
                 {
                     piw = toRet,
                     riw = riw
@@ -101,7 +101,7 @@ namespace OpenRelativity.ConformalMaps
             Vector4 piw4 = piw + piw.normalized * diffR;
             piw4.w = diffT;
 
-            return new Comotion
+            return new Comovement
             {
                 piw = piw4,
                 riw = riw
