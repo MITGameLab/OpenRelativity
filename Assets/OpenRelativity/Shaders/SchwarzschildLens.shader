@@ -197,7 +197,8 @@
 			float sinTilt = sin(_lensSpinTilt);
 			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt));
 			// TODO: It seems like the "corkscrew" polarizing sping angle value and this one might NOT be the same at respective maxima.
-			// If spin is up, observing right-hand rule, -x side is spinning TOWARD player. This causes it to deflect MORE; this is -tan(sourceAngle) * spinAngle.
+			// If spin is up, observing right-hand rule, -x side is spinning TOWARD player. This causes it to deflect MORE; this is -tan(sourceAngle) * spinAngle,
+			// projected on the equator.
 			float spinDeflectionAngle = -(rProjTilt / _playerDist) * spinAngle;
 
 			spinAngle *= cos(_lensSpinColat);
