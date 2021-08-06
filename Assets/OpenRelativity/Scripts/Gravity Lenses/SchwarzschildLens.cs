@@ -24,9 +24,19 @@ public class SchwarzschildLens : GravityLens
     void Update()
     {
         float r = schwarzschild.radius;
-
-        // TODO: Only handles looking directly along spin axis, so far:
-        float j = (schwarzschild is Kerr) ? (schwarzschild as Kerr).spinMomentum : 0.0f;
+        float j, spinColatitude, spinTilt;
+        if (schwarzschild is Kerr) {
+            Kerr kerr = schwarzschild as Kerr;
+            j = kerr.spinMomentum;
+            spinColatitude = Mathf.Deg2Rad * Vector3.Angle(-cam.transform.position, kerr.spinAxis);
+            spinTilt = Mathf.Deg2Rad * Vector3.Angle(cam.transform.up, kerr.spinAxis);
+        }
+        else
+        {
+            j = 0.0f;
+            spinColatitude = 0.0f;
+            spinTilt = 0.0f;
+        }
 
         if (r == 0)
         {
@@ -41,6 +51,8 @@ public class SchwarzschildLens : GravityLens
             lensMaterial = interiorMaterial;
             lensMaterial.SetFloat("_lensRadius", r);
             lensMaterial.SetFloat("_lensSpin", j);
+            lensMaterial.SetFloat("_lensSpinColat", spinColatitude);
+            lensMaterial.SetFloat("_lensSpinTilt", spinTilt);
             lensMaterial.SetFloat("_playerDist", state.SpeedOfLight * state.TotalTimeWorld);
 
             return;
@@ -66,6 +78,8 @@ public class SchwarzschildLens : GravityLens
         lensMaterial.SetFloat("_playerAngle", playerAngle);
         lensMaterial.SetFloat("_lensRadius", r);
         lensMaterial.SetFloat("_lensSpin", j);
+        lensMaterial.SetFloat("_lensSpinColat", spinColatitude);
+        lensMaterial.SetFloat("_lensSpinTilt", spinTilt);
         lensMaterial.SetFloat("_lensUPos", lensUVPos.x);
         lensMaterial.SetFloat("_lensVPos", lensUVPos.y);
         lensMaterial.SetFloat("_frustumWidth", frustumWidth);

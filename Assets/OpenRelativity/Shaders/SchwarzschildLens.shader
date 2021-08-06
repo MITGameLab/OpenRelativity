@@ -11,6 +11,8 @@
 		_frustumWidth("Frustum Width", float) = 0
 		_frustumHeight("Frustum Height", float) = 0
 		_lensSpin("Lens Spin", float) = 0
+		_lensSpinColat("Lens Spin Colatitude", float) = 0
+		_lensSpinTilt("Lens Spin Tilt", float) = 0
 		_lensTex("Lens-Pass Texture", 2D) = "black" {}
 		[Toggle] _isMirror("Gravity Mirror", float) = 0
 		[Toggle] _hasEventHorizon("Block event horizon", float) = 0
@@ -43,7 +45,8 @@
 
 	sampler2D _MainTex;
 	sampler2D _lensTex;
-	float _playerDist, _playerAngle, _lensRadius, _lensSpin;
+	float _playerDist, _playerAngle, _lensRadius;
+	float _lensSpin, _lensSpinColat, _lensSpinTilt;
 	float _lensUPos, _lensVPos;
 	float _frustumWidth, _frustumHeight;
 	float _isMirror;
@@ -68,7 +71,7 @@
 	}
 
 	//Color functions, there's no check for division by 0 which may cause issues on
-		//some graphics cards.
+	//some graphics cards.
 	float3 RGBToXYZC(float3 rgb)
 	{
 		float3 xyz;
@@ -189,13 +192,16 @@
 			float sourceAngle = atan2(r, _playerDist);
 			float deflectionAngle = 2 * (_lensRadius / r) * cos(_playerAngle / 2) / _cameraScale;
 			float spinAngle = deflectionAngle * _lensSpin / _lensRadius;
+			float spinBoostAngle = (r / _playerDist) * spinAngle;
+			spinAngle *= cos(_lensSpinColat);
+			spinBoostAngle *= sin(_lensSpinColat) * cos(_lensSpinTilt);
 
 			uint inversionCount = abs(deflectionAngle) / PI_2;
 			if ((_playerAngle > PI_2 ||
 				!(_hasEventHorizon && deflectionAngle >= PI_2))
 				&& inversionCount % 2 == (_isMirror < 0.5 ? 0 : 1))
 			{
-				lensPlaneCoords = _playerDist * tan(sourceAngle - deflectionAngle) * lensPlaneCoords / r;
+				lensPlaneCoords = _playerDist * tan(sourceAngle - (deflectionAngle + spinBoostAngle)) * lensPlaneCoords / r;
 				float cosSpin = cos(spinAngle);
 				float sinSpin = sin(spinAngle);
 				lensPlaneCoords = float2(cosSpin * lensPlaneCoords.x - sinSpin * lensPlaneCoords.y, sinSpin * lensPlaneCoords.x + cosSpin * lensPlaneCoords.y);
