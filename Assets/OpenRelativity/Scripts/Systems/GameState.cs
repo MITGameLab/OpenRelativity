@@ -82,7 +82,7 @@ namespace OpenRelativity
         {
             get
             {
-                return SpeedOfLight / planckTime;
+                return Mathf.Sqrt(Mathf.Pow(SpeedOfLight, 7) / (hbar * gConst));
             }
         }
         public float planckMomentum

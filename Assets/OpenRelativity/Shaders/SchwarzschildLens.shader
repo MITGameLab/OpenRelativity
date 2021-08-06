@@ -192,12 +192,14 @@
 			float sourceAngle = atan2(r, _playerDist);
 			float deflectionAngle = 2 * (_lensRadius / r) * cos(_playerAngle / 2) / _cameraScale;
 			float spinAngle = deflectionAngle * _lensSpinFrac;
-			spinAngle *= cos(_lensSpinColat);
 
 			float cosTilt = cos(_lensSpinTilt);
 			float sinTilt = sin(_lensSpinTilt);
 			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt));
+			// TODO: It seems like the "corkscrew" polarizing sping angle value and this one might NOT be the same at respective maxima.
 			float spinBoostAngle = (rProjTilt / _playerDist) * spinAngle;
+
+			spinAngle *= cos(_lensSpinColat);
 			spinBoostAngle *= sin(_lensSpinColat) * cosTilt;
 
 			uint inversionCount = abs(deflectionAngle) / PI_2;
