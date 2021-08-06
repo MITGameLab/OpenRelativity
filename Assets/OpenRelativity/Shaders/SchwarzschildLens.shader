@@ -196,7 +196,7 @@
 
 			float cosTilt = cos(_lensSpinTilt);
 			float sinTilt = sin(_lensSpinTilt);
-			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt)) / r;
+			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt));
 			float spinBoostAngle = (rProjTilt / _playerDist) * spinAngle;
 			spinBoostAngle *= sin(_lensSpinColat) * cosTilt;
 
