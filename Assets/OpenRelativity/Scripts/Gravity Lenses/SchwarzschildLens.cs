@@ -24,16 +24,16 @@ public class SchwarzschildLens : GravityLens
     void Update()
     {
         float r = schwarzschild.radius;
-        float j, spinColatitude, spinTilt;
+        float jFrac, spinColatitude, spinTilt;
         if (schwarzschild is Kerr) {
             Kerr kerr = schwarzschild as Kerr;
-            j = kerr.spinMomentum;
+            jFrac = (kerr.spinMomentum / r) * (state.planckLength / state.planckAngularMomentum);
             spinColatitude = Mathf.Deg2Rad * Vector3.Angle(-cam.transform.position, kerr.spinAxis);
             spinTilt = Mathf.Deg2Rad * Vector3.Angle(cam.transform.up, kerr.spinAxis);
         }
         else
         {
-            j = 0.0f;
+            jFrac = 0.0f;
             spinColatitude = 0.0f;
             spinTilt = 0.0f;
         }
@@ -50,7 +50,7 @@ public class SchwarzschildLens : GravityLens
         {
             lensMaterial = interiorMaterial;
             lensMaterial.SetFloat("_lensRadius", r);
-            lensMaterial.SetFloat("_lensSpin", j);
+            lensMaterial.SetFloat("_lensSpinFrac", jFrac);
             lensMaterial.SetFloat("_lensSpinColat", spinColatitude);
             lensMaterial.SetFloat("_lensSpinTilt", spinTilt);
             lensMaterial.SetFloat("_playerDist", state.SpeedOfLight * state.TotalTimeWorld);
@@ -77,7 +77,7 @@ public class SchwarzschildLens : GravityLens
         lensMaterial.SetFloat("_playerDist", playerDist);
         lensMaterial.SetFloat("_playerAngle", playerAngle);
         lensMaterial.SetFloat("_lensRadius", r);
-        lensMaterial.SetFloat("_lensSpin", j);
+        lensMaterial.SetFloat("_lensSpinFrac", jFrac);
         lensMaterial.SetFloat("_lensSpinColat", spinColatitude);
         lensMaterial.SetFloat("_lensSpinTilt", spinTilt);
         lensMaterial.SetFloat("_lensUPos", lensUVPos.x);

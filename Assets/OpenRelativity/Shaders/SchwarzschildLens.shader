@@ -10,7 +10,7 @@
 		_lensVPos("Lens Position (V)", float) = 0
 		_frustumWidth("Frustum Width", float) = 0
 		_frustumHeight("Frustum Height", float) = 0
-		_lensSpin("Lens Spin", float) = 0
+		_lensSpinFrac("Lens Spin Extremal Fraction", float) = 0
 		_lensSpinColat("Lens Spin Colatitude", float) = 0
 		_lensSpinTilt("Lens Spin Tilt", float) = 0
 		_lensTex("Lens-Pass Texture", 2D) = "black" {}
@@ -46,7 +46,7 @@
 	sampler2D _MainTex;
 	sampler2D _lensTex;
 	float _playerDist, _playerAngle, _lensRadius;
-	float _lensSpin, _lensSpinColat, _lensSpinTilt;
+	float _lensSpinFrac, _lensSpinColat, _lensSpinTilt;
 	float _lensUPos, _lensVPos;
 	float _frustumWidth, _frustumHeight;
 	float _isMirror;
@@ -191,7 +191,7 @@
 		if (!_hasEventHorizon || r > _lensRadius || _playerAngle > PI_2) {
 			float sourceAngle = atan2(r, _playerDist);
 			float deflectionAngle = 2 * (_lensRadius / r) * cos(_playerAngle / 2) / _cameraScale;
-			float spinAngle = deflectionAngle * _lensSpin / _lensRadius;
+			float spinAngle = deflectionAngle * _lensSpinFrac;
 			spinAngle *= cos(_lensSpinColat);
 
 			float cosTilt = cos(_lensSpinTilt);
