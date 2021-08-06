@@ -29,7 +29,7 @@ namespace OpenRelativity.ConformalMaps
             return omega;
         }
 
-        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw = default(Quaternion))
+        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
             {

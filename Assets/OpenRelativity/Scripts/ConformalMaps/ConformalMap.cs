@@ -10,7 +10,7 @@ namespace OpenRelativity.ConformalMaps
 
     public abstract class ConformalMap : RelativisticBehavior
     {
-        abstract public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw = default(Quaternion));
+        abstract public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw);
         abstract public Vector3 GetRindlerAcceleration(Vector3 piw);
     }
 }

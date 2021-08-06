@@ -40,7 +40,7 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
-        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw = default(Quaternion))
+        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if (radius <= 0)
             {
