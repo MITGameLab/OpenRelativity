@@ -210,6 +210,7 @@ namespace OpenRelativity.Objects
         {
             riw = rot * riw;
             viw = rot * viw;
+            nonGravAccel = rot * nonGravAccel;
         }
 
         public Vector3 cviw { get; private set; }
