@@ -192,9 +192,13 @@
 			float sourceAngle = atan2(r, _playerDist);
 			float deflectionAngle = 2 * (_lensRadius / r) * cos(_playerAngle / 2) / _cameraScale;
 			float spinAngle = deflectionAngle * _lensSpin / _lensRadius;
-			float spinBoostAngle = (r / _playerDist) * spinAngle;
 			spinAngle *= cos(_lensSpinColat);
-			spinBoostAngle *= sin(_lensSpinColat) * cos(_lensSpinTilt);
+
+			float cosTilt = cos(_lensSpinTilt);
+			float sinTilt = sin(_lensSpinTilt);
+			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt)) / r;
+			float spinBoostAngle = (rProjTilt / _playerDist) * spinAngle;
+			spinBoostAngle *= sin(_lensSpinColat) * cosTilt;
 
 			uint inversionCount = abs(deflectionAngle) / PI_2;
 			if ((_playerAngle > PI_2 ||
