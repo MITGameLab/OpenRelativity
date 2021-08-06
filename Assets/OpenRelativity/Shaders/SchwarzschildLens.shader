@@ -197,17 +197,17 @@
 			float sinTilt = sin(_lensSpinTilt);
 			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt));
 			// TODO: It seems like the "corkscrew" polarizing sping angle value and this one might NOT be the same at respective maxima.
-			float spinBoostAngle = (rProjTilt / _playerDist) * spinAngle;
+			float spinDeflectionAngle = (rProjTilt / _playerDist) * spinAngle;
 
 			spinAngle *= cos(_lensSpinColat);
-			spinBoostAngle *= sin(_lensSpinColat) * cosTilt;
+			spinDeflectionAngle *= sin(_lensSpinColat) * cosTilt;
 
 			uint inversionCount = abs(deflectionAngle) / PI_2;
 			if ((_playerAngle > PI_2 ||
 				!(_hasEventHorizon && deflectionAngle >= PI_2))
 				&& inversionCount % 2 == (_isMirror < 0.5 ? 0 : 1))
 			{
-				lensPlaneCoords = _playerDist * tan(sourceAngle + spinBoostAngle - deflectionAngle) * lensPlaneCoords / r;
+				lensPlaneCoords = _playerDist * tan(sourceAngle - (deflectionAngle + spinDeflectionAngle)) * lensPlaneCoords / r;
 				float cosSpin = cos(spinAngle);
 				float sinSpin = sin(spinAngle);
 				lensPlaneCoords = float2(cosSpin * lensPlaneCoords.x - sinSpin * lensPlaneCoords.y, sinSpin * lensPlaneCoords.x + cosSpin * lensPlaneCoords.y);
