@@ -206,6 +206,12 @@ namespace OpenRelativity.Objects
         //Store rotation quaternion
         public Quaternion riw { get; set; }
 
+        public void RotateTangentSpace(Quaternion rot)
+        {
+            riw = rot * riw;
+            viw = rot * viw;
+        }
+
         public Vector3 cviw { get; private set; }
 
         public Vector3 _viw = Vector3.zero;
@@ -1337,8 +1343,8 @@ namespace OpenRelativity.Objects
             if (state.conformalMap != null)
             {
                 
-                Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
-                riw = cm.riw;
+                Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, Quaternion.identity);
+                RotateTangentSpace(cm.riw);
                 Vector4 nPiw4 = cm.piw;
                 Vector3 pDiff = (Vector3)nPiw4 - piw;
                 cviw = pDiff / deltaTime;
