@@ -26,7 +26,7 @@ namespace OpenRelativity.ConformalMaps
 
             float rs = schwarzschildRadius;
             float a = aParam;
-            spinRadiusDiff = (rs - Mathf.Sqrt(rs * rs - 4.0f * a * a)) / 2.0f;
+            spinRadiusDiff = rs - (rs + Mathf.Sqrt(rs * rs - 4.0f * a * a)) / 2.0f;
             schwarzschildRadius -= spinRadiusDiff;
         }
 
@@ -36,7 +36,6 @@ namespace OpenRelativity.ConformalMaps
             {
                 return;
             }
-
             schwarzschildRadius += spinRadiusDiff;
             spinRadiusDiff = 0.0f;
         }
