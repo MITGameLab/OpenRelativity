@@ -2,7 +2,7 @@
 
 namespace OpenRelativity.ConformalMaps
 {
-    public class ReissnerNordstroem : Schwarzschild
+    public class KerrNewman : Kerr
     {
         public float electricCharge;
 
@@ -77,10 +77,12 @@ namespace OpenRelativity.ConformalMaps
             }
 
             float constRatio = state.planckCharge / state.planckLength;
-
             float extremalFrac = electricCharge / (schwarzschildRadius * constRatio);
-
             electricCharge += extremalFrac * deltaR * constRatio;
+
+            constRatio = state.planckMomentum;
+            extremalFrac = spinMomentum / (schwarzschildRadius * constRatio);
+            spinMomentum += extremalFrac * deltaR * constRatio;
         }
     }
 }

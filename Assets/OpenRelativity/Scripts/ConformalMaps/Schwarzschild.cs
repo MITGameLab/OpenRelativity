@@ -11,6 +11,16 @@ namespace OpenRelativity.ConformalMaps
 
         protected System.Random rng = new System.Random();
 
+        virtual public void SetEffectiveRadius(Vector3 piw)
+        {
+            //Intentionally left blank as a virtual interface.
+        }
+
+        virtual public void ResetSchwarschildRadius()
+        {
+            //Intentionally left blank as a virtual interface.
+        }
+
         protected float fold
         {
             get

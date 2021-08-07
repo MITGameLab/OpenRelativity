@@ -23,12 +23,7 @@ public class SchwarzschildLens : GravityLens
     // Update is called once per frame
     void Update()
     {
-        ReissnerNordstroem rn = null;
-        if (schwarzschild is ReissnerNordstroem)
-        {
-            rn = schwarzschild as ReissnerNordstroem;
-            rn.SetEffectiveRadius(cam.transform.position);
-        }
+        schwarzschild.SetEffectiveRadius(cam.transform.position);
 
         float r = schwarzschild.schwarzschildRadius;
         float jFrac, spinColatitude, spinTilt;
@@ -48,10 +43,7 @@ public class SchwarzschildLens : GravityLens
         if (r == 0)
         {
             doBlit = false;
-            if (rn != null)
-            {
-                rn.ResetSchwarschildRadius();
-            }
+            schwarzschild.ResetSchwarschildRadius();
 
             return;
         }
@@ -66,10 +58,7 @@ public class SchwarzschildLens : GravityLens
             lensMaterial.SetFloat("_lensSpinColat", spinColatitude);
             lensMaterial.SetFloat("_lensSpinTilt", spinTilt);
             lensMaterial.SetFloat("_playerDist", state.SpeedOfLight * state.TotalTimeWorld);
-            if (rn != null)
-            {
-                rn.ResetSchwarschildRadius();
-            }
+            schwarzschild.ResetSchwarschildRadius();
 
             return;
         }
@@ -102,9 +91,6 @@ public class SchwarzschildLens : GravityLens
         lensMaterial.SetFloat("_frustumHeight", frustumHeight);
         lensMaterial.SetFloat("_isExterior", schwarzschild.isExterior ? 1.0f : 0.0f);
 
-        if (rn != null)
-        {
-            rn.ResetSchwarschildRadius();
-        }
+        schwarzschild.ResetSchwarschildRadius();
     }
 }

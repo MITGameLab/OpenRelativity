@@ -7,7 +7,7 @@ namespace OpenRelativity.ConformalMaps
         public float spinMomentum;
         public Vector3 spinAxis = Vector3.up;
 
-        public float GetOmega(Vector3 piw)
+        virtual public float GetOmega(Vector3 piw)
         {
             float rSqr = piw.sqrMagnitude;
             // Radius:
@@ -138,9 +138,10 @@ namespace OpenRelativity.ConformalMaps
 
             schwarzschildRadius += deltaR;
 
-            if (schwarzschildRadius < 0)
+            if (schwarzschildRadius <= 0)
             {
                 schwarzschildRadius = 0;
+                return;
             }
 
             if (spinMomentum <= 0)
