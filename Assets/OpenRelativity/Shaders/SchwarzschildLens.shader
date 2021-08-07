@@ -198,17 +198,17 @@
 			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt));
 			// If spin is up, observing right-hand rule, -x side is spinning TOWARD player. This causes it to deflect MORE; this is -tan(sourceAngle) * spinAngle,
 			// projected on the equator.
-			float spinDeflectionAngle = -(rProjTilt / _playerDist) * spinAngle;
+			float spinSourceAngleAdj = -(rProjTilt / _playerDist) * spinAngle;
 
 			spinAngle *= cos(_lensSpinColat);
-			spinDeflectionAngle *= sin(_lensSpinColat) * cosTilt;
+			spinSourceAngleAdj *= sin(_lensSpinColat) * cosTilt;
 
 			uint inversionCount = abs(deflectionAngle) / PI_2;
 			if ((_playerAngle > PI_2 ||
 				!(_hasEventHorizon && deflectionAngle >= PI_2))
 				&& inversionCount % 2 == (_isMirror < 0.5 ? 0 : 1))
 			{
-				lensPlaneCoords = _playerDist * tan(sourceAngle - (deflectionAngle + spinDeflectionAngle)) * lensPlaneCoords / r;
+				lensPlaneCoords = _playerDist * tan(sourceAngle + spinSourceAngleAdj - deflectionAngle)  * lensPlaneCoords / r;
 				float cosSpin = cos(spinAngle);
 				float sinSpin = sin(spinAngle);
 				lensPlaneCoords = float2(cosSpin * lensPlaneCoords.x - sinSpin * lensPlaneCoords.y, sinSpin * lensPlaneCoords.x + cosSpin * lensPlaneCoords.y);
