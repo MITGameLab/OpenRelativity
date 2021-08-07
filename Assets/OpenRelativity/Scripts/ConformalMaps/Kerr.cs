@@ -145,8 +145,8 @@ namespace OpenRelativity.ConformalMaps
 
             // Apply (half) the frame-dragging rotation.
             piw = frameDragRot * piw;
-            // Torque is counter to black hole spin.
-            riw = Quaternion.Inverse(frameDragRot) * riw;
+            // Think of the observer as absorbing same-sign radiated angular momentum from the black hole.
+            riw = frameDragRot * riw;
 
             // Apply (full) Schwarzschild ComoveOptical() step.
             piw = Quaternion.Inverse(rot) * piw;
@@ -176,8 +176,8 @@ namespace OpenRelativity.ConformalMaps
 
             // Apply (half) the frame-dragging rotation.
             piw = frameDragRot * piw;
-            // Torque is counter to black hole spin.
-            riw = Quaternion.Inverse(frameDragRot) * riw;
+            // Think of the observer as absorbing same-sign radiated angular momentum from the black hole.
+            riw = frameDragRot * riw;
 
             // Reverse spin axis rotation.
             piw = Quaternion.Inverse(rot) * piw;
@@ -205,7 +205,7 @@ namespace OpenRelativity.ConformalMaps
             float r = lpiw.magnitude;
             if (!isExterior)
             {
-                // This is an exterior coordinate:
+                // This is an exterior coordinates postion:
                 lpiw = state.SpeedOfLight * state.TotalTimeWorld * lpiw / r;
             }
             float omega = GetOmega(lpiw);
