@@ -6,17 +6,18 @@ namespace OpenRelativity.ConformalMaps
     {
         public float electricCharge;
 
-        protected float invariantRadius;
+        protected float chargeRadiusDiff = 0.0f;
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
-            invariantRadius = schwarzschildRadius;
-            schwarzschildRadius -= state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
+            chargeRadiusDiff = state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
+            schwarzschildRadius -= chargeRadiusDiff;
         }
 
         override public void ResetSchwarschildRadius()
         {
-            schwarzschildRadius = invariantRadius;
+            schwarzschildRadius += chargeRadiusDiff;
+            chargeRadiusDiff = 0.0f;
         }
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)

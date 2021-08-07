@@ -7,6 +7,30 @@ namespace OpenRelativity.ConformalMaps
         public float spinMomentum;
         public Vector3 spinAxis = Vector3.up;
 
+        protected float spinRadiusDiff = 0.0f;
+
+        virtual public float aParam
+        {
+            get
+            {
+                return spinMomentum / (2 * state.gConst * Mathf.Pow(state.SpeedOfLight, 4.0f) * schwarzschildRadius);
+            }
+        }
+
+        override public void SetEffectiveRadius(Vector3 piw)
+        {
+            float rs = schwarzschildRadius;
+            float a = aParam;
+            spinRadiusDiff = (rs - Mathf.Sqrt(rs * rs - 4.0f * a * a)) / 2.0f;
+            schwarzschildRadius -= spinRadiusDiff;
+        }
+
+        override public void ResetSchwarschildRadius()
+        {
+            schwarzschildRadius += spinRadiusDiff;
+            spinRadiusDiff = 0.0f;
+        }
+
         virtual public float GetOmega(Vector3 piw)
         {
             float rSqr = piw.sqrMagnitude;
@@ -35,6 +59,8 @@ namespace OpenRelativity.ConformalMaps
             {
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
+
+            SetEffectiveRadius(piw);
 
             // Adjust the global spin axis
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
@@ -96,6 +122,8 @@ namespace OpenRelativity.ConformalMaps
             // Reverse spin axis rotation.
             piw = Quaternion.Inverse(rot) * piw;
 
+            ResetSchwarschildRadius();
+
             // Load the return object.
             forwardComovement.piw = piw;
             forwardComovement.riw = riw;
@@ -110,6 +138,8 @@ namespace OpenRelativity.ConformalMaps
                 return base.GetRindlerAcceleration(piw);
             }
 
+            SetEffectiveRadius(piw);
+
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             Vector3 lpiw = rot * piw;
 
@@ -122,7 +152,11 @@ namespace OpenRelativity.ConformalMaps
             float omega = GetOmega(lpiw);
             Vector3 frameDragAccel = (omega * omega / lpiw.magnitude) * spinAxis;
 
-            return frameDragAccel + base.GetRindlerAcceleration(piw);
+            Vector3 totalAccel = frameDragAccel + base.GetRindlerAcceleration(piw);
+
+            ResetSchwarschildRadius();
+
+            return totalAccel;
         }
 
         override public void Update()
