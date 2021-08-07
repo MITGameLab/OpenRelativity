@@ -38,7 +38,7 @@ namespace Qrack
                 Radius = QuantumSystem.PermutationExpectation(bits)
             });
 
-            schwarzschild.radius = expectationFrames[0].Radius / 2;
+            schwarzschild.schwarzschildRadius = expectationFrames[0].Radius / 2;
 
             for (uint i = 1; i < maxQubits; i++)
             {
@@ -129,7 +129,7 @@ namespace Qrack
             float t1 = expectationFrames[nextFrame].Time;
             float t = state.TotalTimeWorld;
 
-            schwarzschild.radius = r0 + t * (r1 - r0) / (t1 - t0);
+            schwarzschild.schwarzschildRadius = r0 + t * (r1 - r0) / (t1 - t0);
 
             schwarzschild.EnforceHorizon();
         }

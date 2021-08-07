@@ -78,6 +78,14 @@ namespace OpenRelativity
                 return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5.0f) / (gConst * boltzmannConstant * boltzmannConstant));
             }
         }
+        public float planckCharge
+        {
+            get
+            {
+                //The energy required to accumulate one Planck charge on a sphere one Planck length in diameter will make the sphere one Planck mass heavier
+                return Mathf.Sqrt(4.0f * Mathf.PI * vacuumPermittivity * hbar * SpeedOfLight);
+            }
+        }
         public float planckAccel
         {
             get

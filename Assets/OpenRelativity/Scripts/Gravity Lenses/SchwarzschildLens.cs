@@ -23,7 +23,7 @@ public class SchwarzschildLens : GravityLens
     // Update is called once per frame
     void Update()
     {
-        float r = schwarzschild.radius;
+        float r = schwarzschild.schwarzschildRadius;
         float jFrac, spinColatitude, spinTilt;
         if (schwarzschild is Kerr) {
             Kerr kerr = schwarzschild as Kerr;

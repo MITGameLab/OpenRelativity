@@ -7,7 +7,7 @@ namespace OpenRelativity.ConformalMaps
         public bool isExterior { get; set; }
 
         public bool doEvaporate = true;
-        public float radius = 0.5f;
+        public float schwarzschildRadius = 0.5f;
 
         protected System.Random rng = new System.Random();
 
@@ -18,14 +18,14 @@ namespace OpenRelativity.ConformalMaps
                 // Can we actually back-track to perfect 0 folds on the basis of exterior time?
                 // We don't know exactly how long the evaporation will take, in the quantum limit.
                 // If the black hole is "hairless," shouldn't this only depend on radius, rather than time?
-                return Mathf.Log(radius / state.planckLength) / Mathf.Log(2);
+                return Mathf.Log(schwarzschildRadius / state.planckLength) / Mathf.Log(2);
             }
         }
 
         virtual public void Start()
         {
             float dist = state.playerTransform.position.magnitude;
-            isExterior = (dist > radius);
+            isExterior = (dist > schwarzschildRadius);
             if (!isExterior)
             {
                 // From the exterior Schwarzschild perspective, the player's coordinate radius from origin (less than the
@@ -42,7 +42,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            if (radius <= 0)
+            if (schwarzschildRadius <= 0)
             {
                 Vector4 toRet = piw;
                 toRet.w = properTDiff;
@@ -56,7 +56,7 @@ namespace OpenRelativity.ConformalMaps
             // Assume that the spatial component is in world coordinates, and the time is a local time differential 
             float r;
             float tau = properTDiff;
-            float rsCubeRoot = Mathf.Pow(radius, 1.0f / 3.0f);
+            float rsCubeRoot = Mathf.Pow(schwarzschildRadius, 1.0f / 3.0f);
             float rho;
 
             if (isExterior)
@@ -75,7 +75,7 @@ namespace OpenRelativity.ConformalMaps
             // Unless we have a really small and/or adaptive finite difference time step, the above approximation fails close to the event horizon.
 
             // We can try the integral form, instead, with a major caveat...
-            float nR = Mathf.Pow(radius * Mathf.Pow(3.0f / 2.0f * (rho - tau), 2.0f), 1.0f / 3.0f);
+            float nR = Mathf.Pow(schwarzschildRadius * Mathf.Pow(3.0f / 2.0f * (rho - tau), 2.0f), 1.0f / 3.0f);
             float diffR = nR - r;
             // The equation we derive this closed-form integral from has many roots.
             // Some of these roots are not admissible without the existence of complex numbers.
@@ -89,7 +89,7 @@ namespace OpenRelativity.ConformalMaps
             // All that said, the above should serve our purposes in the local region of interest.
 
             // The integral isn't as "nice" for time, and we approximate to lowest order:
-            float diffT = Mathf.Log((radius - r) / diffR);
+            float diffT = Mathf.Log((schwarzschildRadius - r) / diffR);
 
             if (!isExterior)
             {
@@ -112,7 +112,7 @@ namespace OpenRelativity.ConformalMaps
         {
             if (isExterior)
             {
-                return radius * SRelativityUtil.cSqrd / (2 * piw.sqrMagnitude) * piw.normalized;
+                return schwarzschildRadius * SRelativityUtil.cSqrd / (2 * piw.sqrMagnitude) * piw.normalized;
             }
 
             return Vector3.zero;
@@ -120,9 +120,9 @@ namespace OpenRelativity.ConformalMaps
 
         public void EnforceHorizon()
         {
-            if (!isExterior && (state.TotalTimeWorld >= radius))
+            if (!isExterior && (state.TotalTimeWorld >= schwarzschildRadius))
             {
-                state.TotalTimeWorld = radius / state.SpeedOfLight;
+                state.TotalTimeWorld = schwarzschildRadius / state.SpeedOfLight;
                 state.isMovementFrozen = true;
             }
         }
@@ -139,7 +139,7 @@ namespace OpenRelativity.ConformalMaps
                     return 0;
                 }
 
-                float r = SRelativityUtil.EffectiveRaditiativeRadius(radius, state.gravityBackgroundTemperature);
+                float r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundTemperature);
 
                 float diffR;
                 if (r > state.planckLength)
@@ -180,7 +180,7 @@ namespace OpenRelativity.ConformalMaps
         {
             EnforceHorizon();
 
-            if (radius <= 0 || !doEvaporate || state.isMovementFrozen)
+            if (schwarzschildRadius <= 0 || !doEvaporate || state.isMovementFrozen)
             {
                 return;
             }
@@ -198,11 +198,11 @@ namespace OpenRelativity.ConformalMaps
             float deltaR = Mathf.Pow(2.0f, f) * deltaF * (float)rng.NextDouble() / 2.0f;
             float thermoDeltaR = deltaRadius;
 
-            radius += (isExterior != (deltaR > thermoDeltaR)) ? thermoDeltaR : deltaR;
+            schwarzschildRadius += (isExterior != (deltaR > thermoDeltaR)) ? thermoDeltaR : deltaR;
 
-            if (radius < 0)
+            if (schwarzschildRadius < 0)
             {
-                radius = 0;
+                schwarzschildRadius = 0;
             }
         }
     }

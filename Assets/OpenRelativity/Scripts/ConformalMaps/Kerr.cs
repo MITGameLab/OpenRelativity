@@ -18,13 +18,13 @@ namespace OpenRelativity.ConformalMaps
             float azi = Mathf.Atan2(piw.y, piw.x);
             // Time: piw.w
 
-            float a = spinMomentum / (radius * state.planckMass / state.planckLength);
+            float a = spinMomentum / (schwarzschildRadius * state.planckMass / state.planckLength);
             float aSqr = a * a;
             float cosAzi = Mathf.Cos(azi);
             float sigma = rSqr + aSqr * cosAzi * cosAzi;
 
             float cosInc = Mathf.Cos(inc);
-            float omega = (radius * r * a * state.SpeedOfLight) / (sigma * (rSqr + aSqr) + radius * r * aSqr * cosInc * cosInc);
+            float omega = (schwarzschildRadius * r * a * state.SpeedOfLight) / (sigma * (rSqr + aSqr) + schwarzschildRadius * r * aSqr * cosInc * cosInc);
 
             return omega;
         }
@@ -67,8 +67,8 @@ namespace OpenRelativity.ConformalMaps
 
             // Apply (full) Schwarzschild ComoveOptical() step.
             piw = Quaternion.Inverse(rot) * piw;
-            Comovement forwardComotion = base.ComoveOptical(properTDiff, piw, riw);
-            piw = forwardComotion.piw;
+            Comovement forwardComovement = base.ComoveOptical(properTDiff, piw, riw);
+            piw = forwardComovement.piw;
             piw = rot * piw;
 
             // If interior, flip the metric signature between time-like and radial coordinates.
@@ -97,10 +97,10 @@ namespace OpenRelativity.ConformalMaps
             piw = Quaternion.Inverse(rot) * piw;
 
             // Load the return object.
-            forwardComotion.piw = piw;
-            forwardComotion.riw = riw;
+            forwardComovement.piw = piw;
+            forwardComovement.riw = riw;
 
-            return forwardComotion;
+            return forwardComovement;
         }
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
@@ -129,18 +129,18 @@ namespace OpenRelativity.ConformalMaps
         {
             EnforceHorizon();
 
-            if (radius <= 0 || !doEvaporate || state.isMovementFrozen)
+            if (schwarzschildRadius <= 0 || !doEvaporate || state.isMovementFrozen)
             {
                 return;
             }
 
             float deltaR = deltaRadius;
 
-            radius += deltaR;
+            schwarzschildRadius += deltaR;
 
-            if (radius < 0)
+            if (schwarzschildRadius < 0)
             {
-                radius = 0;
+                schwarzschildRadius = 0;
             }
 
             if (spinMomentum <= 0)
@@ -153,9 +153,9 @@ namespace OpenRelativity.ConformalMaps
             // float constRatio = state.planckAngularMomentum / state.planckLength;
             float constRatio = state.planckMomentum;
 
-            float extremalFrac = spinMomentum / (radius * constRatio);
+            float extremalFrac = spinMomentum / (schwarzschildRadius * constRatio);
 
-            spinMomentum += extremalFrac * deltaRadius * constRatio;
+            spinMomentum += extremalFrac * deltaR * constRatio;
         }
     }
 }
