@@ -10,6 +10,12 @@ namespace OpenRelativity.ConformalMaps
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
+            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
+            {
+                base.SetEffectiveRadius(piw);
+                return;
+            }
+
             chargeRadiusDiff = state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
             schwarzschildRadius -= chargeRadiusDiff;
 
@@ -19,6 +25,11 @@ namespace OpenRelativity.ConformalMaps
         override public void ResetSchwarschildRadius()
         {
             base.ResetSchwarschildRadius();
+
+            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
+            {
+                return;
+            }
 
             schwarzschildRadius += chargeRadiusDiff;
             chargeRadiusDiff = 0.0f;
@@ -72,12 +83,9 @@ namespace OpenRelativity.ConformalMaps
             if (schwarzschildRadius <= 0)
             {
                 schwarzschildRadius = 0;
-                return;
-            }
-
-            if (electricCharge <= 0)
-            {
                 electricCharge = 0;
+                spinMomentum = 0;
+
                 return;
             }
 

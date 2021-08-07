@@ -19,6 +19,11 @@ namespace OpenRelativity.ConformalMaps
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
+            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            {
+                return;
+            }
+
             float rs = schwarzschildRadius;
             float a = aParam;
             spinRadiusDiff = (rs - Mathf.Sqrt(rs * rs - 4.0f * a * a)) / 2.0f;
@@ -27,6 +32,11 @@ namespace OpenRelativity.ConformalMaps
 
         override public void ResetSchwarschildRadius()
         {
+            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            {
+                return;
+            }
+
             schwarzschildRadius += spinRadiusDiff;
             spinRadiusDiff = 0.0f;
         }
@@ -175,6 +185,7 @@ namespace OpenRelativity.ConformalMaps
             if (schwarzschildRadius <= 0)
             {
                 schwarzschildRadius = 0;
+                spinMomentum = 0;
                 return;
             }
 
