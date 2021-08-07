@@ -33,8 +33,8 @@ namespace OpenRelativity.ConformalMaps
             float a = aParam;
 
             // I'm forced to approximate, for now. This might be avoided with tractable free fall coordinates.
-            // This is a more accurate approximation, as (a * a * r * sinInc * sinInc) tends << (r * r + a * a * cosInc),
-            // such as at the equator.
+            // This is a more accurate approximation, as (rs * r) tends >> (a * a * sinInc * sinInc),
+            // such as at the equator or long radial distances.
             spinRadiusDiff = rs - (rs * r * r) / (r * r + a * a * cosInc);
 
             schwarzschildRadius -= spinRadiusDiff;
