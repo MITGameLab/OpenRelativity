@@ -24,9 +24,19 @@ namespace OpenRelativity.ConformalMaps
                 return;
             }
 
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
+            piw = rot * piw;
+
             float rs = schwarzschildRadius;
+            float r = piw.magnitude;
+            float cosInc = piw.z / r;
             float a = aParam;
-            spinRadiusDiff = rs - (rs + Mathf.Sqrt(rs * rs - 4.0f * a * a)) / 2.0f;
+
+            // I'm forced to approximate, for now. This might be avoided with tractable free fall coordinates.
+            // This is a more accurate approximation, as (a * a * r * sinInc * sinInc) tends << (r * r + a * a * cosInc),
+            // such as at the equator.
+            spinRadiusDiff = rs - (rs * r * r) / (r * r + a * a * cosInc);
+
             schwarzschildRadius -= spinRadiusDiff;
         }
 
