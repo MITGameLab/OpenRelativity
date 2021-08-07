@@ -12,10 +12,14 @@ namespace OpenRelativity.ConformalMaps
         {
             chargeRadiusDiff = state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
             schwarzschildRadius -= chargeRadiusDiff;
+
+            base.SetEffectiveRadius(piw);
         }
 
         override public void ResetSchwarschildRadius()
         {
+            base.ResetSchwarschildRadius();
+
             schwarzschildRadius += chargeRadiusDiff;
             chargeRadiusDiff = 0.0f;
         }
