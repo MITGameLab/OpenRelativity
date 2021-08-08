@@ -202,9 +202,15 @@ namespace OpenRelativity.ConformalMaps
 
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             Vector3 lpiw = rot * piw;
+            float r = lpiw.magnitude;
+            if (!isExterior)
+            {
+                // This is an exterior coordinate:
+                lpiw = state.SpeedOfLight * state.TotalTimeWorld * lpiw / r;
+            }
             float omega = GetOmega(lpiw);
 
-            Vector3 frameDragAccel = (omega * omega * piw.magnitude) * Vector3.ProjectOnPlane(piw, spinAxis).normalized;
+            Vector3 frameDragAccel = (omega * omega * lpiw.magnitude) * Vector3.ProjectOnPlane(lpiw, spinAxis).normalized;
 
             Vector3 totalAccel = 1.0f / (timeScale * timeScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
 
