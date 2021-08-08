@@ -57,6 +57,9 @@ namespace OpenRelativity.ConformalMaps
                 return;
             }
 
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
+            piw = rot * piw;
+
             SetTimeCoordScale(piw);
 
             float rs = schwarzschildRadius;
@@ -113,11 +116,11 @@ namespace OpenRelativity.ConformalMaps
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
 
+            SetEffectiveRadius(piw);
+
             // Adjust the global spin axis
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
-
-            SetEffectiveRadius(piw);
 
             // If interior, flip the metric signature between time-like and radial coordinates.
             float r = piw.magnitude;
@@ -176,10 +179,10 @@ namespace OpenRelativity.ConformalMaps
             // Torque is counter to black hole spin.
             riw = Quaternion.Inverse(frameDragRot) * riw;
 
-            ResetSchwarschildRadius();
-
             // Reverse spin axis rotation.
             piw = Quaternion.Inverse(rot) * piw;
+
+            ResetSchwarschildRadius();
 
             // Load the return object.
             forwardComovement.piw = new Vector4(piw.x, piw.y, piw.z, tResult);
@@ -195,19 +198,13 @@ namespace OpenRelativity.ConformalMaps
                 return base.GetRindlerAcceleration(piw);
             }
 
+            SetEffectiveRadius(piw);
+
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             Vector3 lpiw = rot * piw;
-
-            SetEffectiveRadius(lpiw);
-
-            float r = lpiw.magnitude;
-            if (!isExterior)
-            {
-                lpiw = state.SpeedOfLight * state.TotalTimeWorld * lpiw / r;
-            }
-
             float omega = GetOmega(lpiw);
-            Vector3 frameDragAccel = (omega * omega * lpiw.magnitude) * Vector3.ProjectOnPlane(piw, spinAxis).normalized;
+
+            Vector3 frameDragAccel = (omega * omega * piw.magnitude) * Vector3.ProjectOnPlane(piw, spinAxis).normalized;
 
             Vector3 totalAccel = 1.0f / (timeScale * timeScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
 
