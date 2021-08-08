@@ -194,11 +194,11 @@ namespace OpenRelativity.ConformalMaps
                 return base.GetRindlerAcceleration(piw);
             }
 
-            float tScale = TimeCoordScale(piw);
-            SetEffectiveRadius(piw);
-
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             Vector3 lpiw = rot * piw;
+
+            float tScale = TimeCoordScale(piw);
+            SetEffectiveRadius(piw);
 
             float r = lpiw.magnitude;
             if (!isExterior)
