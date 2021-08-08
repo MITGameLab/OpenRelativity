@@ -44,7 +44,7 @@ namespace OpenRelativity.ConformalMaps
             float effectiveR = (schwarzschildRadius * r * r) / (r * r + a * a * cosInc * cosInc);
 
             float kerrScale = Mathf.Sqrt(((aSqr + rSqr) * (aSqr + rSqr) - aSqr * delta * sinIncSqr) / (delta * sigma));
-            float schwarzScale = Mathf.Sqrt(1.0f - effectiveR / r);
+            float schwarzScale = 1.0f / Mathf.Sqrt(1.0f - effectiveR / r);
 
             return kerrScale / schwarzScale;
         }
