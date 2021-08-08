@@ -190,6 +190,7 @@ namespace OpenRelativity.ConformalMaps
                 return base.GetRindlerAcceleration(piw);
             }
 
+            float tScale = TimeCoordScale(piw);
             SetEffectiveRadius(piw);
 
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
@@ -204,7 +205,7 @@ namespace OpenRelativity.ConformalMaps
             float omega = GetOmega(lpiw);
             Vector3 frameDragAccel = (omega * omega / lpiw.magnitude) * spinAxis;
 
-            Vector3 totalAccel = frameDragAccel + base.GetRindlerAcceleration(piw);
+            Vector3 totalAccel = 1.0f / (tScale * tScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
 
             ResetSchwarschildRadius();
 
