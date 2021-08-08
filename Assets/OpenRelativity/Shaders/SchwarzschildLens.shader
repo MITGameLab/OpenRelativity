@@ -198,7 +198,7 @@
 			float rProjTilt = dot(lensPlaneCoords, float2(cosTilt, sinTilt));
 			// If spin is up, observing right-hand rule, -x side is spinning TOWARD player. This causes it to deflect MORE; this is -tan(sourceAngle) * spinAngle,
 			// projected on the equator.
-			float spinSourceAngleAdj = -(rProjTilt / _playerDist) * spinAngle;
+			float spinSourceAngleAdj = (rProjTilt / _playerDist) * spinAngle;
 
 			spinAngle *= cos(_lensSpinColat);
 			spinSourceAngleAdj *= sin(_lensSpinColat) * cosTilt;
