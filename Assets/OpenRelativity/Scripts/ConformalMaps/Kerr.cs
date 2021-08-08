@@ -54,6 +54,8 @@ namespace OpenRelativity.ConformalMaps
         {
             if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
             {
+                spinRadiusDiff = 0.0f;
+                timeScale = 1.0f;
                 return;
             }
 
@@ -77,11 +79,6 @@ namespace OpenRelativity.ConformalMaps
 
         override public void ResetSchwarschildRadius()
         {
-            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
-            {
-                return;
-            }
-
             schwarzschildRadius += spinRadiusDiff;
             spinRadiusDiff = 0.0f;
             timeScale = 1.0f;
@@ -96,14 +93,14 @@ namespace OpenRelativity.ConformalMaps
             float inc = Mathf.Acos(piw.z / r);
             // Azimuth:
             float azi = Mathf.Atan2(piw.y, piw.x);
-            // Time: piw.w
 
             float a = spinMomentum / (schwarzschildRadius * state.planckMass / state.planckLength);
             float aSqr = a * a;
             float cosAzi = Mathf.Cos(azi);
+            float cosInc = Mathf.Cos(inc);
+
             float sigma = rSqr + aSqr * cosAzi * cosAzi;
 
-            float cosInc = Mathf.Cos(inc);
             float omega = (schwarzschildRadius * r * a * state.SpeedOfLight) / (sigma * (rSqr + aSqr) + schwarzschildRadius * r * aSqr * cosInc * cosInc);
 
             return omega;

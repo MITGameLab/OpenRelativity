@@ -10,6 +10,12 @@ namespace OpenRelativity.ConformalMaps
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
+            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
+            {
+                chargeRadiusDiff = 0.0f;
+                return;
+            }
+
             chargeRadiusDiff = state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
             schwarzschildRadius -= chargeRadiusDiff;
         }
@@ -17,15 +23,11 @@ namespace OpenRelativity.ConformalMaps
         override public void ResetSchwarschildRadius()
         {
             schwarzschildRadius += chargeRadiusDiff;
+            chargeRadiusDiff = 0.0f;
         }
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
-            {
-                return base.ComoveOptical(properTDiff, piw, riw);
-            }
-
             SetEffectiveRadius(piw);
 
             Comovement schwarzComovement = base.ComoveOptical(properTDiff, piw, riw);
@@ -37,11 +39,6 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
         {
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
-            {
-                return base.GetRindlerAcceleration(piw);
-            }
-
             SetEffectiveRadius(piw);
 
             Vector3 schwarzAccel = base.GetRindlerAcceleration(piw);
@@ -67,6 +64,7 @@ namespace OpenRelativity.ConformalMaps
             if (schwarzschildRadius <= 0)
             {
                 schwarzschildRadius = 0;
+                electricCharge = 0;
                 return;
             }
 
@@ -77,9 +75,7 @@ namespace OpenRelativity.ConformalMaps
             }
 
             float constRatio = state.planckCharge / state.planckLength;
-
             float extremalFrac = electricCharge / (schwarzschildRadius * constRatio);
-
             electricCharge += extremalFrac * deltaR * constRatio;
         }
     }

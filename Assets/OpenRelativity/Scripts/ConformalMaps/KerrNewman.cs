@@ -26,11 +26,6 @@ namespace OpenRelativity.ConformalMaps
         {
             base.ResetSchwarschildRadius();
 
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
-            {
-                return;
-            }
-
             schwarzschildRadius += chargeRadiusDiff;
             chargeRadiusDiff = 0.0f;
         }
