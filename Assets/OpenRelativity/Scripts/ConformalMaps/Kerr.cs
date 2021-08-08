@@ -17,6 +17,40 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
+        virtual public float TimeCoordScale(Vector3 piw)
+        {
+            // If our "SetEffectiveRadius(piw)" is expected to be exact at the equator, but we use it in all cases,
+            // Then we can better our overall approximation by assuming an inclincation-dependent time coordinate scaling.
+
+            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            {
+                return 1.0f;
+            }
+
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
+            piw = rot * piw;
+
+            float a = aParam;
+            float aSqr = a * a;
+
+            float rSqr = piw.sqrMagnitude;
+            // Radius:
+            float r = Mathf.Sqrt(rSqr);
+            // Inclination:
+            float cosInc = piw.z / r;
+            float cosIncSqr = cosInc * cosInc;
+            float sinIncSqr = 1 - cosIncSqr;
+
+            float rrrs = r * (r - schwarzschildRadius);
+
+            float effectiveR = (schwarzschildRadius * r * r) / (r * r + a * a * cosInc * cosInc);
+
+            float kerrScale = Mathf.Sqrt(((aSqr + rSqr) * (aSqr + rSqr) + aSqr * sinIncSqr * (aSqr + rrrs)) / ((aSqr + rrrs) * (aSqr * cosIncSqr + rSqr)));
+            float schwarzScale = 1.0f / Mathf.Sqrt(1.0f - effectiveR / r);
+
+            return kerrScale / schwarzScale;
+        }
+
         override public void SetEffectiveRadius(Vector3 piw)
         {
             if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
@@ -24,7 +58,7 @@ namespace OpenRelativity.ConformalMaps
                 return;
             }
 
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.forward);
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
 
             float rs = schwarzschildRadius;
@@ -79,8 +113,10 @@ namespace OpenRelativity.ConformalMaps
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
 
+            float tScale = TimeCoordScale(piw);
+
             // Adjust the global spin axis
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.forward);
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
 
             SetEffectiveRadius(piw);
@@ -113,7 +149,7 @@ namespace OpenRelativity.ConformalMaps
             // Apply (full) Schwarzschild ComoveOptical() step.
             piw = Quaternion.Inverse(rot) * piw;
             Comovement forwardComovement = base.ComoveOptical(properTDiff, piw, riw);
-            float tResult = forwardComovement.piw.w;
+            float tResult = tScale * forwardComovement.piw.w;
             piw = forwardComovement.piw;
             piw = rot * piw;
 
@@ -160,7 +196,7 @@ namespace OpenRelativity.ConformalMaps
 
             SetEffectiveRadius(piw);
 
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.forward);
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             Vector3 lpiw = rot * piw;
 
             float r = lpiw.magnitude;
