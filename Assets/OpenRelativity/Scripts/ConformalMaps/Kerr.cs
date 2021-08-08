@@ -72,6 +72,30 @@ namespace OpenRelativity.ConformalMaps
             return omega;
         }
 
+        virtual public float TimeCoordScale(Vector3 piw)
+        {
+            // If our "SetEffectiveRadius(piw)" is expected to be exact at the equator, but we use it in all cases,
+            // Then we can better our overall approximation by assuming an inclincation-dependent time coordinate scaling.
+
+            float a = aParam;
+            float aSqr = a * a;
+
+            float rSqr = piw.sqrMagnitude;
+            // Radius:
+            float r = Mathf.Sqrt(rSqr);
+            // Inclination:
+            float cosInc = piw.z / r;
+            float cosIncSqr = cosInc * cosInc;
+            float sinIncSqr = 1 - cosIncSqr;
+
+            float rrrs = r * (r - schwarzschildRadius);
+
+            return Mathf.Sqrt(
+                (aSqr * cosIncSqr + rSqr) * ((aSqr + rSqr) * (aSqr + rSqr) + aSqr * sinIncSqr * (aSqr + rrrs)) /
+                ((aSqr + rrrs) * (aSqr * cosIncSqr + rrrs))
+            );
+        }
+
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
@@ -79,11 +103,12 @@ namespace OpenRelativity.ConformalMaps
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
 
-            SetEffectiveRadius(piw);
-
             // Adjust the global spin axis
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
+
+            float tFrac = TimeCoordScale(piw);
+            SetEffectiveRadius(piw);
 
             // If interior, flip the metric signature between time-like and radial coordinates.
             float r = piw.magnitude;
@@ -113,6 +138,7 @@ namespace OpenRelativity.ConformalMaps
             // Apply (full) Schwarzschild ComoveOptical() step.
             piw = Quaternion.Inverse(rot) * piw;
             Comovement forwardComovement = base.ComoveOptical(properTDiff, piw, riw);
+            float tResult = tFrac * forwardComovement.piw.w;
             piw = forwardComovement.piw;
             piw = rot * piw;
 
@@ -138,13 +164,13 @@ namespace OpenRelativity.ConformalMaps
             piw = frameDragRot * piw;
             riw = frameDragRot * riw;
 
+            ResetSchwarschildRadius();
+
             // Reverse spin axis rotation.
             piw = Quaternion.Inverse(rot) * piw;
 
-            ResetSchwarschildRadius();
-
             // Load the return object.
-            forwardComovement.piw = piw;
+            forwardComovement.piw = new Vector4(piw.x, piw.y, piw.z, tResult);
             forwardComovement.riw = riw;
 
             return forwardComovement;
