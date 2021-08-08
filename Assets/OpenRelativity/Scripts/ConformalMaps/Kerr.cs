@@ -197,8 +197,8 @@ namespace OpenRelativity.ConformalMaps
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             Vector3 lpiw = rot * piw;
 
-            float tScale = TimeCoordScale(piw);
-            SetEffectiveRadius(piw);
+            float tScale = TimeCoordScale(lpiw);
+            SetEffectiveRadius(lpiw);
 
             float r = lpiw.magnitude;
             if (!isExterior)
