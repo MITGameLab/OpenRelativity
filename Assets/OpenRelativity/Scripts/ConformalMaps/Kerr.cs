@@ -140,7 +140,8 @@ namespace OpenRelativity.ConformalMaps
 
             // Apply (half) the frame-dragging rotation.
             piw = frameDragRot * piw;
-            riw = frameDragRot * riw;
+            // Torque is counter to black hole spin.
+            riw = Quaternion.Inverse(frameDragRot) * riw;
 
             // Apply (full) Schwarzschild ComoveOptical() step.
             piw = Quaternion.Inverse(rot) * piw;
@@ -168,8 +169,10 @@ namespace OpenRelativity.ConformalMaps
                 piw = r * piw / (state.SpeedOfLight * state.TotalTimeWorld);
             }
 
+            // Apply (half) the frame-dragging rotation.
             piw = frameDragRot * piw;
-            riw = frameDragRot * riw;
+            // Torque is counter to black hole spin.
+            riw = Quaternion.Inverse(frameDragRot) * riw;
 
             ResetSchwarschildRadius();
 
@@ -203,7 +206,7 @@ namespace OpenRelativity.ConformalMaps
             }
 
             float omega = GetOmega(lpiw);
-            Vector3 frameDragAccel = (omega * omega / lpiw.magnitude) * spinAxis;
+            Vector3 frameDragAccel = (omega * omega * lpiw.magnitude) * Vector3.ProjectOnPlane(piw, spinAxis).normalized;
 
             Vector3 totalAccel = 1.0f / (tScale * tScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
 
