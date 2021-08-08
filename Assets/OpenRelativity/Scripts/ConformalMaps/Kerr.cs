@@ -107,7 +107,7 @@ namespace OpenRelativity.ConformalMaps
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
 
-            float tFrac = TimeCoordScale(piw);
+            float tFrac = 1.0f;// TimeCoordScale(piw);
             SetEffectiveRadius(piw);
 
             // If interior, flip the metric signature between time-like and radial coordinates.
