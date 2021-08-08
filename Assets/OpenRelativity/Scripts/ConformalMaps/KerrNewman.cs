@@ -10,24 +10,27 @@ namespace OpenRelativity.ConformalMaps
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
+            // Calculate charge difference, based on invariant radius.
+            if (electricCharge > SRelativityUtil.divByZeroCutoff)
             {
-                base.SetEffectiveRadius(piw);
-                return;
+                chargeRadiusDiff = state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
+            } else
+            {
+                chargeRadiusDiff = 0.0f;
             }
 
-            chargeRadiusDiff = state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
-            schwarzschildRadius -= chargeRadiusDiff;
-
+            // Calculate (and set) spin difference, based on invariant radius.
             base.SetEffectiveRadius(piw);
+
+            // Set charge difference.
+            schwarzschildRadius -= chargeRadiusDiff;
         }
 
         override public void ResetSchwarschildRadius()
         {
-            base.ResetSchwarschildRadius();
-
             schwarzschildRadius += chargeRadiusDiff;
             chargeRadiusDiff = 0.0f;
+            base.ResetSchwarschildRadius();
         }
 
         override public void Update()
