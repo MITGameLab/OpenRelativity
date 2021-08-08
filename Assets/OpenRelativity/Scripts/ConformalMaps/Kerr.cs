@@ -20,7 +20,7 @@ namespace OpenRelativity.ConformalMaps
         virtual public float TimeCoordScale(Vector3 piw)
         {
             // If our "SetEffectiveRadius(piw)" is expected to be exact at the equator, but we use it in all cases,
-            // Then we can better our overall approximation by assuming an inclincation-dependent time coordinate scaling.
+            // then we can better our overall approximation by assuming an inclincation-dependent time coordinate scaling.
 
             if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
             {
@@ -43,7 +43,7 @@ namespace OpenRelativity.ConformalMaps
             float effectiveR = (schwarzschildRadius * r * r) / (r * r + a * a * cosInc * cosInc);
 
             float kerrScale = Mathf.Sqrt(((aSqr + rSqr) * (aSqr + rSqr) + aSqr * sinIncSqr * (aSqr + rrrs)) / ((aSqr + rrrs) * (aSqr * cosIncSqr + rSqr)));
-            float schwarzScale = 1.0f / Mathf.Sqrt(1.0f - effectiveR / r);
+            float schwarzScale = Mathf.Sqrt(1.0f - effectiveR / r);
 
             return kerrScale / schwarzScale;
         }
