@@ -27,9 +27,6 @@ namespace OpenRelativity.ConformalMaps
                 return 1.0f;
             }
 
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
-            piw = rot * piw;
-
             float a = aParam;
             float aSqr = a * a;
 
@@ -113,12 +110,11 @@ namespace OpenRelativity.ConformalMaps
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
 
-            float tScale = TimeCoordScale(piw);
-
             // Adjust the global spin axis
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
 
+            float tScale = TimeCoordScale(piw);
             SetEffectiveRadius(piw);
 
             // If interior, flip the metric signature between time-like and radial coordinates.
