@@ -24,7 +24,7 @@ namespace OpenRelativity.ConformalMaps
                 return;
             }
 
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.forward);
             piw = rot * piw;
 
             float rs = schwarzschildRadius;
@@ -80,7 +80,7 @@ namespace OpenRelativity.ConformalMaps
             }
 
             // Adjust the global spin axis
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.forward);
             piw = rot * piw;
 
             SetEffectiveRadius(piw);
@@ -160,7 +160,7 @@ namespace OpenRelativity.ConformalMaps
 
             SetEffectiveRadius(piw);
 
-            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
+            Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.forward);
             Vector3 lpiw = rot * piw;
 
             float r = lpiw.magnitude;
