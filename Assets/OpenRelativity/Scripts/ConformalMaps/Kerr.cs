@@ -77,6 +77,11 @@ namespace OpenRelativity.ConformalMaps
             // If our "SetEffectiveRadius(piw)" is expected to be exact at the equator, but we use it in all cases,
             // Then we can better our overall approximation by assuming an inclincation-dependent time coordinate scaling.
 
+            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            {
+                return 1.0f;
+            }
+
             float a = aParam;
             float aSqr = a * a;
 
@@ -90,10 +95,12 @@ namespace OpenRelativity.ConformalMaps
 
             float rrrs = r * (r - schwarzschildRadius);
 
-            return Mathf.Sqrt(
-                (aSqr * cosIncSqr + rSqr) * ((aSqr + rSqr) * (aSqr + rSqr) + aSqr * sinIncSqr * (aSqr + rrrs)) /
-                ((aSqr + rrrs) * (aSqr * cosIncSqr + rrrs))
-            );
+            float effectiveR = (schwarzschildRadius * r * r) / (r * r + a * a * cosInc * cosInc);
+
+            float kerrScale = Mathf.Sqrt(((aSqr + rSqr) * (aSqr + rSqr) + aSqr * sinIncSqr * (aSqr + rrrs)) / ((aSqr + rrrs) * (aSqr * cosIncSqr + rSqr)));
+            float schwarzScale = 1.0f / Mathf.Sqrt(1.0f - effectiveR / r);
+
+            return kerrScale / schwarzScale;
         }
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
@@ -107,7 +114,7 @@ namespace OpenRelativity.ConformalMaps
             Quaternion rot = Quaternion.FromToRotation(spinAxis, Vector3.up);
             piw = rot * piw;
 
-            float tFrac = 1.0f;// TimeCoordScale(piw);
+            float tFrac = TimeCoordScale(piw);
             SetEffectiveRadius(piw);
 
             // If interior, flip the metric signature between time-like and radial coordinates.
