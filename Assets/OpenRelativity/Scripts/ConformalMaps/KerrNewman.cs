@@ -30,38 +30,6 @@ namespace OpenRelativity.ConformalMaps
             chargeRadiusDiff = 0.0f;
         }
 
-        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
-        {
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
-            {
-                return base.ComoveOptical(properTDiff, piw, riw);
-            }
-
-            SetEffectiveRadius(piw);
-
-            Comovement schwarzComovement = base.ComoveOptical(properTDiff, piw, riw);
-
-            ResetSchwarschildRadius();
-
-            return schwarzComovement;
-        }
-
-        override public Vector3 GetRindlerAcceleration(Vector3 piw)
-        {
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
-            {
-                return base.GetRindlerAcceleration(piw);
-            }
-
-            SetEffectiveRadius(piw);
-
-            Vector3 schwarzAccel = base.GetRindlerAcceleration(piw);
-
-            ResetSchwarschildRadius();
-
-            return schwarzAccel;
-        }
-
         override public void Update()
         {
             EnforceHorizon();
