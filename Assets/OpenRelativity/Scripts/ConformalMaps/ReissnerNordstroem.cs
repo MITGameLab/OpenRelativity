@@ -26,11 +26,11 @@ namespace OpenRelativity.ConformalMaps
             chargeRadiusDiff = 0.0f;
         }
 
-        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw, Vector3 viw)
+        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             SetEffectiveRadius(piw);
 
-            Comovement schwarzComovement = base.ComoveOptical(properTDiff, piw, riw, viw);
+            Comovement schwarzComovement = base.ComoveOptical(properTDiff, piw, riw);
 
             ResetSchwarschildRadius();
 

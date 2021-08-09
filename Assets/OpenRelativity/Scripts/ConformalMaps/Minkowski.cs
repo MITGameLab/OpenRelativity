@@ -4,9 +4,9 @@ namespace OpenRelativity.ConformalMaps
 {
     public class Minkowski : ConformalMap
     {
-        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw, Vector3 viw)
+        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            Vector4 piw4 = piw + properTDiff * viw;
+            Vector4 piw4 = piw;
             piw4.w = properTDiff;
             return new Comovement
             {
