@@ -1497,8 +1497,8 @@ namespace OpenRelativity.Objects
             }
             else
             {
-                // Update piw from velocity in free fall coordinates.
-                piw += deltaTime * viw.AddVelocity(vff);
+                // Update piw from "peculiar velocity" in free fall coordinates.
+                piw += deltaTime * viw.AddVelocity(-vff);
                 // Update viw from acceleration. (Act secondly, so we don't double-count with comovement.)
                 viw += aiw * deltaTime;
             }
