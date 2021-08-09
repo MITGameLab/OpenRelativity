@@ -128,6 +128,18 @@ namespace OpenRelativity.ConformalMaps
             return Vector3.zero;
         }
 
+        public override Vector3 GetFreeFallVelocity(Vector3 piw)
+        {
+            if (!isExterior)
+            {
+                return Vector3.zero;
+            }
+
+            float r = piw.magnitude;
+
+            return -state.SpeedOfLight * Mathf.Sqrt(schwarzschildRadius / r) * (piw / r);
+        }
+
         public void EnforceHorizon()
         {
             if (!isExterior && (state.TotalTimeWorld >= schwarzschildRadius))

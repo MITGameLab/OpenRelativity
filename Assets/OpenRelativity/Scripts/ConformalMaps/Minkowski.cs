@@ -19,5 +19,10 @@ namespace OpenRelativity.ConformalMaps
         {
             return Vector3.zero;
         }
+
+        public override Vector3 GetFreeFallVelocity(Vector3 piw)
+        {
+            return Vector3.zero;
+        }
     }
 }
