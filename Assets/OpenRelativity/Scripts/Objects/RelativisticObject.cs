@@ -1487,27 +1487,31 @@ namespace OpenRelativity.Objects
             riw = riw * diffRot;
             myRigidbody.MoveRotation(riw);
 
-            // Stationary-at-infinity velocity update:
-            viw += aiw * deltaTime;
-
-            // Only update position according to stationary-at-infinity coordinates
-            // if we're not using comoving coordinates, to do so.
+            // Don't compound comoving coordinates with velocity update for stationary-at-infinity observer.
             if (state.conformalMap == null)
             {
-                Vector3 testVec = deltaTime * viw;
-                if (!IsNaNOrInf(testVec.sqrMagnitude))
-                {
-                    piw += testVec;
-                }
+                viw += aiw * deltaTime;
+            }
+
+            Vector3 testVec = deltaTime * viw;
+            if (!IsNaNOrInf(testVec.sqrMagnitude))
+            {
+                piw += testVec;
+            }
+
+            // Don't compound comoving coordinates with velocity update for stationary-at-infinity observer.
+            if (state.conformalMap != null)
+            {
+                viw += aiw * deltaTime;
             }
 
             if (isNonrelativisticShader)
             {
                 transform.parent = null;
-                Vector3 testVec = opticalPiw;
-                if (!IsNaNOrInf(testVec.sqrMagnitude))
+                Vector3 opiw = opticalPiw;
+                if (!IsNaNOrInf(opiw.sqrMagnitude))
                 {
-                    myRigidbody.MovePosition(testVec);
+                    myRigidbody.MovePosition(opiw);
                 }
                 contractor.position = myRigidbody.position;
                 transform.parent = contractor;
