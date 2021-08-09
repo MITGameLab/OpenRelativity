@@ -1474,9 +1474,11 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            // Accelerate after updating gravity's effect on proper acceleration
-            viw += aiw * deltaTime;
-
+            // If we already updated comoving coordinates, FIRST update postion, THEN update viw.
+            if (state.conformalMap == null)
+            {
+                viw += aiw * deltaTime;
+            }
             Vector3 testVec = deltaTime * viw;
             if (!IsNaNOrInf(testVec.sqrMagnitude))
             {
@@ -1512,6 +1514,12 @@ namespace OpenRelativity.Objects
                 {
                     myRigidbody.MovePosition(piw);
                 }
+            }
+
+            // Accelerate after updating gravity's effect on proper acceleration
+            if (state.conformalMap != null)
+            {
+                viw += aiw * deltaTime;
             }
             #endregion
 
