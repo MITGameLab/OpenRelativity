@@ -1334,9 +1334,10 @@ namespace OpenRelativity.Objects
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
 
+            Vector3 vff = Vector3.zero;
             if (state.conformalMap != null)
             {
-                
+                vff = state.conformalMap.GetFreeFallVelocity(piw);
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 riw = cm.riw;
                 Vector4 nPiw4 = cm.piw;
@@ -1487,18 +1488,19 @@ namespace OpenRelativity.Objects
             riw = riw * diffRot;
             myRigidbody.MoveRotation(riw);
 
-            // Update viw from acceleration.
-            viw += aiw * deltaTime;
-
             if (state.conformalMap == null)
             {
+                // Update viw from acceleration.
+                viw += aiw * deltaTime;
                 // Update piw from velocity.
                 piw += deltaTime * viw;
             }
             else
             {
-                // Update piw from difference between free-fall coordinate velocity and stationary-at-infinity velocity.
-                piw += deltaTime * viw.AddVelocity(-state.conformalMap.GetFreeFallVelocity(piw));
+                // Update piw from velocity in free fall coordinates.
+                piw += deltaTime * viw.AddVelocity(vff);
+                // Update viw from acceleration. (Act secondly, so we don't double-count with comovement.)
+                viw += aiw * deltaTime;
             }
 
             if (isNonrelativisticShader)
