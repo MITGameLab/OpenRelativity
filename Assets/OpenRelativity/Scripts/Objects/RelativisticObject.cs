@@ -1337,7 +1337,7 @@ namespace OpenRelativity.Objects
             if (state.conformalMap != null)
             {
                 
-                Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw, viw);
+                Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 riw = cm.riw;
                 Vector4 nPiw4 = cm.piw;
                 Vector3 pDiff = (Vector3)nPiw4 - piw;

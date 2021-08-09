@@ -50,11 +50,11 @@ namespace OpenRelativity.ConformalMaps
             }
         }
 
-        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw, Vector3 viw)
+        override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if (schwarzschildRadius <= 0)
             {
-                Vector4 toRet = piw + properTDiff * viw;
+                Vector4 toRet = piw;
                 toRet.w = properTDiff;
                 return new Comovement
                 {
@@ -108,9 +108,7 @@ namespace OpenRelativity.ConformalMaps
                 diffR = temp * state.SpeedOfLight;
             }
 
-            Vector3 vff = viw.AddVelocity(-state.SpeedOfLight * Mathf.Sqrt(schwarzschildRadius / r) * piw.normalized);
-
-            Vector4 piw4 = piw + piw.normalized * diffR + properTDiff * vff;
+            Vector4 piw4 = piw + piw.normalized * diffR;
             piw4.w = diffT;
 
             return new Comovement
