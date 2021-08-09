@@ -1487,8 +1487,18 @@ namespace OpenRelativity.Objects
             riw = riw * diffRot;
             myRigidbody.MoveRotation(riw);
 
-            viw += aiw * deltaTime;
+            if (state.conformalMap == null)
+            {
+                // Don't compound comoving coordinates with velocity update for stationary-at-infinity observer.
+                viw += aiw * deltaTime;
+            }
+            // Update viw motion.
             piw += deltaTime * viw;
+            if (state.conformalMap != null)
+            {
+                // Don't compound comoving coordinates with velocity update for stationary-at-infinity observer.
+                viw += aiw * deltaTime;
+            }
 
             if (isNonrelativisticShader)
             {
