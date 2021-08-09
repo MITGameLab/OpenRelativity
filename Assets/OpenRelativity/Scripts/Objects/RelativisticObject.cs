@@ -1474,52 +1474,49 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            // If we already updated comoving coordinates, FIRST update postion, THEN update viw.
+            float aviwMag = aviw.magnitude;
+            Quaternion diffRot;
+            if (aviwMag <= SRelativityUtil.divByZeroCutoff)
+            {
+                diffRot = Quaternion.identity;
+            }
+            else
+            {
+                diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
+            }
+            riw = riw * diffRot;
+            myRigidbody.MoveRotation(riw);
+
+            // Stationary-at-infinity velocity update:
+            viw += aiw * deltaTime;
+
+            // Only update position according to stationary-at-infinity coordinates
+            // if we're not using comoving coordinates, to do so.
             if (state.conformalMap == null)
             {
-                viw += aiw * deltaTime;
-            }
-            Vector3 testVec = deltaTime * viw;
-            if (!IsNaNOrInf(testVec.sqrMagnitude))
-            {
-                float aviwMag = aviw.magnitude;
-                Quaternion diffRot;
-                if (aviwMag <= SRelativityUtil.divByZeroCutoff)
+                Vector3 testVec = deltaTime * viw;
+                if (!IsNaNOrInf(testVec.sqrMagnitude))
                 {
-                    diffRot = Quaternion.identity;
-                }
-                else
-                {
-                    diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
-                }
-                riw = riw * diffRot;
-                myRigidbody.MoveRotation(riw);
-
-                piw += testVec;
-
-                if (isNonrelativisticShader)
-                {
-                    transform.parent = null;
-                    testVec = opticalPiw;
-                    if (!IsNaNOrInf(testVec.sqrMagnitude))
-                    {
-                        myRigidbody.MovePosition(testVec);
-                    }
-                    contractor.position = myRigidbody.position;
-                    transform.parent = contractor;
-                    transform.localPosition = Vector3.zero;
-                    ContractLength();
-                }
-                else
-                {
-                    myRigidbody.MovePosition(piw);
+                    piw += testVec;
                 }
             }
 
-            // Accelerate after updating gravity's effect on proper acceleration
-            if (state.conformalMap != null)
+            if (isNonrelativisticShader)
             {
-                viw += aiw * deltaTime;
+                transform.parent = null;
+                Vector3 testVec = opticalPiw;
+                if (!IsNaNOrInf(testVec.sqrMagnitude))
+                {
+                    myRigidbody.MovePosition(testVec);
+                }
+                contractor.position = myRigidbody.position;
+                transform.parent = contractor;
+                transform.localPosition = Vector3.zero;
+                ContractLength();
+            }
+            else
+            {
+                myRigidbody.MovePosition(piw);
             }
             #endregion
 
