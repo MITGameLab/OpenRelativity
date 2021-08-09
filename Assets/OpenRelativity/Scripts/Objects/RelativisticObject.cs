@@ -1488,12 +1488,7 @@ namespace OpenRelativity.Objects
             myRigidbody.MoveRotation(riw);
 
             viw += aiw * deltaTime;
-
-            Vector3 testVec = deltaTime * viw;
-            if (!IsNaNOrInf(testVec.sqrMagnitude))
-            {
-                piw += testVec;
-            }
+            piw += deltaTime * viw;
 
             if (isNonrelativisticShader)
             {
