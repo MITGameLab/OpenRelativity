@@ -1501,7 +1501,14 @@ namespace OpenRelativity.Objects
             // Update piw from "peculiar velocity" in free fall coordinates.
             piw += deltaTime * peculiarVelocity;
             // Update viw from acceleration. (Act secondly, so we don't double-count with comovement.)
-            peculiarVelocity += nonGravAccel * deltaTime;
+            if (state.conformalMap == null)
+            {
+                peculiarVelocity += aiw * deltaTime;
+            }
+            else
+            {
+                peculiarVelocity += nonGravAccel * deltaTime;
+            }
 
             if (isNonrelativisticShader)
             {
