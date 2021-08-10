@@ -4,6 +4,7 @@ namespace OpenRelativity.ConformalMaps
 {
     public class RindlerGravity : ConformalMap
     {
+        public float horizonUpOffset = 0.0f;
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
             if (Physics.gravity.sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
@@ -21,14 +22,14 @@ namespace OpenRelativity.ConformalMaps
             float g = Physics.gravity.magnitude;
             Vector3 unitVec = Physics.gravity / g;
             Vector3 projD = Vector3.Project(piw, unitVec);
-            float d = projD.magnitude;
+            float d = projD.magnitude - horizonUpOffset;
             float arg = 1.0f + g * d / cSqr;
             float properT = (c / g) * Mathf.Log(arg + Mathf.Sqrt((arg + 1.0f) * (arg - 1.0f)));
             arg = g * properT / c;
             float expArg = Mathf.Exp(arg);
             float t = (c / g) * (expArg - 1.0f / expArg) / 2.0f;
 
-            properT = properTDiff + ((Vector3.Dot(projD.normalized, unitVec) > 0) ? properT : -properT);
+            properT = properTDiff + ((Vector3.Dot(projD.normalized, unitVec) < 0) ? -properT : properT);
             if (properT < 0)
             {
                 properT = -properT;
@@ -37,7 +38,7 @@ namespace OpenRelativity.ConformalMaps
 
             arg = g * properT / c;
             expArg = Mathf.Exp(arg); 
-            d = (cSqr / g) * ((expArg + 1.0f / expArg) / 2.0f - 1.0f);
+            d = (cSqr / g) * ((expArg + 1.0f / expArg) / 2.0f - 1.0f) + horizonUpOffset;
             piw = d * unitVec + piw - projD;
 
             arg = g * properT / c;
@@ -72,7 +73,7 @@ namespace OpenRelativity.ConformalMaps
             {
                 unitVec = -unitVec;
             }
-            float d = projD.magnitude;
+            float d = projD.magnitude - horizonUpOffset;
             float t = Mathf.Sqrt((d * d / state.SpeedOfLightSqrd) + 2.0f * d / g);
 
             return g * t / Mathf.Sqrt(1.0f + (g * t) * (g * t) / state.SpeedOfLightSqrd) * unitVec;
