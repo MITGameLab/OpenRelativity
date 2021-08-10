@@ -208,16 +208,26 @@ namespace OpenRelativity.Objects
 
         public Vector3 cviw { get; private set; }
 
-        public Vector3 _viw = Vector3.zero;
+        public Vector3 peculiarVelocity = Vector3.zero;
+
+        public Vector3 vff
+        {
+            get
+            {
+                return (state.conformalMap == null) ? Vector3.zero : state.conformalMap.GetFreeFallVelocity(piw);
+            }
+        }
+
         public Vector3 viw
         {
             get
             {
-                return _viw;
+                return (state.conformalMap == null) ? peculiarVelocity : peculiarVelocity.AddVelocity(state.conformalMap.GetFreeFallVelocity(piw));
             }
 
             set
             {
+                Vector3 _viw = (state.conformalMap == null) ? peculiarVelocity : peculiarVelocity.AddVelocity(vff);
                 // Skip this all, if the change is negligible.
                 if (IsNaNOrInf(value.sqrMagnitude) || (value - _viw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
                 {
@@ -231,7 +241,7 @@ namespace OpenRelativity.Objects
 
                 if (isKinematic)
                 {
-                    _viw = value;
+                    peculiarVelocity = value.AddVelocity(-vff);
                     return;
                 }
 
@@ -275,7 +285,7 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
-                UpdateViwAndAccel(_viw, value);
+                UpdateViwAndAccel(peculiarVelocity.AddVelocity(vff), value);
                 UpdateRigidbodyVelocity();
             }
         }
@@ -378,10 +388,10 @@ namespace OpenRelativity.Objects
             // and inverse transform the optical position with the new the velocity.
             // (This keeps the optical position fixed.)
 
-            Vector3 vi = _viw;
+            Vector3 vi = peculiarVelocity.AddVelocity(vff);
             Vector3 ai = aiw;
 
-            _viw = vf;
+            peculiarVelocity = vf.AddVelocity(-vff);
             _nonGravAccel = af;
 
             float timeFac = GetTimeFactor();
@@ -1049,7 +1059,7 @@ namespace OpenRelativity.Objects
         {
             if (myRigidbody == null ||
                 // Not a meaningful quantity, just to check if either parameter is inf/nan
-                IsNaNOrInf((_viw + _aviw).magnitude))
+                IsNaNOrInf((peculiarVelocity + _aviw).magnitude))
             {
                 return;
             }
@@ -1073,7 +1083,7 @@ namespace OpenRelativity.Objects
             }
 
             float gamma = GetTimeFactor();
-            myRigidbody.velocity = _viw * gamma;
+            myRigidbody.velocity = viw * gamma;
             myRigidbody.angularVelocity = _aviw * gamma;
         }
         #endregion
@@ -1250,7 +1260,7 @@ namespace OpenRelativity.Objects
 
             if (myRigidbody != null)
             {
-                if ((_viw.sqrMagnitude < SleepThreshold) &&
+                if ((peculiarVelocity.sqrMagnitude < SleepThreshold) &&
                 (_aviw.sqrMagnitude < SleepThreshold) &&
                 (aiw.sqrMagnitude < SleepThreshold))
                 {
@@ -1488,20 +1498,10 @@ namespace OpenRelativity.Objects
             riw = riw * diffRot;
             myRigidbody.MoveRotation(riw);
 
-            if (state.conformalMap == null)
-            {
-                // Update viw from acceleration.
-                viw += aiw * deltaTime;
-                // Update piw from velocity.
-                piw += deltaTime * viw;
-            }
-            else
-            {
-                // Update piw from "peculiar velocity" in free fall coordinates.
-                piw += deltaTime * viw.AddVelocity(-vff);
-                // Update viw from acceleration. (Act secondly, so we don't double-count with comovement.)
-                viw += aiw * deltaTime;
-            }
+            // Update piw from "peculiar velocity" in free fall coordinates.
+            piw += deltaTime * peculiarVelocity;
+            // Update viw from acceleration. (Act secondly, so we don't double-count with comovement.)
+            peculiarVelocity += nonGravAccel * deltaTime;
 
             if (isNonrelativisticShader)
             {
