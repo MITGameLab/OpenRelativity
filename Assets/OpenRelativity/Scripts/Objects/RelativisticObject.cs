@@ -195,13 +195,13 @@ namespace OpenRelativity.Objects
             }
             set
             {
-                piw = ((Vector4)value).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration());
+                piw = ((Vector4)value).OpticalToWorld(viw, GetWorld4Acceleration());
             }
         }
 
         public void ResetPiw()
         {
-            piw = isNonrelativisticShader ? ((Vector4)transform.position).OpticalToWorldHighPrecision(viw, GetWorld4Acceleration()) : transform.position;
+            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(viw, GetWorld4Acceleration()) : transform.position;
         }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
@@ -222,7 +222,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                return (state.conformalMap == null) ? peculiarVelocity : state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity);
+                return vff.AddVelocity(peculiarVelocity);
             }
 
             set
@@ -233,8 +233,8 @@ namespace OpenRelativity.Objects
                 }
 
                 Vector3 tVff = vff;
+                Vector3 _viw = tVff.AddVelocity(peculiarVelocity);
 
-                Vector3 _viw = (state.conformalMap == null) ? peculiarVelocity : tVff.AddVelocity(peculiarVelocity);
                 // Skip this all, if the change is negligible.
                 if ((value - _viw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
                 {
@@ -395,13 +395,15 @@ namespace OpenRelativity.Objects
             // and inverse transform the optical position with the new the velocity.
             // (This keeps the optical position fixed.)
 
-            Vector3 vi = vff.AddVelocity(peculiarVelocity);
+            Vector3 tVff = vff;
+            Vector3 vi = tVff.AddVelocity(peculiarVelocity);
             Vector3 ai = aiw;
             nonGravAccel = nonGravAf;
+            peculiarVelocity = (-tVff).AddVelocity(vf);
 
             float timeFac = GetTimeFactor();
 
-            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi, timeFac))).OpticalToWorldHighPrecision(vf, aiw.ProperToWorldAccel(vf, timeFac));
+            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi, timeFac))).OpticalToWorld(vf, aiw.ProperToWorldAccel(vf, timeFac));
 
             if (!IsNaNOrInf(piw.magnitude))
             {
@@ -1637,7 +1639,7 @@ namespace OpenRelativity.Objects
 
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
-            piw = isNonrelativisticShader ? ((Vector4)myRigidbody.position).OpticalToWorldHighPrecision(viw, updateWorld4Acceleration) : myRigidbody.position;
+            piw = isNonrelativisticShader ? (Vector3)((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
             viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);

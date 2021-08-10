@@ -52,6 +52,16 @@ namespace OpenRelativity
 
         public static Vector3 AddVelocity(this Vector3 orig, Vector3 toAdd)
         {
+            if (orig == Vector3.zero)
+            {
+                return toAdd;
+            }
+
+            if (toAdd == Vector3.zero)
+            {
+                return orig;
+            }
+
             Vector3 parra = Vector3.Project(toAdd, orig);
             Vector3 perp = toAdd - parra;
             perp = orig.InverseGamma() * perp / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
