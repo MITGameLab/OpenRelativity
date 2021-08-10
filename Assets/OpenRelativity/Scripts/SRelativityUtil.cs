@@ -1,6 +1,4 @@
-﻿using System;
-using System.Reflection;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace OpenRelativity
 {
@@ -484,7 +482,7 @@ namespace OpenRelativity
             var triangles = mesh.triangles;
             var vertices = mesh.vertices;
 
-            double sum = 0.0;
+            float sum = 0.0f;
 
             for (int i = 0; i < triangles.Length; i += 3)
             {

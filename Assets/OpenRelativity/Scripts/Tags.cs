@@ -1,7 +1,4 @@
-﻿using UnityEngine;
-using System.Collections;
-
-namespace OpenRelativity
+﻿namespace OpenRelativity
 {
     public class Tags
     {
