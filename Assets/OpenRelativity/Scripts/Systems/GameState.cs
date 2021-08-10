@@ -398,7 +398,6 @@ namespace OpenRelativity
                     Vector3 pDiff = (Vector3)piw4 - playerTransform.position;
                     PlayerComovingVelocityVector = pDiff / FixedDeltaTimePlayer;
                     playerTransform.position = piw4;
-                    PlayerVelocityVector = PlayerVelocityVector.AddVelocity(conformalMap.GetRindlerAcceleration(playerTransform.position) * FixedDeltaTimePlayer);
                 }
 
                 Vector3 velocity = -PlayerVelocityVector;
