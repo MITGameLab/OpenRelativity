@@ -246,7 +246,7 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
-                if (isKinematic)
+                if ((myRigidbody != null) && myRigidbody.isKinematic)
                 {
                     peculiarVelocity = (-tVff).AddVelocity(value);
                     return;
@@ -398,7 +398,7 @@ namespace OpenRelativity.Objects
             Vector3 tVff = vff;
             Vector3 vi = tVff.AddVelocity(peculiarVelocity);
             Vector3 ai = aiw;
-            nonGravAccel = nonGravAf;
+            _nonGravAccel = nonGravAf;
             peculiarVelocity = (-tVff).AddVelocity(vf);
 
             float timeFac = GetTimeFactor();
@@ -1037,9 +1037,9 @@ namespace OpenRelativity.Objects
             float maxSpeed = state.MaxSpeed - 0.01f;
             float maxSpeedSqr = maxSpeed * maxSpeed;
 
-            if (viw.sqrMagnitude > maxSpeedSqr)
+            if (peculiarVelocity.sqrMagnitude > maxSpeedSqr)
             {
-                viw = viw.normalized * maxSpeed;
+                peculiarVelocity = peculiarVelocity.normalized * maxSpeed;
             }
             
             if (trnsfrmdMeshVerts == null)
@@ -1280,7 +1280,7 @@ namespace OpenRelativity.Objects
 
                 if (SleepTimer <= 0)
                 {
-                    viw = Vector3.zero;
+                    peculiarVelocity = Vector3.zero;
                     aviw = Vector3.zero;
                     aiw = Vector3.zero;
 
@@ -1473,7 +1473,7 @@ namespace OpenRelativity.Objects
 
                 if (!isKinematic)
                 {
-                    viw = Vector3.zero;
+                    peculiarVelocity = Vector3.zero;
                     aviw = Vector3.zero;
                     cviw = Vector3.zero;
                 }
@@ -1512,9 +1512,10 @@ namespace OpenRelativity.Objects
             {
                 peculiarVelocity += aiw * deltaTime;
             }
-            else
+            else if (nonGravAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
             {
-                peculiarVelocity += nonGravAccel * deltaTime;
+                // Use viw setter:
+                viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + nonGravAccel * deltaTime);
             }
 
             if (isNonrelativisticShader)
@@ -1626,7 +1627,7 @@ namespace OpenRelativity.Objects
                 ContactPoint contact = collision.contacts[0];
                 if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
                 {
-                    viw = Vector3.zero;
+                    peculiarVelocity = Vector3.zero;
                     aviw = Vector3.zero;
                     cviw = Vector3.zero;
                     SleepTimer = 0;
