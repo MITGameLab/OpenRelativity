@@ -222,14 +222,21 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                return (state.conformalMap == null) ? peculiarVelocity : peculiarVelocity.AddVelocity(state.conformalMap.GetFreeFallVelocity(piw));
+                return (state.conformalMap == null) ? peculiarVelocity : state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity);
             }
 
             set
             {
-                Vector3 _viw = (state.conformalMap == null) ? peculiarVelocity : peculiarVelocity.AddVelocity(vff);
+                if (IsNaNOrInf(value.sqrMagnitude))
+                {
+                    return;
+                }
+
+                Vector3 tVff = vff;
+
+                Vector3 _viw = (state.conformalMap == null) ? peculiarVelocity : tVff.AddVelocity(peculiarVelocity);
                 // Skip this all, if the change is negligible.
-                if (IsNaNOrInf(value.sqrMagnitude) || (value - _viw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                if ((value - _viw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
                 {
                     return;
                 }
@@ -241,11 +248,11 @@ namespace OpenRelativity.Objects
 
                 if (isKinematic)
                 {
-                    peculiarVelocity = value.AddVelocity(-vff);
+                    peculiarVelocity = (-tVff).AddVelocity(value);
                     return;
                 }
 
-                UpdateViwAndAccel(value, _nonGravAccel);
+                UpdateMotion(value, nonGravAccel);
                 UpdateRigidbodyVelocity();
             }
         }
@@ -285,7 +292,7 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
-                UpdateViwAndAccel(peculiarVelocity.AddVelocity(vff), value);
+                UpdateMotion(vff.AddVelocity(peculiarVelocity), value);
                 UpdateRigidbodyVelocity();
             }
         }
@@ -381,18 +388,16 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public void UpdateViwAndAccel(Vector3 vf, Vector3 af)
+        public void UpdateMotion(Vector3 vf, Vector3 nonGravAf)
         {
             // Changing velocities lose continuity of position,
             // unless we transform the world position to optical position with the old velocity,
             // and inverse transform the optical position with the new the velocity.
             // (This keeps the optical position fixed.)
 
-            Vector3 vi = peculiarVelocity.AddVelocity(vff);
+            Vector3 vi = vff.AddVelocity(peculiarVelocity);
             Vector3 ai = aiw;
-
-            peculiarVelocity = vf.AddVelocity(-vff);
-            _nonGravAccel = af;
+            nonGravAccel = nonGravAf;
 
             float timeFac = GetTimeFactor();
 
