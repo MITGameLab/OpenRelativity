@@ -1266,14 +1266,7 @@ namespace OpenRelativity.Objects
                 viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
 
-                // Update physics cache:
-                updateViwTimeFactor = viw.InverseGamma(updateMetric);
-                if (IsNaNOrInf(updateViwTimeFactor))
-                {
-                    updateViwTimeFactor = 1;
-                }
-                updateWorld4Acceleration = aiw.ProperToWorldAccel(viw, updateViwTimeFactor);
-                updateTisw = ((Vector4)piw).GetTisw(viw, updateWorld4Acceleration);
+                UpdatePhysicsCaches();
             }
             isPhysicsUpdateFrame = false;
 
@@ -1669,6 +1662,8 @@ namespace OpenRelativity.Objects
 
             // Make sure we're not updating to faster than max speed
             checkSpeed();
+
+            UpdatePhysicsCaches();
 
             UpdateContractorPosition();
             UpdateColliderPosition();
