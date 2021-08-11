@@ -1265,6 +1265,15 @@ namespace OpenRelativity.Objects
                 // Now, update the velocity and angular velocity based on the collision result:
                 viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+
+                // Update physics cache:
+                updateViwTimeFactor = viw.InverseGamma(updateMetric);
+                if (IsNaNOrInf(updateViwTimeFactor))
+                {
+                    updateViwTimeFactor = 1;
+                }
+                updateWorld4Acceleration = aiw.ProperToWorldAccel(viw, updateViwTimeFactor);
+                updateTisw = ((Vector4)piw).GetTisw(viw, updateWorld4Acceleration);
             }
             isPhysicsUpdateFrame = false;
 
