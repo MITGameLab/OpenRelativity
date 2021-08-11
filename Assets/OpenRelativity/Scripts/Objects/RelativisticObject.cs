@@ -48,7 +48,6 @@ namespace OpenRelativity.Objects
         #endregion
 
         protected bool isPhysicsUpdateFrame;
-        protected float fixedUpdateGamma;
 
         protected float updateViwTimeFactor;
         protected float updatePlayerViwTimeFactor;
@@ -1116,7 +1115,6 @@ namespace OpenRelativity.Objects
         void Start()
         {
             isPhysicsUpdateFrame = false;
-            fixedUpdateGamma = 0.0f;
 
             hasStarted = false;
             cviw = Vector3.zero;
@@ -1269,14 +1267,15 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            UpdatePhysicsCaches();
-
-            if (isFullPhysX && isPhysicsUpdateFrame && (fixedUpdateGamma > 0))
+            if (isFullPhysX && isPhysicsUpdateFrame)
             {
-                viw = myRigidbody.velocity / fixedUpdateGamma;
-                aviw = myRigidbody.angularVelocity / fixedUpdateGamma;
+                float gamma = GetTimeFactor();
+                viw = myRigidbody.velocity / gamma;
+                aviw = myRigidbody.angularVelocity / gamma;
             }
             isPhysicsUpdateFrame = false;
+
+            UpdatePhysicsCaches();
 
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
@@ -1553,9 +1552,9 @@ namespace OpenRelativity.Objects
             #endregion
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
-            fixedUpdateGamma = GetTimeFactor();
-            myRigidbody.velocity = fixedUpdateGamma * viw;
-            myRigidbody.angularVelocity = fixedUpdateGamma * aviw;
+            float gamma = GetTimeFactor();
+            myRigidbody.velocity = gamma * viw;
+            myRigidbody.angularVelocity = gamma * aviw;
 
             isPhysicsCacheValid = false;
             isPhysicsUpdateFrame = true;
