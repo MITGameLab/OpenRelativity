@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
@@ -15,20 +16,20 @@ namespace OpenRelativity.ConformalMaps
                 };
             }
 
-            float c = state.SpeedOfLight;
-            float cSqr = state.SpeedOfLightSqrd;
+            double c = state.SpeedOfLight;
+            double cSqr = state.SpeedOfLightSqrd;
 
             Vector3 origin = state.playerTransform.position;
-            float g = Physics.gravity.magnitude;
-            Vector3 unitVec = Physics.gravity / g;
+            double g = Physics.gravity.magnitude;
+            Vector3 unitVec = Physics.gravity / (float)g;
             piw -= origin;
             Vector3 projD = Vector3.Project(piw, unitVec);
-            float d = projD.magnitude;
-            float arg = 1.0f + g * d / cSqr;
-            float properT = (c / g) * Mathf.Log(arg + Mathf.Sqrt((arg + 1.0f) * (arg - 1.0f)));
+            double d = projD.magnitude;
+            double arg = 1.0 + g * d / cSqr;
+            double properT = (c / g) * Math.Log(arg + Math.Sqrt((arg + 1.0) * (arg - 1.0)));
             arg = g * properT / c;
-            float expArg = Mathf.Exp(arg);
-            float t = (c / g) * (expArg - 1.0f / expArg) / 2.0f;
+            double expArg = Math.Exp(arg);
+            double t = (c / g) * (expArg - 1.0f / expArg) / 2.0;
 
             properT = properTDiff + ((Vector3.Dot(projD.normalized, unitVec) < 0) ? -properT : properT);
             if (properT < 0)
@@ -38,16 +39,16 @@ namespace OpenRelativity.ConformalMaps
             }
 
             arg = g * properT / c;
-            expArg = Mathf.Exp(arg); 
+            expArg = Math.Exp(arg); 
             d = (cSqr / g) * ((expArg + 1.0f / expArg) / 2.0f - 1.0f);
-            piw = d * unitVec + piw + origin - projD;
+            piw = (float)d * unitVec + piw + origin - projD;
 
             arg = g * properT / c;
-            expArg = Mathf.Exp(arg);
-            float deltaT = (c / g) * (expArg - 1.0f / expArg) / 2.0f - t;
+            expArg = Math.Exp(arg);
+            double deltaT = (c / g) * (expArg - 1.0f / expArg) / 2.0f - t;
 
             Vector4 piw4 = piw;
-            piw4.w = deltaT;
+            piw4.w = (float)deltaT;
             return new Comovement
             {
                 piw = piw4,
@@ -68,17 +69,17 @@ namespace OpenRelativity.ConformalMaps
             }
 
             Vector3 origin = state.playerTransform.position;
-            float g = Physics.gravity.magnitude;
-            Vector3 unitVec = Physics.gravity / g;
+            double g = Physics.gravity.magnitude;
+            Vector3 unitVec = Physics.gravity / (float)g;
             Vector3 projD = Vector3.Project(piw - origin, unitVec);
             if (Vector3.Dot(projD.normalized, unitVec) < 0)
             {
                 unitVec = -unitVec;
             }
-            float d = projD.magnitude;
-            float t = Mathf.Sqrt((d * d / state.SpeedOfLightSqrd) + 2.0f * d / g);
+            double d = projD.magnitude;
+            double t = Math.Sqrt((d * d / state.SpeedOfLightSqrd) + 2.0 * d / g);
 
-            return g * t / Mathf.Sqrt(1.0f + (g * t) * (g * t) / state.SpeedOfLightSqrd) * unitVec;
+            return (float)(g * t / Math.Sqrt(1.0 + (g * t) * (g * t) / state.SpeedOfLightSqrd)) * unitVec;
         }
     }
 }

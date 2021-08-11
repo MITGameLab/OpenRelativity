@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace OpenRelativity
 {
@@ -21,29 +22,29 @@ namespace OpenRelativity
             }
         }
 
-        public static float SchwarzRadiusToPlanckScaleTemp(float radius)
+        public static double SchwarzRadiusToPlanckScaleTemp(double radius)
         {
-            float rsp = radius / state.planckLength;
-            return Mathf.Pow(sigmaPlanck * 8.0f * Mathf.PI * Mathf.Pow(rsp, 3.0f), -1.0f / 4.0f);
+            double rsp = radius / state.planckLength;
+            return Math.Pow(sigmaPlanck * 8.0 * Math.PI * Math.Pow(rsp, 3.0), -1.0 / 4.0);
         }
 
-        public static float PlanckScaleTempToSchwarzRadius(float temp)
+        public static double PlanckScaleTempToSchwarzRadius(double temp)
         {
-            return state.planckLength / Mathf.Pow(sigmaPlanck * 8.0f * Mathf.PI * Mathf.Pow(temp, 4.0f), 1.0f / 3.0f);
+            return state.planckLength / Math.Pow(sigmaPlanck * 8.0 * Math.PI * Math.Pow(temp, 4.0), 1.0 / 3.0);
         }
 
-        public static float EffectiveRaditiativeRadius(float radius, float backgroundTemp)
+        public static double EffectiveRaditiativeRadius(double radius, double backgroundTemp)
         {
             if (backgroundTemp <= divByZeroCutoff)
             {
                 return radius;
             }
 
-            float rsp = radius / state.planckLength;
+            double rsp = radius / state.planckLength;
             return PlanckScaleTempToSchwarzRadius(
-                4.0f * Mathf.PI * rsp * rsp * (
-                    Mathf.Pow(SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(radius), 4.0f) -
-                    Mathf.Pow(backgroundTemp / state.planckTemperature, 4.0f)
+                4.0 * Math.PI * rsp * rsp * (
+                    Math.Pow(SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(radius), 4.0) -
+                    Math.Pow(backgroundTemp / state.planckTemperature, 4.0)
                 )
             );
         }
@@ -493,7 +494,7 @@ namespace OpenRelativity
                 sum += Vector3.Cross(a, b).magnitude;
             }
 
-            return (float)(sum / 2.0);
+            return sum / 2.0f;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
@@ -64,29 +65,29 @@ namespace OpenRelativity.ConformalMaps
             }
 
             // Assume that the spatial component is in world coordinates, and the time is a local time differential 
-            float r;
-            float tau = properTDiff;
-            float rsCubeRoot = Mathf.Pow(schwarzschildRadius, 1.0f / 3.0f);
-            float rho;
+            double r;
+            double tau = properTDiff;
+            double rsCubeRoot = Math.Pow(schwarzschildRadius, 1.0 / 3.0);
+            double rho;
 
             if (isExterior)
             {
                 r = piw.magnitude;
-                rho = (2.0f * r * Mathf.Sqrt(r / rsCubeRoot)) / (3.0f * rsCubeRoot);
+                rho = (2.0 * r * Math.Sqrt(r / rsCubeRoot)) / (3.0 * rsCubeRoot);
             } else {
                 tau *= -1;
                 rho = state.SpeedOfLight * state.TotalTimeWorld;
-                r = Mathf.Pow(rho / (2 * rsCubeRoot), 2.0f / 3.0f);
+                r = Math.Pow(rho / (2 * rsCubeRoot), 2.0 / 3.0);
             }
 
             // Partial differential, finite difference approach:
-            //float diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
+            //double diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
             //r -= diffR;
             // Unless we have a really small and/or adaptive finite difference time step, the above approximation fails close to the event horizon.
 
             // We can try the integral form, instead, with a major caveat...
-            float nR = Mathf.Pow(schwarzschildRadius * Mathf.Pow(3.0f / 2.0f * (rho - tau), 2.0f), 1.0f / 3.0f);
-            float diffR = nR - r;
+            double nR = Math.Pow(schwarzschildRadius * Math.Pow(3.0 / 2.0 * (rho - tau), 2.0), 1.0 / 3.0);
+            double diffR = nR - r;
             // The equation we derive this closed-form integral from has many roots.
             // Some of these roots are not admissible without the existence of complex numbers.
             // Some are valid (real) when rho > tau, and some are valid when rho < tau.
@@ -99,17 +100,17 @@ namespace OpenRelativity.ConformalMaps
             // All that said, the above should serve our purposes in the local region of interest.
 
             // The integral isn't as "nice" for time, and we approximate to lowest order:
-            float diffT = Mathf.Log((schwarzschildRadius - r) / diffR);
+            double diffT = Math.Log((schwarzschildRadius - r) / diffR);
 
             if (!isExterior)
             {
-                float temp = diffT;
+                double temp = diffT;
                 diffT = diffR / state.SpeedOfLight;
                 diffR = temp * state.SpeedOfLight;
             }
 
-            Vector4 piw4 = piw + piw.normalized * diffR;
-            piw4.w = diffT;
+            Vector4 piw4 = piw + piw.normalized * (float)diffR;
+            piw4.w = (float)diffT;
 
             return new Comovement
             {
@@ -161,32 +162,32 @@ namespace OpenRelativity.ConformalMaps
                     return 0;
                 }
 
-                float r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundTemperature);
+                double r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundTemperature);
 
-                float diffR;
+                double diffR;
                 if (r > state.planckLength)
                 {
-                    float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                    diffR = -state.DeltaTimeWorld * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / r;
+                    double cTo7 = Math.Pow(SRelativityUtil.c, 7.0);
+                    diffR = -state.DeltaTimeWorld * Math.Sqrt(state.hbarOverG * cTo7) * 2.0 / r;
                 }
                 else if (isExterior)
                 {
-                    float timeToPlanck = Mathf.Sqrt(r * 4.0f / state.SpeedOfLight - 4.0f * state.planckTime);
+                    double timeToPlanck = Math.Sqrt(r * 4.0 / state.SpeedOfLight - 4.0 * state.planckTime);
                     if (timeToPlanck <= state.DeltaTimeWorld)
                     {
                         r = state.planckLength;
 
-                        float cTo7 = Mathf.Pow(SRelativityUtil.c, 7.0f);
-                        diffR = -(state.DeltaTimeWorld - timeToPlanck) * Mathf.Sqrt(state.hbarOverG * cTo7) * 2.0f / r;
+                        double cTo7 = Math.Pow(SRelativityUtil.c, 7.0);
+                        diffR = -(state.DeltaTimeWorld - timeToPlanck) * Math.Sqrt(state.hbarOverG * cTo7) * 2.0 / r;
                     }
                     else
                     {
-                        diffR = -state.DeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+                        diffR = -state.DeltaTimeWorld * state.planckLength / (2.0 * state.planckTime);
                     }
                 }
                 else
                 {
-                    diffR = -state.DeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+                    diffR = -state.DeltaTimeWorld * state.planckLength / (2.0 * state.planckTime);
                 }
 
                 if (!isExterior)
@@ -194,7 +195,7 @@ namespace OpenRelativity.ConformalMaps
                     diffR = -diffR;
                 }
 
-                return diffR;
+                return (float)diffR;
             }
         }
 
