@@ -362,7 +362,7 @@ namespace OpenRelativity.Objects
 
                 Vector3 _aiw = properAccel;
 
-                if (useGravity && !isFullPhysX)
+                if (useGravity && !myRigidbody.useGravity)
                 {
                     _aiw += Physics.gravity;
                 }
@@ -378,7 +378,7 @@ namespace OpenRelativity.Objects
             {
                 Vector3 _aiw = value;
 
-                if (useGravity && !isFullPhysX)
+                if (useGravity && !myRigidbody.useGravity)
                 {
                     _aiw -= Physics.gravity;
                 }
