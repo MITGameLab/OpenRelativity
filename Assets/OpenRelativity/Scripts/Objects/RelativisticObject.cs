@@ -16,6 +16,8 @@ namespace OpenRelativity.Objects
         public bool isCombinedColliderParent = false;
         // Use this if not using an explicitly relativistic shader
         public bool isNonrelativisticShader = false;
+        // Offload the maximum physical mechanics to PhysX.
+        public bool isFullPhysX = true;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
@@ -44,6 +46,9 @@ namespace OpenRelativity.Objects
             }
         }
         #endregion
+
+        protected bool isPhysicsUpdateFrame;
+        protected float fixedUpdateGamma;
 
         protected float updateViwTimeFactor;
         protected float updatePlayerViwTimeFactor;
@@ -1110,6 +1115,9 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
+            isPhysicsUpdateFrame = false;
+            fixedUpdateGamma = 0.0f;
+
             hasStarted = false;
             cviw = Vector3.zero;
             frameDragAccel = Vector3.zero;
@@ -1262,6 +1270,13 @@ namespace OpenRelativity.Objects
             }
 
             UpdatePhysicsCaches();
+
+            if (isFullPhysX && isPhysicsUpdateFrame && (fixedUpdateGamma > 0))
+            {
+                viw = myRigidbody.velocity / fixedUpdateGamma;
+                aviw = myRigidbody.angularVelocity / fixedUpdateGamma;
+            }
+            isPhysicsUpdateFrame = false;
 
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
@@ -1538,11 +1553,12 @@ namespace OpenRelativity.Objects
             #endregion
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
-            float gamma = GetTimeFactor();
-            myRigidbody.velocity = gamma * viw;
-            myRigidbody.angularVelocity = gamma * aviw;
+            fixedUpdateGamma = GetTimeFactor();
+            myRigidbody.velocity = fixedUpdateGamma * viw;
+            myRigidbody.angularVelocity = fixedUpdateGamma * aviw;
 
             isPhysicsCacheValid = false;
+            isPhysicsUpdateFrame = true;
         }
 
         protected void CheckSleepPosition()
@@ -1615,6 +1631,8 @@ namespace OpenRelativity.Objects
 
         private void EnforceCollision(Collision collision)
         {
+            isPhysicsUpdateFrame = false;
+
             // Like how Rigidbody components are co-opted for efficient relativistic motion,
             // it's feasible to get (at least reasonable, if not exact) relativistic collision
             // handling by transforming the end state after PhysX collisions.
