@@ -362,7 +362,7 @@ namespace OpenRelativity.Objects
 
                 Vector3 _aiw = properAccel;
 
-                if (useGravity)
+                if (useGravity && !isFullPhysX)
                 {
                     _aiw += Physics.gravity;
                 }
@@ -378,7 +378,7 @@ namespace OpenRelativity.Objects
             {
                 Vector3 _aiw = value;
 
-                if (useGravity)
+                if (useGravity && !isFullPhysX)
                 {
                     _aiw -= Physics.gravity;
                 }
@@ -1155,8 +1155,8 @@ namespace OpenRelativity.Objects
 
             if (myRigidbody != null)
             {
-                //Native rigidbody gravity should never be used:
-                myRigidbody.useGravity = false;
+                //Native rigidbody gravity should not be used except during isFullPhysX.
+                myRigidbody.useGravity = isFullPhysX && useGravity;
             }
 
             colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
@@ -1557,7 +1557,7 @@ namespace OpenRelativity.Objects
 
         protected void CheckSleepPosition()
         {
-            if (SleepTimer > 0 || !useGravity)
+            if (isFullPhysX || SleepTimer > 0 || !useGravity)
             {
                 return;
             }
@@ -1634,7 +1634,7 @@ namespace OpenRelativity.Objects
             // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
             // We restore the time-dilated visual apparent velocity, afterward
 
-            if (useGravity && (collision.contacts.Length > 2))
+            if (!isFullPhysX && useGravity && (collision.contacts.Length > 2))
             {
                 ContactPoint contact = collision.contacts[0];
                 if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
