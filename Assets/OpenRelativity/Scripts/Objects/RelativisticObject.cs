@@ -1285,9 +1285,9 @@ namespace OpenRelativity.Objects
                     aiw = Vector3.zero;
 
                     myRigidbody.Sleep();
-                }
 
-                UpdateRigidbodyVelocity();
+                    UpdateRigidbodyVelocity();
+                }
             }
 
             if (state.isMovementFrozen)
