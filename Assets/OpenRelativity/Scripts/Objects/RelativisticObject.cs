@@ -1274,6 +1274,10 @@ namespace OpenRelativity.Objects
                 float gamma = GetTimeFactor();
                 viw = myRigidbody.velocity / gamma;
                 aviw = myRigidbody.angularVelocity / gamma;
+                if (isNonrelativisticShader)
+                {
+                    piw = SRelativityUtil.OpticalToWorld(transform.position, viw, GetProper4Acceleration());
+                }
             }
             isPhysicsUpdateFrame = false;
 
