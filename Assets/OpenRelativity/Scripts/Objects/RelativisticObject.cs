@@ -1,5 +1,4 @@
 using OpenRelativity.ConformalMaps;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -1356,10 +1355,8 @@ namespace OpenRelativity.Objects
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
 
-            Vector3 vff = Vector3.zero;
             if (state.conformalMap != null)
             {
-                vff = state.conformalMap.GetFreeFallVelocity(piw);
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 riw = cm.riw;
                 Vector4 nPiw4 = cm.piw;
