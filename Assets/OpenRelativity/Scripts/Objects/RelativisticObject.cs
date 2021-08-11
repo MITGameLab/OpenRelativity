@@ -1267,6 +1267,8 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            UpdatePhysicsCaches();
+
             if (isFullPhysX && isPhysicsUpdateFrame)
             {
                 float gamma = GetTimeFactor();
@@ -1274,8 +1276,6 @@ namespace OpenRelativity.Objects
                 aviw = myRigidbody.angularVelocity / gamma;
             }
             isPhysicsUpdateFrame = false;
-
-            UpdatePhysicsCaches();
 
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
