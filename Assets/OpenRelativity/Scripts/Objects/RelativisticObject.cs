@@ -1189,19 +1189,6 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            // TODO: Doesn't work under extreme conditions, or at all
-            //This code is a hack to ensure that frustrum culling does not take place
-            //It changes the render bounds so that everything is contained within them
-            //At high speeds the Lorentz contraction means that some objects not normally in the view frame are actually visible
-            //If we did frustrum culling, these objects would be ignored (because we cull BEFORE running the shader, which does the lorenz contraction)
-            // if (meshFilter != null)
-            // {
-            //     Transform camTransform = Camera.main.transform;
-            //     float distToCenter = (Camera.main.farClipPlane + Camera.main.nearClipPlane) / 2.0f;
-            //     Vector3 center = camTransform.position;
-            //     meshFilter.sharedMesh.bounds = new Bounds(distToCenter * camTransform.forward + center, 2 * distToCenter * Vector3.one);
-            // }
-
             if (isNonrelativisticShader)
             {
                 UpdateContractorPosition();
@@ -1269,15 +1256,15 @@ namespace OpenRelativity.Objects
 
             UpdatePhysicsCaches();
 
-            if (isFullPhysX && isPhysicsUpdateFrame)
+            if (!isNonrelativisticShader && isFullPhysX && isPhysicsUpdateFrame)
             {
-                float gamma = GetTimeFactor();
-                viw = myRigidbody.velocity / gamma;
-                aviw = myRigidbody.angularVelocity / gamma;
-                if (isNonrelativisticShader)
-                {
-                    piw = SRelativityUtil.OpticalToWorld(transform.position, viw, GetProper4Acceleration());
-                }
+                // Get the position and rotation after the physics update:
+                riw = myRigidbody.rotation;
+                piw = myRigidbody.position;
+
+                // Now, update the velocity and angular velocity based on the collision result:
+                viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
+                aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
             }
             isPhysicsUpdateFrame = false;
 
@@ -1510,21 +1497,25 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            float aviwMag = aviw.magnitude;
-            Quaternion diffRot;
-            if (aviwMag <= SRelativityUtil.divByZeroCutoff)
+            if (!isFullPhysX || isNonrelativisticShader)
             {
-                diffRot = Quaternion.identity;
-            }
-            else
-            {
-                diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
-            }
-            riw = riw * diffRot;
-            myRigidbody.MoveRotation(riw);
+                float aviwMag = aviw.magnitude;
+                Quaternion diffRot;
+                if (aviwMag <= SRelativityUtil.divByZeroCutoff)
+                {
+                    diffRot = Quaternion.identity;
+                }
+                else
+                {
+                    diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
+                }
+                riw = riw * diffRot;
+                myRigidbody.MoveRotation(riw);
 
-            // Update piw from "peculiar velocity" in free fall coordinates.
-            piw += deltaTime * peculiarVelocity;
+                // Update piw from "peculiar velocity" in free fall coordinates.
+                piw += deltaTime * peculiarVelocity;
+            }
+
             // Update viw from acceleration. (Act secondly, so we don't double-count with comovement.)
             if (state.conformalMap == null)
             {
@@ -1549,7 +1540,7 @@ namespace OpenRelativity.Objects
                 transform.localPosition = Vector3.zero;
                 ContractLength();
             }
-            else
+            else if (!isFullPhysX)
             {
                 myRigidbody.MovePosition(piw);
             }
