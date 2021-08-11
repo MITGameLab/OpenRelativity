@@ -1497,6 +1497,17 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            // Update viw from acceleration.
+            if (state.conformalMap == null)
+            {
+                peculiarVelocity += aiw * deltaTime;
+            }
+            else if (nonGravAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+            {
+                // Use viw setter:
+                viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + nonGravAccel * deltaTime);
+            }
+
             if (!isFullPhysX || isNonrelativisticShader)
             {
                 float aviwMag = aviw.magnitude;
@@ -1514,17 +1525,6 @@ namespace OpenRelativity.Objects
 
                 // Update piw from "peculiar velocity" in free fall coordinates.
                 piw += deltaTime * peculiarVelocity;
-            }
-
-            // Update viw from acceleration. (Act secondly, so we don't double-count with comovement.)
-            if (state.conformalMap == null)
-            {
-                peculiarVelocity += aiw * deltaTime;
-            }
-            else if (nonGravAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
-            {
-                // Use viw setter:
-                viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + nonGravAccel * deltaTime);
             }
 
             if (isNonrelativisticShader)
