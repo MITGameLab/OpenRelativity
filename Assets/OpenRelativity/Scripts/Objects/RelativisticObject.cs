@@ -1254,8 +1254,6 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            UpdatePhysicsCaches();
-
             if (!isNonrelativisticShader && isFullPhysX && isPhysicsUpdateFrame)
             {
                 // Get the position and rotation after the physics update:
@@ -1265,10 +1263,10 @@ namespace OpenRelativity.Objects
                 // Now, update the velocity and angular velocity based on the collision result:
                 viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
-
-                UpdatePhysicsCaches();
             }
             isPhysicsUpdateFrame = false;
+
+            UpdatePhysicsCaches();
 
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
