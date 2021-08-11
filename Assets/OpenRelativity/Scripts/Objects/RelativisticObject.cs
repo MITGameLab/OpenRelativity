@@ -15,8 +15,6 @@ namespace OpenRelativity.Objects
         public bool isCombinedColliderParent = false;
         // Use this if not using an explicitly relativistic shader
         public bool isNonrelativisticShader = false;
-        // Offload the maximum physical mechanics to PhysX.
-        public bool isFullPhysX = true;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
@@ -209,8 +207,6 @@ namespace OpenRelativity.Objects
         //Store rotation quaternion
         public Quaternion riw { get; set; }
 
-        public Vector3 cviw { get; private set; }
-
         public Vector3 peculiarVelocity = Vector3.zero;
 
         public Vector3 vff
@@ -301,50 +297,40 @@ namespace OpenRelativity.Objects
         }
 
         //This is truly the object's "proper" acceleration, corresponding with the force it feels.
-        private Vector3 _properAccel;
         public Vector3 properAccel
         {
             get
             {
-                _properAccel = isMonopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
-
-                if (SleepTimer > 0)
-                {
-                    return _properAccel;
-                }
+                Vector3 accel = isMonopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
 
                 if (useGravity)
                 {
-                    _properAccel -= Physics.gravity;
+                    accel += Physics.gravity;
                 }
 
                 if (state.conformalMap != null)
                 {
-                    _properAccel += state.conformalMap.GetRindlerAcceleration(piw);
+                    accel += state.conformalMap.GetRindlerAcceleration(piw);
                 }
 
-                return _properAccel;
+                return accel;
             }
 
             set
             {
                 Vector3 accel = value;
 
-                if (SleepTimer <= 0)
+                if (state.conformalMap != null)
                 {
-                    if (state.conformalMap != null)
-                    {
-                        accel -= state.conformalMap.GetRindlerAcceleration(piw);
-                    }
-
-                    if (useGravity)
-                    {
-                        accel += Physics.gravity;
-                    }
+                    accel -= state.conformalMap.GetRindlerAcceleration(piw);
                 }
 
-                nonGravAccel = accel;
-                _properAccel = isMonopoleAccel ? accel - frameDragAccel : accel;
+                if (useGravity)
+                {
+                    accel -= Physics.gravity;
+                }
+
+                nonGravAccel = isMonopoleAccel ? accel - frameDragAccel : accel;
             }
         }
 
@@ -359,16 +345,11 @@ namespace OpenRelativity.Objects
                     return Vector3.zero;
                 }
 
-                Vector3 _aiw = properAccel;
+                Vector3 _aiw = nonGravAccel;
 
-                if (useGravity && !myRigidbody.useGravity)
+                if (useGravity && isNonrelativisticShader)
                 {
                     _aiw += Physics.gravity;
-                }
-
-                if (state.conformalMap != null)
-                {
-                    _aiw -= state.conformalMap.GetRindlerAcceleration(piw);
                 }
 
                 return _aiw;
@@ -377,17 +358,12 @@ namespace OpenRelativity.Objects
             {
                 Vector3 _aiw = value;
 
-                if (useGravity && !myRigidbody.useGravity)
+                if (useGravity && isNonrelativisticShader)
                 {
                     _aiw -= Physics.gravity;
                 }
 
-                if (state.conformalMap != null)
-                {
-                    _aiw += state.conformalMap.GetRindlerAcceleration(piw);
-                }
-
-                properAccel = _aiw;
+                nonGravAccel = _aiw;
             }
         }
 
@@ -692,7 +668,7 @@ namespace OpenRelativity.Objects
         public void ContractLength()
         {
             Vector3 playerVel = state.PlayerVelocityVector;
-            Vector3 relVel = cviw.AddVelocity(viw).AddVelocity(-(state.PlayerComovingVelocityVector.AddVelocity(playerVel)));
+            Vector3 relVel = (-playerVel).AddVelocity(peculiarVelocity);
             float relVelMag = relVel.sqrMagnitude;
 
             if (relVelMag > (state.MaxSpeed))
@@ -997,10 +973,10 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
             if (myRenderer != null)
             {
-                Vector3 tempViw = cviw.AddVelocity(viw) / state.SpeedOfLight;
+                Vector3 tempViw = peculiarVelocity / state.SpeedOfLight;
                 Vector4 tempAiw = GetWorld4Acceleration();
                 Vector4 tempPao = GetProper4Acceleration();
-                Vector4 tempVr = tempViw.AddVelocity(-state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector)) / state.SpeedOfLight;
+                Vector4 tempVr = (-state.PlayerVelocityVector).AddVelocity(peculiarVelocity) / state.SpeedOfLight;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
                 // so it saves redundant GPU time to calculate them beforehand.
@@ -1116,7 +1092,6 @@ namespace OpenRelativity.Objects
             isPhysicsUpdateFrame = false;
 
             hasStarted = false;
-            cviw = Vector3.zero;
             frameDragAccel = Vector3.zero;
             ResetPiw();
             riw = transform.rotation;
@@ -1155,7 +1130,7 @@ namespace OpenRelativity.Objects
             if (myRigidbody != null)
             {
                 //Native rigidbody gravity should not be used except during isFullPhysX.
-                myRigidbody.useGravity = isFullPhysX && useGravity && !isLightMapStatic;
+                myRigidbody.useGravity = useGravity && !isLightMapStatic && !isNonrelativisticShader;
             }
 
             colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
@@ -1253,11 +1228,14 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            if (!isNonrelativisticShader && isFullPhysX && isPhysicsUpdateFrame)
+            if (isPhysicsUpdateFrame)
             {
                 // Get the position and rotation after the physics update:
-                riw = myRigidbody.rotation;
-                piw = myRigidbody.position;
+                if (!isNonrelativisticShader)
+                {
+                    riw = myRigidbody.rotation;
+                    piw = myRigidbody.position;
+                }
 
                 // Now, update the velocity and angular velocity based on the collision result:
                 peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
@@ -1359,11 +1337,8 @@ namespace OpenRelativity.Objects
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 riw = cm.riw;
-                Vector4 nPiw4 = cm.piw;
-                Vector3 pDiff = (Vector3)nPiw4 - piw;
-                cviw = pDiff / deltaTime;
-                piw = nPiw4;
-                if (isFullPhysX && !isNonrelativisticShader && (myRigidbody != null))
+                piw = cm.piw;
+                if (!isNonrelativisticShader && (myRigidbody != null))
                 {
                     myRigidbody.MovePosition(piw);
                 }
@@ -1481,7 +1456,6 @@ namespace OpenRelativity.Objects
                 {
                     peculiarVelocity = Vector3.zero;
                     aviw = Vector3.zero;
-                    cviw = Vector3.zero;
                 }
                 else
                 {
@@ -1498,19 +1472,9 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            // Update viw from acceleration.
-            if (state.conformalMap == null)
+            if (isNonrelativisticShader)
             {
-                peculiarVelocity += aiw * deltaTime;
-            }
-            else if (nonGravAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
-            {
-                // Use viw setter:
-                viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + nonGravAccel * deltaTime);
-            }
-
-            if (!isFullPhysX || isNonrelativisticShader)
-            {
+                // Update riw
                 float aviwMag = aviw.magnitude;
                 Quaternion diffRot;
                 if (aviwMag <= SRelativityUtil.divByZeroCutoff)
@@ -1526,10 +1490,10 @@ namespace OpenRelativity.Objects
 
                 // Update piw from "peculiar velocity" in free fall coordinates.
                 piw += deltaTime * peculiarVelocity;
-            }
 
-            if (isNonrelativisticShader)
-            {
+                // Update velocity after position so as not to double-count comovement.
+                peculiarVelocity += aiw * deltaTime;
+
                 transform.parent = null;
                 Vector3 opiw = opticalPiw;
                 if (!IsNaNOrInf(opiw.sqrMagnitude))
@@ -1541,9 +1505,17 @@ namespace OpenRelativity.Objects
                 transform.localPosition = Vector3.zero;
                 ContractLength();
             }
-            else if (!isFullPhysX)
+            else if (nonGravAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
             {
-                myRigidbody.MovePosition(piw);
+                // Use viw setter:
+                if (state.conformalMap == null)
+                {
+                    viw += nonGravAccel * deltaTime;
+                }
+                else
+                {
+                    viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + nonGravAccel * deltaTime);
+                }
             }
             #endregion
 
@@ -1558,7 +1530,7 @@ namespace OpenRelativity.Objects
 
         protected void CheckSleepPosition()
         {
-            if (isFullPhysX || SleepTimer > 0 || !useGravity)
+            if (!isNonrelativisticShader || SleepTimer > 0 || !useGravity)
             {
                 return;
             }
@@ -1635,14 +1607,13 @@ namespace OpenRelativity.Objects
             // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
             // We restore the time-dilated visual apparent velocity, afterward
 
-            if (!isFullPhysX && useGravity && (collision.contacts.Length > 2))
+            if (isNonrelativisticShader && useGravity && (collision.contacts.Length > 2))
             {
                 ContactPoint contact = collision.contacts[0];
                 if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
                 {
                     peculiarVelocity = Vector3.zero;
                     aviw = Vector3.zero;
-                    cviw = Vector3.zero;
                     SleepTimer = 0;
 
                     return;

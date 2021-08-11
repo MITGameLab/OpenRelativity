@@ -23,7 +23,7 @@ namespace OpenRelativity {
         private void UpdateShaderParams()
         {
             Vector4 tempPao = -Physics.gravity;
-            Vector4 tempVr = -state.PlayerComovingVelocityVector.AddVelocity(state.PlayerVelocityVector) / state.SpeedOfLight;
+            Vector4 tempVr = -state.PlayerVelocityVector / state.SpeedOfLight;
 
             //Velocity of object Lorentz transforms are the same for all points in an object,
             // so it saves redundant GPU time to calculate them beforehand.
