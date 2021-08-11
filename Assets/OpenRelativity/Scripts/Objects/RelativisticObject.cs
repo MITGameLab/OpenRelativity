@@ -1366,6 +1366,10 @@ namespace OpenRelativity.Objects
                 Vector3 pDiff = (Vector3)nPiw4 - piw;
                 cviw = pDiff / deltaTime;
                 piw = nPiw4;
+                if (isFullPhysX && !isNonrelativisticShader && (myRigidbody != null))
+                {
+                    myRigidbody.MovePosition(piw);
+                }
             }
 
             if (!IsNaNOrInf(localFixedDeltaTime))
