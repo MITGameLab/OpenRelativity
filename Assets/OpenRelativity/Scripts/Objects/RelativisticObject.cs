@@ -1156,7 +1156,7 @@ namespace OpenRelativity.Objects
             if (myRigidbody != null)
             {
                 //Native rigidbody gravity should not be used except during isFullPhysX.
-                myRigidbody.useGravity = isFullPhysX && useGravity;
+                myRigidbody.useGravity = isFullPhysX && useGravity && !isLightMapStatic;
             }
 
             colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
