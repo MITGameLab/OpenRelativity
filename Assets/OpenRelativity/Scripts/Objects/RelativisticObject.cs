@@ -1387,49 +1387,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                Vector3 myAccel = nonGravAccel + aiw;
-                Vector3 pAccel = state.PlayerAccelerationVector;
-                // To support Unity's concept of Newtonian gravity, we "cheat" a little on equivalence principle, here.
-                // This isn't 100% right, but it keeps the world from looking like the space-time curvature is incomprehensibly 
-                // warped in a "moderate" (really, extremely high) approximately Newtonian surface gravity.
-
-                // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
-                // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
-                Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
-                frameDragAccel += da;
-                myAccel += da;
-
-                if (myRigidbody != null)
-                {
-                    float myTemperature = 0;
-
-                    float bCount = baryonCount;
-                    float nuclearMass = myRigidbody.mass / bCount;
-                    float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
-
-                    // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
-                    // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
-                    // (i.e. as due to "player" acceleration).
-                    if ((myRigidbody != null) && (nuclearMass > fundamentalNuclearMass))
-                    {
-                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                        // (which seems to imply the Higgs field vacuum)
-                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                        // gravitational constant "G" times (baryon) constituent particle rest mass.
-                        myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
-                    }
-                    //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
-                    // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
-
-                    float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
-                    float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
-
-                    frameDragMass += dm;
-                    myRigidbody.mass -= dm;
-
-                    float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
-                    currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
-                }
+                EvaporateMonopole(deltaTime, nonGravAccel);
             }
 
             CheckSleepPosition();
@@ -1518,6 +1476,52 @@ namespace OpenRelativity.Objects
 
             isPhysicsCacheValid = false;
             isPhysicsUpdateFrame = true;
+        }
+
+        protected void EvaporateMonopole(float deltaTime, Vector3 myAccel)
+        {
+            Vector3 pAccel = state.PlayerAccelerationVector;
+            // To support Unity's concept of Newtonian gravity, we "cheat" a little on equivalence principle, here.
+            // This isn't 100% right, but it keeps the world from looking like the space-time curvature is incomprehensibly 
+            // warped in a "moderate" (really, extremely high) approximately Newtonian surface gravity.
+
+            // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
+            // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
+            Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
+            frameDragAccel += da;
+            myAccel += da;
+
+            if (myRigidbody != null)
+            {
+                float myTemperature = 0;
+
+                float bCount = baryonCount;
+                float nuclearMass = myRigidbody.mass / bCount;
+                float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+
+                // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
+                // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
+                // (i.e. as due to "player" acceleration).
+                if ((myRigidbody != null) && (nuclearMass > fundamentalNuclearMass))
+                {
+                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                    // (which seems to imply the Higgs field vacuum)
+                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                    // gravitational constant "G" times (baryon) constituent particle rest mass.
+                    myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                }
+                //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
+                // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
+
+                float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
+                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
+
+                frameDragMass += dm;
+                myRigidbody.mass -= dm;
+
+                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
+                currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
+            }
         }
 
         protected void CheckSleepPosition()
@@ -1619,8 +1623,16 @@ namespace OpenRelativity.Objects
             piw = isNonrelativisticShader ? (Vector3)((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
+            float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
+            Vector3 accel = -viw;
             viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
+            accel = (viw - accel) / deltaTime;
             aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+
+            if (isMonopoleAccel)
+            {
+                EvaporateMonopole(deltaTime, accel);
+            }
 
             // Make sure we're not updating to faster than max speed
             checkSpeed();
