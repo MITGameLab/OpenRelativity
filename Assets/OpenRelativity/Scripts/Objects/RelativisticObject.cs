@@ -301,7 +301,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                Vector3 accel = isMonopoleAccel ? nonGravAccel + frameDragAccel : nonGravAccel;
+                Vector3 accel = frameDragAccel;
 
                 if (useGravity)
                 {
@@ -314,23 +314,6 @@ namespace OpenRelativity.Objects
                 }
 
                 return accel;
-            }
-
-            set
-            {
-                Vector3 accel = value;
-
-                if (state.conformalMap != null)
-                {
-                    accel -= state.conformalMap.GetRindlerAcceleration(piw);
-                }
-
-                if (useGravity)
-                {
-                    accel -= Physics.gravity;
-                }
-
-                nonGravAccel = isMonopoleAccel ? accel - frameDragAccel : accel;
             }
         }
 
@@ -1404,7 +1387,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                Vector3 myAccel = aiw;
+                Vector3 myAccel = nonGravAccel + aiw;
                 Vector3 pAccel = state.PlayerAccelerationVector;
                 // To support Unity's concept of Newtonian gravity, we "cheat" a little on equivalence principle, here.
                 // This isn't 100% right, but it keeps the world from looking like the space-time curvature is incomprehensibly 
@@ -1444,8 +1427,6 @@ namespace OpenRelativity.Objects
 
                 float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
                 currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
-
-                aiw = myAccel;
             }
 
             CheckSleepPosition();
