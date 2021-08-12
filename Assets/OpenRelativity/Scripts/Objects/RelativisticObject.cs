@@ -1399,34 +1399,37 @@ namespace OpenRelativity.Objects
                 frameDragAccel += da;
                 myAccel += da;
 
-                float myTemperature = 0;
-
-                float bCount = baryonCount;
-                float nuclearMass = myRigidbody.mass / bCount;
-                float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
-
-                // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
-                // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
-                // (i.e. as due to "player" acceleration).
-                if ((myRigidbody != null) && (nuclearMass > fundamentalNuclearMass))
+                if (myRigidbody != null)
                 {
-                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                    // (which seems to imply the Higgs field vacuum)
-                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                    // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                    float myTemperature = 0;
+
+                    float bCount = baryonCount;
+                    float nuclearMass = myRigidbody.mass / bCount;
+                    float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+
+                    // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
+                    // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
+                    // (i.e. as due to "player" acceleration).
+                    if ((myRigidbody != null) && (nuclearMass > fundamentalNuclearMass))
+                    {
+                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                        // (which seems to imply the Higgs field vacuum)
+                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                        // gravitational constant "G" times (baryon) constituent particle rest mass.
+                        myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                    }
+                    //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
+                    // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
+
+                    float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
+                    float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
+
+                    frameDragMass += dm;
+                    myRigidbody.mass -= dm;
+
+                    float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
+                    currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
                 }
-                //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
-                // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
-
-                float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
-                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
-
-                frameDragMass += dm;
-                myRigidbody.mass -= dm;
-
-                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
-                currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
             }
 
             CheckSleepPosition();
