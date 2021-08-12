@@ -123,12 +123,12 @@ namespace OpenRelativity.Objects
                 return updateWorld4Acceleration;
             }
 
-            return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
+            return comovingAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
         }
 
         public Vector4 GetProper4Acceleration()
         {
-            return properAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
+            return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
         }
 
         // This is the factor commonly referred to as "gamma," for length contraction and time dilation,
@@ -274,7 +274,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        // This is the part of acceleration that can be set. It neglects gravity.
+        // This is the part of acceleration that can be set.
         public Vector3 _nonGravAccel;
         public Vector3 nonGravAccel
         {
@@ -296,8 +296,8 @@ namespace OpenRelativity.Objects
             }
         }
 
-        //This is truly the object's "proper" acceleration, corresponding with the force it feels.
-        public Vector3 properAccel
+        // This would be the object's properAccleration if at rest in "world coordinates."
+        public Vector3 aiw
         {
             get
             {
@@ -334,9 +334,10 @@ namespace OpenRelativity.Objects
             }
         }
 
-        // This hack-around is to support Physics.gravity in a way that is acceptable for a video game.
-        // It is the object's "visual" acceleration.
-        public Vector3 aiw
+        // This would be the object's "proper acceleration" in comoving coordinates,
+        // but we compose with Rindler metric for Physics.gravity, so that we can
+        // keep book as the Physics.gravity vector effect being an intrinsic property.
+        public Vector3 comovingAccel
         {
             get
             {
@@ -376,13 +377,13 @@ namespace OpenRelativity.Objects
 
             Vector3 tVff = vff;
             Vector3 vi = tVff.AddVelocity(peculiarVelocity);
-            Vector3 ai = aiw;
+            Vector3 ai = comovingAccel;
             _nonGravAccel = nonGravAf;
             peculiarVelocity = (-tVff).AddVelocity(vf);
 
             float timeFac = GetTimeFactor();
 
-            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi, timeFac))).OpticalToWorld(vf, aiw.ProperToWorldAccel(vf, timeFac));
+            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi, timeFac))).OpticalToWorld(vf, comovingAccel.ProperToWorldAccel(vf, timeFac));
 
             if (!IsNaNOrInf(piw.magnitude))
             {
@@ -1184,7 +1185,7 @@ namespace OpenRelativity.Objects
             {
                 updateViwTimeFactor = 1;
             }
-            updateWorld4Acceleration = aiw.ProperToWorldAccel(viw, updateViwTimeFactor);
+            updateWorld4Acceleration = comovingAccel.ProperToWorldAccel(viw, updateViwTimeFactor);
             updateTisw = ((Vector4)piw).GetTisw(viw, updateWorld4Acceleration);
 
             isPhysicsCacheValid = true;
@@ -1251,7 +1252,7 @@ namespace OpenRelativity.Objects
             {
                 if ((peculiarVelocity.sqrMagnitude < SleepThreshold) &&
                 (_aviw.sqrMagnitude < SleepThreshold) &&
-                (aiw.sqrMagnitude < SleepThreshold))
+                (comovingAccel.sqrMagnitude < SleepThreshold))
                 {
                     SleepTimer -= Time.deltaTime;
                 }
@@ -1264,7 +1265,7 @@ namespace OpenRelativity.Objects
                 {
                     peculiarVelocity = Vector3.zero;
                     aviw = Vector3.zero;
-                    aiw = Vector3.zero;
+                    comovingAccel = Vector3.zero;
 
                     myRigidbody.Sleep();
 
@@ -1403,7 +1404,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                Vector3 myAccel = properAccel;
+                Vector3 myAccel = aiw;
                 Vector3 pAccel = state.PlayerAccelerationVector;
                 // To support Unity's concept of Newtonian gravity, we "cheat" a little on equivalence principle, here.
                 // This isn't 100% right, but it keeps the world from looking like the space-time curvature is incomprehensibly 
@@ -1444,7 +1445,7 @@ namespace OpenRelativity.Objects
                 float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
                 currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
 
-                properAccel = myAccel;
+                aiw = myAccel;
             }
 
             CheckSleepPosition();
@@ -1499,7 +1500,7 @@ namespace OpenRelativity.Objects
                 piw += deltaTime * peculiarVelocity;
 
                 // Update velocity after position so as not to double-count comovement.
-                peculiarVelocity += aiw * deltaTime;
+                peculiarVelocity += comovingAccel * deltaTime;
 
                 transform.parent = null;
                 Vector3 opiw = opticalPiw;
