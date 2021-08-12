@@ -57,7 +57,13 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
         {
-            return Physics.gravity;
+            // We return 0 at exactly player position in Rindler, because it's redundant with the useGravity
+            // flag we need to turn on, to make the player fall consistent with the world coordinates.
+            // This check could be a problem, if a relativistic trigger is directly centered on the player.
+
+            // TODO: Fix player acceleration in Rindler, so this and/or player useGravity is not necessary.
+
+            return (piw == state.playerTransform.position) ? Vector3.zero : Physics.gravity;
         }
 
         public override Vector3 GetFreeFallVelocity(Vector3 piw)
