@@ -1338,9 +1338,16 @@ namespace OpenRelativity.Objects
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 riw = cm.riw;
                 piw = cm.piw;
-                if (!isNonrelativisticShader && (myRigidbody != null))
+                if (myRigidbody != null)
                 {
-                    myRigidbody.MovePosition(piw);
+                    if (isNonrelativisticShader)
+                    {
+                        myRigidbody.MovePosition(opticalPiw);
+                    }
+                    else
+                    {
+                        myRigidbody.MovePosition(piw);
+                    }
                 }
             }
 
