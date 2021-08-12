@@ -1496,6 +1496,15 @@ namespace OpenRelativity.Objects
 
             if (myRigidbody != null)
             {
+
+                float ambientTemperature = state.gravityBackgroundTemperature;
+                float schwarzRadius = (8.0f * state.gConst / state.SpeedOfLightSqrd) * myAccel.magnitude;
+                if (schwarzRadius > state.planckLength)
+                {
+                    // state.gravityBackgroundTemperature sets the baseline for 0 proper acceleration.
+                    ambientTemperature += (float)(SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(state.planckLength) - SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(schwarzRadius));
+                }
+
                 float myTemperature = 0;
 
                 float bCount = baryonCount;
@@ -1517,7 +1526,7 @@ namespace OpenRelativity.Objects
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
 
                 float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
-                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
+                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(ambientTemperature, 4));
 
                 frameDragMass += dm;
                 myRigidbody.mass -= dm;
