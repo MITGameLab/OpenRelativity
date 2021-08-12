@@ -1480,7 +1480,6 @@ namespace OpenRelativity.Objects
 
         protected void EvaporateMonopole(float deltaTime, Vector3 myAccel)
         {
-            Vector3 pAccel = state.PlayerAccelerationVector;
             // To support Unity's concept of Newtonian gravity, we "cheat" a little on equivalence principle, here.
             // This isn't 100% right, but it keeps the world from looking like the space-time curvature is incomprehensibly 
             // warped in a "moderate" (really, extremely high) approximately Newtonian surface gravity.
