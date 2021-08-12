@@ -479,6 +479,8 @@ namespace OpenRelativity
                 return;
             }
 
+            Vector3 origPlayerVel = state.PlayerVelocityVector;
+
             Collider myColl = GetComponent<Collider>();
             Vector3 extents = myColl.bounds.extents;
             //We assume that the world "down" direction is the direction of gravity.
@@ -557,6 +559,9 @@ namespace OpenRelativity
                     state.PlayerVelocityVector = state.PlayerVelocityVector - myParraVel;
                 }
             }
+
+            Vector3 accel = (state.PlayerVelocityVector - origPlayerVel) / state.FixedDeltaTimePlayer;
+            EvaporateMonopole(state.FixedDeltaTimePlayer, accel);
         }
     }
 }
