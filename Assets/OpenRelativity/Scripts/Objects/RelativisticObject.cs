@@ -77,7 +77,7 @@ namespace OpenRelativity.Objects
                 return updateTisw;
             }
 
-            return ((Vector4)pos.Value).GetTisw(viw, GetWorld4Acceleration());
+            return ((Vector4)pos.Value).GetTisw(viw, GetComoving4Acceleration());
         }
         public float GetVisualTime()
         {
@@ -116,7 +116,7 @@ namespace OpenRelativity.Objects
             return viw.ToMinkowski4Viw();
         }
 
-        public Vector4 GetWorld4Acceleration()
+        public Vector4 GetComoving4Acceleration()
         {
             if (isPhysicsCacheValid)
             {
@@ -126,7 +126,7 @@ namespace OpenRelativity.Objects
             return comovingAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
         }
 
-        public Vector4 GetProper4Acceleration()
+        public Vector4 GetWorld4Acceleration()
         {
             return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
         }
@@ -192,17 +192,17 @@ namespace OpenRelativity.Objects
         public Vector3 opticalPiw {
             get
             {
-                return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+                return ((Vector4)piw).WorldToOptical(viw, GetComoving4Acceleration());
             }
             set
             {
-                piw = ((Vector4)value).OpticalToWorld(viw, GetWorld4Acceleration());
+                piw = ((Vector4)value).OpticalToWorld(viw, GetComoving4Acceleration());
             }
         }
 
         public void ResetPiw()
         {
-            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(viw, GetWorld4Acceleration()) : transform.position;
+            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(viw, GetComoving4Acceleration()) : transform.position;
         }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
@@ -608,7 +608,7 @@ namespace OpenRelativity.Objects
             //If we have a BoxCollider, transform its center to its optical position
             else if (isMyColliderBox)
             {
-                Vector4 aiw4 = GetWorld4Acceleration();
+                Vector4 aiw4 = GetComoving4Acceleration();
                 Vector3 pos;
                 BoxCollider collider;
                 Vector3 testPos;
@@ -958,8 +958,8 @@ namespace OpenRelativity.Objects
             if (myRenderer != null)
             {
                 Vector3 tempViw = peculiarVelocity / state.SpeedOfLight;
-                Vector4 tempAiw = GetWorld4Acceleration();
-                Vector4 tempPao = GetProper4Acceleration();
+                Vector4 tempAiw = GetComoving4Acceleration();
+                Vector4 tempPao = GetWorld4Acceleration();
                 Vector4 tempVr = (-state.PlayerVelocityVector).AddVelocity(peculiarVelocity) / state.SpeedOfLight;
 
                 //Velocity of object Lorentz transforms are the same for all points in an object,
