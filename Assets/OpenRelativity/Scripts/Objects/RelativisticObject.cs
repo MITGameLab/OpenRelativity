@@ -1260,7 +1260,7 @@ namespace OpenRelativity.Objects
                 piw = myRigidbody.position;
 
                 // Now, update the velocity and angular velocity based on the collision result:
-                viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
+                peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
             }
             isPhysicsUpdateFrame = false;
@@ -1549,7 +1549,7 @@ namespace OpenRelativity.Objects
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
             float gamma = GetTimeFactor();
-            myRigidbody.velocity = gamma * viw;
+            myRigidbody.velocity = gamma * peculiarVelocity;
             myRigidbody.angularVelocity = gamma * aviw;
 
             isPhysicsCacheValid = false;
