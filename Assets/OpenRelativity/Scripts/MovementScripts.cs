@@ -248,11 +248,18 @@ namespace OpenRelativity
                         // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
                         // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
                         // has been known since Galileo.)
+
+                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                        // (which seems to imply the Higgs field vacuum)
+                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                        // gravitational constant "G" times (baryon) constituent particle rest mass.
+                        // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
+
+
+                        Vector3 oldFrameDragAccel = frameDragAccel;
+                        EvaporateMonopole(Time.deltaTime, totalAccel);
                         quasiWorldAccel += frameDragAccel;
                         totalAccel += frameDragAccel;
-                        Vector3 da = -totalAccel.normalized * totalAccel.sqrMagnitude / state.SpeedOfLight * Time.deltaTime;
-                        Vector3 oldFrameDragAccel = frameDragAccel;
-                        frameDragAccelRemainder += da;
 
                         frameDragAccel.x += frameDragAccelRemainder.x;
                         if (oldFrameDragAccel.x != frameDragAccel.x)
@@ -272,31 +279,7 @@ namespace OpenRelativity
 
                         // The "AUTO SLOW DOWN CODE BLOCK" above gives a qualitative "drag" effect, (as by friction with air or the floor,)
                         // that should ultimately "lock" the player's frame of accelerated rest back to "world coordinates," at the limit.
-
-                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                        // (which seems to imply the Higgs field vacuum)
-                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                        // gravitational constant "G" times (baryon) constituent particle rest mass.
-                        // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
-
-                        float bCount = baryonCount;
-                        float nuclearMass = myRigidbody.mass / bCount;
-                        float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
-
-                        float myTemperature = 0;
-                        if (nuclearMass > fundamentalNuclearMass) {
-                            myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
-                        }
-
-                        float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
-                        float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
-
-                        frameDragMass += dm;
-                        myRigidbody.mass -= dm;
-
-                        float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
-                        currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
-                    }
+                     }
                 }
 
                 //3-acceleration acts as classically on the rapidity, rather than velocity.
@@ -423,6 +406,51 @@ namespace OpenRelativity
                 }
 
 
+            }
+        }
+
+        protected void EvaporateMonopole(float deltaTime, Vector3 myAccel)
+        {
+            // To support Unity's concept of Newtonian gravity, we "cheat" a little on equivalence principle, here.
+            // This isn't 100% right, but it keeps the world from looking like the space-time curvature is incomprehensibly 
+            // warped in a "moderate" (really, extremely high) approximately Newtonian surface gravity.
+
+            // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
+            // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
+            Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
+            frameDragAccel += da;
+            myAccel += da;
+
+            if (myRigidbody != null)
+            {
+                float myTemperature = 0;
+
+                float bCount = baryonCount;
+                float nuclearMass = myRigidbody.mass / bCount;
+                float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+
+                // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
+                // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
+                // (i.e. as due to "player" acceleration).
+                if ((myRigidbody != null) && (nuclearMass > fundamentalNuclearMass))
+                {
+                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                    // (which seems to imply the Higgs field vacuum)
+                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                    // gravitational constant "G" times (baryon) constituent particle rest mass.
+                    myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                }
+                //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
+                // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
+
+                float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
+                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(state.gravityBackgroundTemperature, 4));
+
+                frameDragMass += dm;
+                myRigidbody.mass -= dm;
+
+                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / bCount;
+                currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
             }
         }
 
