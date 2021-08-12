@@ -1387,7 +1387,12 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                EvaporateMonopole(deltaTime, nonGravAccel);
+                Vector3 accel = nonGravAccel;
+                if (Vector3.Project(viw, aiw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                {
+                    accel += aiw;
+                }
+                EvaporateMonopole(deltaTime, accel);
             }
 
             CheckSleepPosition();
@@ -1488,7 +1493,6 @@ namespace OpenRelativity.Objects
             // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
             Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
             frameDragAccel += da;
-            myAccel += da;
 
             if (myRigidbody != null)
             {
