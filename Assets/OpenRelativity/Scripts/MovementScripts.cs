@@ -440,7 +440,7 @@ namespace OpenRelativity
 
                 double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
                 double ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
-                double dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4)) - ambientPower;
+                double dm = gravitonEmissivity * (SRelativityUtil.sigmaPlanck * surfaceArea * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4)) - ambientPower);
 
                 frameDragMass += (float)dm;
                 myRigidbody.mass -= (float)dm;
