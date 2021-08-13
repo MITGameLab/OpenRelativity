@@ -1504,7 +1504,7 @@ namespace OpenRelativity.Objects
             double r = constFac * alpha;
             if (r > state.planckLength)
             {
-                r -= SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
+                r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
                 alpha = r / constFac;
                 leviCivitaDevAccel -= (float)(1 - alpha / myAccelMag) * myAccel;
             }
@@ -1534,17 +1534,16 @@ namespace OpenRelativity.Objects
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
 
                 double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
-                double ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
                 double dm;
                 if (r > state.planckLength)
                 {
+                    double ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
                     dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4)) - ambientPower / (4 * Math.PI * r * r));
                 }
                 else
                 {
                     dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4));
                 }
-
                 frameDragMass += (float)dm;
                 myRigidbody.mass -= (float)dm;
 

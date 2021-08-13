@@ -500,7 +500,21 @@ namespace OpenRelativity
         // Strano 2019 monopole methods
         public static double SchwarzschildRadiusDecay(double deltaTime, double r)
         {
-            return -deltaTime * Math.Sqrt(state.hbarOverG * Math.Pow(c, 7.0f)) * 2.0 / r;
+            double origR = r;
+
+            if (r < state.planckLength)
+            {
+                r = state.planckLength;
+            }
+
+            double deltaR = -deltaTime * Math.Sqrt(state.hbarOverG * Math.Pow(c, 7.0f)) * 2.0 / r;
+
+            if ((origR + deltaR) < 0)
+            {
+                deltaR = -origR;
+            }
+
+            return deltaR;
         }
     }
 }
