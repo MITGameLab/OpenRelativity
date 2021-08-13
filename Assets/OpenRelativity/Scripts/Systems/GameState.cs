@@ -54,7 +54,7 @@ namespace OpenRelativity
         {
             get
             {
-                return Mathf.Sqrt((hbar * gConst) / Mathf.Pow(SpeedOfLight, 3));
+                return Mathf.Sqrt(hbar * gConst / Mathf.Pow(SpeedOfLight, 3));
             }
         }
         public float planckTime
@@ -89,7 +89,7 @@ namespace OpenRelativity
         {
             get
             {
-                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5.0f) / (gConst * boltzmannConstant * boltzmannConstant));
+                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5) / (gConst * boltzmannConstant * boltzmannConstant));
             }
         }
         public float planckCharge
@@ -111,14 +111,14 @@ namespace OpenRelativity
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst * SpeedOfLight);
+                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 3) / gConst);
             }
         }
         public float planckAngularMomentum
         {
             get
             {
-                return (hbar * gConst) / SpeedOfLight;
+                return hbar;
             }
         }
 
