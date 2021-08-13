@@ -1507,8 +1507,12 @@ namespace OpenRelativity.Objects
             }
             double constFac = 8 * state.hbar * state.gConst / Math.Pow(state.SpeedOfLight, 5);
             double r = constFac * alpha;
-            double alphaF = (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)) / constFac;
-            leviCivitaDevAccel -= (float)(1 - alphaF) * myAccel.normalized;
+            // If alpha is in equilibrium with the background temperature, there is no evaporation.
+            if (alpha > minAlpha)
+            {
+                double alphaF = (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)) / constFac;
+                leviCivitaDevAccel -= (float)(1 - alphaF) * myAccel.normalized;
+            }
 
             if (r < state.planckLength)
             {
