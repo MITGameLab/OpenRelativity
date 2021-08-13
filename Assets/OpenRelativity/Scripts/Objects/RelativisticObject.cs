@@ -1427,6 +1427,8 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            Vector3 properPlusMonopoleAccel = (nonGravAccel + frameDragAccel);
+
             if (isNonrelativisticShader)
             {
                 // Update riw
@@ -1447,7 +1449,7 @@ namespace OpenRelativity.Objects
                 piw += deltaTime * peculiarVelocity;
 
                 // Update velocity after position so as not to double-count comovement.
-                peculiarVelocity += comovingAccel * deltaTime;
+                peculiarVelocity += (comovingAccel + frameDragAccel) * deltaTime;
 
                 transform.parent = null;
                 Vector3 opiw = opticalPiw;
@@ -1460,16 +1462,16 @@ namespace OpenRelativity.Objects
                 transform.localPosition = Vector3.zero;
                 ContractLength();
             }
-            else if (nonGravAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+            else if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
             {
                 // Use viw setter:
                 if (state.conformalMap == null)
                 {
-                    viw += nonGravAccel * deltaTime;
+                    viw += deltaTime * properPlusMonopoleAccel;
                 }
                 else
                 {
-                    viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + nonGravAccel * deltaTime);
+                    viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
                 }
             }
             #endregion
@@ -1629,16 +1631,16 @@ namespace OpenRelativity.Objects
             piw = isNonrelativisticShader ? (Vector3)((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
-            float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-            Vector3 accel = -viw;
+            //float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
+            //Vector3 accel = -viw;
             viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
-            accel = (viw - accel) / deltaTime;
+            //accel = (viw - accel) / deltaTime;
             aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
 
-            if (isMonopoleAccel)
-            {
-                EvaporateMonopole(deltaTime, accel);
-            }
+            //if (isMonopoleAccel)
+            //{
+            //    EvaporateMonopole(deltaTime, accel);
+            //}
 
             // Make sure we're not updating to faster than max speed
             checkSpeed();
