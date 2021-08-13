@@ -301,7 +301,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                Vector3 accel = frameDragAccel;
+                Vector3 accel = leviCivitaDevAccel;
 
                 if (useGravity)
                 {
@@ -350,6 +350,8 @@ namespace OpenRelativity.Objects
                 nonGravAccel = _aiw;
             }
         }
+
+        public Vector3 leviCivitaDevAccel = Vector3.zero;
 
         public void UpdateMotion(Vector3 vf, Vector3 nonGravAf)
         {
@@ -452,7 +454,6 @@ namespace OpenRelativity.Objects
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool isMonopoleAccel = false;
-        private Vector3 frameDragAccel;
         private float frameDragMass;
         #endregion
 
@@ -1076,7 +1077,6 @@ namespace OpenRelativity.Objects
             isPhysicsUpdateFrame = false;
 
             hasStarted = false;
-            frameDragAccel = Vector3.zero;
             ResetPiw();
             riw = transform.rotation;
 
@@ -1427,7 +1427,7 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            Vector3 properPlusMonopoleAccel = (nonGravAccel + frameDragAccel);
+            Vector3 properPlusMonopoleAccel = (nonGravAccel + leviCivitaDevAccel);
 
             if (isNonrelativisticShader)
             {
@@ -1449,7 +1449,7 @@ namespace OpenRelativity.Objects
                 piw += deltaTime * peculiarVelocity;
 
                 // Update velocity after position so as not to double-count comovement.
-                peculiarVelocity += (comovingAccel + frameDragAccel) * deltaTime;
+                peculiarVelocity += (comovingAccel + leviCivitaDevAccel) * deltaTime;
 
                 transform.parent = null;
                 Vector3 opiw = opticalPiw;
@@ -1494,7 +1494,7 @@ namespace OpenRelativity.Objects
             // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
             // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
             Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
-            frameDragAccel += da;
+            leviCivitaDevAccel += da;
 
             if (myRigidbody != null)
             {

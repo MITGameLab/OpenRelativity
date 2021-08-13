@@ -53,7 +53,7 @@ namespace OpenRelativity
         public float averageMolarMass = 0.012f;
         public float fundamentalAverageMolarMass = 0.012f;
         public float currentAverageMolarMass = 0.012f;
-        protected Vector3 frameDragAccel;
+        public Vector3 leviCivitaDevAccel = Vector3.zero;
         // Float precision prevents the "frameDragAccel" from correctly returning to "world accelerated rest frame"
         // under the effect of forces like drag and friction in the at rest W.R.T. the "world."
         // If we track small differences separately, we can get better accuracy.
@@ -90,8 +90,6 @@ namespace OpenRelativity
             //Inverted, at first
             inverted = -1;
             invertKeyDown = false;
-
-            frameDragAccel = Vector3.zero;
 
             frames = 0;
 
@@ -205,7 +203,7 @@ namespace OpenRelativity
 
                 Vector3 quasiWorldAccel = totalAccel;
 
-                if ((Time.deltaTime > 0) && (useGravity || (totalAccel.sqrMagnitude != 0) || (frameDragAccel.sqrMagnitude != 0)))
+                if ((Time.deltaTime > 0) && (useGravity || (totalAccel.sqrMagnitude != 0) || (leviCivitaDevAccel.sqrMagnitude != 0)))
                 {
                     if (!isFalling)
                     {
@@ -238,9 +236,9 @@ namespace OpenRelativity
                     if (isMonopoleAccel)
                     {
                         // This isn't "smooth," but the player shouldn't fall through the floor.
-                        if (!isFalling && frameDragAccel.y < 0)
+                        if (!isFalling && leviCivitaDevAccel.y < 0)
                         {
-                            frameDragAccel.y = 0;
+                            leviCivitaDevAccel.y = 0;
                         }
 
                         // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
@@ -256,25 +254,25 @@ namespace OpenRelativity
                         // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
 
 
-                        Vector3 oldFrameDragAccel = frameDragAccel;
+                        Vector3 oldFrameDragAccel = leviCivitaDevAccel;
                         EvaporateMonopole(Time.deltaTime, totalAccel);
-                        quasiWorldAccel += frameDragAccel;
-                        totalAccel += frameDragAccel;
+                        quasiWorldAccel += leviCivitaDevAccel;
+                        totalAccel += leviCivitaDevAccel;
 
-                        frameDragAccel.x += frameDragAccelRemainder.x;
-                        if (oldFrameDragAccel.x != frameDragAccel.x)
+                        leviCivitaDevAccel.x += frameDragAccelRemainder.x;
+                        if (oldFrameDragAccel.x != leviCivitaDevAccel.x)
                         {
-                            frameDragAccelRemainder.x -= (frameDragAccel.x - oldFrameDragAccel.x);
+                            frameDragAccelRemainder.x -= (leviCivitaDevAccel.x - oldFrameDragAccel.x);
                         }
-                        frameDragAccel.y += frameDragAccelRemainder.y;
-                        if (oldFrameDragAccel.y != frameDragAccel.y)
+                        leviCivitaDevAccel.y += frameDragAccelRemainder.y;
+                        if (oldFrameDragAccel.y != leviCivitaDevAccel.y)
                         {
-                            frameDragAccelRemainder.y -= (frameDragAccel.y - oldFrameDragAccel.y);
+                            frameDragAccelRemainder.y -= (leviCivitaDevAccel.y - oldFrameDragAccel.y);
                         }
-                        frameDragAccel.z += frameDragAccelRemainder.z;
-                        if (oldFrameDragAccel.z != frameDragAccel.z)
+                        leviCivitaDevAccel.z += frameDragAccelRemainder.z;
+                        if (oldFrameDragAccel.z != leviCivitaDevAccel.z)
                         {
-                            frameDragAccelRemainder.z -= (frameDragAccel.z - oldFrameDragAccel.z);
+                            frameDragAccelRemainder.z -= (leviCivitaDevAccel.z - oldFrameDragAccel.z);
                         }
 
                         // The "AUTO SLOW DOWN CODE BLOCK" above gives a qualitative "drag" effect, (as by friction with air or the floor,)
@@ -418,7 +416,7 @@ namespace OpenRelativity
             // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
             // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
             Vector3 da = -myAccel.normalized * myAccel.sqrMagnitude / state.SpeedOfLight * deltaTime;
-            frameDragAccel += da;
+            leviCivitaDevAccel += da;
 
             if (myRigidbody != null)
             {
