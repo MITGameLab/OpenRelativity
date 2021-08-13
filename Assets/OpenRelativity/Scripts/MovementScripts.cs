@@ -470,8 +470,17 @@ namespace OpenRelativity
                 constFac = Math.Sqrt(state.hbar * Math.Pow(state.SpeedOfLight, 3) / state.gConst);
                 double ambientPowerPerArea = constFac * alpha / (4 * Math.PI * r * r);
                 double dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * Math.Pow(myTemperature, 4) - ambientPowerPerArea);
+
+                // Momentum is conserved. (Energy changes.)
+                Vector3 momentum = myRigidbody.mass * state.PlayerVelocityVector;
+
                 frameDragMass += (float)dm;
                 myRigidbody.mass -= (float)dm;
+
+                if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
+                {
+                    state.PlayerVelocityVector = momentum / myRigidbody.mass;
+                }
 
                 float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / (float)bCount;
                 currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
