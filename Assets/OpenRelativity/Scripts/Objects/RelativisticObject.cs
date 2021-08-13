@@ -1497,8 +1497,7 @@ namespace OpenRelativity.Objects
             if (myRigidbody != null)
             {
 
-                float ambientTemperature = state.gravityBackgroundTemperature;
-
+                float comovingRestTemperature = state.gravityBackgroundTemperature;
                 float myTemperature = 0;
 
                 float bCount = baryonCount;
@@ -1508,7 +1507,7 @@ namespace OpenRelativity.Objects
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
                 // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
                 // (i.e. as due to "player" acceleration).
-                if ((myRigidbody != null) && (nuclearMass > fundamentalNuclearMass))
+                if (nuclearMass > fundamentalNuclearMass)
                 {
                     // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
                     // (which seems to imply the Higgs field vacuum)
@@ -1521,7 +1520,7 @@ namespace OpenRelativity.Objects
 
                 float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
                 float ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
-                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(ambientTemperature, 4)) - ambientPower;
+                float dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(comovingRestTemperature, 4)) - ambientPower;
 
                 frameDragMass += dm;
                 myRigidbody.mass -= dm;
