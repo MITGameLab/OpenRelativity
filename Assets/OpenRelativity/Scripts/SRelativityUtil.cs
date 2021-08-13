@@ -43,7 +43,7 @@ namespace OpenRelativity
             double rsp = radius / state.planckLength;
             return PlanckScaleTempToSchwarzRadius(
                 4.0 * Math.PI * rsp * rsp * (
-                    Math.Pow(SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(radius), 4.0) -
+                    Math.Pow(SchwarzRadiusToPlanckScaleTemp(radius), 4.0) -
                     Math.Pow(backgroundTemp / state.planckTemperature, 4.0)
                 )
             );
@@ -495,6 +495,28 @@ namespace OpenRelativity
             }
 
             return sum / 2.0f;
+        }
+
+        // Strano 2019 monopole methods
+        public static Vector3 AccelerationDecay(float deltaTime, Vector3 myAccel)
+        {
+            // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
+            // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
+
+            double myAccelMag = myAccel.magnitude;
+            double alpha = myAccelMag;
+            double constFac = 8.0 * state.hbar * state.gConst / Mathf.Pow(state.SpeedOfLight, 5);
+            double r = constFac * alpha;
+            r = EffectiveRaditiativeRadius(r, state.gravityBackgroundTemperature);
+            if (r < state.planckLength)
+            {
+                return Vector3.zero;
+            }
+            double diffR = -deltaTime * Math.Sqrt(state.hbarOverG * Math.Pow(c, 7.0)) * 2.0 / r;
+            r -= diffR;
+            alpha = r / constFac;
+
+            return -(float)(1.0 - alpha / myAccelMag) * myAccel;
         }
     }
 }

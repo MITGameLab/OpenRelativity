@@ -1488,26 +1488,9 @@ namespace OpenRelativity.Objects
 
         protected void EvaporateMonopole(float deltaTime, Vector3 myAccel)
         {
-            // To support Unity's concept of Newtonian gravity, we "cheat" a little on equivalence principle, here.
-            // This isn't 100% right, but it keeps the world from looking like the space-time curvature is incomprehensibly 
-            // warped in a "moderate" (really, extremely high) approximately Newtonian surface gravity.
-
             // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
             // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
-            double myAccelMag = myAccel.magnitude;
-            double alpha = myAccelMag;
-            double constFac = 8.0 * state.hbar * state.gConst / Mathf.Pow(state.SpeedOfLight, 5);
-            double r = constFac * alpha;
-            if (r > state.planckLength)
-            {
-                double cTo7 = Math.Pow(SRelativityUtil.c, 7.0);
-                double diffR = -deltaTime * Math.Sqrt(state.hbarOverG * cTo7) * 2.0 / r;
-                r -= diffR;
-                alpha = r / constFac;
-
-                Vector3 da = (float)(1.0 - alpha / myAccelMag) * myAccel;
-                leviCivitaDevAccel += da;
-            }
+            leviCivitaDevAccel += SRelativityUtil.AccelerationDecay(deltaTime, myAccel);
 
             if (myRigidbody != null)
             {
