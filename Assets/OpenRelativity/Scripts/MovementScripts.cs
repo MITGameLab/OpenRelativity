@@ -438,7 +438,7 @@ namespace OpenRelativity
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
 
-                double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / (state.planckLength * state.planckLength);
+                double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
                 double ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
                 double dm = SRelativityUtil.sigmaPlanck * surfaceArea * gravitonEmissivity * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4)) - ambientPower;
 

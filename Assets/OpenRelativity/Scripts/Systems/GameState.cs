@@ -57,6 +57,13 @@ namespace OpenRelativity
                 return Mathf.Sqrt(hbar * gConst / Mathf.Pow(SpeedOfLight, 3));
             }
         }
+        public float planckArea
+        {
+            get
+            {
+                return hbar * gConst / Mathf.Pow(SpeedOfLight, 3);
+            }
+        }
         public float planckTime
         {
             get
