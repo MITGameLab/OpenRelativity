@@ -475,7 +475,7 @@ namespace OpenRelativity
                 return;
             }
 
-            // Vector3 origPlayerVel = state.PlayerVelocityVector;
+            Vector3 origPlayerVel = state.PlayerVelocityVector;
 
             Collider myColl = GetComponent<Collider>();
             Vector3 extents = myColl.bounds.extents;
@@ -556,8 +556,8 @@ namespace OpenRelativity
                 }
             }
 
-            // Vector3 accel = (state.PlayerVelocityVector - origPlayerVel) / state.FixedDeltaTimePlayer;
-            // EvaporateMonopole(state.FixedDeltaTimePlayer, accel);
+            Vector3 accel = (state.PlayerVelocityVector - origPlayerVel) / state.FixedDeltaTimePlayer;
+            EvaporateMonopole(state.FixedDeltaTimePlayer, accel);
         }
     }
 }
