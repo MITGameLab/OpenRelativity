@@ -68,7 +68,21 @@ namespace OpenRelativity
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst / SpeedOfLight);
+                return Mathf.Sqrt(hbar * SpeedOfLight / gConst);
+            }
+        }
+        public float planckEnergy
+        {
+            get
+            {
+                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5) / gConst);
+            }
+        }
+        public float planckPower
+        {
+            get
+            {
+                return SpeedOfLightSqrd * SpeedOfLightSqrd;
             }
         }
         public float planckTemperature
