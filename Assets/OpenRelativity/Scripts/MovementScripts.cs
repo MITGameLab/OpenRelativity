@@ -418,7 +418,7 @@ namespace OpenRelativity
             // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
             double myAccelMag = myAccel.magnitude;
             double alpha = myAccelMag;
-            double constFac = 8.0 * state.planckLength / state.planckAccel;
+            double constFac = 8.0 * state.hbar * state.gConst / Mathf.Pow(state.SpeedOfLight, 5);
             double r = constFac * alpha;
             if (r > state.planckLength)
             {
