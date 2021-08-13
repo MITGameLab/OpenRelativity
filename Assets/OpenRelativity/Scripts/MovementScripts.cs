@@ -420,17 +420,27 @@ namespace OpenRelativity
             // P(t) = alpha(t),
             // in Planck units, according to Strano.
             // We subtract any countering background radiation power, proportional to the fourth power of the background temperature.
-            double alpha = myAccel.magnitude - Math.Sqrt(state.gConst / (state.hbar * Math.Pow(state.SpeedOfLight, 3))) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4);
+            double minAlpha = Math.Sqrt(state.gConst / (state.hbar * Math.Pow(state.SpeedOfLight, 3))) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4);
+            double alpha = myAccel.magnitude - minAlpha;
+            if (alpha < minAlpha)
+            {
+                // At minimum, alpha is no smaller than at equilibrium with the background temperature.
+                alpha = minAlpha;
+            }
             double constFac = 8 * state.hbar * state.gConst / Math.Pow(state.SpeedOfLight, 5);
             double r = constFac * alpha;
-            r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
-            alpha = r / constFac;
-            leviCivitaDevAccel -= (float)(1 - alpha) * myAccel.normalized;
+            double alphaF = (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)) / constFac;
+            leviCivitaDevAccel -= (float)(1 - alphaF) * myAccel.normalized;
+
+            if (r < state.planckLength)
+            {
+                // For minimum area calculation, below.
+                r = state.planckLength;
+            }
 
             if (myRigidbody != null)
             {
 
-                double comovingRestTemperature = state.gravityBackgroundPlanckTemperature;
                 double myTemperature = 0;
 
                 double bCount = baryonCount;
@@ -452,16 +462,9 @@ namespace OpenRelativity
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
 
                 double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
-                double dm;
-                if (r > state.planckLength)
-                {
-                    double ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
-                    dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4)) - ambientPower / (4 * Math.PI * r * r));
-                }
-                else
-                {
-                    dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4));
-                }
+                // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
+                double ambientPowerPerArea = (alpha * state.planckPower) / (4 * Math.PI * r * r * state.planckAccel);
+                double dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * Math.Pow(myTemperature, 4) - ambientPowerPerArea);
                 frameDragMass += (float)dm;
                 myRigidbody.mass -= (float)dm;
 
