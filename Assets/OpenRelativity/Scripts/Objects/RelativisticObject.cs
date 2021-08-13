@@ -1498,26 +1498,26 @@ namespace OpenRelativity.Objects
             // P(t) = alpha(t),
             // in Planck units, according to Strano.
             // We subtract any countering background radiation power, proportional to the fourth power of the background temperature.
-            float myAccelMag = myAccel.magnitude;
-            float alpha = myAccelMag - (state.planckAccel / state.planckPower) * Mathf.Pow(state.gravityBackgroundPlanckTemperature, 4.0f);
-            float constFac = 8.0f * state.hbar * state.gConst / Mathf.Pow(state.SpeedOfLight, 5);
-            float r = constFac * alpha;
+            double myAccelMag = myAccel.magnitude;
+            double alpha = myAccelMag - (state.planckAccel / state.planckPower) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4);
+            double constFac = 8 * state.hbar * state.gConst / Math.Pow(state.SpeedOfLight, 5);
+            double r = constFac * alpha;
             if (r > state.planckLength)
             {
                 r -= SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
                 alpha = r / constFac;
-                leviCivitaDevAccel -= (1.0f - alpha / myAccelMag) * myAccel;
+                leviCivitaDevAccel -= (float)(1 - alpha / myAccelMag) * myAccel;
             }
 
             if (myRigidbody != null)
             {
 
-                float comovingRestTemperature = state.gravityBackgroundPlanckTemperature;
-                float myTemperature = 0;
+                double comovingRestTemperature = state.gravityBackgroundPlanckTemperature;
+                double myTemperature = 0;
 
-                float bCount = baryonCount;
-                float nuclearMass = myRigidbody.mass / bCount;
-                float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+                double bCount = baryonCount;
+                double nuclearMass = myRigidbody.mass / bCount;
+                double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
                 // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
@@ -1528,21 +1528,21 @@ namespace OpenRelativity.Objects
                     // (which seems to imply the Higgs field vacuum)
                     // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                     // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    myTemperature = 2.0f * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                    myTemperature = 2 * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
                 }
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
 
-                float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
-                float ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
-                float dm;
+                double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
+                double ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
+                double dm;
                 if (r > state.planckLength)
                 {
-                    dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(comovingRestTemperature, 4)) - ambientPower / (4.0f * Mathf.PI * r * r));
+                    dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4)) - ambientPower / (4 * Math.PI * r * r));
                 }
                 else
                 {
-                    dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(comovingRestTemperature, 4));
+                    dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4));
                 }
 
                 frameDragMass += (float)dm;

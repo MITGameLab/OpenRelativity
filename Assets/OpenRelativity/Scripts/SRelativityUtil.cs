@@ -498,9 +498,9 @@ namespace OpenRelativity
         }
 
         // Strano 2019 monopole methods
-        public static float SchwarzschildRadiusDecay(float deltaTime, float r)
+        public static double SchwarzschildRadiusDecay(double deltaTime, double r)
         {
-            return -deltaTime * Mathf.Sqrt(state.hbarOverG * Mathf.Pow(c, 7.0f)) * 2.0f / r;
+            return -deltaTime * Math.Sqrt(state.hbarOverG * Math.Pow(c, 7.0f)) * 2.0 / r;
         }
     }
 }
