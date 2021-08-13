@@ -1498,16 +1498,12 @@ namespace OpenRelativity.Objects
             // P(t) = alpha(t),
             // in Planck units, according to Strano.
             // We subtract any countering background radiation power, proportional to the fourth power of the background temperature.
-            double myAccelMag = myAccel.magnitude;
-            double alpha = myAccelMag - (state.planckAccel / state.planckPower) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4);
+            double alpha = myAccel.magnitude - (state.planckAccel / state.planckPower) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4);
             double constFac = 8 * state.hbar * state.gConst / Math.Pow(state.SpeedOfLight, 5);
             double r = constFac * alpha;
-            if (r > state.planckLength)
-            {
-                r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
-                alpha = r / constFac;
-                leviCivitaDevAccel -= (float)(1 - alpha / myAccelMag) * myAccel;
-            }
+            r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
+            alpha = r / constFac;
+            leviCivitaDevAccel -= (float)(1 - alpha) * myAccel.normalized;
 
             if (myRigidbody != null)
             {
