@@ -33,9 +33,9 @@ namespace OpenRelativity
             return state.planckLength / Math.Pow(sigmaPlanck * 8.0 * Math.PI * Math.Pow(temp, 4.0), 1.0 / 3.0);
         }
 
-        public static double EffectiveRaditiativeRadius(double radius, double backgroundTemp)
+        public static double EffectiveRaditiativeRadius(double radius, double backgroundPlanckTemp)
         {
-            if (backgroundTemp <= divByZeroCutoff)
+            if (backgroundPlanckTemp <= divByZeroCutoff)
             {
                 return radius;
             }
@@ -44,7 +44,7 @@ namespace OpenRelativity
             return PlanckScaleTempToSchwarzRadius(
                 4.0 * Math.PI * rsp * rsp * (
                     Math.Pow(SchwarzRadiusToPlanckScaleTemp(radius), 4.0) -
-                    Math.Pow(backgroundTemp / state.planckTemperature, 4.0)
+                    Math.Pow(backgroundPlanckTemp / state.planckTemperature, 4.0)
                 )
             );
         }
@@ -502,18 +502,27 @@ namespace OpenRelativity
         {
             // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
             // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
+            // The Rindler horizon evaporates as would Schwarzschild, for event horizon surface acceleration equivalent
+            // between the Rindler and Schwarzschild metrics. Further, Hawking(-Unruh, et al.) acceleration might have
+            // the same effect.
 
             double myAccelMag = myAccel.magnitude;
-            double alpha = myAccelMag;
-            double constFac = 8.0 * state.hbar * state.gConst / Mathf.Pow(state.SpeedOfLight, 5);
+            // For Rindler,
+            // P(t) = alpha(t),
+            // in Planck units, according to Strano.
+            // We subtract any countering background radiation power, proportional to the fourth power of the background temperature.
+            double alpha = myAccelMag - (state.planckAccel / state.planckPower) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4.0);
+
+            double constFac = 8.0 * state.hbar * state.gConst / Math.Pow(state.SpeedOfLight, 5);
             double r = constFac * alpha;
-            r = EffectiveRaditiativeRadius(r, state.gravityBackgroundTemperature);
             if (r < state.planckLength)
             {
                 return Vector3.zero;
             }
+
             double diffR = -deltaTime * Math.Sqrt(state.hbarOverG * Math.Pow(c, 7.0)) * 2.0 / r;
             r -= diffR;
+
             alpha = r / constFac;
 
             return -(float)(1.0 - alpha / myAccelMag) * myAccel;

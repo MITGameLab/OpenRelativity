@@ -417,7 +417,7 @@ namespace OpenRelativity
             if (myRigidbody != null)
             {
 
-                double comovingRestTemperature = state.gravityBackgroundTemperature;
+                double comovingRestTemperature = state.gravityBackgroundPlanckTemperature;
                 double myTemperature = 0;
 
                 double bCount = baryonCount;

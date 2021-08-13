@@ -162,7 +162,7 @@ namespace OpenRelativity.ConformalMaps
                     return 0;
                 }
 
-                double r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundTemperature);
+                double r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundPlanckTemperature);
 
                 double diffR;
                 if (r > state.planckLength)
