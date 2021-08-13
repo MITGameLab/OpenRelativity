@@ -1490,17 +1490,34 @@ namespace OpenRelativity.Objects
         {
             // If the RelativisticObject is at rest on the ground, according to Strano 2019, (not yet peer reviewed,)
             // it loses surface acceleration, (not weight force, directly,) the longer it stays in this configuration.
-            leviCivitaDevAccel += SRelativityUtil.AccelerationDecay(deltaTime, myAccel);
+            // The Rindler horizon evaporates as would Schwarzschild, for event horizon surface acceleration equivalent
+            // between the Rindler and Schwarzschild metrics. Further, Hawking(-Unruh, et al.) acceleration might have
+            // the same effect.
+
+            // For Rindler,
+            // P(t) = alpha(t),
+            // in Planck units, according to Strano.
+            // We subtract any countering background radiation power, proportional to the fourth power of the background temperature.
+            float myAccelMag = myAccel.magnitude;
+            float alpha = myAccelMag - (state.planckAccel / state.planckPower) * Mathf.Pow(state.gravityBackgroundPlanckTemperature, 4.0f);
+            float constFac = 8.0f * state.hbar * state.gConst / Mathf.Pow(state.SpeedOfLight, 5);
+            float r = constFac * alpha;
+            if (r > state.planckLength)
+            {
+                r -= SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
+                alpha = r / constFac;
+                leviCivitaDevAccel -= (1.0f - alpha / myAccelMag) * myAccel;
+            }
 
             if (myRigidbody != null)
             {
 
-                double comovingRestTemperature = state.gravityBackgroundPlanckTemperature;
-                double myTemperature = 0;
+                float comovingRestTemperature = state.gravityBackgroundPlanckTemperature;
+                float myTemperature = 0;
 
-                double bCount = baryonCount;
-                double nuclearMass = myRigidbody.mass / bCount;
-                double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+                float bCount = baryonCount;
+                float nuclearMass = myRigidbody.mass / bCount;
+                float fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
                 // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
@@ -1516,9 +1533,17 @@ namespace OpenRelativity.Objects
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
 
-                double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
-                double ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
-                double dm = gravitonEmissivity * (SRelativityUtil.sigmaPlanck * surfaceArea * (Math.Pow(myTemperature, 4) - Math.Pow(comovingRestTemperature, 4)) - ambientPower);
+                float surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
+                float ambientPower = myAccel.magnitude * state.planckPower / state.planckAccel;
+                float dm;
+                if (r > state.planckLength)
+                {
+                    dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(comovingRestTemperature, 4)) - ambientPower / (4.0f * Mathf.PI * r * r));
+                }
+                else
+                {
+                    dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Mathf.Pow(myTemperature, 4) - Mathf.Pow(comovingRestTemperature, 4));
+                }
 
                 frameDragMass += (float)dm;
                 myRigidbody.mass -= (float)dm;
