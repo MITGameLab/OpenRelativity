@@ -1498,7 +1498,7 @@ namespace OpenRelativity.Objects
             double alpha = myAccel.magnitude;
             bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
 
-            double r = SRelativityUtil.PlanckScaleTempToSchwarzRadius(state.gravityBackgroundPlanckTemperature);
+            double r = double.PositiveInfinity;
             // If alpha is in equilibrium with the background temperature, there is no evaporation.
             if (isNonZeroTemp)
             {
@@ -1544,7 +1544,7 @@ namespace OpenRelativity.Objects
 
                 double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
-                double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : 0;
+                double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : state.gravityBackgroundPlanckTemperature;
                 double dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4));
 
                 // Momentum is conserved. (Energy changes.)
