@@ -22,6 +22,6 @@ namespace OpenRelativity.ConformalMaps
         // Given an input Unity world coordinate 3-position, tell me the velocity of free fall, i.e. at 0 (gravitational + proper) acceleration.
         abstract public Vector3 GetFreeFallVelocity(Vector3 piw);
 
-        // (A "conformal map" LOOKS like flat space for "matter fields," but "conforms" to an underlying curved space-time manifold.)
+        // (A "conformal map" LOOKS like flat space LOCALLY for "matter fields," but "conforms" to an underlying curved space-time manifold.)
     }
 }
