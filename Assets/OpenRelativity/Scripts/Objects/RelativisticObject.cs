@@ -1276,8 +1276,23 @@ namespace OpenRelativity.Objects
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
 
+            if (!IsNaNOrInf(localFixedDeltaTime))
+            {
+                localTimeOffset += localFixedDeltaTime;
+            }
+
             if (isLightMapStatic)
             {
+                if (isMonopoleAccel)
+                {
+                    Vector3 accel = nonGravAccel;
+                    if (Vector3.Project(viw, aiw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                    {
+                        accel += aiw;
+                    }
+                    EvaporateMonopole(deltaTime, accel);
+                }
+
                 UpdateColliderPosition();
                 return;
             }
@@ -1298,11 +1313,6 @@ namespace OpenRelativity.Objects
                         myRigidbody.MovePosition(piw);
                     }
                 }
-            }
-
-            if (!IsNaNOrInf(localFixedDeltaTime))
-            {
-                localTimeOffset += localFixedDeltaTime;
             }
 
             if (meshFilter != null)
@@ -1346,20 +1356,7 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            UpdateColliderPosition();
-
             #region rigidbody
-
-            if (isMonopoleAccel)
-            {
-                Vector3 accel = nonGravAccel;
-                if (Vector3.Project(viw, aiw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
-                {
-                    accel += aiw;
-                }
-                EvaporateMonopole(deltaTime, accel);
-            }
-
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
             if (isKinematic || myRigidbody == null || myRigidbody.IsSleeping())
             {
@@ -1444,6 +1441,18 @@ namespace OpenRelativity.Objects
                 }
             }
             #endregion
+
+            if (isMonopoleAccel)
+            {
+                Vector3 accel = nonGravAccel;
+                if (Vector3.Project(viw, aiw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                {
+                    accel += aiw;
+                }
+                EvaporateMonopole(deltaTime, accel);
+            }
+
+            UpdateColliderPosition();
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
             float gamma = GetTimeFactor();
