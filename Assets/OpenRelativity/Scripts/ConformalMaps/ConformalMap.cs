@@ -23,6 +23,6 @@ namespace OpenRelativity.ConformalMaps
         abstract public Vector3 GetFreeFallVelocity(Vector3 piw);
 
         // (A "conformal map" LOOKS like flat space LOCALLY for "matter fields," but "conforms" to an underlying curved space-time manifold.)
-        // (... In other words, Euclidean geometry for matter fields, warped to "conform" the true underlying subtle or gross curvature of space-time."
+        // (... In other words, Euclidean geometry for matter fields, warped to "conform" to the true underlying subtle or gross curvature of space-time."
     }
 }
