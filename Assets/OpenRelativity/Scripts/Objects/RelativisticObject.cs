@@ -173,9 +173,6 @@ namespace OpenRelativity.Objects
         #endregion
 
         #region Rigid body physics
-        private const float SleepThreshold = 0.01f;
-        private const float SleepTime = 0.05f;
-        private float SleepTimer;
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
 
@@ -231,11 +228,6 @@ namespace OpenRelativity.Objects
 
                 // Skip this all, if the change is negligible.
                 if ((value - _viw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
-                {
-                    return;
-                }
-
-                if ((SleepTimer <= 0) && (value.sqrMagnitude < SleepThreshold))
                 {
                     return;
                 }
@@ -319,28 +311,18 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                if (SleepTimer <= 0)
+                if ((myRigidbody != null) && myRigidbody.IsSleeping())
                 {
                     return Vector3.zero;
                 }
 
                 Vector3 _aiw = nonGravAccel;
 
-                if (useGravity && isNonrelativisticShader)
-                {
-                    _aiw += Physics.gravity;
-                }
-
                 return _aiw;
             }
             set
             {
                 Vector3 _aiw = value;
-
-                if (useGravity && isNonrelativisticShader)
-                {
-                    _aiw -= Physics.gravity;
-                }
 
                 nonGravAccel = _aiw;
             }
@@ -1093,8 +1075,6 @@ namespace OpenRelativity.Objects
             // Update the shader parameters if necessary
             UpdateShaderParams();
 
-            SleepTimer = (isLightMapStatic || myRigidbody == null || isKinematic) ? 0 : SleepTime;
-
             wasKinematic = false;
             wasFrozen = false;
 
@@ -1113,7 +1093,7 @@ namespace OpenRelativity.Objects
             if (myRigidbody != null)
             {
                 //Native rigidbody gravity should not be used except during isFullPhysX.
-                myRigidbody.useGravity = useGravity && !isLightMapStatic && !isNonrelativisticShader;
+                myRigidbody.useGravity = useGravity && !isLightMapStatic;
             }
 
             colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
@@ -1230,29 +1210,15 @@ namespace OpenRelativity.Objects
 
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
-            if (myRigidbody != null)
+            if ((myRigidbody != null) && myRigidbody.IsSleeping())
             {
-                if ((peculiarVelocity.sqrMagnitude < SleepThreshold) &&
-                (_aviw.sqrMagnitude < SleepThreshold) &&
-                (comovingAccel.sqrMagnitude < SleepThreshold))
-                {
-                    SleepTimer -= Time.deltaTime;
-                }
-                else
-                {
-                    SleepTimer = SleepTime;
-                }
+                peculiarVelocity = Vector3.zero;
+                aviw = Vector3.zero;
+                comovingAccel = Vector3.zero;
 
-                if (SleepTimer <= 0)
-                {
-                    peculiarVelocity = Vector3.zero;
-                    aviw = Vector3.zero;
-                    comovingAccel = Vector3.zero;
+                UpdateRigidbodyVelocity();
 
-                    myRigidbody.Sleep();
-
-                    UpdateRigidbodyVelocity();
-                }
+                myRigidbody.Sleep();
             }
 
             if (state.isMovementFrozen)
@@ -1394,10 +1360,8 @@ namespace OpenRelativity.Objects
                 EvaporateMonopole(deltaTime, accel);
             }
 
-            CheckSleepPosition();
-
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
-            if (isKinematic || SleepTimer <= 0 || myRigidbody == null)
+            if (isKinematic || myRigidbody == null || myRigidbody.IsSleeping())
             {
 
                 if (myRigidbody != null)
@@ -1417,8 +1381,6 @@ namespace OpenRelativity.Objects
                 }
 
                 UpdateShaderParams();
-
-                SleepTimer = 0;
 
                 isPhysicsCacheValid = false;
 
@@ -1448,7 +1410,15 @@ namespace OpenRelativity.Objects
                 piw += deltaTime * peculiarVelocity;
 
                 // Update velocity after position so as not to double-count comovement.
-                peculiarVelocity += (comovingAccel + leviCivitaDevAccel) * deltaTime;
+                // Use viw setter:
+                if (state.conformalMap == null)
+                {
+                    viw += deltaTime * properPlusMonopoleAccel;
+                }
+                else
+                {
+                    viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
+                }
 
                 transform.parent = null;
                 Vector3 opiw = opticalPiw;
@@ -1561,32 +1531,6 @@ namespace OpenRelativity.Objects
             }
         }
 
-        protected void CheckSleepPosition()
-        {
-            if (!isNonrelativisticShader || SleepTimer > 0 || !useGravity)
-            {
-                return;
-            }
-
-            Collider myCollider = GetComponent<Collider>();
-            Vector3 gravUnit = Physics.gravity.normalized;
-            Vector3 dir = Vector3.Project(myCollider.bounds.extents, gravUnit);
-            float dist = dir.magnitude;
-            Ray ray = new Ray(myCollider.bounds.center - 0.99f * dist * gravUnit, gravUnit);
-            RaycastHit hitInfo;
-            if (Physics.Raycast(ray, out hitInfo, 1.99f * dist))
-            {
-                Collider oCollider = hitInfo.collider;
-                opticalPiw -= (1.99f * dist - hitInfo.distance) * gravUnit;
-                UpdateContractorPosition();
-                UpdateColliderPosition();
-            }
-            else if (!Physics.Raycast(ray, out hitInfo, 2.05f * dist))
-            {
-                SleepTimer = SleepTime;
-            }
-        }
-
         public void OnCollisionEnter(Collision collision)
         {
             OnCollision(collision);
@@ -1609,17 +1553,7 @@ namespace OpenRelativity.Objects
             if (myRigidbody == null || myColliders == null || isKinematic)
             {
                 return;
-            }
-
-            if (SleepTimer <= 0)
-            {
-                RelativisticObject otherRO = collision.gameObject.GetComponent<RelativisticObject>();
-                if (otherRO == null || otherRO.SleepTimer <= 0)
-                {
-                    CheckSleepPosition();
-                    return;
-                }
-            }         
+            }    
 
             // Let's start simple:
             // At low enough velocities, where the Newtonian approximation is reasonable,
@@ -1639,21 +1573,6 @@ namespace OpenRelativity.Objects
 
             // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
             // We restore the time-dilated visual apparent velocity, afterward
-
-            if (isNonrelativisticShader && useGravity && (collision.contacts.Length > 2))
-            {
-                ContactPoint contact = collision.contacts[0];
-                if (Vector3.Dot(contact.normal, Vector3.up) > 0.5)
-                {
-                    peculiarVelocity = Vector3.zero;
-                    aviw = Vector3.zero;
-                    SleepTimer = 0;
-
-                    return;
-                }
-            }
-
-            SleepTimer = SleepTime;
 
             // Get the position and rotation after the collision:
             riw = myRigidbody.rotation;
