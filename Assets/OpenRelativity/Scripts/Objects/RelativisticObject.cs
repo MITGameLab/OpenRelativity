@@ -1285,12 +1285,7 @@ namespace OpenRelativity.Objects
             {
                 if (isMonopoleAccel)
                 {
-                    Vector3 accel = nonGravAccel;
-                    if (Vector3.Project(viw, aiw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
-                    {
-                        accel += aiw;
-                    }
-                    EvaporateMonopole(deltaTime, accel);
+                    EvaporateMonopole(deltaTime, nonGravAccel + aiw);
                 }
 
                 UpdateColliderPosition();
