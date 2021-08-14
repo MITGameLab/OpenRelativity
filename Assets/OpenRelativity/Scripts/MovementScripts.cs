@@ -426,7 +426,7 @@ namespace OpenRelativity
             if (isNonZeroTemp)
             {
                 // Surface acceleration at event horizon:
-                r += state.SpeedOfLightSqrd / (2 * alpha);
+                r = state.SpeedOfLightSqrd / (2 * alpha);
 
                 double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
                 leviCivitaDevAccel += (float)(alpha - alphaF) * myAccel.normalized;

@@ -1509,12 +1509,12 @@ namespace OpenRelativity.Objects
 
                 double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
                 leviCivitaDevAccel += (float)(alpha - alphaF) * myAccel.normalized;
+            }
 
-                if (r < state.planckLength)
-                {
-                    // For minimum area calculation, below.
-                    r = state.planckLength;
-                }
+            if (r < state.planckLength)
+            {
+                // For minimum area calculation, below.
+                r = state.planckLength;
             }
 
             if (myRigidbody != null)
