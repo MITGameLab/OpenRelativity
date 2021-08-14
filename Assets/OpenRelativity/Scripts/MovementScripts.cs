@@ -61,13 +61,7 @@ namespace OpenRelativity
         protected Vector3 frameDragAccelRemainder;
         protected float frameDragMass;
 
-        public float baryonCount
-        {
-            get
-            {
-                return myRigidbody == null ? 0 : (myRigidbody.mass + frameDragMass) / averageMolarMass * SRelativityUtil.avogadroNumber;
-            }
-        }
+        public float baryonCount { get; set; }
 
         //Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
@@ -95,6 +89,11 @@ namespace OpenRelativity
             frames = 0;
 
             meshFilter = transform.parent.GetComponent<MeshFilter>();
+
+            if (myRigidbody != null)
+            {
+                baryonCount = myRigidbody.mass * SRelativityUtil.avogadroNumber / currentAverageMolarMass;
+            }
         }
         //Again, use LateUpdate to solve some collision issues.
         public virtual void LateUpdate()
@@ -447,8 +446,7 @@ namespace OpenRelativity
 
                 double myTemperature = 0;
 
-                double bCount = baryonCount;
-                double nuclearMass = myRigidbody.mass / bCount;
+                double nuclearMass = myRigidbody.mass / baryonCount;
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
@@ -460,7 +458,7 @@ namespace OpenRelativity
                     // (which seems to imply the Higgs field vacuum)
                     // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                     // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    myTemperature = 2 * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                    myTemperature = 2 * (myRigidbody.mass - fundamentalNuclearMass) / (baryonCount * state.planckMass);
                 }
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
@@ -482,7 +480,7 @@ namespace OpenRelativity
                     state.PlayerVelocityVector = momentum / myRigidbody.mass;
                 }
 
-                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / (float)bCount;
+                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
                 currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
             }
         }

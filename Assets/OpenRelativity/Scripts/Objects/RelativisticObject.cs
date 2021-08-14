@@ -179,13 +179,7 @@ namespace OpenRelativity.Objects
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
 
-        public float baryonCount
-        {
-            get
-            {
-                return myRigidbody == null ? 0 : (myRigidbody.mass + frameDragMass) / currentAverageMolarMass * SRelativityUtil.avogadroNumber;
-            }
-        }
+        public float baryonCount { get; set; }
 
         //Store world position, mostly for a nonrelativistic shader:
         public Vector3 piw { get; set; }
@@ -1075,9 +1069,15 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
+            hasStarted = false;
             isPhysicsUpdateFrame = false;
 
-            hasStarted = false;
+            myRigidbody = GetComponent<Rigidbody>();
+            if (myRigidbody != null)
+            {
+                baryonCount = myRigidbody.mass * SRelativityUtil.avogadroNumber / currentAverageMolarMass;
+            }
+
             ResetPiw();
             riw = transform.rotation;
 
@@ -1092,8 +1092,6 @@ namespace OpenRelativity.Objects
 
             // Update the shader parameters if necessary
             UpdateShaderParams();
-
-            myRigidbody = GetComponent<Rigidbody>();
 
             SleepTimer = (isLightMapStatic || myRigidbody == null || isKinematic) ? 0 : SleepTime;
 
@@ -1525,8 +1523,7 @@ namespace OpenRelativity.Objects
 
                 double myTemperature = 0;
 
-                double bCount = baryonCount;
-                double nuclearMass = myRigidbody.mass / bCount;
+                double nuclearMass = myRigidbody.mass / baryonCount;
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
@@ -1538,7 +1535,7 @@ namespace OpenRelativity.Objects
                     // (which seems to imply the Higgs field vacuum)
                     // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                     // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    myTemperature = 2 * (myRigidbody.mass - fundamentalNuclearMass) / (bCount * state.planckMass);
+                    myTemperature = 2 * (myRigidbody.mass - fundamentalNuclearMass) / (baryonCount * state.planckMass);
                 }
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
@@ -1560,7 +1557,7 @@ namespace OpenRelativity.Objects
                     viw = momentum / myRigidbody.mass;
                 }
 
-                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / (float)bCount;
+                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
                 currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
             }
         }
