@@ -1496,27 +1496,22 @@ namespace OpenRelativity.Objects
             // For Rindler,
             // P(t) = alpha(t),
             // in Planck units, according to Strano.
-            // We subtract any countering background radiation power, proportional to the fourth power of the background temperature.
+            // We add any background radiation power, proportional to the fourth power of the background temperature.
             double minAlpha = Math.Sqrt(state.gConst / (state.hbar * Math.Pow(state.SpeedOfLight, 3))) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4);
-            double alpha = myAccel.magnitude - minAlpha;
-            if (alpha < minAlpha)
-            {
-                // At minimum, alpha is no smaller than at equilibrium with the background temperature.
-                alpha = minAlpha;
-            }
-
+            double alpha = myAccel.magnitude + minAlpha;
             bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
 
-            // Surface acceleration at event horizon:
-            double constFac = state.SpeedOfLightSqrd / 2;
-            double r = isNonZeroTemp ? 0 : (constFac / alpha);
-
+            double r = 0;
             // If alpha is in equilibrium with the background temperature, there is no evaporation.
             if (isNonZeroTemp)
             {
+                // Surface acceleration at event horizon:
+                double constFac = state.SpeedOfLightSqrd / 2;
+                r = constFac / alpha;
+
                 if (alpha > minAlpha)
                 {
-                    double alphaF = (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)) / constFac;
+                    double alphaF = 1.0f / (constFac * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
                     leviCivitaDevAccel -= (float)(1 - alphaF) * myAccel.normalized;
                 }
                 if (r < state.planckLength)
@@ -1550,9 +1545,8 @@ namespace OpenRelativity.Objects
 
                 double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
-                constFac = Math.Sqrt(state.hbar * Math.Pow(state.SpeedOfLight, 3) / state.gConst);
-                double ambientPowerPerArea = isNonZeroTemp ? (constFac * alpha / (4 * Math.PI * r * r)) : 0;
-                double dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * Math.Pow(myTemperature, 4) - ambientPowerPerArea);
+                double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : 0;
+                double dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4));
 
                 // Momentum is conserved. (Energy changes.)
                 Vector3 momentum = myRigidbody.mass * viw;
