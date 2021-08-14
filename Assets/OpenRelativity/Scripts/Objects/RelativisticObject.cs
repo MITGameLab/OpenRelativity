@@ -1505,7 +1505,11 @@ namespace OpenRelativity.Objects
                 // Surface acceleration at event horizon:
                 r = state.SpeedOfLightSqrd / (2 * alpha);
                 r = SRelativityUtil.EffectiveRaditiativeRadius((float)r, state.gravityBackgroundPlanckTemperature);
+            }
 
+            if (!double.IsInfinity(r) && !double.IsNaN(r))
+            {
+                isNonZeroTemp = true;
                 double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
                 leviCivitaDevAccel += (float)(alpha - alphaF) * myAccel.normalized;
             }
