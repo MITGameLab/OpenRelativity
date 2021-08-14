@@ -242,7 +242,7 @@ namespace OpenRelativity
             if (queuedOrigPositionsList.Count > 0)
             {
                 colliderShaderParams.viw = Vector3.zero;
-                colliderShaderParams.aiw = Vector3.zero.ProperToWorldAccel(Vector3.zero, 1);
+                colliderShaderParams.pao = Vector3.zero.ProperToWorldAccel(Vector3.zero, 1);
                 colliderShaderParams.viwLorentzMatrix = Matrix4x4.identity;
                 colliderShaderParams.invViwLorentzMatrix = Matrix4x4.identity;
 

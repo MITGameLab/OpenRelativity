@@ -198,7 +198,7 @@ Shader "Relativity/Lit/Standard" {
 
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _vr = float4(0, 0, 0, 0); //velocity of object relative to player
-		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
+		float4 _pao = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 		float4 _avp = float4(0, 0, 0, 0); //angular velocity of player
@@ -481,7 +481,7 @@ Shader "Relativity/Lit/Standard" {
 #endif
 
 #if LORENTZ_TRANSFORM
-			float4 aiwTransformed = mul(_viwLorentzMatrix, _aiw);
+			float4 paoTransformed = mul(_viwLorentzMatrix, _pao);
 			float4 riwTransformed = mul(_viwLorentzMatrix, riw);
 			//Translate in time:
 			float tisw = riwTransformed.w;
@@ -489,8 +489,8 @@ Shader "Relativity/Lit/Standard" {
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-		    float4 aiwt = mul(metric, aiwTransformed);
-			float4 aiwDotAiw = -dot(aiwTransformed, aiwt);
+		    float4 paot = mul(metric, paoTransformed);
+			float4 paoDotpao = -dot(paoTransformed, paot);
 
     #if IS_STATIC
 			float sqrtArg = riwDotRiw / _spdOfLightSqrd;
@@ -502,10 +502,10 @@ Shader "Relativity/Lit/Standard" {
 			}
 			tisw += t2;
     #else
-			float riwDotAiw = -dot(riwTransformed, aiwt);
+			float riwDotpao = -dot(riwTransformed, paot);
 
-			float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotAiw) * (_spdOfLightSqrd - riwDotAiw));
-			float aiwMag = length(aiwTransformed.xyz);
+			float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotpao) * (_spdOfLightSqrd - riwDotpao));
+			float paoMag = length(paoTransformed.xyz);
 			float t2 = 0;
 			if (sqrtArg > 0)
 			{
@@ -513,9 +513,9 @@ Shader "Relativity/Lit/Standard" {
 			}
 			tisw += t2;
 			//add the position offset due to acceleration
-			if (aiwMag > divByZeroCutoff)
+			if (paoMag > divByZeroCutoff)
 			{
-				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * _spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+				riwTransformed.xyz -= paoTransformed.xyz / paoMag * _spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / _spdOfLight) * (paoMag * t2 / _spdOfLight)) - 1);
 			}
     #endif
 			riwTransformed.w = tisw;
@@ -616,7 +616,7 @@ Shader "Relativity/Lit/Standard" {
 		}
 
 		//Per pixel shader, does color modifications
-		f2o frag(v2f i) : COLOR
+		f2o frag(v2f i)
 		{
 			float shift = 1.0f;
 #if DOPPLER_SHIFT

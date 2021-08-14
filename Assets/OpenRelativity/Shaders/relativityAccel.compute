@@ -36,7 +36,7 @@ struct GlobalParams {
 	float4 playerOffset; //player position in world
 	float4 pap; //acceleration of player in world coordinates
 	float4 avp; //angular velocity of player in world coordinates
-	float4 aiw; //acceleration of object in world coordinates
+	float4 pao; //acceleration of object in world coordinates
 	float spdOfLight; //current speed of light
 };
 
@@ -55,7 +55,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	float spdOfLight = glblPrms[0].spdOfLight;
 	float4 pap = glblPrms[0].pap;
 	float4 avp = glblPrms[0].avp;
-	float4 aiw = glblPrms[0].aiw;
+	float4 pao = glblPrms[0].pao;
 	float4x4 vpcLorentzMatrix = glblPrms[0].vpcLorentzMatrix;
 	float4x4 viwLorentzMatrix = glblPrms[0].viwLorentzMatrix;
 	float4x4 invVpcLorentzMatrix = glblPrms[0].invVpcLorentzMatrix;
@@ -108,14 +108,14 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	riwTransformed.w = 0;
 
 	//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
-	float4 aiwTransformed = mul(viwLorentzMatrix, aiw);
+	float4 paoTransformed = mul(viwLorentzMatrix, pao);
 	float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-	float4 aiwt = mul(metric, aiwTransformed);
-	float aiwDotAiw = -dot(aiwTransformed, aiwt);
-	float riwDotAiw = -dot(riwTransformed, aiwt);
+	float4 paot = mul(metric, paoTransformed);
+	float paoDotpao = -dot(paoTransformed, paot);
+	float riwDotpao = -dot(riwTransformed, paot);
 
-	float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
-	float aiwMag = length(aiwTransformed.xyz);
+	float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotpao) * (spdOfLightSqrd - riwDotpao));
+	float paoMag = length(paoTransformed.xyz);
 	float t2 = 0;
 	if (sqrtArg > 0)
 	{
@@ -123,9 +123,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	}
 	tisw += t2;
 	//add the position offset due to acceleration
-	if (aiwMag > divByZeroCutoff)
+	if (paoMag > divByZeroCutoff)
 	{
-		riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / spdOfLight) * (aiwMag * t2 / spdOfLight)) - 1);
+		riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / spdOfLight) * (paoMag * t2 / spdOfLight)) - 1);
 	}
 	riwTransformed.w = tisw;
 

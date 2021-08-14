@@ -87,7 +87,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 		float4x4 _invViwLorentzMatrix;
 
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
-		float4 _aiw = float4(0, 0, 0, 0); //acceleration of object in world coordinates
+		float4 _pao = float4(0, 0, 0, 0); //acceleration of object in world coordinates
 		float4 _aviw = float4(0, 0, 0, 0); //scaled angular velocity
 		float4 _vpc = float4(0, 0, 0, 0); //velocity of player
 		float4 _pap = float4(0, 0, 0, 0); //acceleration of player
@@ -154,7 +154,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			//Apply Lorentz transform;
 			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
 
-			float4 aiwTransformed = mul(_viwLorentzMatrix, _aiw);
+			float4 paoTransformed = mul(_viwLorentzMatrix, _pao);
 			float4 riwTransformed = mul(_viwLorentzMatrix, riw);
 			//Translate in time:
 			float tisw = riwTransformed.w;
@@ -162,12 +162,12 @@ Shader "Relativity/Unlit/ColorLorentz"
 
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
-			float4 aiwt = mul(metric, aiwTransformed);
-			float aiwDotAiw = -dot(aiwTransformed, aiwt);
-			float riwDotAiw = -dot(riwTransformed, aiwt);
+			float4 paot = mul(metric, paoTransformed);
+			float paoDotpao = -dot(paoTransformed, paot);
+			float riwDotpao = -dot(riwTransformed, paot);
 
-			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotAiw) * (spdOfLightSqrd - riwDotAiw));
-			float aiwMag = length(aiwTransformed.xyz);
+			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotpao) * (spdOfLightSqrd - riwDotpao));
+			float paoMag = length(paoTransformed.xyz);
 			float t2 = 0;
 			if (sqrtArg > 0)
 			{
@@ -175,9 +175,9 @@ Shader "Relativity/Unlit/ColorLorentz"
 			}
 			tisw += t2;
 			//add the position offset due to acceleration
-			if (aiwMag > divByZeroCutoff)
+			if (paoMag > divByZeroCutoff)
 			{
-				riwTransformed.xyz -= aiwTransformed.xyz / aiwMag * spdOfLightSqrd * (sqrt(1 + (aiwMag * t2 / _spdOfLight) * (aiwMag * t2 / _spdOfLight)) - 1);
+				riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / _spdOfLight) * (paoMag * t2 / _spdOfLight)) - 1);
 			}
 			riwTransformed.w = tisw;
 

@@ -30,7 +30,7 @@ namespace OpenRelativity
         //[FieldOffset(112)]
         public Vector4 avp;
         //[FieldOffset(116)]
-        public Vector4 aiw;
+        public Vector4 pao;
         //[FieldOffset(120)]
         public float spdOfLight; //current speed of light
         //[FieldOffset(121)]

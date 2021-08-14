@@ -78,7 +78,7 @@ namespace OpenRelativity.Objects
                 return updateTisw;
             }
 
-            return ((Vector4)pos.Value).GetTisw(viw, GetWorld4Acceleration());
+            return ((Vector4)pos.Value).GetTisw(viw, GetComoving4Acceleration());
         }
         public float GetVisualTime()
         {
@@ -187,17 +187,17 @@ namespace OpenRelativity.Objects
         public Vector3 opticalPiw {
             get
             {
-                return ((Vector4)piw).WorldToOptical(viw, GetWorld4Acceleration());
+                return ((Vector4)piw).WorldToOptical(viw, GetComoving4Acceleration());
             }
             set
             {
-                piw = ((Vector4)value).OpticalToWorld(viw, GetWorld4Acceleration());
+                piw = ((Vector4)value).OpticalToWorld(viw, GetComoving4Acceleration());
             }
         }
 
         public void ResetPiw()
         {
-            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(viw, GetWorld4Acceleration()) : transform.position;
+            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(viw, GetComoving4Acceleration()) : transform.position;
         }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
@@ -604,7 +604,7 @@ namespace OpenRelativity.Objects
             //If we have a BoxCollider, transform its center to its optical position
             else if (isMyColliderBox)
             {
-                Vector4 aiw4 = GetWorld4Acceleration();
+                Vector4 aiw4 = GetComoving4Acceleration();
                 Vector3 pos;
                 BoxCollider collider;
                 Vector3 testPos;
@@ -958,7 +958,7 @@ namespace OpenRelativity.Objects
             //Send our object's v/c (Velocity over the Speed of Light) to the shader
 
             Vector3 tempViw = peculiarVelocity / state.SpeedOfLight;
-            Vector4 tempAiw = GetWorld4Acceleration();
+            Vector4 tempPao = GetComoving4Acceleration();
             Vector4 tempVr = (-state.PlayerVelocityVector).AddVelocity(peculiarVelocity) / state.SpeedOfLight;
 
             //Velocity of object Lorentz transforms are the same for all points in an object,
@@ -966,13 +966,13 @@ namespace OpenRelativity.Objects
             Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
 
             colliderShaderParams.viw = tempViw;
-            colliderShaderParams.aiw = tempAiw;
+            colliderShaderParams.pao = tempPao;
             colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
             colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
             for (int i = 0; i < myRenderer.materials.Length; i++)
             {
                 myRenderer.materials[i].SetVector("_viw", tempViw);
-                myRenderer.materials[i].SetVector("_aiw", tempAiw);
+                myRenderer.materials[i].SetVector("_pao", tempPao);
                 myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                 myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
                 myRenderer.materials[i].SetVector("_vr", tempVr);
