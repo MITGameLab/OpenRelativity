@@ -1504,19 +1504,26 @@ namespace OpenRelativity.Objects
                 // At minimum, alpha is no smaller than at equilibrium with the background temperature.
                 alpha = minAlpha;
             }
-            double constFac = 8 * state.hbar * state.gConst / Math.Pow(state.SpeedOfLight, 5);
-            double r = constFac * alpha;
-            // If alpha is in equilibrium with the background temperature, there is no evaporation.
-            if (alpha > minAlpha)
-            {
-                double alphaF = (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)) / constFac;
-                leviCivitaDevAccel -= (float)(1 - alphaF) * myAccel.normalized;
-            }
 
-            if (r < state.planckLength)
+            bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
+
+            // Surface acceleration at event horizon:
+            double constFac = state.SpeedOfLightSqrd / 2;
+            double r = isNonZeroTemp ? 0 : (constFac / alpha);
+
+            // If alpha is in equilibrium with the background temperature, there is no evaporation.
+            if (isNonZeroTemp)
             {
-                // For minimum area calculation, below.
-                r = state.planckLength;
+                if (alpha > minAlpha)
+                {
+                    double alphaF = (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)) / constFac;
+                    leviCivitaDevAccel -= (float)(1 - alphaF) * myAccel.normalized;
+                }
+                if (r < state.planckLength)
+                {
+                    // For minimum area calculation, below.
+                    r = state.planckLength;
+                }
             }
 
             if (myRigidbody != null)
@@ -1544,7 +1551,7 @@ namespace OpenRelativity.Objects
                 double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
                 constFac = Math.Sqrt(state.hbar * Math.Pow(state.SpeedOfLight, 3) / state.gConst);
-                double ambientPowerPerArea = constFac * alpha / (4 * Math.PI * r * r);
+                double ambientPowerPerArea = isNonZeroTemp ? (constFac * alpha / (4 * Math.PI * r * r)) : 0;
                 double dm = gravitonEmissivity * surfaceArea * (SRelativityUtil.sigmaPlanck * Math.Pow(myTemperature, 4) - ambientPowerPerArea);
 
                 // Momentum is conserved. (Energy changes.)
