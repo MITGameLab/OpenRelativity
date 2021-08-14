@@ -1306,6 +1306,9 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
+            localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
+
             if (isLightMapStatic)
             {
                 UpdateColliderPosition();
@@ -1313,9 +1316,6 @@ namespace OpenRelativity.Objects
             }
 
             UpdatePhysicsCaches();
-
-            float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-            localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
 
             if (state.conformalMap != null)
             {
