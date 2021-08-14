@@ -1663,7 +1663,7 @@ namespace OpenRelativity.Objects
 
             // Now, update the velocity and angular velocity based on the collision result:
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-            Vector3 accel = -viw;
+            Vector3 accel = viw;
             viw = myRigidbody.velocity.RapidityToVelocity(updateMetric);
             accel = (viw - accel) / deltaTime;
             aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
