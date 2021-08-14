@@ -51,7 +51,6 @@ namespace OpenRelativity
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
-        public float averageMolarMass = 0.012f;
         public float fundamentalAverageMolarMass = 0.012f;
         public float currentAverageMolarMass = 0.012f;
         public Vector3 leviCivitaDevAccel = Vector3.zero;
