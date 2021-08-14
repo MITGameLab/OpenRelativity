@@ -417,9 +417,8 @@ namespace OpenRelativity
             // For Rindler,
             // P(t) = alpha(t),
             // in Planck units, according to Strano.
-            // We add any background radiation power, proportional to the fourth power of the background temperature.
-            double minAlpha = Math.Sqrt(state.gConst / (state.hbar * Math.Pow(state.SpeedOfLight, 3))) * Math.Pow(state.gravityBackgroundPlanckTemperature, 4);
-            double alpha = myAccel.magnitude + minAlpha;
+            // We add any background radiation power.
+            double alpha = myAccel.magnitude;
             bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
 
             double r = 0;
@@ -427,19 +426,16 @@ namespace OpenRelativity
             if (isNonZeroTemp)
             {
                 // Surface acceleration at event horizon:
-                double constFac = state.SpeedOfLightSqrd / 2;
-                r = constFac / alpha;
+                r += state.SpeedOfLightSqrd / (2 * alpha);
 
-                if (alpha > minAlpha)
-                {
-                    double alphaF = 1.0f / (constFac * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
-                    leviCivitaDevAccel -= (float)(1 - alphaF) * myAccel.normalized;
-                }
-                if (r < state.planckLength)
-                {
-                    // For minimum area calculation, below.
-                    r = state.planckLength;
-                }
+                double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
+                leviCivitaDevAccel += (float)(alpha - alphaF) * myAccel.normalized;
+            }
+
+            if (r < state.planckLength)
+            {
+                // For minimum area calculation, below.
+                r = state.planckLength;
             }
 
             if (myRigidbody != null)
