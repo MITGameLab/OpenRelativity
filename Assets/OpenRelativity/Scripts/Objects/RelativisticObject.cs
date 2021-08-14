@@ -1493,9 +1493,7 @@ namespace OpenRelativity.Objects
             // between the Rindler and Schwarzschild metrics. Further, Hawking(-Unruh, et al.) acceleration might have
             // the same effect.
 
-            // For Rindler,
-            // P(t) = alpha(t),
-            // in Planck units, according to Strano.
+            // The Rindler horizon evaporates as a Schwarzschild event horizon with the same surface gravity, according to Strano.
             // We add any background radiation power, proportional to the fourth power of the background temperature.
             double alpha = myAccel.magnitude;
             bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
