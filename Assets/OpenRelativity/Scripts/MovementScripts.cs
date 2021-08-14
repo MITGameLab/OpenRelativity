@@ -58,7 +58,6 @@ namespace OpenRelativity
         // under the effect of forces like drag and friction in the at rest W.R.T. the "world."
         // If we track small differences separately, we can get better accuracy.
         protected Vector3 frameDragAccelRemainder;
-        protected float frameDragMass;
 
         public float baryonCount { get; set; }
 
@@ -471,7 +470,6 @@ namespace OpenRelativity
                 // Momentum is conserved. (Energy changes.)
                 Vector3 momentum = myRigidbody.mass * state.PlayerVelocityVector;
 
-                frameDragMass += (float)dm;
                 myRigidbody.mass -= (float)dm;
 
                 if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)

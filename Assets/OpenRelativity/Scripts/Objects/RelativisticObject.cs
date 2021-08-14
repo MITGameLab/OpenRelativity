@@ -449,7 +449,6 @@ namespace OpenRelativity.Objects
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool isMonopoleAccel = false;
-        private float frameDragMass;
         #endregion
 
         #region Collider transformation and update
@@ -1550,7 +1549,6 @@ namespace OpenRelativity.Objects
                 // Momentum is conserved. (Energy changes.)
                 Vector3 momentum = myRigidbody.mass * viw;
 
-                frameDragMass += (float)dm;
                 myRigidbody.mass -= (float)dm;
 
                 if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
