@@ -419,12 +419,13 @@ namespace OpenRelativity
             double alpha = myAccel.magnitude;
             bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
 
-            double r = 0;
+            double r = SRelativityUtil.PlanckScaleTempToSchwarzRadius(state.gravityBackgroundPlanckTemperature);
             // If alpha is in equilibrium with the background temperature, there is no evaporation.
             if (isNonZeroTemp)
             {
                 // Surface acceleration at event horizon:
                 r = state.SpeedOfLightSqrd / (2 * alpha);
+                r = SRelativityUtil.EffectiveRaditiativeRadius((float)r, state.gravityBackgroundPlanckTemperature);
 
                 double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
                 leviCivitaDevAccel += (float)(alpha - alphaF) * myAccel.normalized;
