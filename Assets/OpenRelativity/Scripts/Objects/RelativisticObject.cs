@@ -174,7 +174,6 @@ namespace OpenRelativity.Objects
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
         private Vector3 oldViw;
-        private bool isFirstFrame;
 
         public float baryonCount { get; set; }
 
@@ -1051,7 +1050,6 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
-            isFirstFrame = true;
             hasStarted = false;
             isPhysicsUpdateFrame = false;
 
@@ -1131,6 +1129,9 @@ namespace OpenRelativity.Objects
             {
                 UpdateContractorPosition();
             }
+
+            // Assume that the RelativisticObject starts in free fall.
+            oldViw = viw - 0.02f * aiw;
         }
 
         protected bool isPhysicsCacheValid;
@@ -1295,13 +1296,12 @@ namespace OpenRelativity.Objects
 
             bool isFreeFalling = true;
             float aiwMag = aiw.magnitude;
-            if (!isFirstFrame && (aiwMag > SRelativityUtil.divByZeroCutoff))
+            if (aiwMag > SRelativityUtil.divByZeroCutoff)
             {
                 // We consider this RelativisticObject to be in free fall if it has actually accelerated by at least 1% of gravitational acceleration. 
                 isFreeFalling = Vector3.Project(viw - oldViw, aiw / aiwMag).sqrMagnitude > (0.0001f * deltaTime * deltaTime * aiwMag);
             }
             oldViw = viw;
-            isFirstFrame = false;
 
             if (state.conformalMap != null)
             {
