@@ -174,6 +174,7 @@ namespace OpenRelativity.Objects
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
         private Vector3 oldViw;
+        private float lastFixedUpdateDeltaTime;
 
         public float baryonCount { get; set; }
 
@@ -1129,9 +1130,6 @@ namespace OpenRelativity.Objects
             {
                 UpdateContractorPosition();
             }
-
-            // Assume that the RelativisticObject starts in free fall.
-            oldViw = viw - 0.02f * aiw;
         }
 
         protected bool isPhysicsCacheValid;
@@ -1205,6 +1203,12 @@ namespace OpenRelativity.Objects
                 // Now, update the velocity and angular velocity based on the collision result:
                 peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+
+                if (isMonopoleAccel)
+                {
+                    Vector3 accel = (viw - oldViw) / lastFixedUpdateDeltaTime;
+                    EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
+                }
             }
             isPhysicsUpdateFrame = false;
 
@@ -1294,15 +1298,6 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            bool isFreeFalling = true;
-            float aiwMag = aiw.magnitude;
-            if (aiwMag > SRelativityUtil.divByZeroCutoff)
-            {
-                // We consider this RelativisticObject to be in free fall if it has actually accelerated by at least 5% of gravitational acceleration. 
-                isFreeFalling = Vector3.Project(viw - oldViw, aiw / aiwMag).sqrMagnitude > (0.000125f * deltaTime * deltaTime * aiwMag);
-            }
-            oldViw = viw;
-
             if (state.conformalMap != null)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
@@ -1391,7 +1386,7 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            Vector3 properPlusMonopoleAccel = (nonGravAccel + leviCivitaDevAccel);
+            Vector3 properPlusMonopoleAccel = nonGravAccel + leviCivitaDevAccel;
 
             if (isNonrelativisticShader)
             {
@@ -1414,14 +1409,7 @@ namespace OpenRelativity.Objects
 
                 // Update velocity after position so as not to double-count comovement.
                 // Use viw setter:
-                if (state.conformalMap == null)
-                {
-                    viw += deltaTime * properPlusMonopoleAccel;
-                }
-                else
-                {
-                    viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
-                }
+                viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
 
                 transform.parent = null;
                 Vector3 opiw = opticalPiw;
@@ -1437,26 +1425,9 @@ namespace OpenRelativity.Objects
             else if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
             {
                 // Use viw setter:
-                if (state.conformalMap == null)
-                {
-                    viw += deltaTime * properPlusMonopoleAccel;
-                }
-                else
-                {
-                    viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
-                }
+                viw += vff.AddVelocity(deltaTime * properPlusMonopoleAccel);
             }
             #endregion
-
-            if (isMonopoleAccel)
-            {
-                Vector3 accel = nonGravAccel;
-                if (!isFreeFalling)
-                {
-                    accel += aiw;
-                }
-                EvaporateMonopole(deltaTime, accel);
-            }
 
             UpdateColliderPosition();
 
@@ -1464,6 +1435,9 @@ namespace OpenRelativity.Objects
             float gamma = GetTimeFactor();
             myRigidbody.velocity = gamma * peculiarVelocity;
             myRigidbody.angularVelocity = gamma * aviw;
+
+            oldViw = viw;
+            lastFixedUpdateDeltaTime = deltaTime;
 
             isPhysicsCacheValid = false;
             isPhysicsUpdateFrame = true;
@@ -1612,6 +1586,9 @@ namespace OpenRelativity.Objects
 
             UpdateContractorPosition();
             UpdateColliderPosition();
+
+            // Don't double-count isMonopoleAccel from FixedUpdate.
+            oldViw = viw;
         }
         #endregion
 
