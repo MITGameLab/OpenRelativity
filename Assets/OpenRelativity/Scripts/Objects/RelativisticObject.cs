@@ -1298,8 +1298,8 @@ namespace OpenRelativity.Objects
             float aiwMag = aiw.magnitude;
             if (aiwMag > SRelativityUtil.divByZeroCutoff)
             {
-                // We consider this RelativisticObject to be in free fall if it has actually accelerated by at least 1% of gravitational acceleration. 
-                isFreeFalling = Vector3.Project(viw - oldViw, aiw / aiwMag).sqrMagnitude > (0.0001f * deltaTime * deltaTime * aiwMag);
+                // We consider this RelativisticObject to be in free fall if it has actually accelerated by at least 5% of gravitational acceleration. 
+                isFreeFalling = Vector3.Project(viw - oldViw, aiw / aiwMag).sqrMagnitude > (0.000125f * deltaTime * deltaTime * aiwMag);
             }
             oldViw = viw;
 
