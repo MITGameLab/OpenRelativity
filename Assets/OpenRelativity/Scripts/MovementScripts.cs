@@ -54,10 +54,6 @@ namespace OpenRelativity
         public float fundamentalAverageMolarMass = 0.012f;
         public float currentAverageMolarMass = 0.012f;
         public Vector3 leviCivitaDevAccel = Vector3.zero;
-        // Float precision prevents the "frameDragAccel" from correctly returning to "world accelerated rest frame"
-        // under the effect of forces like drag and friction in the at rest W.R.T. the "world."
-        // If we track small differences separately, we can get better accuracy.
-        protected Vector3 frameDragAccelRemainder;
 
         public float baryonCount { get; set; }
 
@@ -201,81 +197,52 @@ namespace OpenRelativity
 
                 Vector3 quasiWorldAccel = totalAccel;
 
-                if ((Time.deltaTime > 0) && (useGravity || (totalAccel.sqrMagnitude != 0) || (leviCivitaDevAccel.sqrMagnitude != 0)))
+                if (!isFalling)
                 {
-                    if (!isFalling)
+                    if (quasiWorldAccel.y < 0)
                     {
-                        if (quasiWorldAccel.y < 0)
-                        {
-                            quasiWorldAccel.y = 0;
-                        }
-
-                        if (totalAccel.y < 0)
-                        {
-                            totalAccel.y = 0;
-                        }
-
-                        if (useGravity)
-                        {
-                            totalAccel -= Physics.gravity;
-                            quasiWorldAccel = new Vector3(quasiWorldAccel.x, 0, quasiWorldAccel.z);
-                        }
-
-                        if (state.conformalMap != null)
-                        {
-                            totalAccel += state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
-                        }
-                    }
-                    else if (useGravity)
-                    {
-                        quasiWorldAccel -= Physics.gravity;
+                        quasiWorldAccel.y = 0;
                     }
 
-                    if (isMonopoleAccel)
+                    if (totalAccel.y < 0)
                     {
-                        // This isn't "smooth," but the player shouldn't fall through the floor.
-                        if (!isFalling && leviCivitaDevAccel.y < 0)
-                        {
-                            leviCivitaDevAccel.y = 0;
-                        }
+                        totalAccel.y = 0;
+                    }
 
-                        // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
-                        // (Relativity privileges no "inertial" frame, but there is intrinsic observable difference between "accelerated frames.")
-                        // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
-                        // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
-                        // has been known since Galileo.)
+                    if (useGravity)
+                    {
+                        totalAccel -= Physics.gravity;
+                        quasiWorldAccel = new Vector3(quasiWorldAccel.x, 0, quasiWorldAccel.z);
+                    }
 
-                        // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                        // (which seems to imply the Higgs field vacuum)
-                        // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                        // gravitational constant "G" times (baryon) constituent particle rest mass.
-                        // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
+                    if (state.conformalMap != null)
+                    {
+                        totalAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+                    }
+                }
+                else if (useGravity)
+                {
+                    quasiWorldAccel -= Physics.gravity;
+                }
+
+                if (isMonopoleAccel)
+                {
+                    // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
+                    // (Relativity privileges no "inertial" frame, but there is intrinsic observable difference between "accelerated frames.")
+                    // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
+                    // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
+                    // has been known since Galileo.)
+
+                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                    // (which seems to imply the Higgs field vacuum)
+                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                    // gravitational constant "G" times (baryon) constituent particle rest mass.
+                    // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
 
 
-                        Vector3 oldFrameDragAccel = leviCivitaDevAccel;
-                        EvaporateMonopole(Time.deltaTime, totalAccel);
-                        quasiWorldAccel += leviCivitaDevAccel;
-                        totalAccel += leviCivitaDevAccel;
-
-                        leviCivitaDevAccel.x += frameDragAccelRemainder.x;
-                        if (oldFrameDragAccel.x != leviCivitaDevAccel.x)
-                        {
-                            frameDragAccelRemainder.x -= (leviCivitaDevAccel.x - oldFrameDragAccel.x);
-                        }
-                        leviCivitaDevAccel.y += frameDragAccelRemainder.y;
-                        if (oldFrameDragAccel.y != leviCivitaDevAccel.y)
-                        {
-                            frameDragAccelRemainder.y -= (leviCivitaDevAccel.y - oldFrameDragAccel.y);
-                        }
-                        leviCivitaDevAccel.z += frameDragAccelRemainder.z;
-                        if (oldFrameDragAccel.z != leviCivitaDevAccel.z)
-                        {
-                            frameDragAccelRemainder.z -= (leviCivitaDevAccel.z - oldFrameDragAccel.z);
-                        }
-
-                        // The "AUTO SLOW DOWN CODE BLOCK" above gives a qualitative "drag" effect, (as by friction with air or the floor,)
-                        // that should ultimately "lock" the player's frame of accelerated rest back to "world coordinates," at the limit.
-                     }
+                    EvaporateMonopole(Time.deltaTime, totalAccel);
+                    quasiWorldAccel += leviCivitaDevAccel;
+                    totalAccel += leviCivitaDevAccel;
                 }
 
                 //3-acceleration acts as classically on the rapidity, rather than velocity.
