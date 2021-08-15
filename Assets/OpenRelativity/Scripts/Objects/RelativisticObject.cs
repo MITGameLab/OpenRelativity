@@ -1409,7 +1409,7 @@ namespace OpenRelativity.Objects
                 }
                 else
                 {
-                    viw = state.conformalMap.GetFreeFallVelocity(piw).AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
+                    viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
                 }
 
                 transform.parent = null;
