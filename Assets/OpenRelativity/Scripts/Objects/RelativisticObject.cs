@@ -1469,7 +1469,7 @@ namespace OpenRelativity.Objects
             {
                 isNonZeroTemp = true;
                 double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
-                leviCivitaDevAccel += (float)(alpha - alphaF) * myAccel.normalized;
+                leviCivitaDevAccel -= (float)(alpha - alphaF) * myAccel.normalized;
             }
 
             if (r < state.planckLength)
