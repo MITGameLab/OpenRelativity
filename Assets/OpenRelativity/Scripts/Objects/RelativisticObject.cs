@@ -100,8 +100,6 @@ namespace OpenRelativity.Objects
         // while it is considered to be "upwards" when they are at rest under the effects of gravity, so they don't fall through the surface they're feeling pushed into.)
         // The apparent deformation of the Minkowski metric also depends on an object's distance from the player, so it is calculated by and for the object itself.
 
-        
-
         public Matrix4x4 GetMetric()
         {
             if (isPhysicsCacheValid)
@@ -175,6 +173,8 @@ namespace OpenRelativity.Objects
         #region Rigid body physics
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
+        private Vector3 oldPiw;
+        private bool isFirstFrame;
 
         public float baryonCount { get; set; }
 
@@ -1051,6 +1051,7 @@ namespace OpenRelativity.Objects
 
         void Start()
         {
+            isFirstFrame = true;
             hasStarted = false;
             isPhysicsUpdateFrame = false;
 
@@ -1292,6 +1293,23 @@ namespace OpenRelativity.Objects
                 return;
             }
 
+            bool isFreeFalling = true;
+            Vector3 tVff = vff;
+            float tVffMag = tVff.magnitude;
+            if (!isFirstFrame)
+            {
+                if (tVffMag <= SRelativityUtil.divByZeroCutoff)
+                {
+                    isFreeFalling = (piw - oldPiw).sqrMagnitude > SRelativityUtil.divByZeroCutoff;
+                }
+                else
+                {
+                    isFreeFalling = Vector3.Project(piw - oldPiw, tVff / tVffMag).sqrMagnitude > (0.0001f * tVffMag);
+                }
+            }
+            oldPiw = piw;
+            isFirstFrame = false;
+
             if (state.conformalMap != null)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
@@ -1440,7 +1458,7 @@ namespace OpenRelativity.Objects
             if (isMonopoleAccel)
             {
                 Vector3 accel = nonGravAccel;
-                if (Vector3.Project(viw, aiw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                if (!isFreeFalling)
                 {
                     accel += aiw;
                 }
