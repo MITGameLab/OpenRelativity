@@ -1539,7 +1539,7 @@ namespace OpenRelativity.Objects
         #region Rigidbody mechanics
         public void OnCollision(Collision collision)
         {
-            if (myRigidbody == null || myColliders == null || isKinematic)
+            if (myRigidbody == null || myColliders == null || isKinematic || state.isMovementFrozen)
             {
                 return;
             }    
