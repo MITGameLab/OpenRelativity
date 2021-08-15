@@ -282,7 +282,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                Vector3 accel = leviCivitaDevAccel;
+                Vector3 accel = nonGravAccel + leviCivitaDevAccel;
 
                 if (useGravity)
                 {
@@ -295,6 +295,25 @@ namespace OpenRelativity.Objects
                 }
 
                 return accel;
+            }
+
+            set
+            {
+                Vector3 accel = value;
+
+                if (state.conformalMap != null)
+                {
+                    accel -= state.conformalMap.GetRindlerAcceleration(piw);
+                }
+
+                if (useGravity)
+                {
+                    accel -= Physics.gravity;
+                }
+
+                accel -= leviCivitaDevAccel;
+
+                nonGravAccel = accel;
             }
         }
 
@@ -310,15 +329,11 @@ namespace OpenRelativity.Objects
                     return Vector3.zero;
                 }
 
-                Vector3 _aiw = nonGravAccel;
-
-                return _aiw;
+                return nonGravAccel;
             }
             set
             {
-                Vector3 _aiw = value;
-
-                nonGravAccel = _aiw;
+                nonGravAccel = value;
             }
         }
 

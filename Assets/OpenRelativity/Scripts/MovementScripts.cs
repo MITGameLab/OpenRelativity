@@ -462,7 +462,16 @@ namespace OpenRelativity
                 //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
                 // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
 
-                double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
+                double surfaceArea;
+                if (meshFilter == null)
+                {
+                    Vector3 lwh = transform.localScale;
+                    surfaceArea = 2 * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z) / state.planckArea;
+                }
+                else
+                {
+                    surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
+                }
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
                 double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : state.gravityBackgroundPlanckTemperature;
                 double dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4));
