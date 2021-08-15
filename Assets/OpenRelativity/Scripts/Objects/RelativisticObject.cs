@@ -1291,7 +1291,7 @@ namespace OpenRelativity.Objects
             {
                 if (isMonopoleAccel)
                 {
-                    EvaporateMonopole(deltaTime, nonGravAccel + aiw);
+                    EvaporateMonopole(deltaTime, -aiw);
                 }
 
                 UpdateColliderPosition();
