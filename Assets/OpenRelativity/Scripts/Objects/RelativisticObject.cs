@@ -1300,7 +1300,8 @@ namespace OpenRelativity.Objects
             {
                 if (tVffMag <= SRelativityUtil.divByZeroCutoff)
                 {
-                    isFreeFalling = (piw - oldPiw).sqrMagnitude > SRelativityUtil.divByZeroCutoff;
+                    tVffMag = Physics.gravity.magnitude;
+                    isFreeFalling = !useGravity || (Vector3.Project(piw - oldPiw, Physics.gravity / tVffMag).sqrMagnitude > (0.0001f * tVffMag));
                 }
                 else
                 {
