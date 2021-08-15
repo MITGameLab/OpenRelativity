@@ -1581,8 +1581,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-                Vector3 accel = nonGravAccel + (viw - oldViw) / deltaTime;
+                Vector3 accel = nonGravAccel + (viw - oldViw) / lastFixedUpdateDeltaTime;
                 EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
             }
         }
