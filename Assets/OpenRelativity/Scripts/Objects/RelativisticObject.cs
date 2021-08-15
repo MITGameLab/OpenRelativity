@@ -1568,16 +1568,8 @@ namespace OpenRelativity.Objects
             piw = isNonrelativisticShader ? (Vector3)((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
-            float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-            Vector3 accel = viw;
             viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
-            accel = (viw - accel) / deltaTime;
             aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
-
-            if (isMonopoleAccel)
-            {
-                EvaporateMonopole(deltaTime, accel);
-            }
 
             // Make sure we're not updating to faster than max speed
             checkSpeed();
@@ -1587,8 +1579,12 @@ namespace OpenRelativity.Objects
             UpdateContractorPosition();
             UpdateColliderPosition();
 
-            // Don't double-count isMonopoleAccel from FixedUpdate.
-            oldViw = viw;
+            if (isMonopoleAccel)
+            {
+                float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
+                Vector3 accel = nonGravAccel + (viw - oldViw) / deltaTime;
+                EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
+            }
         }
         #endregion
 
