@@ -1425,7 +1425,7 @@ namespace OpenRelativity.Objects
             else if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
             {
                 // Use viw setter:
-                viw += vff.AddVelocity(deltaTime * properPlusMonopoleAccel);
+                viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
             }
             #endregion
 
@@ -1568,7 +1568,7 @@ namespace OpenRelativity.Objects
             piw = isNonrelativisticShader ? (Vector3)((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration) : myRigidbody.position;
 
             // Now, update the velocity and angular velocity based on the collision result:
-            viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
+            peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
             aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
 
             // Make sure we're not updating to faster than max speed
