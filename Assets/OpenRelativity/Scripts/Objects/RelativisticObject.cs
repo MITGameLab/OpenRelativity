@@ -232,12 +232,6 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
-                if ((myRigidbody != null) && myRigidbody.isKinematic)
-                {
-                    peculiarVelocity = (-tVff).AddVelocity(value);
-                    return;
-                }
-
                 UpdateMotion(value, nonGravAccel);
                 UpdateRigidbodyVelocity();
             }
