@@ -1195,7 +1195,7 @@ namespace OpenRelativity.Objects
                 }
 
                 // Now, update the velocity and angular velocity based on the collision result:
-                peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
+                viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
 
                 if (isMonopoleAccel)
