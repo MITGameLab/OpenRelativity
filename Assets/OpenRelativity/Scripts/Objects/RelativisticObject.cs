@@ -1314,14 +1314,11 @@ namespace OpenRelativity.Objects
                 piw = cm.piw;
                 if (myRigidbody != null)
                 {
-                    if (isNonrelativisticShader)
-                    {
-                        myRigidbody.MovePosition(opticalPiw);
-                    }
-                    else
+                    if (!isNonrelativisticShader)
                     {
                         myRigidbody.MovePosition(piw);
                     }
+                    // We'll MovePosition() for isNonrelativisticShader, further below.
                 }
             }
 
@@ -1421,11 +1418,7 @@ namespace OpenRelativity.Objects
                 viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
 
                 transform.parent = null;
-                Vector3 opiw = opticalPiw;
-                if (!IsNaNOrInf(opiw.sqrMagnitude))
-                {
-                    myRigidbody.MovePosition(opiw);
-                }
+                myRigidbody.MovePosition(opticalPiw);
                 contractor.position = myRigidbody.position;
                 transform.parent = contractor;
                 transform.localPosition = Vector3.zero;
