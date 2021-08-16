@@ -1203,15 +1203,32 @@ namespace OpenRelativity.Objects
             if (isPhysicsUpdateFrame)
             {
                 // Get the position and rotation after the physics update:
-                if (!isNonrelativisticShader)
+                if (isNonrelativisticShader)
                 {
-                    riw = myRigidbody.rotation;
+                    transform.parent = null;
+                    contractor.position = myRigidbody.position;
+                    transform.parent = contractor;
+                    transform.localPosition = Vector3.zero;
+                }
+
+                riw = myRigidbody.rotation;
+                if (isNonrelativisticShader)
+                {
+                    piw = ((Vector4)transform.position).OpticalToWorld(viw, GetComoving4Acceleration());
+                }
+                else
+                {
                     piw = myRigidbody.position;
                 }
 
                 // Now, update the velocity and angular velocity based on the collision result:
                 viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+
+                if (isNonrelativisticShader)
+                {
+                    ContractLength();
+                }
 
                 if (isMonopoleAccel)
                 {
@@ -1313,10 +1330,9 @@ namespace OpenRelativity.Objects
                 riw = cm.riw;
                 piw = cm.piw;
                 
-                if ((myRigidbody != null) && !isNonrelativisticShader)
+                if (myRigidbody != null)
                 {
-                    myRigidbody.MovePosition(piw);
-                    // We'll MovePosition() for isNonrelativisticShader, further below.
+                    myRigidbody.MovePosition(isNonrelativisticShader ? opticalPiw : piw);
                 }
             }
 
@@ -1392,37 +1408,7 @@ namespace OpenRelativity.Objects
 
             Vector3 properPlusMonopoleAccel = nonGravAccel + leviCivitaDevAccel;
 
-            if (isNonrelativisticShader)
-            {
-                // Update riw
-                float aviwMag = aviw.magnitude;
-                Quaternion diffRot;
-                if (aviwMag <= SRelativityUtil.divByZeroCutoff)
-                {
-                    diffRot = Quaternion.identity;
-                }
-                else
-                {
-                    diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
-                }
-                riw = riw * diffRot;
-                myRigidbody.MoveRotation(riw);
-
-                // Update piw from "peculiar velocity" in free fall coordinates.
-                piw += deltaTime * peculiarVelocity;
-
-                // Update velocity after position so as not to double-count comovement.
-                // Use viw setter:
-                viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
-
-                transform.parent = null;
-                myRigidbody.MovePosition(opticalPiw);
-                contractor.position = myRigidbody.position;
-                transform.parent = contractor;
-                transform.localPosition = Vector3.zero;
-                ContractLength();
-            }
-            else if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+            if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
             {
                 // Use viw setter:
                 viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
