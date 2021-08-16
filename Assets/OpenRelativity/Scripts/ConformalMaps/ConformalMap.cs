@@ -11,7 +11,7 @@ namespace OpenRelativity.ConformalMaps
     public abstract class ConformalMap : RelativisticBehavior
     {
         // TO DEFINE A CONFORMAL MAP ON A GENERAL RIEMANNIAN BACKGROUND GEOMETRY,
-        // Define the 3 following functions...
+        // Define the 4 following functions...
 
         // Given an input Unity world coordinate 3-position and intrinsic rotation, tell me how both comove in free fall, over a proper time interval.
         abstract public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw);
@@ -21,6 +21,12 @@ namespace OpenRelativity.ConformalMaps
 
         // Given an input Unity world coordinate 3-position, tell me the velocity of free fall, i.e. at 0 (gravitational + proper) acceleration.
         abstract public Vector3 GetFreeFallVelocity(Vector3 piw);
+
+        // Given an input unity world coordinate 3-position, tell me the metric, as seen by a static and stationary observer at infinity.
+        virtual public Matrix4x4 GetMetric(Vector3 piw)
+        {
+            return SRelativityUtil.GetRindlerMetric(piw, GetRindlerAcceleration(piw), Vector3.zero);
+        }
 
         // (A "conformal map" LOOKS like flat space LOCALLY for "matter fields," but "conforms" to an underlying curved space-time manifold.)
         // (... In other words, Euclidean geometry for matter fields, warped to "conform" to the true underlying subtle or gross curvature of space-time.)

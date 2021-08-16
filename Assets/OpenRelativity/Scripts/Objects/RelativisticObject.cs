@@ -107,7 +107,17 @@ namespace OpenRelativity.Objects
                 return updateMetric;
             }
 
-            return SRelativityUtil.GetRindlerMetric(piw);
+            Matrix4x4 metric = SRelativityUtil.GetRindlerMetric(piw);
+
+            if (state.conformalMap == null)
+            {
+                return metric;
+            }
+            else
+            {
+                Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
+                return intrinsicMetric * metric * intrinsicMetric.inverse;
+            }
         }
 
         public Vector4 Get4Velocity()

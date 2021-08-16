@@ -24,5 +24,15 @@ namespace OpenRelativity.ConformalMaps
         {
             return Vector3.zero;
         }
+
+        public override Matrix4x4 GetMetric(Vector3 piw)
+        {
+            return new Matrix4x4(
+                new Vector4(-1, 0, 0, 0),
+                new Vector4(0, -1, 0, 0),
+                new Vector4(0, 0, -1, 0),
+                new Vector4(0, 0, 0, 1)
+            );
+        }
     }
 }
