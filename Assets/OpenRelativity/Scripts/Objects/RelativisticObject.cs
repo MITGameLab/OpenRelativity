@@ -1312,12 +1312,10 @@ namespace OpenRelativity.Objects
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 riw = cm.riw;
                 piw = cm.piw;
-                if (myRigidbody != null)
+                
+                if ((myRigidbody != null) && !isNonrelativisticShader)
                 {
-                    if (!isNonrelativisticShader)
-                    {
-                        myRigidbody.MovePosition(piw);
-                    }
+                    myRigidbody.MovePosition(piw);
                     // We'll MovePosition() for isNonrelativisticShader, further below.
                 }
             }
@@ -1429,9 +1427,8 @@ namespace OpenRelativity.Objects
                 // Use viw setter:
                 viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
             }
-            #endregion
-
             UpdateColliderPosition();
+            #endregion
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
             float gamma = GetTimeFactor();
