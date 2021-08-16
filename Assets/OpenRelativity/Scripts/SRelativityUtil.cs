@@ -147,17 +147,17 @@ namespace OpenRelativity
             return vpcLorentzMatrix;
         }
 
-        public static Matrix4x4 GetRindlerMetric(Vector4 riw)
+        public static Matrix4x4 GetRindlerMetric(Vector4 piw)
         {
-            return GetRindlerMetric(riw, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector);
+            return GetRindlerMetric(piw, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector);
         }
 
-        public static Matrix4x4 GetRindlerMetric(Vector4 riw, Vector4 pap, Vector3 avp)
+        public static Matrix4x4 GetRindlerMetric(Vector4 piw, Vector4 pap, Vector3 avp)
         {
             //Find metric based on player acceleration and rest frame:
-            float linFac = 1 + Vector3.Dot(pap, riw) / cSqrd;
+            float linFac = 1 + Vector3.Dot(pap, piw) / cSqrd;
             linFac *= linFac;
-            float angFac = Vector3.Dot(avp, riw) / c;
+            float angFac = Vector3.Dot(avp, piw) / c;
             angFac *= angFac;
             float avpMagSqr = avp.sqrMagnitude;
             Vector3 angVec = avpMagSqr <= divByZeroCutoff ? Vector3.zero : 2 * angFac / (c * avpMagSqr) * avp.normalized;

@@ -239,7 +239,6 @@ namespace OpenRelativity
                     // gravitational constant "G" times (baryon) constituent particle rest mass.
                     // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
 
-
                     EvaporateMonopole(Time.deltaTime, totalAccel);
                     quasiWorldAccel += leviCivitaDevAccel;
                     totalAccel += leviCivitaDevAccel;
@@ -483,7 +482,7 @@ namespace OpenRelativity
                 return;
             }
 
-            Vector3 origPlayerVel = state.PlayerVelocityVector;
+            // Vector3 origPlayerVel = state.PlayerVelocityVector;
 
             Collider myColl = GetComponent<Collider>();
             Vector3 extents = myColl.bounds.extents;
@@ -564,8 +563,8 @@ namespace OpenRelativity
                 }
             }
 
-            Vector3 accel = (state.PlayerVelocityVector - origPlayerVel) / state.FixedDeltaTimePlayer;
-            EvaporateMonopole(state.FixedDeltaTimePlayer, accel);
+            // Vector3 accel = (state.PlayerVelocityVector - origPlayerVel) / state.FixedDeltaTimePlayer;
+            // EvaporateMonopole(state.FixedDeltaTimePlayer, accel);
         }
     }
 }
