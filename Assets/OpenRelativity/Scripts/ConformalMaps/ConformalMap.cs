@@ -22,7 +22,7 @@ namespace OpenRelativity.ConformalMaps
         // Given an input Unity world coordinate 3-position, tell me the velocity of free fall, i.e. at 0 (gravitational + proper) acceleration.
         abstract public Vector3 GetFreeFallVelocity(Vector3 piw);
 
-        // (Optional to override...) Given an input unity world coordinate 3-position, tell me the metric, as seen by a static and stationary observer at infinity.
+        // (Optional to override...) Given an input Unity world coordinate 3-position, tell me the metric, as seen by THE PLAYER.
         virtual public Matrix4x4 GetMetric(Vector3 piw)
         {
             return SRelativityUtil.GetRindlerMetric(piw, GetRindlerAcceleration(piw), Vector3.zero);
