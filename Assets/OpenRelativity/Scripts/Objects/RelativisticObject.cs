@@ -1412,8 +1412,11 @@ namespace OpenRelativity.Objects
                 piw += deltaTime * peculiarVelocity;
 
                 // Update velocity after position so as not to double-count comovement.
-                // Use viw setter:
-                viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
+                if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+                {
+                    // Use viw setter:
+                    viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
+                }
 
                 transform.parent = null;
                 myRigidbody.MovePosition(opticalPiw);
