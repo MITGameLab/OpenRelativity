@@ -1212,9 +1212,9 @@ namespace OpenRelativity.Objects
 
             if (isPhysicsUpdateFrame)
             {
-                // Get the position and rotation after the physics update:
                 if (!isNonrelativisticShader)
                 {
+                    // Get the relativistic position and rotation after the physics update:
                     riw = myRigidbody.rotation;
                     piw = myRigidbody.position;
                 }
@@ -1222,6 +1222,12 @@ namespace OpenRelativity.Objects
                 // Now, update the velocity and angular velocity based on the collision result:
                 viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
                 aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+
+                if (isNonrelativisticShader)
+                {
+                    // Immediately correct the nonrelativistic shader position.
+                    UpdateContractorPosition();
+                }
 
                 if (isMonopoleAccel)
                 {
