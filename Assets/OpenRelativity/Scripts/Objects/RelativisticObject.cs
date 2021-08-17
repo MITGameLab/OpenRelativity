@@ -183,6 +183,7 @@ namespace OpenRelativity.Objects
         #region Rigid body physics
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
+        private PhysicMaterial[] origPhysicMaterials;
         private Vector3 oldViw;
         private float lastFixedUpdateDeltaTime;
 
@@ -542,7 +543,7 @@ namespace OpenRelativity.Objects
             transformCollider.sharedMesh = trnsfrmdMesh;
         }
 
-        private void UpdateCollider()
+        public void UpdateColliders()
         {
             MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
 
@@ -587,6 +588,17 @@ namespace OpenRelativity.Objects
                 isMyColliderBox = false;
                 isMyColliderMesh = false;
             }
+
+
+            List<PhysicMaterial> origMaterials = new List<PhysicMaterial>();
+            for (int i = 0; i < myColliders.Length; i++)
+            {
+                // Friction needs a relativistic correction, so we need variable PhysicMaterial parameters.
+                Collider collider = myColliders[i];
+                origMaterials.Add(collider.material);
+                collider.material = Instantiate(collider.material);
+            }
+            origPhysicMaterials = origMaterials.ToArray();
         }
 
         public void UpdateColliderPosition()
@@ -1049,9 +1061,15 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            float gamma = GetTimeFactor();
-            myRigidbody.velocity = viw * gamma;
-            myRigidbody.angularVelocity = _aviw * gamma;
+            float inverseGamma = GetTimeFactor();
+            myRigidbody.velocity = viw * inverseGamma;
+            myRigidbody.angularVelocity = _aviw * inverseGamma;
+            for (int i = 0; i < myColliders.Length; i++)
+            {
+                Collider collider = myColliders[i];
+                collider.material.staticFriction = inverseGamma * origPhysicMaterials[i].staticFriction;
+                collider.material.dynamicFriction = inverseGamma * origPhysicMaterials[i].dynamicFriction;
+            }
         }
         #endregion
 
@@ -1097,7 +1115,7 @@ namespace OpenRelativity.Objects
             wasKinematic = false;
             wasFrozen = false;
 
-            UpdateCollider();
+            UpdateColliders();
 
             MarkStaticColliderPos();
 
@@ -1450,9 +1468,15 @@ namespace OpenRelativity.Objects
             #endregion
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
-            float gamma = GetTimeFactor();
-            myRigidbody.velocity = gamma * peculiarVelocity;
-            myRigidbody.angularVelocity = gamma * aviw;
+            float inverseGamma = GetTimeFactor();
+            myRigidbody.velocity = inverseGamma * peculiarVelocity;
+            myRigidbody.angularVelocity = inverseGamma * aviw;
+            for (int i = 0; i < myColliders.Length; i++)
+            {
+                Collider collider = myColliders[i];
+                collider.material.staticFriction = inverseGamma * origPhysicMaterials[i].staticFriction;
+                collider.material.dynamicFriction = inverseGamma * origPhysicMaterials[i].dynamicFriction;
+            }
 
             oldViw = viw;
             lastFixedUpdateDeltaTime = deltaTime;
