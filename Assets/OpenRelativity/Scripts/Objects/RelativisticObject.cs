@@ -1087,6 +1087,7 @@ namespace OpenRelativity.Objects
             // where we counterbalance the time-dilation factor above, for observer path invariance.
             myRigidbody.drag = unityDrag / gamma;
             myRigidbody.angularDrag = unityAngularDrag / gamma;
+
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
