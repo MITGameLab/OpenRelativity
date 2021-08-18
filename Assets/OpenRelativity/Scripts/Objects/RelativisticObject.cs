@@ -1067,6 +1067,8 @@ namespace OpenRelativity.Objects
             }
 
             float inverseGamma = GetTimeFactor();
+            // Factor of inverseGamma corrects for time-dilation, (which goes like gamma).
+            // Factor of gamma corrects for length-contraction, (which goes like inverseGamma).
             myRigidbody.velocity = viw * inverseGamma;
             myRigidbody.angularVelocity = aviw * inverseGamma;
             myRigidbody.drag = inverseGamma * unityDrag;
@@ -1479,6 +1481,8 @@ namespace OpenRelativity.Objects
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
             float inverseGamma = GetTimeFactor();
+            // Factor of inverseGamma corrects for time-dilation, (which goes like gamma).
+            // Factor of gamma corrects for length-contraction, (which goes like inverseGamma).
             myRigidbody.velocity = inverseGamma * peculiarVelocity;
             myRigidbody.angularVelocity = inverseGamma * aviw;
             myRigidbody.drag = inverseGamma * unityDrag;
