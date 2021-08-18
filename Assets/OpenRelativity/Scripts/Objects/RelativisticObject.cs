@@ -1069,7 +1069,7 @@ namespace OpenRelativity.Objects
                 Collider collider = myColliders[i];
                 collider.material.staticFriction = origPhysicMaterials[i].staticFriction / inverseGamma;
                 collider.material.dynamicFriction = origPhysicMaterials[i].dynamicFriction / inverseGamma;
-                collider.material.bounciness = origPhysicMaterials[i].bounciness / inverseGamma;
+                collider.material.bounciness = inverseGamma * origPhysicMaterials[i].bounciness;
             }
         }
         #endregion
@@ -1477,7 +1477,7 @@ namespace OpenRelativity.Objects
                 Collider collider = myColliders[i];
                 collider.material.staticFriction = origPhysicMaterials[i].staticFriction / inverseGamma;
                 collider.material.dynamicFriction = origPhysicMaterials[i].dynamicFriction / inverseGamma;
-                collider.material.bounciness = origPhysicMaterials[i].bounciness / inverseGamma;
+                collider.material.bounciness = inverseGamma * origPhysicMaterials[i].dynamicFriction;
             }
 
             oldViw = viw;
