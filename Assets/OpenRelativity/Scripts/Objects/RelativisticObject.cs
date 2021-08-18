@@ -16,6 +16,10 @@ namespace OpenRelativity.Objects
         public bool isCombinedColliderParent = false;
         // Use this if not using an explicitly relativistic shader
         public bool isNonrelativisticShader = false;
+        // We set the Rigidbody "drag" parameter in this object.
+        private float unityDrag = 0.0f;
+        // We also set the Rigidbody "angularDrag" parameter in this object.
+        private float unityAngularDrag = 0.0f;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
@@ -184,6 +188,7 @@ namespace OpenRelativity.Objects
         private bool wasKinematic;
         private CollisionDetectionMode collisionDetectionMode;
         private PhysicMaterial[] origPhysicMaterials;
+
         private Vector3 oldViw;
         private float lastFixedUpdateDeltaTime;
 
@@ -1063,7 +1068,9 @@ namespace OpenRelativity.Objects
 
             float inverseGamma = GetTimeFactor();
             myRigidbody.velocity = viw * inverseGamma;
-            myRigidbody.angularVelocity = _aviw * inverseGamma;
+            myRigidbody.angularVelocity = aviw * inverseGamma;
+            myRigidbody.drag = inverseGamma * unityDrag;
+            myRigidbody.angularDrag = inverseGamma * unityAngularDrag;
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
@@ -1095,6 +1102,8 @@ namespace OpenRelativity.Objects
             myRigidbody = GetComponent<Rigidbody>();
             if (myRigidbody != null)
             {
+                myRigidbody.drag = unityDrag;
+                myRigidbody.angularDrag = unityAngularDrag;
                 baryonCount = myRigidbody.mass * SRelativityUtil.avogadroNumber / currentAverageMolarMass;
             }
 
@@ -1472,6 +1481,8 @@ namespace OpenRelativity.Objects
             float inverseGamma = GetTimeFactor();
             myRigidbody.velocity = inverseGamma * peculiarVelocity;
             myRigidbody.angularVelocity = inverseGamma * aviw;
+            myRigidbody.drag = inverseGamma * unityDrag;
+            myRigidbody.angularDrag = inverseGamma * unityAngularDrag;
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
