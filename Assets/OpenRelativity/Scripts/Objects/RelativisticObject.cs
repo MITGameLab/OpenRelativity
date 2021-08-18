@@ -1202,6 +1202,36 @@ namespace OpenRelativity.Objects
             isPhysicsCacheValid = true;
         }
 
+        protected void  AfterPhysicsUpdate()
+        {
+            if (!isNonrelativisticShader)
+            {
+                // Get the relativistic position and rotation after the physics update:
+                riw = myRigidbody.rotation;
+                piw = myRigidbody.position;
+            }
+
+            // Now, update the velocity and angular velocity based on the collision result:
+            viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
+            aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+
+            if (isNonrelativisticShader)
+            {
+                // Immediately correct the nonrelativistic shader position.
+                UpdateContractorPosition();
+            }
+
+            if (isMonopoleAccel)
+            {
+                Vector3 accel = nonGravAccel + (viw - oldViw) / lastFixedUpdateDeltaTime;
+                EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
+            }
+
+            checkSpeed();
+            UpdatePhysicsCaches();
+            UpdateColliderPosition();
+        }
+
         void Update()
         {
             if (isLightMapStatic)
@@ -1242,32 +1272,9 @@ namespace OpenRelativity.Objects
 
             if (isPhysicsUpdateFrame)
             {
-                if (!isNonrelativisticShader)
-                {
-                    // Get the relativistic position and rotation after the physics update:
-                    riw = myRigidbody.rotation;
-                    piw = myRigidbody.position;
-                }
-
-                // Now, update the velocity and angular velocity based on the collision result:
-                viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
-                aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
-
-                if (isNonrelativisticShader)
-                {
-                    // Immediately correct the nonrelativistic shader position.
-                    UpdateContractorPosition();
-                }
-
-                if (isMonopoleAccel)
-                {
-                    Vector3 accel = nonGravAccel + (viw - oldViw) / lastFixedUpdateDeltaTime;
-                    EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
-                }
+                AfterPhysicsUpdate();
             }
             isPhysicsUpdateFrame = false;
-
-            UpdatePhysicsCaches();
 
             localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
 
@@ -1622,27 +1629,13 @@ namespace OpenRelativity.Objects
             // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
             // We restore the time-dilated visual apparent velocity, afterward
 
-            // Get the position and rotation after the collision:
-            riw = myRigidbody.rotation;
-            piw = isNonrelativisticShader ? (Vector3)((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration) : myRigidbody.position;
-
-            // Now, update the velocity and angular velocity based on the collision result:
-            viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
-            aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
-
-            // Make sure we're not updating to faster than max speed
-            checkSpeed();
-
-            UpdatePhysicsCaches();
-
-            UpdateContractorPosition();
-            UpdateColliderPosition();
-
-            if (isMonopoleAccel)
+            if (isNonrelativisticShader)
             {
-                Vector3 accel = nonGravAccel + (viw - oldViw) / lastFixedUpdateDeltaTime;
-                EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
+                riw = myRigidbody.rotation;
+                piw = (Vector3)((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration);
             }
+
+            AfterPhysicsUpdate();
         }
         #endregion
 
