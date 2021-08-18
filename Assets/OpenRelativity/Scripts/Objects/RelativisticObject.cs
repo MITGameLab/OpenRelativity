@@ -17,9 +17,9 @@ namespace OpenRelativity.Objects
         // Use this if not using an explicitly relativistic shader
         public bool isNonrelativisticShader = false;
         // We set the Rigidbody "drag" parameter in this object.
-        private float unityDrag = 0.0f;
+        public float unityDrag = 0.0f;
         // We also set the Rigidbody "angularDrag" parameter in this object.
-        private float unityAngularDrag = 0.0f;
+        public float unityAngularDrag = 0.0f;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
