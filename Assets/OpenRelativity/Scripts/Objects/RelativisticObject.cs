@@ -1067,8 +1067,9 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
-                collider.material.staticFriction = inverseGamma * origPhysicMaterials[i].staticFriction;
-                collider.material.dynamicFriction = inverseGamma * origPhysicMaterials[i].dynamicFriction;
+                collider.material.staticFriction = origPhysicMaterials[i].staticFriction / inverseGamma;
+                collider.material.dynamicFriction = origPhysicMaterials[i].dynamicFriction / inverseGamma;
+                collider.material.bounciness = origPhysicMaterials[i].bounciness / inverseGamma;
             }
         }
         #endregion
@@ -1474,8 +1475,9 @@ namespace OpenRelativity.Objects
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
-                collider.material.staticFriction = inverseGamma * origPhysicMaterials[i].staticFriction;
-                collider.material.dynamicFriction = inverseGamma * origPhysicMaterials[i].dynamicFriction;
+                collider.material.staticFriction = origPhysicMaterials[i].staticFriction / inverseGamma;
+                collider.material.dynamicFriction = origPhysicMaterials[i].dynamicFriction / inverseGamma;
+                collider.material.bounciness = origPhysicMaterials[i].bounciness / inverseGamma;
             }
 
             oldViw = viw;
