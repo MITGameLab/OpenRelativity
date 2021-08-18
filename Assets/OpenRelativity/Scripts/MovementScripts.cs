@@ -195,7 +195,7 @@ namespace OpenRelativity
                 //Add a fluid drag force (as for air)
                 totalAccel -= dragConstant * playerVelocityVector.sqrMagnitude * playerVelocityVector.normalized;
 
-                Vector3 quasiWorldAccel = totalAccel + cameraRotation * leviCivitaDevAccel;
+                Vector3 quasiWorldAccel = totalAccel;
 
                 if (!isFalling)
                 {
@@ -220,9 +220,13 @@ namespace OpenRelativity
                         totalAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
                     }
                 }
-                else if (useGravity)
+                else
                 {
-                    quasiWorldAccel -= Physics.gravity;
+                    quasiWorldAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+                    if (useGravity)
+                    {
+                        quasiWorldAccel -= Physics.gravity;
+                    }
                 }
 
                 //3-acceleration acts as classically on the rapidity, rather than velocity.
