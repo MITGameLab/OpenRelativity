@@ -1629,13 +1629,13 @@ namespace OpenRelativity.Objects
             // We pass the RelativisticObject's rapidity to the rigidbody, right before the physics update
             // We restore the time-dilated visual apparent velocity, afterward
 
-            AfterPhysicsUpdate();
-
             if (isNonrelativisticShader)
             {
                 riw = myRigidbody.rotation;
                 piw = ((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration);
             }
+
+            AfterPhysicsUpdate();
         }
         #endregion
 
