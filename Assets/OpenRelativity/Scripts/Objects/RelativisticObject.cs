@@ -215,7 +215,32 @@ namespace OpenRelativity.Objects
         //Store rotation quaternion
         public Quaternion riw { get; set; }
 
-        public Vector3 peculiarVelocity = Vector3.zero;
+        public Vector3 _peculiarVelocity = Vector3.zero;
+
+        public Vector3 peculiarVelocity
+        {
+            get
+            {
+                return _peculiarVelocity;
+            }
+
+            set
+            {
+                if (IsNaNOrInf(value.sqrMagnitude))
+                {
+                    return;
+                }
+
+                // Skip this all, if the change is negligible.
+                if ((value - _peculiarVelocity).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                {
+                    return;
+                }
+
+                UpdateMotion(value, nonGravAccel);
+                UpdateRigidbodyVelocity();
+            }
+        }
 
         public Vector3 vff
         {
@@ -234,22 +259,7 @@ namespace OpenRelativity.Objects
 
             set
             {
-                if (IsNaNOrInf(value.sqrMagnitude))
-                {
-                    return;
-                }
-
-                Vector3 tVff = vff;
-                Vector3 _viw = tVff.AddVelocity(peculiarVelocity);
-
-                // Skip this all, if the change is negligible.
-                if ((value - _viw).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
-                {
-                    return;
-                }
-
-                UpdateMotion(value, nonGravAccel);
-                UpdateRigidbodyVelocity();
+                peculiarVelocity = (-vff).AddVelocity(value);
             }
         }
 
@@ -355,22 +365,21 @@ namespace OpenRelativity.Objects
 
         public Vector3 leviCivitaDevAccel = Vector3.zero;
 
-        public void UpdateMotion(Vector3 vf, Vector3 nonGravAf)
+        public void UpdateMotion(Vector3 pvf, Vector3 af)
         {
             // Changing velocities lose continuity of position,
             // unless we transform the world position to optical position with the old velocity,
             // and inverse transform the optical position with the new the velocity.
             // (This keeps the optical position fixed.)
 
-            Vector3 tVff = vff;
-            Vector3 vi = tVff.AddVelocity(peculiarVelocity);
+            Vector3 pvi = peculiarVelocity;
             Vector3 ai = comovingAccel;
-            _nonGravAccel = nonGravAf;
-            peculiarVelocity = (-tVff).AddVelocity(vf);
+            _nonGravAccel = af;
+            _peculiarVelocity = pvf;
 
             float timeFac = GetTimeFactor();
 
-            piw = ((Vector4)((Vector4)piw).WorldToOptical(vi, ai.ProperToWorldAccel(vi, timeFac))).OpticalToWorld(vf, comovingAccel.ProperToWorldAccel(vf, timeFac));
+            piw = ((Vector4)((Vector4)piw).WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac))).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
 
             if (!IsNaNOrInf(piw.magnitude))
             {
@@ -1066,19 +1075,29 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            float inverseGamma = GetTimeFactor();
-            // Factor of inverseGamma corrects for time-dilation, (which goes like gamma).
-            // Factor of gamma corrects for length-contraction, (which goes like inverseGamma).
-            myRigidbody.velocity = viw * inverseGamma;
-            myRigidbody.angularVelocity = aviw * inverseGamma;
-            myRigidbody.drag = inverseGamma * unityDrag;
-            myRigidbody.angularDrag = inverseGamma * unityAngularDrag;
+            float gamma = GetTimeFactor();
+            // Factor of gamma corrects for length-contraction, (which goes like 1/gamma).
+            // Effectively, this replaces Time.DeltaTime with Time.DeltaTime / gamma.
+            myRigidbody.velocity = gamma * peculiarVelocity;
+            myRigidbody.angularVelocity = gamma * aviw;
+
+            // Factor of 1/gamma corrects for time-dilation, (which goes like gamma).
+            // Unity's (physically inaccurate) drag formula is something like,
+            // velocity = velocity * (1 - drag * Time.deltaTime),
+            // where we counterbalance the time-dilation factor above, for observer path invariance.
+            myRigidbody.drag = unityDrag / gamma;
+            myRigidbody.angularDrag = unityAngularDrag / gamma;
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
-                collider.material.staticFriction = origPhysicMaterials[i].staticFriction / inverseGamma;
-                collider.material.dynamicFriction = origPhysicMaterials[i].dynamicFriction / inverseGamma;
-                collider.material.bounciness = inverseGamma * origPhysicMaterials[i].bounciness;
+
+                // Energy dissipation goes like mu * F_N * d.
+                // d "already looks like" d / gamma, to player,
+                // so multiply gamma * mu.
+                collider.material.staticFriction = gamma * origPhysicMaterials[i].staticFriction;
+                collider.material.dynamicFriction = gamma * origPhysicMaterials[i].dynamicFriction;
+
+                collider.material.bounciness = gamma * origPhysicMaterials[i].dynamicFriction;
             }
         }
         #endregion
@@ -1212,7 +1231,7 @@ namespace OpenRelativity.Objects
             }
 
             // Now, update the velocity and angular velocity based on the collision result:
-            viw = vff.AddVelocity(myRigidbody.velocity.RapidityToVelocity(updateMetric));
+            peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
             aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
 
             if (isNonrelativisticShader)
@@ -1363,9 +1382,10 @@ namespace OpenRelativity.Objects
             if (state.conformalMap != null)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
+                Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
                 riw = cm.riw;
                 piw = cm.piw;
-                
+
                 if ((myRigidbody != null) && !isNonrelativisticShader)
                 {
                     myRigidbody.MovePosition(piw);
@@ -1467,8 +1487,7 @@ namespace OpenRelativity.Objects
                 // Update velocity after position so as not to double-count comovement.
                 if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
                 {
-                    // Use viw setter:
-                    viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
+                    peculiarVelocity += deltaTime * properPlusMonopoleAccel;
                 }
 
                 transform.parent = null;
@@ -1480,27 +1499,13 @@ namespace OpenRelativity.Objects
             }
             else if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
             {
-                // Use viw setter:
-                viw = vff.AddVelocity(peculiarVelocity + deltaTime * properPlusMonopoleAccel);
+                peculiarVelocity += deltaTime * properPlusMonopoleAccel;
             }
             UpdateColliderPosition();
             #endregion
 
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
-            float inverseGamma = GetTimeFactor();
-            // Factor of inverseGamma corrects for time-dilation, (which goes like gamma).
-            // Factor of gamma corrects for length-contraction, (which goes like inverseGamma).
-            myRigidbody.velocity = inverseGamma * peculiarVelocity;
-            myRigidbody.angularVelocity = inverseGamma * aviw;
-            myRigidbody.drag = inverseGamma * unityDrag;
-            myRigidbody.angularDrag = inverseGamma * unityAngularDrag;
-            for (int i = 0; i < myColliders.Length; i++)
-            {
-                Collider collider = myColliders[i];
-                collider.material.staticFriction = origPhysicMaterials[i].staticFriction / inverseGamma;
-                collider.material.dynamicFriction = origPhysicMaterials[i].dynamicFriction / inverseGamma;
-                collider.material.bounciness = inverseGamma * origPhysicMaterials[i].dynamicFriction;
-            }
+            UpdateRigidbodyVelocity();
 
             oldViw = viw;
             lastFixedUpdateDeltaTime = deltaTime;
@@ -1572,13 +1577,13 @@ namespace OpenRelativity.Objects
                 double dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4));
 
                 // Momentum is conserved. (Energy changes.)
-                Vector3 momentum = myRigidbody.mass * viw;
+                Vector3 momentum = myRigidbody.mass * peculiarVelocity;
 
                 myRigidbody.mass -= (float)dm;
 
                 if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
                 {
-                    viw = momentum / myRigidbody.mass;
+                    peculiarVelocity = momentum / myRigidbody.mass;
                 }
 
                 float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
