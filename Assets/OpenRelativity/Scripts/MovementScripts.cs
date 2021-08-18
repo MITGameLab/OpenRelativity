@@ -197,7 +197,19 @@ namespace OpenRelativity
 
                 Vector3 quasiWorldAccel = totalAccel;
 
-                if (!isFalling)
+                if (state.conformalMap)
+                {
+                    quasiWorldAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+                }
+
+                if (isFalling)
+                {
+                    if (useGravity)
+                    {
+                        quasiWorldAccel -= Physics.gravity;
+                    }
+                }
+                else
                 {
                     if (quasiWorldAccel.y < 0)
                     {
@@ -218,14 +230,6 @@ namespace OpenRelativity
                     if (state.conformalMap != null)
                     {
                         totalAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
-                    }
-                }
-                else
-                {
-                    quasiWorldAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
-                    if (useGravity)
-                    {
-                        quasiWorldAccel -= Physics.gravity;
                     }
                 }
 
