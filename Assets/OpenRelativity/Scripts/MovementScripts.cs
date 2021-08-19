@@ -195,7 +195,7 @@ namespace OpenRelativity
                 //Add a fluid drag force (as for air)
                 totalAccel -= dragConstant * playerVelocityVector.sqrMagnitude * playerVelocityVector.normalized;
 
-                Vector3 quasiWorldAccel = totalAccel;
+                Vector3 quasiWorldAccel = totalAccel + cameraRotation * leviCivitaDevAccel;
 
                 if (!isFalling)
                 {
