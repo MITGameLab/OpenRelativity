@@ -204,13 +204,13 @@ namespace OpenRelativity.Objects
             }
             set
             {
-                piw = ((Vector4)value).OpticalToWorld(viw, GetComoving4Acceleration());
+                piw = ((Vector4)value).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration());
             }
         }
 
         public void ResetPiw()
         {
-            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(viw, GetComoving4Acceleration()) : transform.position;
+            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
         }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
@@ -1638,7 +1638,7 @@ namespace OpenRelativity.Objects
             if (isNonrelativisticShader)
             {
                 riw = myRigidbody.rotation;
-                piw = ((Vector4)myRigidbody.position).OpticalToWorld(viw, updateWorld4Acceleration);
+                piw = ((Vector4)myRigidbody.position).OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
             }
 
             AfterPhysicsUpdate();
