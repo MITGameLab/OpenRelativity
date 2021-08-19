@@ -200,7 +200,7 @@ namespace OpenRelativity.Objects
         public Vector3 opticalPiw {
             get
             {
-                return ((Vector4)piw).WorldToOptical(viw, GetComoving4Acceleration());
+                return ((Vector4)piw).WorldToOptical(peculiarVelocity, GetComoving4Acceleration());
             }
             set
             {
@@ -639,7 +639,7 @@ namespace OpenRelativity.Objects
                 {
                     collider = (BoxCollider)myColliders[i];
                     pos = transform.TransformPoint((Vector4)colliderPiw[i]);
-                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(viw, aiw4));
+                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4));
                     testMag = testPos.sqrMagnitude;
                     if (!IsNaNOrInf(testMag))
                     {
