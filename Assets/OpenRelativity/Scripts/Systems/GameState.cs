@@ -189,6 +189,7 @@ namespace OpenRelativity
 
         public bool HasWorldGravity { get; set; }
 
+        // If using comoveViaAcceleration in the player controller, turn off isPlayerComoving here in GameState.
         public bool isPlayerComoving = true;
 
         #endregion

@@ -12,6 +12,9 @@ namespace OpenRelativity
         public float dragConstant = 0.75f;
         public float controllerAcceleration = 8.0f;
         public bool useGravity = false;
+        // Unlike RelativisticObject instances, this is optionally how the player "comoves."
+        // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
+        public bool comoveViaAcceleration = false;
         //Needed to tell whether we are in free fall
         protected bool isFalling
         {
@@ -197,8 +200,10 @@ namespace OpenRelativity
 
                 Vector3 quasiWorldAccel = totalAccel;
 
-                if (state.conformalMap)
+                if (state.conformalMap && comoveViaAcceleration)
                 {
+                    // Unlike RelativisticObject instances, this is optionally how the player "comoves."
+                    // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
                     quasiWorldAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
                 }
 
