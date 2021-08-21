@@ -353,6 +353,32 @@ namespace Qrack
             PowZ(p / 4.0, targetId);
         }
 
+        // Powers (and roots) of Hadamard gate
+        public void PowH(double p, uint targetId)
+        {
+            double sqrt2 = Math.Sqrt(2.0);
+            double sqrt2x2 = 2.0 * sqrt2;
+            double sqrt2p1 = 1.0 + sqrt2;
+            double sqrt2m1 = -1.0 + sqrt2;
+            double cosPiP = Math.Cos(Math.PI * p);
+            double sinPiP = Math.Sin(Math.PI * p);
+            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+
+            double[] m = {
+                // 0-0
+                (sqrt2p1 - sqrt2m1 * cosPi1P) / sqrt2x2, -sqrt2m1 * sinPi1P / sqrt2x2,
+                // 0-1
+                sqrt2m1 * sqrt2p1 * (1.0 + cosPi1P) / sqrt2x2, sqrt2p1 * sqrt2m1 * sinPi1P / sqrt2x2,
+                // 1-0
+                (1.0 - cosPiP) / sqrt2x2, -sinPiP / sqrt2x2,
+                // 1-1
+                (sqrt2m1 + sqrt2p1 * cosPiP) / sqrt2x2, sqrt2p1 * sinPiP / sqrt2x2
+            };
+
+            Mtrx(m, targetId);
+        }
+
         public void R(Pauli basis, double phi, uint targetId)
         {
             targetId = GetSystemIndex(targetId);
@@ -529,6 +555,32 @@ namespace Qrack
         public void PowMCT(double p, uint[] controls, uint targetId)
         {
             PowMCZ(p / 4.0, controls, targetId);
+        }
+
+        // Powers (and roots) of multiply-controlled Hadamard gate
+        public void MCPowH(double p, uint[] controls, uint targetId)
+        {
+            double sqrt2 = Math.Sqrt(2.0);
+            double sqrt2x2 = 2.0 * sqrt2;
+            double sqrt2p1 = 1.0 + sqrt2;
+            double sqrt2m1 = -1.0 + sqrt2;
+            double cosPiP = Math.Cos(Math.PI * p);
+            double sinPiP = Math.Sin(Math.PI * p);
+            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+
+            double[] m = {
+                // 0-0
+                (sqrt2p1 - sqrt2m1 * cosPi1P) / sqrt2x2, -sqrt2m1 * sinPi1P / sqrt2x2,
+                // 0-1
+                sqrt2m1 * sqrt2p1 * (1.0 + cosPi1P) / sqrt2x2, sqrt2p1 * sqrt2m1 * sinPi1P / sqrt2x2,
+                // 1-0
+                (1.0 - cosPiP) / sqrt2x2, -sinPiP / sqrt2x2,
+                // 1-1
+                (sqrt2m1 + sqrt2p1 * cosPiP) / sqrt2x2, sqrt2p1 * sinPiP / sqrt2x2
+            };
+
+            MCMtrx(controls, m, targetId);
         }
 
         public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)
