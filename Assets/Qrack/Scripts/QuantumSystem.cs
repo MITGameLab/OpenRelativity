@@ -298,6 +298,22 @@ namespace Qrack
             Mtrx(m, targetId);
         }
 
+        // Powers (and roots) of Pauli Z
+        public void PowZ(double p, uint targetId)
+        {
+            double[] m = {
+                // 0-0
+                1.0, 0.0,
+                // 0-1
+                0.0, 0.0,
+                // 1-0
+                0.0, 0.0,
+                // 1-1
+                Math.Cos(Math.PI * p), Math.Sin(Math.PI * p)
+            };
+            Mtrx(m, targetId);
+        }
+
         public void R(Pauli basis, double phi, uint targetId)
         {
             targetId = GetSystemIndex(targetId);
