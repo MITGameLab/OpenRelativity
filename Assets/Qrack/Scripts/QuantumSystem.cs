@@ -285,32 +285,42 @@ namespace Qrack
         // Powers (and roots) of Pauli X
         public void PowX(double p, uint targetId)
         {
+            double cosPiP = Math.Cos(Math.PI * p);
+            double sinPiP = Math.Sin(Math.PI * p);
+            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+
             double[] m = {
                 // 0-0
-                0.5 * (1.0 - Math.Cos(Math.PI * (1.0 + p))), -0.5 * Math.Sin(Math.PI * (1.0 + p)),
+                0.5 * (1.0 - cosPi1P), -0.5 * sinPi1P,
                 // 0-1
-                0.5 * (1.0 + Math.Cos(Math.PI * (1.0 + p))), 0.5 * Math.Sin(Math.PI * (1.0 + p)),
+                0.5 * (1.0 + cosPi1P), 0.5 * sinPi1P,
                 // 1-0
-                0.5 * (1.0 - Math.Cos(Math.PI * p)), -0.5 * Math.Sin(Math.PI * p),
+                0.5 * (1.0 - cosPiP), -0.5 * sinPiP,
                 // 1-1
-                0.5 * (1.0 + Math.Cos(Math.PI * p)), 0.5 * Math.Sin(Math.PI * p)
+                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
             };
+
             Mtrx(m, targetId);
         }
 
         // Powers (and roots) of Pauli Y
         public void PowY(double p, uint targetId)
         {
+            double cosPiP = Math.Cos(Math.PI * p);
+            double sinPiP = Math.Sin(Math.PI * p);
+
             double[] m = {
                 // 0-0
-                0.5 * (1.0 + Math.Cos(Math.PI * p)), 0.5 * Math.Sin(Math.PI * p),
+                0.5 * (1.0 + cosPiP), 0.5 * sinPiP,
                 // 0-1
-                -0.5 * Math.Sin(Math.PI * p), 0.5 * (-1.0 + Math.Cos(Math.PI * p)),
+                -0.5 * sinPiP, 0.5 * (-1.0 + cosPiP),
                 // 1-0
-                0.5 * Math.Sin(Math.PI * p), 0.5 * (1.0 - Math.Cos(Math.PI * p)),
+                0.5 * sinPiP, 0.5 * (1.0 - cosPiP),
                 // 1-1
-                0.5 * (1.0 + Math.Cos(Math.PI * p)), 0.5 * Math.Sin(Math.PI * p)
+                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
             };
+
             Mtrx(m, targetId);
         }
 
@@ -327,6 +337,7 @@ namespace Qrack
                 // 1-1
                 Math.Cos(Math.PI * p), Math.Sin(Math.PI * p)
             };
+
             Mtrx(m, targetId);
         }
 
@@ -453,32 +464,42 @@ namespace Qrack
         // Powers (and roots) of multiply-controlled Pauli X
         public void PowMCNOT(double p, uint[] controls, uint targetId)
         {
+            double cosPiP = Math.Cos(Math.PI * p);
+            double sinPiP = Math.Sin(Math.PI * p);
+            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+
             double[] m = {
                 // 0-0
-                0.5 * (1.0 - Math.Cos(Math.PI * (1.0 + p))), -0.5 * Math.Sin(Math.PI * (1.0 + p)),
+                0.5 * (1.0 - cosPi1P), -0.5 * sinPi1P,
                 // 0-1
-                0.5 * (1.0 + Math.Cos(Math.PI * (1.0 + p))), 0.5 * Math.Sin(Math.PI * (1.0 + p)),
+                0.5 * (1.0 + cosPi1P), 0.5 * sinPi1P,
                 // 1-0
-                0.5 * (1.0 - Math.Cos(Math.PI * p)), -0.5 * Math.Sin(Math.PI * p),
+                0.5 * (1.0 - cosPiP), -0.5 * sinPiP,
                 // 1-1
-                0.5 * (1.0 + Math.Cos(Math.PI * p)), 0.5 * Math.Sin(Math.PI * p)
+                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
             };
+
             MCMtrx(controls, m, targetId);
         }
 
         // Powers (and roots) of multiply-controlled Pauli Y
         public void PowMCY(double p, uint[] controls, uint targetId)
         {
+            double cosPiP = Math.Cos(Math.PI * p);
+            double sinPiP = Math.Sin(Math.PI * p);
+
             double[] m = {
                 // 0-0
-                0.5 * (1.0 + Math.Cos(Math.PI * p)), 0.5 * Math.Sin(Math.PI * p),
+                0.5 * (1.0 + cosPiP), 0.5 * sinPiP,
                 // 0-1
-                -0.5 * Math.Sin(Math.PI * p), 0.5 * (-1.0 + Math.Cos(Math.PI * p)),
+                -0.5 * sinPiP, 0.5 * (-1.0 + cosPiP),
                 // 1-0
-                0.5 * Math.Sin(Math.PI * p), 0.5 * (1.0 - Math.Cos(Math.PI * p)),
+                0.5 * sinPiP, 0.5 * (1.0 - cosPiP),
                 // 1-1
-                0.5 * (1.0 + Math.Cos(Math.PI * p)), 0.5 * Math.Sin(Math.PI * p)
+                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
             };
+
             MCMtrx(controls, m, targetId);
         }
 
