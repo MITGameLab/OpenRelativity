@@ -438,7 +438,7 @@ namespace Qrack
             QuantumManager.MCMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
         }
 
-        // Powers (and roots) of Pauli X
+        // Powers (and roots) of multiply-controlled Pauli X
         public void PowMCNOT(double p, uint[] controls, uint targetId)
         {
             double[] m = {
@@ -454,7 +454,7 @@ namespace Qrack
             MCMtrx(controls, m, targetId);
         }
 
-        // Powers (and roots) of Pauli Y
+        // Powers (and roots) of multiply-controlled Pauli Y
         public void PowMCY(double p, uint[] controls, uint targetId)
         {
             double[] m = {
@@ -470,7 +470,7 @@ namespace Qrack
             MCMtrx(controls, m, targetId);
         }
 
-        // Powers (and roots) of Pauli Z
+        // Powers (and roots) of multiply-controlled Pauli Z
         public void PowMCZ(double p, uint[] controls, uint targetId)
         {
             double[] m = {
