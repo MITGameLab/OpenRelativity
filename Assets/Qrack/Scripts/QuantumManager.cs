@@ -51,6 +51,9 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "U")]
         public static extern void U(uint simId, uint qubitId, double theta, double phi, double lambda);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Mtrx")]
+        public static extern void Mtrx(uint simId, double[] m, uint q);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "R")]
         public static extern void R(uint simId, uint basis, double phi, uint qubitId);
 
@@ -80,6 +83,9 @@ namespace Qrack
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCU")]
         public static extern void MCU(uint simId, uint controlLen, uint[] controls, uint targetId, double theta, double phi, double lambda);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCMtrx")]
+        public static extern void MCMtrx(uint simId, uint controlLen, uint[] controls, double[] m, uint q);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCR")]
         public static extern void MCR(uint simId, uint basis, double phi, uint controlLen, uint[] controls, uint targetId);

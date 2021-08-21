@@ -274,6 +274,14 @@ namespace Qrack
             QuantumManager.U(SystemId, targetId, theta, phi, lambda);
         }
 
+        // 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
+        public void Mtrx(double[] m, uint targetId)
+        {
+            targetId = GetSystemIndex(targetId);
+            CheckAlloc(new List<uint>() { targetId });
+            QuantumManager.Mtrx(SystemId, m, targetId);
+        }
+
         public void R(Pauli basis, double phi, uint targetId)
         {
             targetId = GetSystemIndex(targetId);
@@ -368,6 +376,18 @@ namespace Qrack
             CheckAlloc(bits);
 
             QuantumManager.MCU(SystemId, (uint)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
+        }
+
+        // Multiply-controlled 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
+        public void MCMtrx(uint[] controls, double[] m, uint targetId)
+        {
+            targetId = GetSystemIndex(targetId);
+            uint[] mappedControls = MapQubits(controls);
+            List<uint> bits = new List<uint> { targetId };
+            bits.AddRange(mappedControls);
+            CheckAlloc(bits);
+
+            QuantumManager.MCMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
         }
 
         public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)
