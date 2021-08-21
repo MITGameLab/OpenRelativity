@@ -330,6 +330,18 @@ namespace Qrack
             Mtrx(m, targetId);
         }
 
+        // Powers (and roots) of "S" gate
+        public void PowS(double p, uint targetId)
+        {
+            PowZ(p / 2.0, targetId);
+        }
+
+        // Powers (and roots) of "T" gate
+        public void PowT(double p, uint targetId)
+        {
+            PowZ(p / 4.0, targetId);
+        }
+
         public void R(Pauli basis, double phi, uint targetId)
         {
             targetId = GetSystemIndex(targetId);
@@ -484,6 +496,18 @@ namespace Qrack
                 Math.Cos(Math.PI * p), Math.Sin(Math.PI * p)
             };
             MCMtrx(controls, m, targetId);
+        }
+
+        // Powers (and roots) of multiply-controlled "S" gate
+        public void PowMCS(double p, uint[] controls, uint targetId)
+        {
+            PowMCZ(p / 2.0, controls, targetId);
+        }
+
+        // Powers (and roots) of multiply-controlled "T" gate
+        public void PowMCT(double p, uint[] controls, uint targetId)
+        {
+            PowMCZ(p / 4.0, controls, targetId);
         }
 
         public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)
