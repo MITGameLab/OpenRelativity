@@ -487,8 +487,71 @@ namespace Qrack
             QuantumManager.MCMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
         }
 
+        public void MACX(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACX);
+        }
+
+        public void MACY(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACY);
+        }
+
+        public void MACZ(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACZ);
+        }
+
+        public void MACH(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACH);
+        }
+
+        public void MACS(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACS);
+        }
+
+        public void MACT(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACT);
+        }
+
+        public void MACADJS(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACADJS);
+        }
+
+        public void MACADJT(uint[] controls, uint targetId)
+        {
+            MCSingleBitGate(controls, targetId, QuantumManager.MACADJT);
+        }
+
+        public void MACU(uint[] controls, uint targetId, double theta, double phi, double lambda)
+        {
+            targetId = GetSystemIndex(targetId);
+            uint[] mappedControls = MapQubits(controls);
+            List<uint> bits = new List<uint> { targetId };
+            bits.AddRange(mappedControls);
+            CheckAlloc(bits);
+
+            QuantumManager.MACU(SystemId, (uint)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
+        }
+
+        // Multiply-controlled 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
+        public void MACMtrx(uint[] controls, double[] m, uint targetId)
+        {
+            targetId = GetSystemIndex(targetId);
+            uint[] mappedControls = MapQubits(controls);
+            List<uint> bits = new List<uint> { targetId };
+            bits.AddRange(mappedControls);
+            CheckAlloc(bits);
+
+            QuantumManager.MACMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
+        }
+
         // Powers (and roots) of multiply-controlled Pauli X
-        public void PowMCNOT(double p, uint[] controls, uint targetId)
+        protected void PowMCNOTx(double p, uint[] controls, uint targetId, bool isAnti)
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
@@ -506,11 +569,28 @@ namespace Qrack
                 0.5 * (1.0 + cosPiP), 0.5 * sinPiP
             };
 
-            MCMtrx(controls, m, targetId);
+            if (isAnti)
+            {
+                MACMtrx(controls, m, targetId);
+            }
+            else
+            {
+                MCMtrx(controls, m, targetId);
+            }
+        }
+
+        public void PowMCNOT(double p, uint[] controls, uint targetId)
+        {
+            PowMCNOTx(p, controls, targetId, false);
+        }
+
+        public void PowMACNOT(double p, uint[] controls, uint targetId)
+        {
+            PowMCNOTx(p, controls, targetId, true);
         }
 
         // Powers (and roots) of multiply-controlled Pauli Y
-        public void PowMCY(double p, uint[] controls, uint targetId)
+        public void PowMCYx(double p, uint[] controls, uint targetId, bool isAnti)
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
@@ -526,11 +606,28 @@ namespace Qrack
                 0.5 * (1.0 + cosPiP), 0.5 * sinPiP
             };
 
-            MCMtrx(controls, m, targetId);
+            if (isAnti)
+            {
+                MACMtrx(controls, m, targetId);
+            }
+            else
+            {
+                MCMtrx(controls, m, targetId);
+            }
+        }
+
+        public void PowMCY(double p, uint[] controls, uint targetId)
+        {
+            PowMCYx(p, controls, targetId, false);
+        }
+
+        public void PowMACY(double p, uint[] controls, uint targetId)
+        {
+            PowMCYx(p, controls, targetId, true);
         }
 
         // Powers (and roots) of multiply-controlled Pauli Z
-        public void PowMCZ(double p, uint[] controls, uint targetId)
+        public void PowMCZx(double p, uint[] controls, uint targetId, bool isAnti)
         {
             double[] m = {
                 // 0-0
@@ -542,7 +639,25 @@ namespace Qrack
                 // 1-1
                 Math.Cos(Math.PI * p), Math.Sin(Math.PI * p)
             };
-            MCMtrx(controls, m, targetId);
+
+            if (isAnti)
+            {
+                MACMtrx(controls, m, targetId);
+            }
+            else
+            {
+                MCMtrx(controls, m, targetId);
+            }
+        }
+
+        public void PowMCZ(double p, uint[] controls, uint targetId)
+        {
+            PowMCZx(p, controls, targetId, false);
+        }
+
+        public void PowMACZ(double p, uint[] controls, uint targetId)
+        {
+            PowMCZx(p, controls, targetId, true);
         }
 
         // Powers (and roots) of multiply-controlled "S" gate
@@ -551,10 +666,20 @@ namespace Qrack
             PowMCZ(p / 2.0, controls, targetId);
         }
 
+        public void PowMACS(double p, uint[] controls, uint targetId)
+        {
+            PowMACZ(p / 2.0, controls, targetId);
+        }
+
         // Powers (and roots) of multiply-controlled "T" gate
         public void PowMCT(double p, uint[] controls, uint targetId)
         {
             PowMCZ(p / 4.0, controls, targetId);
+        }
+
+        public void PowMACT(double p, uint[] controls, uint targetId)
+        {
+            PowMACZ(p / 4.0, controls, targetId);
         }
 
         // Powers (and roots) of multiply-controlled Hadamard gate
@@ -581,6 +706,38 @@ namespace Qrack
             };
 
             MCMtrx(controls, m, targetId);
+        }
+
+        public void MCPowHx(double p, uint[] controls, uint targetId, bool isAnti)
+        {
+            double sqrt2 = Math.Sqrt(2.0);
+            double sqrt2x2 = 2.0 * sqrt2;
+            double sqrt2p1 = 1.0 + sqrt2;
+            double sqrt2m1 = -1.0 + sqrt2;
+            double cosPiP = Math.Cos(Math.PI * p);
+            double sinPiP = Math.Sin(Math.PI * p);
+            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+
+            double[] m = {
+                // 0-0
+                (sqrt2p1 - sqrt2m1 * cosPi1P) / sqrt2x2, -sqrt2m1 * sinPi1P / sqrt2x2,
+                // 0-1
+                sqrt2m1 * sqrt2p1 * (1.0 + cosPi1P) / sqrt2x2, sqrt2p1 * sqrt2m1 * sinPi1P / sqrt2x2,
+                // 1-0
+                (1.0 - cosPiP) / sqrt2x2, -sinPiP / sqrt2x2,
+                // 1-1
+                (sqrt2m1 + sqrt2p1 * cosPiP) / sqrt2x2, sqrt2p1 * sinPiP / sqrt2x2
+            };
+
+            if (isAnti)
+            {
+                MACMtrx(controls, m, targetId);
+            }
+            else
+            {
+                MCMtrx(controls, m, targetId);
+            }
         }
 
         public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)

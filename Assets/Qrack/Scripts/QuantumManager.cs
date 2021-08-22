@@ -87,6 +87,36 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCMtrx")]
         public static extern void MCMtrx(uint simId, uint controlLen, uint[] controls, double[] m, uint q);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACX")]
+        public static extern void MACX(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACY")]
+        public static extern void MACY(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACZ")]
+        public static extern void MACZ(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACH")]
+        public static extern void MACH(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACS")]
+        public static extern void MACS(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACT")]
+        public static extern void MACT(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACADJS")]
+        public static extern void MACADJS(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACADJT")]
+        public static extern void MACADJT(uint simId, uint controlLen, uint[] controls, uint targetId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACU")]
+        public static extern void MACU(uint simId, uint controlLen, uint[] controls, uint targetId, double theta, double phi, double lambda);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACMtrx")]
+        public static extern void MACMtrx(uint simId, uint controlLen, uint[] controls, double[] m, uint q);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCR")]
         public static extern void MCR(uint simId, uint basis, double phi, uint controlLen, uint[] controls, uint targetId);
 
