@@ -300,18 +300,9 @@ namespace OpenRelativity.Objects
                 if (GetComponent<Rigidbody>() != null)
                 {
                     float timeFac = GetTimeFactor();
-                    if (state.SqrtOneMinusVSquaredCWDividedByCSquared != 0
-                        && IsNaNOrInf(timeFac))
-                    {
-                        GetComponent<Rigidbody>().velocity = viw / timeFac;
-                    }
+                    GetComponent<Rigidbody>().velocity = viw / timeFac;
                 }
             }
-        }
-
-        private bool IsNaNOrInf(float p)
-        {
-            return float.IsInfinity(p) || float.IsNaN(p);
         }
 
         public Matrix4x4 GetMetric()
@@ -328,13 +319,7 @@ namespace OpenRelativity.Objects
 
             Matrix4x4 metric = GetMetric();
 
-            float timeFac = 1 / Mathf.Sqrt(1 - (Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
-            if (IsNaNOrInf(timeFac))
-            {
-                timeFac = 1;
-            }
-
-            return timeFac;
+            return 1 / Mathf.Sqrt(1 - (Vector4.Dot(pVel.Value, metric * pVel.Value) / state.SpeedOfLightSqrd));
         }
 
         public Vector4 Get4Acceleration()

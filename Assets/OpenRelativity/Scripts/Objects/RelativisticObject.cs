@@ -174,13 +174,7 @@ namespace OpenRelativity.Objects
 
             Matrix4x4 metric = GetMetric();
 
-            float timeFac = pVel.Value.InverseGamma(metric);
-            if (IsNaNOrInf(timeFac))
-            {
-                timeFac = 1;
-            }
-
-            return timeFac;
+            return pVel.Value.InverseGamma(metric);
         }
         #endregion
 
@@ -193,6 +187,27 @@ namespace OpenRelativity.Objects
         private float lastFixedUpdateDeltaTime;
 
         public float baryonCount { get; set; }
+
+        public float mass
+        {
+            get
+            {
+                if (myRigidbody)
+                {
+                    return myRigidbody.mass;
+                }
+
+                return 0;
+            }
+
+            set
+            {
+                if (myRigidbody)
+                {
+                    myRigidbody.mass = value;
+                }
+            }
+        }
 
         public void AddForce(Vector3 force, ForceMode mode)
         {
@@ -255,11 +270,6 @@ namespace OpenRelativity.Objects
 
             set
             {
-                if (IsNaNOrInf(value.sqrMagnitude))
-                {
-                    return;
-                }
-
                 // Skip this all, if the change is negligible.
                 if ((value - _peculiarVelocity).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
                 {
@@ -322,7 +332,7 @@ namespace OpenRelativity.Objects
             protected set
             {
                 // Skip this all, if the change is negligible.
-                if (isKinematic || IsNaNOrInf(value.sqrMagnitude) || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                if (isKinematic || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
                 {
                     return;
                 }
@@ -410,16 +420,13 @@ namespace OpenRelativity.Objects
 
             piw = ((Vector4)((Vector4)piw).WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac))).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
 
-            if (!IsNaNOrInf(piw.magnitude))
+            if (isNonrelativisticShader)
             {
-                if (isNonrelativisticShader)
-                {
-                    UpdateContractorPosition();
-                }
-                else
-                {
-                    transform.position = piw;
-                }
+                UpdateContractorPosition();
+            }
+            else
+            {
+                transform.position = piw;
             }
 
             // Update the shader parameters if necessary
@@ -652,7 +659,7 @@ namespace OpenRelativity.Objects
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (isMyColliderMesh && (colliderShader != null) && (myColliders.Length > 0) && SystemInfo.supportsComputeShaders && state.IsInitDone)
+            if (isMyColliderMesh && (colliderShader != null) && (myColliders.Length > 0) && SystemInfo.supportsComputeShaders)
             {
                 UpdateMeshCollider((MeshCollider)myColliders[0]);
             }
@@ -670,10 +677,7 @@ namespace OpenRelativity.Objects
                     pos = transform.TransformPoint((Vector4)colliderPiw[i]);
                     testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4));
                     testMag = testPos.sqrMagnitude;
-                    if (!IsNaNOrInf(testMag))
-                    {
-                        collider.center = testPos;
-                    }
+                    collider.center = testPos;
                 }
             }
         }
@@ -1079,9 +1083,7 @@ namespace OpenRelativity.Objects
 
         private void UpdateRigidbodyVelocity()
         {
-            if (myRigidbody == null ||
-                // Not a meaningful quantity, just to check if either parameter is inf/nan
-                IsNaNOrInf((peculiarVelocity + _aviw).magnitude))
+            if (myRigidbody == null)
             {
                 return;
             }
@@ -1150,6 +1152,7 @@ namespace OpenRelativity.Objects
         void Awake()
         {
             _localScale = transform.localScale;
+            myRigidbody = GetComponent<Rigidbody>();
         }
 
         void Start()
@@ -1157,7 +1160,6 @@ namespace OpenRelativity.Objects
             hasStarted = false;
             isPhysicsUpdateFrame = false;
 
-            myRigidbody = GetComponent<Rigidbody>();
             if (myRigidbody != null)
             {
                 myRigidbody.drag = unityDrag;
@@ -1243,15 +1245,7 @@ namespace OpenRelativity.Objects
         {
             updateMetric = GetMetric();
             updatePlayerViwTimeFactor = state.PlayerVelocityVector.InverseGamma(updateMetric);
-            if (IsNaNOrInf(updatePlayerViwTimeFactor))
-            {
-                updatePlayerViwTimeFactor = 1;
-            }
             updateViwTimeFactor = viw.InverseGamma(updateMetric);
-            if (IsNaNOrInf(updateViwTimeFactor))
-            {
-                updateViwTimeFactor = 1;
-            }
             updateWorld4Acceleration = comovingAccel.ProperToWorldAccel(viw, updateViwTimeFactor);
             updateTisw = ((Vector4)piw).GetTisw(viw, updateWorld4Acceleration);
 
@@ -1382,7 +1376,7 @@ namespace OpenRelativity.Objects
 
         void FixedUpdate()
         {
-            if (state.isMovementFrozen)
+            if (state.isMovementFrozen || !state.isInitDone)
             {
                 // If our rigidbody is not null, and movement is frozen, then set the object to standstill.
                 if (myRigidbody != null)
@@ -1399,11 +1393,7 @@ namespace OpenRelativity.Objects
 
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
-
-            if (!IsNaNOrInf(localFixedDeltaTime))
-            {
-                localTimeOffset += localFixedDeltaTime;
-            }
+            localTimeOffset += localFixedDeltaTime;
 
             if (isLightMapStatic)
             {

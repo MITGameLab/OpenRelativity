@@ -238,43 +238,28 @@ namespace OpenRelativity.Objects
                 }
 
                 //make our rigidbody's velocity the same as viw
-                if (GetComponent<Rigidbody>() != null && !isParticle)
-                {
+                if (state.isInitDone) {
+                    Rigidbody myRO = GetComponent<Rigidbody>();
 
-                    if (!float.IsNaN(state.SqrtOneMinusVSquaredCWDividedByCSquared) && state.SqrtOneMinusVSquaredCWDividedByCSquared != 0)
+                    Vector3 tempViw = viw;
+                    if (isParticle || myRO != null)
                     {
-                        Vector3 tempViw = viw;
                         tempViw /= state.SqrtOneMinusVSquaredCWDividedByCSquared;
                         //Attempt to correct for acceleration:
                         Vector3 playerPos = state.playerTransform.position;
                         Vector3 playerVel = state.PlayerVelocityVector;
                         tempViw /= 1.0f + 1.0f / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos);
-                        GetComponent<Rigidbody>().velocity = tempViw;
                     }
 
-                    //if (!float.IsNaN(state.InverseAcceleratedGamma) && state.InverseAcceleratedGamma != 0)
-                    //{
-                    //    Vector3 tempViw = viw;
-                    //    tempViw /= (float)state.InverseAcceleratedGamma;
-                    //    GetComponent<Rigidbody>().velocity = tempViw;
-                    //}
+                    if (myRO != null && !isParticle)
+                    {
+                        myRO.velocity = tempViw;
+                    }
+                    else if (isParticle)
+                    {
+                        transform.position = transform.position + tempViw * Time.deltaTime;
+                    }
                 }
-                else if (isParticle)
-                {
-                    Vector3 tempViw = viw;
-                    tempViw /= (float)state.SqrtOneMinusVSquaredCWDividedByCSquared;
-                    //Attempt to correct for acceleration:
-                    Vector3 playerPos = state.playerTransform.position;
-                    Vector3 playerVel = state.PlayerVelocityVector;
-                    tempViw /= (float)(1.0 + 1.0 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos));
-                    transform.position = transform.position + tempViw * Time.deltaTime;
-                }
-                //else if (isParticle)
-                //{
-                //    Vector3 tempViw = viw;
-                //    tempViw /= (float)state.InverseAcceleratedGamma;
-                //    transform.position = transform.position + tempViw * Time.deltaTime;
-                //}
             }
             //If nothing is null, then set the object to standstill, but make sure its rigidbody actually has a velocity.
             else if (meshFilter != null && tempRenderer != null && GetComponent<Rigidbody>() != null)

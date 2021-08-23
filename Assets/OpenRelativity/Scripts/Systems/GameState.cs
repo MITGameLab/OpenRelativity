@@ -192,19 +192,20 @@ namespace OpenRelativity
         // If using comoveViaAcceleration in the player controller, turn off isPlayerComoving here in GameState.
         public bool isPlayerComoving = true;
 
+        private bool _isInitDone = false;
+        public bool isInitDone
+        {
+            get
+            {
+                return _isInitDone;
+            }
+        }
+
         #endregion
 
         #region consts
         public const int splitDistance = 21000;
         #endregion
-
-        public bool IsInitDone
-        {
-            get
-            {
-                return SqrtOneMinusVSquaredCWDividedByCSquared != 0;
-            }
-        }
 
         public virtual void Awake()
         {
@@ -218,8 +219,7 @@ namespace OpenRelativity
                 _instance = this;
             }
 
-            // This is the "flag" that lets us know initialization is not complete.
-            SqrtOneMinusVSquaredCWDividedByCSquared = 0;
+            SqrtOneMinusVSquaredCWDividedByCSquared = 1.0f;
 
             //Initialize the player's speed to zero
             playerVelocity = 0;
@@ -343,34 +343,19 @@ namespace OpenRelativity
                 * ****************************/
                 //find this constant
                 SqrtOneMinusVSquaredCWDividedByCSquared = Mathf.Sqrt(1 - (playerVelocity * playerVelocity) / SpeedOfLightSqrd);
-                //inverseAcceleratedGamma = SRelativityUtil.InverseAcceleratedGamma(playerAccelerationVector, playerVelocityVector, deltaTimePlayer);
 
                 //Set by Unity, time since last update
                 DeltaTimePlayer = Time.deltaTime;
                 //Get the total time passed of the player and world for display purposes
                 TotalTimePlayer += DeltaTimePlayer;
-                //if (!float.IsNaN(inverseAcceleratedGamma))
-                if (!float.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared))
-                {
-                    //Get the delta time passed for the world, changed by relativistic effects
-                    DeltaTimeWorld = DeltaTimePlayer / SqrtOneMinusVSquaredCWDividedByCSquared;
-                    //NOTE: Dan says, there should also be a correction for acceleration in the 00 component of the metric tensor.
-                    // This correction is dependent on object position and needs to factored by the RelativisticObject itself.
-                    // (Pedagogical explanation at http://aether.lbl.gov/www/classes/p139/homework/eight.pdf.
-                    // See "The Metric for a Uniformly Accelerating System.")
-                    TotalTimeWorld += DeltaTimeWorld;
-                }
+                //Get the delta time passed for the world, changed by relativistic effects
+                DeltaTimeWorld = DeltaTimePlayer / SqrtOneMinusVSquaredCWDividedByCSquared;
+                //NOTE: Dan says, there should also be a correction for acceleration in the 00 component of the metric tensor.
+                // This correction is dependent on object position and needs to factored by the RelativisticObject itself.
+                // (Pedagogical explanation at http://aether.lbl.gov/www/classes/p139/homework/eight.pdf.
+                // See "The Metric for a Uniformly Accelerating System.")
+                TotalTimeWorld += DeltaTimeWorld;
 
-                //Set our rigidbody's velocity
-                if (!float.IsNaN(DeltaTimePlayer) && !float.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared))
-                {
-                    
-                }
-                //But if either of those two constants is null due to a zero error, that means our velocity is zero anyways.
-                else
-                {
-                    GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
-                }
                 /*****************************
                  * PART 3 OF ALGORITHM
                  * FIND THE ROTATION MATRIX
@@ -398,16 +383,15 @@ namespace OpenRelativity
                 }
                 oldCameraForward = cameraForward;
             }
+
+            _isInitDone = true;
         }
 
         void FixedUpdate()
         {
             Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
 
-            if (!isMovementFrozen &&
-                !float.IsNaN(DeltaTimePlayer) &&
-                SqrtOneMinusVSquaredCWDividedByCSquared > 0 &&
-                !float.IsNaN(SqrtOneMinusVSquaredCWDividedByCSquared) && SpeedOfLight > 0)
+            if (!isMovementFrozen && !float.IsNaN(DeltaTimePlayer) && (SpeedOfLight > 0))
             {
                 if (conformalMap != null && isPlayerComoving)
                 {
