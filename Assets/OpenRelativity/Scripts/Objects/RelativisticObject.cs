@@ -1464,7 +1464,12 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            Vector3 properPlusMonopoleAccel = nonGravAccel + leviCivitaDevAccel;
+            Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
+            if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+            {
+                myRigidbody.AddForce(properAccel, ForceMode.Acceleration);
+            }    
+            nonGravAccel = Vector3.zero;
 
             if (isNonrelativisticShader)
             {
@@ -1485,22 +1490,12 @@ namespace OpenRelativity.Objects
                 // Update piw from "peculiar velocity" in free fall coordinates.
                 piw += deltaTime * peculiarVelocity;
 
-                // Update velocity after position so as not to double-count comovement.
-                if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
-                {
-                    peculiarVelocity += deltaTime * properPlusMonopoleAccel;
-                }
-
                 transform.parent = null;
                 myRigidbody.MovePosition(opticalPiw);
                 contractor.position = myRigidbody.position;
                 transform.parent = contractor;
                 transform.localPosition = Vector3.zero;
                 ContractLength();
-            }
-            else if (properPlusMonopoleAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
-            {
-                peculiarVelocity += deltaTime * properPlusMonopoleAccel;
             }
             UpdateColliderPosition();
             #endregion
