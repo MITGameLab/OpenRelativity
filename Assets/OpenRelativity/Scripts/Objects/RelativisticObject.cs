@@ -1081,6 +1081,13 @@ namespace OpenRelativity.Objects
             myRigidbody.velocity = gamma * peculiarVelocity;
             myRigidbody.angularVelocity = gamma * aviw;
 
+            Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
+            if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+            {
+                myRigidbody.AddForce(gamma * properAccel, ForceMode.Acceleration);
+            }
+            nonGravAccel = Vector3.zero;
+
             // Factor of 1/gamma corrects for time-dilation, (which goes like gamma).
             // Unity's (physically inaccurate) drag formula is something like,
             // velocity = velocity * (1 - drag * Time.deltaTime),
@@ -1463,13 +1470,6 @@ namespace OpenRelativity.Objects
                 // We're done.
                 return;
             }
-
-            Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
-            if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
-            {
-                myRigidbody.AddForce(properAccel, ForceMode.Acceleration);
-            }    
-            nonGravAccel = Vector3.zero;
 
             if (isNonrelativisticShader)
             {
