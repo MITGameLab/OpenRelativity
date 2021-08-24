@@ -337,7 +337,7 @@ namespace OpenRelativity.Objects
                     return;
                 }
 
-                UpdateMotion(vff.AddVelocity(peculiarVelocity), value);
+                UpdateMotion(peculiarVelocity, value);
                 UpdateRigidbodyVelocity();
             }
         }
@@ -1280,100 +1280,18 @@ namespace OpenRelativity.Objects
             }
 
             checkSpeed();
-            UpdatePhysicsCaches();
             UpdateColliderPosition();
         }
 
         void Update()
         {
-            if (isLightMapStatic)
-            {
-                if (isNonrelativisticShader)
-                {
-                    UpdateContractorPosition();
-                    return;
-                }
-
-                if (myRenderer == null)
-                {
-                    return;
-                }
-
-                bool doUpdate = false;
-
-                float comparisonTime;
-                for (int i = 0; i < myRenderer.materials.Length; i++)
-                {
-                    comparisonTime = myRenderer.materials[i].GetFloat("_lastUpdateSeconds");
-
-                    // 1/60th of a second
-                    if ((Time.time - comparisonTime) > (1.0f / 60.0f))
-                    {
-                        doUpdate = true;
-                        break;
-                    }
-                }
-
-                if (doUpdate)
-                {
-                    UpdateShaderParams();
-                }
-
-                return;
-            }
-
             if (isPhysicsUpdateFrame)
             {
                 AfterPhysicsUpdate();
             }
             isPhysicsUpdateFrame = false;
-
-            localDeltaTime = state.DeltaTimePlayer * GetTimeFactor() - state.DeltaTimeWorld;
-
-            if ((myRigidbody != null) && myRigidbody.IsSleeping())
-            {
-                peculiarVelocity = Vector3.zero;
-                aviw = Vector3.zero;
-                comovingAccel = Vector3.zero;
-
-                UpdateRigidbodyVelocity();
-
-                myRigidbody.Sleep();
-            }
-
-            if (state.isMovementFrozen)
-            {
-                UpdateShaderParams();
-                isPhysicsCacheValid = false;
-                return;
-            }
-
-            if (isNonrelativisticShader)
-            {
-                UpdateShaderParams();
-                UpdateContractorPosition();
-                isPhysicsCacheValid = false;
-                return;
-            }
-
-            if (meshFilter == null)
-            {
-                UpdateShaderParams();
-                isPhysicsCacheValid = false;
-                return;
-            }
-
-            ObjectMeshDensity density = GetComponent<ObjectMeshDensity>();
-
-            if (density == null)
-            {
-                UpdateShaderParams();
-                isPhysicsCacheValid = false;
-                return;
-            }
-
+            
             UpdateShaderParams();
-            isPhysicsCacheValid = false;
         }
 
         void FixedUpdate()
@@ -1422,41 +1340,28 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            if (meshFilter != null)
+            //As long as our object is actually alive, perform these calculations
+            if ((meshFilter != null) && (transform != null)) 
             {
-                //As long as our object is actually alive, perform these calculations
-                if (transform != null)
+                //If we're past our death time (in the player's view, as seen by tisw)
+                if (state.TotalTimeWorld + localTimeOffset + deltaTime > DeathTime)
                 {
-                    /***************************
-                     * Start Part 6 Bullet 1
-                     * *************************/
-
-                    float tisw = GetTisw();
-
-                    /****************************
-                     * Start Part 6 Bullet 2
-                     * **************************/
-
-                    //If we're past our death time (in the player's view, as seen by tisw)
-                    if (state.TotalTimeWorld + localTimeOffset + tisw > DeathTime)
+                    KillObject();
+                }
+                else if (!hasStarted && (state.TotalTimeWorld + localTimeOffset + deltaTime > StartTime))
+                {
+                    hasStarted = true;
+                    //Grab our renderer.
+                    Renderer tempRenderer = GetComponent<Renderer>();
+                    if (!tempRenderer.enabled)
                     {
-                        KillObject();
-                    }
-                    else if (!hasStarted && (state.TotalTimeWorld + localTimeOffset + tisw > StartTime))
-                    {
-                        hasStarted = true;
-                        //Grab our renderer.
-                        Renderer tempRenderer = GetComponent<Renderer>();
-                        if (!tempRenderer.enabled)
+                        tempRenderer.enabled = !hasParent;
+                        AudioSource[] audioSources = GetComponents<AudioSource>();
+                        if (audioSources.Length > 0)
                         {
-                            tempRenderer.enabled = !hasParent;
-                            AudioSource[] audioSources = GetComponents<AudioSource>();
-                            if (audioSources.Length > 0)
+                            for (int i = 0; i < audioSources.Length; i++)
                             {
-                                for (int i = 0; i < audioSources.Length; i++)
-                                {
-                                    audioSources[i].enabled = true;
-                                }
+                                audioSources[i].enabled = true;
                             }
                         }
                     }
