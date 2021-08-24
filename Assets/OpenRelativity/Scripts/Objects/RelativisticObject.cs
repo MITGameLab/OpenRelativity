@@ -1135,8 +1135,8 @@ namespace OpenRelativity.Objects
                 // so multiply gamma * mu.
                 collider.material.staticFriction = gamma * origPhysicMaterials[i].staticFriction;
                 collider.material.dynamicFriction = gamma * origPhysicMaterials[i].dynamicFriction;
-
-                collider.material.bounciness = gamma * origPhysicMaterials[i].bounciness;
+                // vel_after / vel_before - Doesn't seem to need an adjustment.
+                //collider.material.bounciness = gamma * origPhysicMaterials[i].bounciness;
             }
         }
         #endregion
