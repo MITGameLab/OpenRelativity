@@ -194,6 +194,35 @@ namespace OpenRelativity.Objects
 
         public float baryonCount { get; set; }
 
+        public void AddForce(Vector3 force, ForceMode mode)
+        {
+            if (!myRigidbody) {
+                if (mode == ForceMode.Impulse)
+                {
+                    return;
+                }
+                if (mode == ForceMode.Force)
+                {
+                    return;
+                }
+            }
+            switch (mode)
+            {
+                case ForceMode.Impulse:
+                    viw += force / myRigidbody.mass;
+                    break;
+                case ForceMode.VelocityChange:
+                    viw += force;
+                    break;
+                case ForceMode.Force:
+                    nonGravAccel += force / myRigidbody.mass;
+                    break;
+                case ForceMode.Acceleration:
+                    nonGravAccel += force;
+                    break;
+            }
+        }
+
         //Store world position, mostly for a nonrelativistic shader:
         public Vector3 piw { get; set; }
 
@@ -290,7 +319,7 @@ namespace OpenRelativity.Objects
                 return _nonGravAccel;
             }
 
-            set
+            protected set
             {
                 // Skip this all, if the change is negligible.
                 if (isKinematic || IsNaNOrInf(value.sqrMagnitude) || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
@@ -1250,7 +1279,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                Vector3 accel = nonGravAccel + (viw - oldViw) / lastFixedUpdateDeltaTime;
+                Vector3 accel = (viw - oldViw) / lastFixedUpdateDeltaTime;
                 EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
             }
 
@@ -1532,7 +1561,7 @@ namespace OpenRelativity.Objects
                 r = SRelativityUtil.EffectiveRaditiativeRadius((float)r, state.gravityBackgroundPlanckTemperature);
             }
 
-            if (!double.IsInfinity(r) && !double.IsNaN(r))
+            if (!IsNaNOrInf((float)r))
             {
                 isNonZeroTemp = true;
                 double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
