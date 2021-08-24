@@ -209,7 +209,7 @@ namespace OpenRelativity.Objects
             }
         }
 
-        public void AddForce(Vector3 force, ForceMode mode)
+        public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force)
         {
             if (!myRigidbody) {
                 if (mode == ForceMode.Impulse)
@@ -329,7 +329,7 @@ namespace OpenRelativity.Objects
                 return _nonGravAccel;
             }
 
-            protected set
+            set
             {
                 // Skip this all, if the change is negligible.
                 if (isKinematic || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
