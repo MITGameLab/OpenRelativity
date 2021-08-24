@@ -1290,8 +1290,6 @@ namespace OpenRelativity.Objects
                 AfterPhysicsUpdate();
             }
             isPhysicsUpdateFrame = false;
-            
-            UpdateShaderParams();
         }
 
         void FixedUpdate()
@@ -1304,6 +1302,9 @@ namespace OpenRelativity.Objects
                     myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
                 }
+
+                isPhysicsCacheValid = false;
+                UpdateShaderParams();
 
                 // We're done.
                 return;
