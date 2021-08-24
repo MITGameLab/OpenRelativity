@@ -1136,7 +1136,7 @@ namespace OpenRelativity.Objects
                 collider.material.staticFriction = gamma * origPhysicMaterials[i].staticFriction;
                 collider.material.dynamicFriction = gamma * origPhysicMaterials[i].dynamicFriction;
                 // vel_after / vel_before - Doesn't seem to need an adjustment.
-                //collider.material.bounciness = gamma * origPhysicMaterials[i].bounciness;
+                // collider.material.bounciness = gamma * origPhysicMaterials[i].bounciness;
             }
         }
         #endregion
@@ -1243,6 +1243,8 @@ namespace OpenRelativity.Objects
 
         protected void UpdatePhysicsCaches()
         {
+            isPhysicsCacheValid = false;
+
             updateMetric = GetMetric();
             updatePlayerViwTimeFactor = state.PlayerVelocityVector.InverseGamma(updateMetric);
             updateViwTimeFactor = viw.InverseGamma(updateMetric);
