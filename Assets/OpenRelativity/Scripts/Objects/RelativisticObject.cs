@@ -1126,48 +1126,40 @@ namespace OpenRelativity.Objects
 
         private void UpdateRigidbodyVelocity()
         {
-            if (myRigidbody == null)
-            {
-                return;
-            }
-
-            // If movement is frozen, set to zero.
-            if (state.isMovementFrozen)
-            {
-                myRigidbody.velocity = Vector3.zero;
-                myRigidbody.angularVelocity = Vector3.zero;
-
-                return;
-            }
-
-            // If we're in an invalid state, (such as before full initialization,) set to zero.
-            if (updatePlayerViwTimeFactor == 0)
-            {
-                myRigidbody.velocity = Vector3.zero;
-                myRigidbody.angularVelocity = Vector3.zero;
-
-                return;
-            }
-
             float gamma = GetTimeFactor();
-            // Factor of gamma corrects for length-contraction, (which goes like 1/gamma).
-            // Effectively, this replaces Time.DeltaTime with Time.DeltaTime / gamma.
-            myRigidbody.velocity = gamma * peculiarVelocity;
-            myRigidbody.angularVelocity = gamma * aviw;
 
-            Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
-            if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+            if (myRigidbody)
             {
-                myRigidbody.AddForce(gamma * properAccel, ForceMode.Acceleration);
-            }
-            nonGravAccel = Vector3.zero;
+                // If movement is frozen, set to zero.
+                // If we're in an invalid state, (such as before full initialization,) set to zero.
+                if (state.isMovementFrozen || (updatePlayerViwTimeFactor == 0))
+                {
+                    myRigidbody.velocity = Vector3.zero;
+                    myRigidbody.angularVelocity = Vector3.zero;
+                }
+                else
+                {
+                    // Factor of gamma corrects for length-contraction, (which goes like 1/gamma).
+                    // Effectively, this replaces Time.DeltaTime with Time.DeltaTime / gamma.
+                    myRigidbody.velocity = gamma * peculiarVelocity;
+                    myRigidbody.angularVelocity = gamma * aviw;
 
-            // Factor of 1/gamma corrects for time-dilation, (which goes like gamma).
-            // Unity's (physically inaccurate) drag formula is something like,
-            // velocity = velocity * (1 - drag * Time.deltaTime),
-            // where we counterbalance the time-dilation factor above, for observer path invariance.
-            myRigidbody.drag = unityDrag / gamma;
-            myRigidbody.angularDrag = unityAngularDrag / gamma;
+                    Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
+                    if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+                    {
+                        myRigidbody.AddForce(gamma * properAccel, ForceMode.Acceleration);
+                    }
+                }
+
+                nonGravAccel = Vector3.zero;
+
+                // Factor of 1/gamma corrects for time-dilation, (which goes like gamma).
+                // Unity's (physically inaccurate) drag formula is something like,
+                // velocity = velocity * (1 - drag * Time.deltaTime),
+                // where we counterbalance the time-dilation factor above, for observer path invariance.
+                myRigidbody.drag = unityDrag / gamma;
+                myRigidbody.angularDrag = unityAngularDrag / gamma;
+            }
 
             for (int i = 0; i < myColliders.Length; i++)
             {
@@ -1344,12 +1336,7 @@ namespace OpenRelativity.Objects
             if (state.isMovementFrozen || !state.isInitDone)
             {
                 // If our rigidbody is not null, and movement is frozen, then set the object to standstill.
-                if (myRigidbody)
-                {
-                    myRigidbody.velocity = Vector3.zero;
-                    myRigidbody.angularVelocity = Vector3.zero;
-                }
-
+                UpdateRigidbodyVelocity();
                 UpdateShaderParams();
 
                 // We're done.
