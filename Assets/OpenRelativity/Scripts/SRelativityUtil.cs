@@ -172,12 +172,12 @@ namespace OpenRelativity
             return metric;
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
-            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, null, viwLorentzMatrix);
+            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, null, viwLorentzMatrix, intrinsicMetric);
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -198,6 +198,20 @@ namespace OpenRelativity
             //Lorentz boost back to world frame;
             vpcLorentzMatrix = vpcLorentzMatrix.Value.inverse;
             metric = vpcLorentzMatrix.Value.transpose * metric * vpcLorentzMatrix.Value;
+
+            // Apply world coordinates intrinsic curvature:
+            if (intrinsicMetric == null)
+            {
+                if (state.conformalMap)
+                {
+                    intrinsicMetric = state.conformalMap.GetMetric((Vector3)stpiw);
+                }
+                else
+                {
+                    intrinsicMetric = Matrix4x4.identity;
+                }
+            }
+            metric = intrinsicMetric.Value.inverse * metric * intrinsicMetric.Value;
 
             //We'll also Lorentz transform the vectors:
             if (viwLorentzMatrix == null)
@@ -244,12 +258,12 @@ namespace OpenRelativity
             return tisw;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
-            return stpiw.WorldToOptical(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, state.PlayerLorentzMatrix, viwLorentzMatrix);
+            return stpiw.WorldToOptical(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, state.PlayerLorentzMatrix, viwLorentzMatrix, intrinsicMetric);
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -264,14 +278,26 @@ namespace OpenRelativity
             // Boost to rest frame of player
             Vector4 riwForMetric = vpcLorentzMatrix.Value * riw;
 
-            //Find metric based on player acceleration and rest frame:
+            // Find metric based on player acceleration and rest frame:
             Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
 
-            //Lorentz boost back to world frame;
+            // Lorentz boost back to world frame:
             vpcLorentzMatrix = vpcLorentzMatrix.Value.inverse;
             metric = vpcLorentzMatrix.Value.transpose * metric * vpcLorentzMatrix.Value;
 
-            //We'll also Lorentz transform the vectors:
+            // Apply world coordinates intrinsic curvature:
+            if (intrinsicMetric == null)
+            {
+                if (state.conformalMap) {
+                    intrinsicMetric = state.conformalMap.GetMetric((Vector3)stpiw);
+                } else
+                {
+                    intrinsicMetric = Matrix4x4.identity;
+                }
+            }
+            metric = intrinsicMetric.Value.inverse * metric * intrinsicMetric.Value;
+
+            // We'll also Lorentz transform the vectors:
             if (viwLorentzMatrix == null)
             {
                 viwLorentzMatrix = GetLorentzTransformMatrix(viw);
@@ -331,12 +357,12 @@ namespace OpenRelativity
         const int defaultOpticalToWorldMaxIterations = 5;
         const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
-            return opticalPos.OpticalToWorld(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+            return opticalPos.OpticalToWorld(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix, intrinsicMetric);
         }
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -392,17 +418,17 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
-            return opticalPos.OpticalToWorldHighPrecision(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix);
+            return opticalPos.OpticalToWorldHighPrecision(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix, intrinsicMetric);
         }
 
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null)
+        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null, Matrix4x4? intrinsicMetric = null)
         {
             Vector4 startPoint = opticalPos;
             Vector3 est, offset, newEst;
-            est = opticalPos.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz);
-            offset = ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz)- (Vector3)opticalPos;
+            est = opticalPos.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz, intrinsicMetric);
+            offset = ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz, intrinsicMetric)- (Vector3)opticalPos;
 
             float sqrError = offset.sqrMagnitude;
             float oldSqrError = sqrError + 1.0f;
@@ -414,7 +440,7 @@ namespace OpenRelativity
                 iterations++;
                 startPoint += (Vector4)offset / 2.0f;
                 newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw);
-                offset = ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz)- (Vector3)startPoint;
+                offset = ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz, intrinsicMetric)- (Vector3)startPoint;
                 oldSqrError = sqrError;
                 sqrError = offset.sqrMagnitude;
                 if (sqrError < oldSqrError)
