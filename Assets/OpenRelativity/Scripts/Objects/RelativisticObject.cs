@@ -271,7 +271,6 @@ namespace OpenRelativity.Objects
         public Quaternion riw { get; set; }
 
         public Vector3 _peculiarVelocity = Vector3.zero;
-
         public Vector3 peculiarVelocity
         {
             get
