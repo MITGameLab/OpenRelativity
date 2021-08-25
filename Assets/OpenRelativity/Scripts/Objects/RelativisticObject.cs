@@ -587,6 +587,16 @@ namespace OpenRelativity.Objects
             colliderShaderParams.spdOfLight = state.SpeedOfLight;
             colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
             colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
+            if (state.conformalMap) {
+                Matrix4x4 metric = state.conformalMap.GetMetric(piw);
+                colliderShaderParams.intrinsicMetric = metric;
+                colliderShaderParams.invIntrinsicMetric = metric.inverse;
+            }
+            else
+            {
+                colliderShaderParams.intrinsicMetric = Matrix4x4.identity;
+                colliderShaderParams.intrinsicMetric = Matrix4x4.identity;
+            }
 
             ShaderParams[] spa = new ShaderParams[1];
             spa[0] = colliderShaderParams;
@@ -1043,6 +1053,12 @@ namespace OpenRelativity.Objects
             // so it saves redundant GPU time to calculate them beforehand.
             Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
 
+            // Metric default (doesn't have correct signature):
+            Matrix4x4 intrinsicMetric = Matrix4x4.identity;
+            if (state.conformalMap) {
+                intrinsicMetric = state.conformalMap.GetMetric(piw);
+            }
+
             colliderShaderParams.viw = tempViw;
             colliderShaderParams.pao = tempPao;
             colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
@@ -1053,6 +1069,8 @@ namespace OpenRelativity.Objects
                 myRenderer.materials[i].SetVector("_pao", tempPao);
                 myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                 myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
+                myRenderer.materials[i].SetMatrix("_intrinsicMetric", viwLorentzMatrix);
+                myRenderer.materials[i].SetMatrix("_invIntrinsicMetric", viwLorentzMatrix.inverse);
                 myRenderer.materials[i].SetVector("_vr", tempVr);
                 myRenderer.materials[i].SetFloat("_lastUpdateSeconds", Time.time);
             }
@@ -1245,6 +1263,9 @@ namespace OpenRelativity.Objects
                     quickSwapMaterial.SetVector("_vr", new Vector4(0, 0, 0, 1));
                     quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
                     quickSwapMaterial.SetMatrix("_viwLorentzMatrix", Matrix4x4.identity);
+                    quickSwapMaterial.SetMatrix("_invViwLorentzMatrix", Matrix4x4.identity);
+                    quickSwapMaterial.SetMatrix("_intrinsicMetric", Matrix4x4.identity);
+                    quickSwapMaterial.SetMatrix("_invIntrinsicMetric", Matrix4x4.identity);
 
 
                     //And stick it back into our renderer. We'll do the SetVector thing every frame.

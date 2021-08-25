@@ -195,6 +195,10 @@ Shader "Relativity/Lit/Standard" {
 		float4x4 _viwLorentzMatrix;
 		float4x4 _invVpcLorentzMatrix;
 		float4x4 _invViwLorentzMatrix;
+		// For the original author's purposes, potentially, we have metric torsion.
+		// Otherwise, the inverse would be the transpose.
+		float4x4 _intrinsicMetric;
+		float4x4 _invIntrinsicMetric;
 
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _vr = float4(0, 0, 0, 0); //velocity of object relative to player
@@ -472,11 +476,14 @@ Shader "Relativity/Lit/Standard" {
 				-angVec.x, -angVec.y, -angVec.z, (linFac * (1 - angFac) - angFac)
 			};
 
-			//Lorentz boost back to world frame;
+			//Lorentz boost back to world frame:
 			metric = mul(transpose(_invVpcLorentzMatrix), mul(metric, _invVpcLorentzMatrix));
 
-			//We'll also Lorentz transform the vectors:
-			//Apply Lorentz transform;
+			// Apply world coordinates intrinsic curvature:
+			metric = mul(_intrinsicMetric, mul(metric, _invIntrinsicMetric));
+
+			//(We'll also Lorentz transform the vectors.)
+			//Apply Lorentz transform:
 			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
 #endif
 

@@ -83,8 +83,10 @@ Shader "Relativity/Unlit/ColorLorentz"
 		// so it saves redundant GPU time to calculate them beforehand.
 		float4x4 _vpcLorentzMatrix;
 		float4x4 _viwLorentzMatrix;
+		float4x4 _intrinsicMetric;
 		float4x4 _invVpcLorentzMatrix;
 		float4x4 _invViwLorentzMatrix;
+		float4x4 _invIntrinsicMetric;
 
 		float4 _viw = float4(0, 0, 0, 0); //velocity of object in synchronous coordinates
 		float4 _pao = float4(0, 0, 0, 0); //acceleration of object in world coordinates
@@ -147,11 +149,14 @@ Shader "Relativity/Unlit/ColorLorentz"
 				-angVec.x, -angVec.y, -angVec.z, (linFac * (1 - angFac) - angFac)
 			};
 
-			//Lorentz boost back to world frame;
+			// Lorentz boost back to world frame:
 			metric = mul(transpose(_invVpcLorentzMatrix), mul(metric, _invVpcLorentzMatrix));
 
-			//We'll also Lorentz transform the vectors:
-			//Apply Lorentz transform;
+			// Apply world coordinates intrinsic curvature:
+			metric = mul(_intrinsicMetric, mul(metric, _invIntrinsicMetric));
+
+			// (We'll also Lorentz transform the vectors.)
+			// Apply Lorentz transform;
 			metric = mul(transpose(_viwLorentzMatrix), mul(metric, _viwLorentzMatrix));
 
 			float4 paoTransformed = mul(_viwLorentzMatrix, _pao);
