@@ -668,6 +668,10 @@ namespace OpenRelativity.Objects
                 }
             }
 
+            if (myColliders == null)
+            {
+                return;
+            }
 
             List<PhysicMaterial> origMaterials = new List<PhysicMaterial>();
             for (int i = 0; i < myColliders.Length; i++)
