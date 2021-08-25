@@ -527,6 +527,21 @@ namespace OpenRelativity.Objects
 
         private void UpdateMeshCollider(MeshCollider transformCollider)
         {
+            if (colliderShaderMesh == null || colliderShaderMesh.vertexCount == 0)
+            {
+                return;
+            }
+
+            if (paramsBuffer == null)
+            {
+                paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
+            }
+
+            if (vertBuffer == null)
+            {
+                vertBuffer = new ComputeBuffer(colliderShaderMesh.vertexCount, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
+            }
+
             //Freeze the physics if the global state is frozen.
             if (state.isMovementFrozen)
             {
@@ -546,32 +561,16 @@ namespace OpenRelativity.Objects
                         myRigidbody.isKinematic = true;
                     }
                 }
+
                 return;
             }
-            else if (wasFrozen)
+            
+            if (wasFrozen)
             {
                 //Restore the state of the rigidbody, once.
                 wasFrozen = false;
                 myRigidbody.isKinematic = wasKinematic;
                 myRigidbody.collisionDetectionMode = collisionDetectionMode;
-            }
-
-            if (colliderShaderMesh == null || colliderShaderMesh.vertexCount == 0)
-            {
-                return;
-            }
-
-            if (paramsBuffer == null)
-            {
-                paramsBuffer = new ComputeBuffer(1, System.Runtime.InteropServices.Marshal.SizeOf(colliderShaderParams));
-
-                // Skip the first frame, so PhysX can clean the mesh;
-                return;
-            }
-
-            if (vertBuffer == null)
-            {
-                vertBuffer = new ComputeBuffer(colliderShaderMesh.vertexCount, System.Runtime.InteropServices.Marshal.SizeOf(new Vector3()));
             }
 
             //Set remaining global parameters:
