@@ -239,7 +239,18 @@ namespace OpenRelativity.Objects
         }
 
         //Store world position, mostly for a nonrelativistic shader:
-        public Vector3 piw { get; set; }
+        protected Vector3 _piw;
+        public Vector3 piw {
+            get
+            {
+                return _piw;
+            }
+            set
+            {
+                _piw = value;
+                UpdatePhysicsCaches();
+            }
+        }
 
         public Vector3 opticalPiw {
             get
@@ -418,7 +429,7 @@ namespace OpenRelativity.Objects
 
             float timeFac = GetTimeFactor();
 
-            piw = ((Vector4)((Vector4)piw).WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac))).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
+            _piw = ((Vector4)((Vector4)piw).WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac))).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
 
             if (isNonrelativisticShader)
             {
@@ -429,7 +440,7 @@ namespace OpenRelativity.Objects
                 transform.position = piw;
             }
 
-            // Update the shader parameters if necessary
+            UpdatePhysicsCaches();
             UpdateShaderParams();
         }
         #endregion
@@ -1167,8 +1178,10 @@ namespace OpenRelativity.Objects
                 baryonCount = myRigidbody.mass * SRelativityUtil.avogadroNumber / currentAverageMolarMass;
             }
 
-            ResetPiw();
+            _piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
             riw = transform.rotation;
+            checkSpeed();
+            UpdatePhysicsCaches();
 
             if (isNonrelativisticShader)
             {
@@ -1205,8 +1218,6 @@ namespace OpenRelativity.Objects
 
             colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
 
-            checkSpeed();
-
             //Also get the meshrenderer so that we can give it a unique material
             if (myRenderer == null)
             {
@@ -1232,11 +1243,6 @@ namespace OpenRelativity.Objects
                     myRenderer.materials[i] = quickSwapMaterial;
                 }
             }
-
-            if (isNonrelativisticShader)
-            {
-                UpdateContractorPosition();
-            }
         }
 
         protected bool isPhysicsCacheValid;
@@ -1260,7 +1266,7 @@ namespace OpenRelativity.Objects
             {
                 // Get the relativistic position and rotation after the physics update:
                 riw = myRigidbody.rotation;
-                piw = myRigidbody.position;
+                _piw = myRigidbody.position;
             }
 
             // Now, update the velocity and angular velocity based on the collision result:
@@ -1280,6 +1286,7 @@ namespace OpenRelativity.Objects
             }
 
             checkSpeed();
+            UpdatePhysicsCaches();
             UpdateColliderPosition();
         }
 
@@ -1294,6 +1301,11 @@ namespace OpenRelativity.Objects
 
         void FixedUpdate()
         {
+            if (!isPhysicsCacheValid)
+            {
+                UpdatePhysicsCaches();
+            }
+
             if (state.isMovementFrozen || !state.isInitDone)
             {
                 // If our rigidbody is not null, and movement is frozen, then set the object to standstill.
@@ -1303,14 +1315,11 @@ namespace OpenRelativity.Objects
                     myRigidbody.angularVelocity = Vector3.zero;
                 }
 
-                isPhysicsCacheValid = false;
                 UpdateShaderParams();
 
                 // We're done.
                 return;
             }
-
-            UpdatePhysicsCaches();
 
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
             localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
@@ -1332,7 +1341,7 @@ namespace OpenRelativity.Objects
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
                 riw = cm.riw;
-                piw = cm.piw;
+                _piw = cm.piw;
 
                 if ((myRigidbody != null) && !isNonrelativisticShader)
                 {
@@ -1392,8 +1401,6 @@ namespace OpenRelativity.Objects
 
                 UpdateShaderParams();
 
-                isPhysicsCacheValid = false;
-
                 // We're done.
                 return;
             }
@@ -1415,7 +1422,7 @@ namespace OpenRelativity.Objects
                 myRigidbody.MoveRotation(riw);
 
                 // Update piw from "peculiar velocity" in free fall coordinates.
-                piw += deltaTime * peculiarVelocity;
+                _piw += deltaTime * peculiarVelocity;
 
                 transform.parent = null;
                 myRigidbody.MovePosition(opticalPiw);
@@ -1433,7 +1440,6 @@ namespace OpenRelativity.Objects
             oldViw = viw;
             lastFixedUpdateDeltaTime = deltaTime;
 
-            isPhysicsCacheValid = false;
             isPhysicsUpdateFrame = true;
         }
 
@@ -1560,7 +1566,7 @@ namespace OpenRelativity.Objects
             if (isNonrelativisticShader)
             {
                 riw = myRigidbody.rotation;
-                piw = ((Vector4)myRigidbody.position).OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
+                _piw = ((Vector4)myRigidbody.position).OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
             }
 
             AfterPhysicsUpdate();
