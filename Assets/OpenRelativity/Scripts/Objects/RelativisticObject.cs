@@ -112,6 +112,8 @@ namespace OpenRelativity.Objects
             }
 
             Matrix4x4 metric = SRelativityUtil.GetRindlerMetric(piw);
+            Matrix4x4 invVpcLorentz = state.PlayerLorentzMatrix.inverse;
+            metric = invVpcLorentz.transpose * metric * invVpcLorentz;
 
             if (state.conformalMap == null)
             {
