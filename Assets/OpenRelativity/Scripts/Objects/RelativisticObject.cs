@@ -31,7 +31,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                if (myRigidbody != null)
+                if (myRigidbody)
                 {
                     return myRigidbody.isKinematic;
                 }
@@ -41,7 +41,7 @@ namespace OpenRelativity.Objects
 
             set
             {
-                if (myRigidbody != null)
+                if (myRigidbody)
                 {
                     myRigidbody.isKinematic = value;
                 }
@@ -364,7 +364,7 @@ namespace OpenRelativity.Objects
                     accel += Physics.gravity;
                 }
 
-                if (state.conformalMap != null)
+                if (state.conformalMap)
                 {
                     accel += state.conformalMap.GetRindlerAcceleration(piw);
                 }
@@ -376,7 +376,7 @@ namespace OpenRelativity.Objects
             {
                 Vector3 accel = value;
 
-                if (state.conformalMap != null)
+                if (state.conformalMap)
                 {
                     accel -= state.conformalMap.GetRindlerAcceleration(piw);
                 }
@@ -399,7 +399,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                if ((myRigidbody != null) && myRigidbody.IsSleeping())
+                if (myRigidbody && myRigidbody.IsSleeping())
                 {
                     return Vector3.zero;
                 }
@@ -605,7 +605,7 @@ namespace OpenRelativity.Objects
             trnsfrmdMesh.RecalculateNormals();
             transformCollider.sharedMesh = trnsfrmdMesh;
 
-            if (myRigidbody != null)
+            if (myRigidbody)
             {
                 myRigidbody.ResetCenterOfMass();
                 myRigidbody.ResetInertiaTensor();
@@ -617,12 +617,12 @@ namespace OpenRelativity.Objects
             MeshCollider[] myMeshColliders = GetComponents<MeshCollider>();
 
             //Get the vertices of our mesh
-            if ((colliderShaderMesh == null) && (meshFilter != null) && meshFilter.sharedMesh.isReadable)
+            if (!colliderShaderMesh && meshFilter && meshFilter.sharedMesh.isReadable)
             {
                 colliderShaderMesh = Instantiate(meshFilter.sharedMesh);
             }
 
-            if (colliderShaderMesh != null)
+            if (colliderShaderMesh)
             {
                 trnsfrmdMesh = Instantiate(colliderShaderMesh);
                 trnsfrmdMeshVerts = (Vector3[])trnsfrmdMesh.vertices.Clone();
@@ -634,7 +634,13 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            if (GetComponent<ObjectBoxColliderDensity>() == null)
+            if (GetComponent<ObjectBoxColliderDensity>())
+            {
+                isMyColliderVoxel = true;
+                isMyColliderBox = false;
+                isMyColliderMesh = false;
+            }
+            else
             {
                 myColliders = myMeshColliders;
                 if (myColliders.Length > 0)
@@ -650,12 +656,6 @@ namespace OpenRelativity.Objects
                     isMyColliderMesh = false;
                     isMyColliderVoxel = false;
                 }
-            }
-            else
-            {
-                isMyColliderVoxel = true;
-                isMyColliderBox = false;
-                isMyColliderMesh = false;
             }
 
 
@@ -678,7 +678,7 @@ namespace OpenRelativity.Objects
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (isMyColliderMesh && (colliderShader != null) && (myColliders.Length > 0) && SystemInfo.supportsComputeShaders)
+            if (isMyColliderMesh && colliderShader && (myColliders.Length > 0) && SystemInfo.supportsComputeShaders)
             {
                 UpdateMeshCollider((MeshCollider)myColliders[0]);
             }
@@ -706,7 +706,7 @@ namespace OpenRelativity.Objects
         private void SetUpContractor()
         {
             _localScale = transform.localScale;
-            if (contractor != null)
+            if (contractor)
             {
                 Transform prnt = contractor.parent;
                 contractor.parent = null;
@@ -769,7 +769,7 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            if (contractor == null)
+            if (!contractor)
             {
                 SetUpContractor();
             }
@@ -790,7 +790,7 @@ namespace OpenRelativity.Objects
             timeDelayToPlayer *= GetTimeFactor();
             StartTime = state.TotalTimeWorld - timeDelayToPlayer;
             hasStarted = false;
-            if (myRenderer != null)
+            if (myRenderer)
                 myRenderer.enabled = false;
         }
 
@@ -838,8 +838,8 @@ namespace OpenRelativity.Objects
             for (int y = 0; y < meshFilterLength; y++)
             {
                 //If it's null, ignore it.
-                if (meshFilters[y] == null) continue;
-                if (meshFilters[y].sharedMesh == null) continue;
+                if (!meshFilters[y]) continue;
+                if (!meshFilters[y].sharedMesh) continue;
                 if (!meshFilters[y].sharedMesh.isReadable) continue;
                 //else add its vertices to the vertcount
                 vertCount += meshFilters[y].sharedMesh.vertices.Length;
@@ -873,7 +873,7 @@ namespace OpenRelativity.Objects
             {
                 //just doublecheck that the mesh isn't null
                 MFs = meshFilters[i].sharedMesh;
-                if (MFs == null) continue;
+                if (!MFs) continue;
                 if (!MFs.isReadable) continue;
 
                 //Otherwise, for all submeshes in the current mesh
@@ -882,7 +882,7 @@ namespace OpenRelativity.Objects
                     //turn off the original renderer
                     meshRenderers[i].enabled = false;
                     RelativisticObject ro = meshRenderers[i].GetComponent<RelativisticObject>();
-                    if (ro != null)
+                    if (ro)
                     {
                         ro.hasParent = true;
                     }
@@ -942,7 +942,7 @@ namespace OpenRelativity.Objects
             //THEN totally replace our object's mesh with this new, combined mesh
 
             MeshFilter meshy = gameObject.GetComponent<MeshFilter>();
-            if (GetComponent<MeshFilter>() == null)
+            if (!GetComponent<MeshFilter>())
             {
                 gameObject.AddComponent<MeshRenderer>();
                 meshy = gameObject.AddComponent<MeshFilter>();
@@ -962,7 +962,7 @@ namespace OpenRelativity.Objects
             }
 
             MeshCollider mCollider = GetComponent<MeshCollider>();
-            if (mCollider != null)
+            if (mCollider)
             {
                 mCollider.sharedMesh = myMesh;
             }
@@ -973,7 +973,7 @@ namespace OpenRelativity.Objects
             if (isCombinedColliderParent)
             {
                 MeshCollider myMeshCollider = GetComponent<MeshCollider>();
-                if (myMeshCollider != null)
+                if (myMeshCollider)
                 {
                     myMeshCollider.sharedMesh = myMesh;
                 }  
@@ -1028,7 +1028,7 @@ namespace OpenRelativity.Objects
 
         private void UpdateShaderParams()
         {
-            if (myRenderer == null)
+            if (!myRenderer)
             {
                 return;
             }
@@ -1179,7 +1179,7 @@ namespace OpenRelativity.Objects
             hasStarted = false;
             isPhysicsUpdateFrame = false;
 
-            if (myRigidbody != null)
+            if (myRigidbody)
             {
                 myRigidbody.drag = unityDrag;
                 myRigidbody.angularDrag = unityAngularDrag;
@@ -1218,7 +1218,7 @@ namespace OpenRelativity.Objects
 
             meshFilter = GetComponent<MeshFilter>();
 
-            if (myRigidbody != null)
+            if (myRigidbody)
             {
                 //Native rigidbody gravity should not be used except during isFullPhysX.
                 myRigidbody.useGravity = useGravity && !isLightMapStatic;
@@ -1232,7 +1232,7 @@ namespace OpenRelativity.Objects
                 myRenderer = GetComponent<Renderer>();
             }
             //If we have a MeshRenderer on our object and it's not world-static
-            if (myRenderer != null && !isLightMapStatic)
+            if (myRenderer && !isLightMapStatic)
             {
                 //And if we have a texture on our material
                 for (int i = 0; i < myRenderer.materials.Length; i++)
@@ -1317,7 +1317,7 @@ namespace OpenRelativity.Objects
             if (state.isMovementFrozen || !state.isInitDone)
             {
                 // If our rigidbody is not null, and movement is frozen, then set the object to standstill.
-                if (myRigidbody != null)
+                if (myRigidbody)
                 {
                     myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
@@ -1344,14 +1344,14 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            if (state.conformalMap != null)
+            if (state.conformalMap)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
                 riw = cm.riw;
                 _piw = cm.piw;
 
-                if ((myRigidbody != null) && !isNonrelativisticShader)
+                if (myRigidbody && !isNonrelativisticShader)
                 {
                     myRigidbody.MovePosition(piw);
                     // We'll MovePosition() for isNonrelativisticShader, further below.
@@ -1359,7 +1359,7 @@ namespace OpenRelativity.Objects
             }
 
             //As long as our object is actually alive, perform these calculations
-            if ((meshFilter != null) && (transform != null)) 
+            if (meshFilter && transform) 
             {
                 //If we're past our death time (in the player's view, as seen by tisw)
                 if (state.TotalTimeWorld + localTimeOffset + deltaTime > DeathTime)
@@ -1388,10 +1388,10 @@ namespace OpenRelativity.Objects
 
             #region rigidbody
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
-            if (isKinematic || myRigidbody == null || myRigidbody.IsSleeping())
+            if (isKinematic || !myRigidbody || myRigidbody.IsSleeping())
             {
 
-                if (myRigidbody != null)
+                if (myRigidbody)
                 {
                     myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
@@ -1486,7 +1486,7 @@ namespace OpenRelativity.Objects
                 r = state.planckLength;
             }
 
-            if (myRigidbody != null)
+            if (myRigidbody)
             {
 
                 double myTemperature = 0;
