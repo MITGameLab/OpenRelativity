@@ -601,6 +601,12 @@ namespace OpenRelativity.Objects
             trnsfrmdMesh.RecalculateBounds();
             trnsfrmdMesh.RecalculateNormals();
             transformCollider.sharedMesh = trnsfrmdMesh;
+
+            if (myRigidbody != null)
+            {
+                myRigidbody.ResetCenterOfMass();
+                myRigidbody.ResetInertiaTensor();
+            }
         }
 
         public void UpdateColliders()
