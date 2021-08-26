@@ -185,7 +185,7 @@ namespace OpenRelativity.Objects
         private CollisionDetectionMode collisionDetectionMode;
         private PhysicMaterial[] origPhysicMaterials;
 
-        private Vector3 oldViw;
+        private Vector3 oldVelocity;
         private float lastFixedUpdateDeltaTime;
 
         public float baryonCount { get; set; }
@@ -1308,7 +1308,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                Vector3 accel = (viw - oldViw) / lastFixedUpdateDeltaTime;
+                Vector3 accel = (peculiarVelocity - oldVelocity) / lastFixedUpdateDeltaTime;
                 EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
             }
 
@@ -1459,7 +1459,7 @@ namespace OpenRelativity.Objects
             // FOR THE PHYSICS UPDATE ONLY, we give our rapidity to the Rigidbody
             UpdateRigidbodyVelocity();
 
-            oldViw = viw;
+            oldVelocity = peculiarVelocity;
             lastFixedUpdateDeltaTime = deltaTime;
 
             isPhysicsUpdateFrame = true;
@@ -1487,17 +1487,25 @@ namespace OpenRelativity.Objects
                 r = SRelativityUtil.EffectiveRaditiativeRadius((float)r, state.gravityBackgroundPlanckTemperature);
             }
 
-            if (!IsNaNOrInf((float)r))
-            {
-                isNonZeroTemp = true;
-                double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
-                leviCivitaDevAccel -= (float)(alpha - alphaF) * myAccel.normalized;
-            }
-
             if (r < state.planckLength)
             {
                 // For minimum area calculation, below.
                 r = state.planckLength;
+            }
+
+            if (!IsNaNOrInf((float)r))
+            {
+                isNonZeroTemp = true;
+                r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
+                if (r <= SRelativityUtil.divByZeroCutoff)
+                {
+                    leviCivitaDevAccel -= myAccel;
+                }
+                else
+                {
+                    double alphaF = state.SpeedOfLightSqrd / (2 * r);
+                    leviCivitaDevAccel += (float)(alphaF - alpha) * myAccel.normalized;
+                }
             }
 
             if (myRigidbody)

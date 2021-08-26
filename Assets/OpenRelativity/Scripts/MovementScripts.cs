@@ -238,6 +238,24 @@ namespace OpenRelativity
                     }
                 }
 
+                if (isMonopoleAccel)
+                {
+                    // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
+                    // (Relativity privileges no "inertial" frame, but there is intrinsic observable difference between "accelerated frames.")
+                    // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
+                    // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
+                    // has been known since Galileo.)
+
+                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                    // (which seems to imply the Higgs field vacuum)
+                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                    // gravitational constant "G" times (baryon) constituent particle rest mass.
+                    // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
+
+                    quasiWorldAccel += leviCivitaDevAccel;
+                    EvaporateMonopole(Time.deltaTime, totalAccel);
+                }
+
                 //3-acceleration acts as classically on the rapidity, rather than velocity.
                 Vector3 totalVel = playerVelocityVector.AddVelocity((quasiWorldAccel * Time.deltaTime).RapidityToVelocity());
                 Vector3 projVOnG = Vector3.Project(totalVel, Physics.gravity);
@@ -263,24 +281,6 @@ namespace OpenRelativity
 
                 state.PlayerVelocityVector = totalVel;
                 state.PlayerAccelerationVector = totalAccel;
-
-                if (isMonopoleAccel)
-                {
-                    // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
-                    // (Relativity privileges no "inertial" frame, but there is intrinsic observable difference between "accelerated frames.")
-                    // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
-                    // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
-                    // has been known since Galileo.)
-
-                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                    // (which seems to imply the Higgs field vacuum)
-                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                    // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
-
-                    totalAccel += leviCivitaDevAccel;
-                    EvaporateMonopole(Time.deltaTime, totalAccel);
-                }
 
                 //CHANGE the speed of light
 
@@ -405,17 +405,25 @@ namespace OpenRelativity
                 r = SRelativityUtil.EffectiveRaditiativeRadius((float)r, state.gravityBackgroundPlanckTemperature);
             }
 
-            if (!double.IsInfinity(r) && !double.IsNaN(r))
-            {
-                isNonZeroTemp = true;
-                double alphaF = state.SpeedOfLightSqrd / (2 * (r + SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r)));
-                leviCivitaDevAccel -= (float)(alpha - alphaF) * myAccel.normalized;
-            }
-
             if (r < state.planckLength)
             {
                 // For minimum area calculation, below.
                 r = state.planckLength;
+            }
+
+            if (!double.IsInfinity(r) && !double.IsNaN(r))
+            {
+                isNonZeroTemp = true;
+                r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
+                if (r <= SRelativityUtil.divByZeroCutoff)
+                {
+                    leviCivitaDevAccel -= myAccel;
+                }
+                else
+                {
+                    double alphaF = state.SpeedOfLightSqrd / (2 * r);
+                    leviCivitaDevAccel += (float)(alphaF - alpha) * myAccel.normalized;
+                }
             }
 
             if (myRigidbody != null)
