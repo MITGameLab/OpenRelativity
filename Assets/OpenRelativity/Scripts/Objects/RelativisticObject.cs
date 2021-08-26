@@ -1310,6 +1310,9 @@ namespace OpenRelativity.Objects
             {
                 Vector3 accel = (peculiarVelocity - oldVelocity) / lastFixedUpdateDeltaTime + aiw;
                 EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
+                float softenFactor = 1.0f + monopoleCollisionSoften;
+                Vector3 accel = ((peculiarVelocity - oldVelocity) / lastFixedUpdateDeltaTime + aiw) / softenFactor;
+                EvaporateMonopole(softenFactor * lastFixedUpdateDeltaTime, accel);
             }
 
             checkSpeed();
