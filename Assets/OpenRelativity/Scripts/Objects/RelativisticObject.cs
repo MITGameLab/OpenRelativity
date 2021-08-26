@@ -23,8 +23,15 @@ namespace OpenRelativity.Objects
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
-        public float currentAverageMolarMass = 0.012f;
         public float fundamentalAverageMolarMass = 0.012f;
+        public float initialAverageMolarMass = 0.012f;
+        public float currentAverageMolarMass
+        {
+            get
+            {
+                return myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
+            }
+        }
 
         // Set with Rigidbody isKinematic flag instead
         public bool isKinematic
@@ -411,6 +418,49 @@ namespace OpenRelativity.Objects
             set
             {
                 nonGravAccel = value;
+            }
+        }
+
+        public float monopoleTemperature
+        {
+            get
+            {
+                if (!myRigidbody)
+                {
+                    return 0.0f;
+                }
+
+                // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
+                // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
+                // (i.e. as due to "player" acceleration).
+
+                // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                // (which seems to imply the Higgs field vacuum)
+                // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                // gravitational constant "G" times (baryon) constituent particle rest mass.
+
+                double nuclearMass = myRigidbody.mass / baryonCount;
+                double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+                double excitationEnergy = (nuclearMass - fundamentalNuclearMass) * state.SpeedOfLightSqrd;
+                double temperature = excitationEnergy * 2.0 / state.boltzmannConstant;
+
+                return (float)temperature;
+
+                //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
+            }
+
+            set
+            {
+                if (!myRigidbody)
+                {
+                    return;
+                }
+
+                double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+                double excitationEnergy = value * state.boltzmannConstant / 2.0;
+                double nuclearMass = excitationEnergy / state.SpeedOfLightSqrd + fundamentalNuclearMass;
+
+                myRigidbody.mass = (float)(nuclearMass * baryonCount);
             }
         }
 
@@ -1200,7 +1250,7 @@ namespace OpenRelativity.Objects
             {
                 myRigidbody.drag = unityDrag;
                 myRigidbody.angularDrag = unityAngularDrag;
-                baryonCount = myRigidbody.mass * SRelativityUtil.avogadroNumber / currentAverageMolarMass;
+                baryonCount = myRigidbody.mass * SRelativityUtil.avogadroNumber / initialAverageMolarMass;
             }
 
             _piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
@@ -1310,8 +1360,16 @@ namespace OpenRelativity.Objects
             if (isMonopoleAccel)
             {
                 float softenFactor = 1.0f + monopoleCollisionSoften;
+                float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
+
+                monopoleTemperature /= tempSoftenFactor;
+                state.gravityBackgroundPlanckTemperature /= tempSoftenFactor;
+
                 Vector3 accel = ((peculiarVelocity - oldVelocity) / lastFixedUpdateDeltaTime + aiw) / softenFactor;
                 EvaporateMonopole(softenFactor * lastFixedUpdateDeltaTime, accel);
+
+                state.gravityBackgroundPlanckTemperature *= tempSoftenFactor;
+                monopoleTemperature *= tempSoftenFactor;
             }
 
             checkSpeed();
@@ -1512,26 +1570,7 @@ namespace OpenRelativity.Objects
 
             if (myRigidbody)
             {
-
-                double myTemperature = 0;
-
-                double nuclearMass = myRigidbody.mass / baryonCount;
-                double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
-
-                // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
-                // there is also a change in mass. However, the monopole waves responsible for this are seen from a first-person perspective,
-                // (i.e. as due to "player" acceleration).
-                if (nuclearMass > fundamentalNuclearMass)
-                {
-                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                    // (which seems to imply the Higgs field vacuum)
-                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                    // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    myTemperature = 2 * (myRigidbody.mass - fundamentalNuclearMass) / (baryonCount * state.planckMass);
-                }
-                //... But just turn "doDegradeAccel" off, if you don't want this effect for any reason.
-                // (We ignore the "little bit" of acceleration from collisions, but maybe we could add that next.)
-
+                double myTemperature = monopoleTemperature;
                 double surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
                 double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : state.gravityBackgroundPlanckTemperature;
@@ -1546,9 +1585,6 @@ namespace OpenRelativity.Objects
                 {
                     peculiarVelocity = momentum / myRigidbody.mass;
                 }
-
-                float camm = myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
-                currentAverageMolarMass = camm > fundamentalAverageMolarMass ? camm : fundamentalAverageMolarMass;
             }
         }
 
