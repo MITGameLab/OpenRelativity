@@ -1351,7 +1351,7 @@ namespace OpenRelativity.Objects
             {
                 if (isMonopoleAccel)
                 {
-                    EvaporateMonopole(deltaTime, -aiw);
+                    EvaporateMonopole(deltaTime, aiw);
                 }
 
                 UpdateColliderPosition();
@@ -1499,12 +1499,12 @@ namespace OpenRelativity.Objects
                 r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
                 if (r <= SRelativityUtil.divByZeroCutoff)
                 {
-                    leviCivitaDevAccel -= myAccel;
+                    leviCivitaDevAccel += myAccel;
                 }
                 else
                 {
                     double alphaF = state.SpeedOfLightSqrd / (2 * r);
-                    leviCivitaDevAccel += (float)(alphaF - alpha) * myAccel.normalized;
+                    leviCivitaDevAccel += (float)(alpha - alphaF) * myAccel.normalized;
                 }
             }
 
