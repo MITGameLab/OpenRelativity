@@ -1308,7 +1308,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                Vector3 accel = (peculiarVelocity - oldVelocity) / lastFixedUpdateDeltaTime;
+                Vector3 accel = (peculiarVelocity - oldVelocity) / lastFixedUpdateDeltaTime + aiw;
                 EvaporateMonopole(lastFixedUpdateDeltaTime, accel);
             }
 
