@@ -1363,12 +1363,13 @@ namespace OpenRelativity.Objects
                 float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
 
                 monopoleTemperature /= tempSoftenFactor;
+                float origBackgroundTemp = state.gravityBackgroundPlanckTemperature;
                 state.gravityBackgroundPlanckTemperature /= tempSoftenFactor;
 
                 Vector3 accel = ((peculiarVelocity - oldVelocity) / lastFixedUpdateDeltaTime + aiw) / softenFactor;
                 EvaporateMonopole(softenFactor * lastFixedUpdateDeltaTime, accel);
 
-                state.gravityBackgroundPlanckTemperature *= tempSoftenFactor;
+                state.gravityBackgroundPlanckTemperature = origBackgroundTemp;
                 monopoleTemperature *= tempSoftenFactor;
             }
 
