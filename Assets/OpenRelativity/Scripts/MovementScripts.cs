@@ -60,7 +60,19 @@ namespace OpenRelativity
         {
             get
             {
+                if (!myRigidbody)
+                {
+                    return 0.0f;
+                }
+
                 return myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
+            }
+            protected set
+            {
+                if (myRigidbody)
+                {
+                    myRigidbody.mass = value * baryonCount / SRelativityUtil.avogadroNumber;
+                }
             }
         }
         public Vector3 leviCivitaDevAccel = Vector3.zero;
@@ -497,6 +509,11 @@ namespace OpenRelativity
                 Vector3 momentum = myRigidbody.mass * state.PlayerVelocityVector;
 
                 myRigidbody.mass -= (float)dm;
+
+                if ((myTemperature > 0) && (currentAverageMolarMass < fundamentalAverageMolarMass))
+                {
+                    currentAverageMolarMass = fundamentalAverageMolarMass;
+                }
 
                 if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
                 {
