@@ -6,7 +6,7 @@ OpenRelativity is a set of tools for simulating the effects of traveling near th
 
 Within this readme is a quick overview of each piece of code that we have put into this project, along with a very quick description of how to use the toolset to make sure your project follows the rules of relativity. We hope you can use this toolset to produce something amazing, and if you find bugs or have an improvement to make to the code base, feel free to help turn OpenRelativity into an even better project.
 
-## This an "Unofficial OpenRelativity v2.0"
+## This is an "Unofficial OpenRelativity v2.0"
 
 Daniel Strano is the lead developer of the high performance vm6502q/qrack quantum computer simulation framework, (alongside co-author Benn Bollay). Before Dan was familiar with GitHub and Agile methodology best practices, he started working on this expanded fork of OpenRelativity. Like Qrack, this fork of OpenRelativity has been a passionate "hobbyist" physics simulation project. The original MIT licensing terms of OpenRelativity are maintained for this fork, with many thanks to the MIT Game Lab!
 
