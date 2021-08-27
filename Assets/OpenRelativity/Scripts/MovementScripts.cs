@@ -12,7 +12,6 @@ namespace OpenRelativity
         public float dragConstant = 0.75f;
         public float controllerAcceleration = 8.0f;
         public bool useGravity = false;
-        // Unlike RelativisticObject instances, this is optionally how the player "comoves."
         // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
         public bool comoveViaAcceleration = false;
         //Needed to tell whether we are in free fall

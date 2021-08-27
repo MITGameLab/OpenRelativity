@@ -20,6 +20,8 @@ namespace OpenRelativity.Objects
         public float unityDrag = 0.0f;
         // We also set the Rigidbody "angularDrag" parameter in this object.
         public float unityAngularDrag = 0.0f;
+        // Comove via ConformalMap acceleration, or ComoveOptical?
+        public bool comoveViaAcceleration = false;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
@@ -1208,6 +1210,11 @@ namespace OpenRelativity.Objects
                     myRigidbody.angularVelocity = gamma * aviw;
 
                     Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
+                    if (comoveViaAcceleration && state.conformalMap)
+                    {
+                        // This is not actually "proper acceleration," with this option active.
+                        properAccel += state.conformalMap.GetRindlerAcceleration(piw);
+                    }
                     if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
                     {
                         myRigidbody.AddForce(gamma * properAccel, ForceMode.Acceleration);
@@ -1431,7 +1438,7 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            if (state.conformalMap)
+            if (state.conformalMap && !comoveViaAcceleration)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
