@@ -1588,7 +1588,7 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            if (myRigidbody)
+            if (myRigidbody && (state.planckArea > SRelativityUtil.divByZeroCutoff))
             {
                 double myTemperature = monopoleTemperature;
                 double surfaceArea;
