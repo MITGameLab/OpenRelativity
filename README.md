@@ -30,7 +30,7 @@ To most accurately simulate the effects of special and general relativity using 
 
 1. Unlike the base OpenRelativity fork, velocities of all RelativisticObject instances may be freely varied. (We attempt "full" support for Unity PhysX features, by treating and superficially transforming PhysX' underlying mechanics as those of "rapidities" in a local "tangent space.")
 
-2. The Player's speed must never reach or exceed the speed of light.
+2. The Player's speed must never reach or exceed the speed of light. (However, in the ideal, it should not be possible to ever accidentally do so by applying any "proper" acceleration to the player, only.)
  
 3. We have largely re-written the lighting system, assuming that baked lightmaps remain static and stationary in Unity "world frame" coordinates. A notable caveat is that **real-time** reflections are not relativistically accurate, though **baked** reflections are. Another caveat is that full inverse square attenuation (typically corresponding to an attenuation parameter value of "1") is capable of simulating the bending of light by gravity in **real-time** lighting, but **baked** lighting in Unity does respect inverse square attentuation or expose the option to vary attenuation strength, so **baked lighting isn't relativistically accurate in a background gravitational field**.
 
