@@ -1152,8 +1152,8 @@ namespace OpenRelativity.Objects
                 myRenderer.materials[i].SetVector("_pao", tempPao);
                 myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
                 myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
-                myRenderer.materials[i].SetMatrix("_intrinsicMetric", viwLorentzMatrix);
-                myRenderer.materials[i].SetMatrix("_invIntrinsicMetric", viwLorentzMatrix.inverse);
+                myRenderer.materials[i].SetMatrix("_intrinsicMetric", intrinsicMetric);
+                myRenderer.materials[i].SetMatrix("_invIntrinsicMetric", intrinsicMetric.inverse);
                 myRenderer.materials[i].SetVector("_vr", tempVr);
                 myRenderer.materials[i].SetFloat("_lastUpdateSeconds", Time.time);
             }
