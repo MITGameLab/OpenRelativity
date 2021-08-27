@@ -58,7 +58,7 @@ The object must have a Mesh Renderer. This renderer should typically use our "st
 
 The object can have a rigidbody.
 
-Finally, the object must have the script "RelativisticObject" attached to it. If the objects VIW (Velocity In World) is set to anything but (0,0,0), it will move constantly while the scene is playing. ("Peculiar velocity," similarly, is the velocity of the object as measured in coordinates that "comove" with the underlying curvature of the space-time `ConformalMap`, which is no different from "VIW" is there is no `ConformalMap`.)
+Finally, the object must have the script "RelativisticObject" attached to it. If the objects VIW (Velocity In World) is set to anything but (0,0,0), it will move constantly while the scene is playing. ("Peculiar velocity," similarly, is the velocity of the object as measured in coordinates that "comove" with the underlying curvature of the space-time `ConformalMap`, which is no different from "VIW" if there is no `ConformalMap`.)
 
 With these components added to your new object, they will deform and change color according to the rules of special relativity. That's all it takes!
 
