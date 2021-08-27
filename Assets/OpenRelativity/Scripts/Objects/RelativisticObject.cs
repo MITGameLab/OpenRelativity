@@ -575,7 +575,7 @@ namespace OpenRelativity.Objects
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool isMonopoleAccel = false;
-        public float monopoleCollisionSoften = 0.0f;
+        public float monopoleAccelerationSoften = 0.0f;
         #endregion
 
         #region Collider transformation and update
@@ -1371,7 +1371,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                float softenFactor = 1.0f + monopoleCollisionSoften;
+                float softenFactor = 1.0f + monopoleAccelerationSoften;
                 float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
 
                 monopoleTemperature /= tempSoftenFactor;

@@ -51,6 +51,7 @@ namespace OpenRelativity
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool isMonopoleAccel = false;
+        public float monopoleAccelerationSoften = 0.0f;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
@@ -315,7 +316,18 @@ namespace OpenRelativity
                     // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
 
                     quasiWorldAccel += leviCivitaDevAccel;
-                    EvaporateMonopole(Time.deltaTime, totalAccel);
+
+                    float softenFactor = 1.0f + monopoleAccelerationSoften;
+                    float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
+
+                    monopoleTemperature /= tempSoftenFactor;
+                    float origBackgroundTemp = state.gravityBackgroundPlanckTemperature;
+                    state.gravityBackgroundPlanckTemperature /= tempSoftenFactor;
+
+                    EvaporateMonopole(softenFactor * Time.deltaTime, totalAccel);
+
+                    state.gravityBackgroundPlanckTemperature = origBackgroundTemp;
+                    monopoleTemperature *= tempSoftenFactor;
                 }
 
                 //3-acceleration acts as classically on the rapidity, rather than velocity.
