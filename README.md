@@ -26,7 +26,7 @@ The only necessary component is Unity3D, available at [their website](https://un
 
 ### General Notes on Relativity and the Limitations of our Code:
 
-To most accurately simulate the effects of special relativity using our toolkit, please adhere to the following guidelines:
+To most accurately simulate the effects of special and general relativity using our toolkit, please adhere to the following guidelines:
 
 1. Unlike the base OpenRelativity fork, velocities of all RelativisticObject instances may be freely varied. (We attempt "full" support for Unity PhysX features, by treating and superficially transforming PhysX' underlying mechanics as those of "rapidities" in a "local tangent tangent space.")
 
