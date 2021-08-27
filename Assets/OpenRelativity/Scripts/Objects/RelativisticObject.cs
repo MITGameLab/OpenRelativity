@@ -455,6 +455,14 @@ namespace OpenRelativity.Objects
 
                 double nuclearMass = myRigidbody.mass / baryonCount;
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
+
+                if (nuclearMass < fundamentalNuclearMass)
+                {
+                    // We can't support negative temperatures, yet, for realistic constants,
+                    // (not that we'd necessarily want them).
+                    return 0.0f;
+                }
+
                 double excitationEnergy = (nuclearMass - fundamentalNuclearMass) * state.SpeedOfLightSqrd;
                 double temperature = excitationEnergy * 2.0 / state.boltzmannConstant;
 
@@ -472,6 +480,10 @@ namespace OpenRelativity.Objects
 
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
                 double excitationEnergy = value * state.boltzmannConstant / 2.0;
+                if (excitationEnergy < 0.0)
+                {
+                    excitationEnergy = 0.0;
+                }
                 double nuclearMass = excitationEnergy / state.SpeedOfLightSqrd + fundamentalNuclearMass;
 
                 myRigidbody.mass = (float)(nuclearMass * baryonCount);
@@ -1588,7 +1600,7 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            if (myRigidbody && (state.planckArea > SRelativityUtil.divByZeroCutoff))
+            if (myRigidbody)
             {
                 double myTemperature = monopoleTemperature;
                 double surfaceArea;
@@ -1610,7 +1622,7 @@ namespace OpenRelativity.Objects
 
                 double camm = (myRigidbody.mass - dm) * SRelativityUtil.avogadroNumber / baryonCount;
 
-                if ((myTemperature > 0) && (camm < fundamentalAverageMolarMass))
+                if ((myTemperature >= 0) && (IsNaNOrInf((float)dm) || (camm < fundamentalAverageMolarMass)))
                 {
                     currentAverageMolarMass = fundamentalAverageMolarMass;
                 }
