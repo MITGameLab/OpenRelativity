@@ -1243,6 +1243,11 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularDrag = unityAngularDrag / gamma;
             }
 
+            if (myColliders == null)
+            {
+                return;
+            }
+
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
