@@ -323,7 +323,7 @@ namespace OpenRelativity
                     float origBackgroundTemp = state.gravityBackgroundPlanckTemperature;
                     state.gravityBackgroundPlanckTemperature /= tempSoftenFactor;
 
-                    EvaporateMonopole(softenFactor * Time.deltaTime, totalAccel);
+                    EvaporateMonopole(softenFactor * Time.deltaTime, totalAccel / softenFactor);
 
                     state.gravityBackgroundPlanckTemperature = origBackgroundTemp;
                     monopoleTemperature *= tempSoftenFactor;
