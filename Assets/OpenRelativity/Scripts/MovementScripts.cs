@@ -507,24 +507,32 @@ namespace OpenRelativity
                 if (meshFilter == null)
                 {
                     Vector3 lwh = transform.localScale;
-                    surfaceArea = 2 * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z) / state.planckArea;
+                    surfaceArea = 2.0f * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
                 }
                 else
                 {
-                    surfaceArea = meshFilter.sharedMesh.SurfaceArea() / state.planckArea;
+                    surfaceArea = meshFilter.sharedMesh.SurfaceArea();
                 }
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
                 double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : state.gravityBackgroundPlanckTemperature;
-                double dm = gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4));
+                double dm = (gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4.0f) - Math.Pow(ambientTemperature, 4.0f))) / state.planckArea;
 
                 // Momentum is conserved. (Energy changes.)
                 Vector3 momentum = myRigidbody.mass * state.PlayerVelocityVector;
 
-                myRigidbody.mass -= (float)dm;
+                double camm = (myRigidbody.mass - dm) * SRelativityUtil.avogadroNumber / baryonCount;
 
-                if ((myTemperature > 0) && (currentAverageMolarMass < fundamentalAverageMolarMass))
+                if ((myTemperature > 0) && (camm < fundamentalAverageMolarMass))
                 {
                     currentAverageMolarMass = fundamentalAverageMolarMass;
+                }
+                else if (camm <= 0)
+                {
+                    myRigidbody.mass = 0;
+                }
+                else
+                {
+                    myRigidbody.mass -= (float)dm; 
                 }
 
                 if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
