@@ -794,6 +794,11 @@ namespace Qrack
             return QuantumManager.M(SystemId, GetSystemIndex(targetId)) > 0;
         }
 
+        public uint MAll()
+        {
+            return QuantumManager.MAll(SystemId);
+        }
+
         public void QSET(uint targetId)
         {
             if (!M(targetId))
