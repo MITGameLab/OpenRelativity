@@ -12,7 +12,7 @@ namespace OpenRelativity
         public static float c { get { return state.SpeedOfLight; } }
         public static float cSqrd { get { return state.SpeedOfLightSqrd; } }
 
-        public static float sigmaPlanck { get { return 8 * Mathf.Pow(Mathf.PI, 5) / (15 * Mathf.Pow(2 * Mathf.PI, 3)); } }
+        public static float sigmaPlanck { get { return 8 * Mathf.Pow(Mathf.PI, 2) / 120; } }
 
         public static float avogadroNumber = 6.02214e23f;
 
@@ -77,7 +77,7 @@ namespace OpenRelativity
             float vuDot = Vector3.Dot(myWorldVel, otherWorldVel) / cSqrd;
             Vector3 vr;
             //If our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speedSqr != 0)
+            if (speedSqr > FLT_EPSILON)
             {
                 //Get the parallel component of the object's velocity
                 Vector3 uparra = (vuDot / speedSqr) * myWorldVel / c;
@@ -99,7 +99,7 @@ namespace OpenRelativity
         public static Vector3 ContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
             float speedSqr = velocity.sqrMagnitude;
-            if (speedSqr == 0.0)
+            if (speedSqr <= FLT_EPSILON)
             {
                 return interval;
             }
@@ -129,7 +129,7 @@ namespace OpenRelativity
             float beta = vpc.magnitude;
             float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
-            if (beta > 0)
+            if (beta > FLT_EPSILON)
             {
                 Vector4 vpcTransUnit = -vpc / beta;
                 vpcTransUnit.w = 1;
