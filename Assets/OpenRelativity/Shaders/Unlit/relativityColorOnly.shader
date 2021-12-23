@@ -55,7 +55,7 @@ Shader "Relativity/Unlit/ColorOnly"
 #define UV_START 0
 
 		//Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 	//This is the data sent from the vertex shader to the fragment shader
 	struct v2f
@@ -234,8 +234,8 @@ Shader "Relativity/Unlit/ColorOnly"
 
 	float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 		//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-		if (shift < divByZeroCutoff) {
-			shift = divByZeroCutoff;
+		if (shift < FLT_EPSILON) {
+			shift = FLT_EPSILON;
 		}
 
 		float mixIntensity = _dopplerIntensity;
@@ -268,7 +268,7 @@ Shader "Relativity/Unlit/ColorOnly"
 	{
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 		float shift;
-		if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)) {
+		if ((i.svc <= FLT_EPSILON) || (dot(_vr.xyz, _vr.xyz) <= FLT_EPSILON)) {
 			shift = 1.0f;
 		}
 		else

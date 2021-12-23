@@ -332,7 +332,7 @@ namespace OpenRelativity
                 //3-acceleration acts as classically on the rapidity, rather than velocity.
                 Vector3 totalVel = playerVelocityVector.AddVelocity((quasiWorldAccel * Time.deltaTime).RapidityToVelocity());
                 Vector3 projVOnG = Vector3.Project(totalVel, Physics.gravity);
-                if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
+                if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
                 {
                     totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
                     totalVel = new Vector3(totalVel.x, 0, totalVel.z);
@@ -467,7 +467,7 @@ namespace OpenRelativity
             // The Rindler horizon evaporates as a Schwarzschild event horizon with the same surface gravity, according to Strano.
             // We add any background radiation power.
             double alpha = myAccel.magnitude;
-            bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
+            bool isNonZeroTemp = alpha > SRelativityUtil.FLT_EPSILON;
 
             double r = double.PositiveInfinity;
             // If alpha is in equilibrium with the background temperature, there is no evaporation.
@@ -488,7 +488,7 @@ namespace OpenRelativity
             {
                 isNonZeroTemp = true;
                 r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
-                if (r <= SRelativityUtil.divByZeroCutoff)
+                if (r <= SRelativityUtil.FLT_EPSILON)
                 {
                     leviCivitaDevAccel += myAccel;
                 }
@@ -534,7 +534,7 @@ namespace OpenRelativity
                     myRigidbody.mass -= (float)dm; 
                 }
 
-                if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
+                if (myRigidbody.mass > SRelativityUtil.FLT_EPSILON)
                 {
                     state.PlayerVelocityVector = momentum / myRigidbody.mass;
                 }

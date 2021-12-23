@@ -23,7 +23,7 @@ namespace OpenRelativity.ConformalMaps
             // If our "SetEffectiveRadius(piw)" is expected to be exact at the equator, but we use it in all cases,
             // then we can better our overall approximation by assuming an inclincation-dependent time coordinate scaling.
 
-            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            if (spinMomentum <= SRelativityUtil.FLT_EPSILON)
             {
                 return;
             }
@@ -52,7 +52,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
-            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            if (spinMomentum <= SRelativityUtil.FLT_EPSILON)
             {
                 spinRadiusDiff = 0.0f;
                 timeScale = 1.0f;
@@ -108,7 +108,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
+            if ((spinMomentum <= SRelativityUtil.FLT_EPSILON) || (piw.sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
             {
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
@@ -190,7 +190,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
         {
-            if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
+            if ((spinMomentum <= SRelativityUtil.FLT_EPSILON) || (piw.sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
             {
                 return base.GetRindlerAcceleration(piw);
             }

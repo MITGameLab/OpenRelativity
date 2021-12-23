@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 
 //Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 //#define quaternion float4
 //
@@ -85,7 +85,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	angFac *= angFac;
 	float avpMagSqr = dot(avp.xyz, avp.xyz);
 	float3 angVec = float3(0, 0, 0);
-	if (avpMagSqr > divByZeroCutoff) {
+	if (avpMagSqr > FLT_EPSILON) {
 		angVec = 2 * angFac / (spdOfLight * avpMagSqr) * avp.xyz;
 	}
 
@@ -125,7 +125,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	}
 	tisw += t2;
 	//add the position offset due to acceleration
-	if (paoMag > divByZeroCutoff)
+	if (paoMag > FLT_EPSILON)
 	{
 		riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / spdOfLight) * (paoMag * t2 / spdOfLight)) - 1);
 	}
@@ -138,7 +138,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	float newz = speed * spdOfLight * tisw;
 
-	if (speed > divByZeroCutoff) {
+	if (speed > FLT_EPSILON) {
 		float3 vpcUnit = vpc.xyz / speed;
 		newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 		riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);

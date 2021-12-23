@@ -57,7 +57,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 #define UV_START 0
 
 //Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 
 		//This is the data sent from the vertex shader to the fragment shader
@@ -138,7 +138,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			angFac *= angFac;
 			float avpMagSqr = dot(_avp.xyz, _avp.xyz);
 			float3 angVec = float3(0, 0, 0);
-			if (avpMagSqr > divByZeroCutoff) {
+			if (avpMagSqr > FLT_EPSILON) {
 				angVec = 2 * angFac / (_spdOfLight * avpMagSqr) * _avp.xyz;
 			}
 
@@ -180,7 +180,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			}
 			tisw += t2;
 			//add the position offset due to acceleration
-			if (paoMag > divByZeroCutoff)
+			if (paoMag > FLT_EPSILON)
 			{
 				riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / _spdOfLight) * (paoMag * t2 / _spdOfLight)) - 1);
 			}
@@ -193,7 +193,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 
 			float newz = speed * _spdOfLight * tisw;
 
-			if (speed > divByZeroCutoff) {
+			if (speed > FLT_EPSILON) {
 				float3 vpcUnit = _vpc.xyz / speed;
 				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
@@ -330,8 +330,8 @@ Shader "Relativity/Unlit/ColorLorentz"
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 #if DOPPLER_SHIFT
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			if (shift < divByZeroCutoff) {
-				shift = divByZeroCutoff;
+			if (shift < FLT_EPSILON) {
+				shift = FLT_EPSILON;
 			}
 
 			float mixIntensity = _dopplerIntensity;
@@ -368,7 +368,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float shift = 1.0f;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			if ((i.svc.x > divByZeroCutoff) && (dot(_vr.xyz, _vr.xyz) > divByZeroCutoff)) {
+			if ((i.svc.x > FLT_EPSILON) && (dot(_vr.xyz, _vr.xyz) > FLT_EPSILON)) {
 				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc.x;
 			}
 #endif

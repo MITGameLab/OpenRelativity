@@ -7,7 +7,7 @@ namespace OpenRelativity.ConformalMaps
     {
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            if (Physics.gravity.sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+            if (Physics.gravity.sqrMagnitude <= SRelativityUtil.FLT_EPSILON)
             {
                 return new Comovement
                 {
@@ -62,7 +62,7 @@ namespace OpenRelativity.ConformalMaps
 
         public override Vector3 GetFreeFallVelocity(Vector3 piw)
         {
-            if ((Physics.gravity.sqrMagnitude <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
+            if ((Physics.gravity.sqrMagnitude <= SRelativityUtil.FLT_EPSILON) || (piw.sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
             {
                 return Vector3.zero;
             }
@@ -73,7 +73,7 @@ namespace OpenRelativity.ConformalMaps
             Vector3 projD = Vector3.Project(piw - origin, unitVec);
             double d = projD.magnitude;
 
-            if (d <= SRelativityUtil.divByZeroCutoff)
+            if (d <= SRelativityUtil.FLT_EPSILON)
             {
                 return Vector3.zero;
             }

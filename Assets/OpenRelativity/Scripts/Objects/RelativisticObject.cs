@@ -194,7 +194,6 @@ namespace OpenRelativity.Objects
 
             // However, sometimes we want a different velocity, at this space-time point,
             // such as this RO's own velocity.
-
             Matrix4x4 metric = GetMetric();
 
             return pVel.Value.InverseGamma(metric);
@@ -247,10 +246,10 @@ namespace OpenRelativity.Objects
             switch (mode)
             {
                 case ForceMode.Impulse:
-                    viw += force / myRigidbody.mass;
+                    peculiarVelocity += force / myRigidbody.mass;
                     break;
                 case ForceMode.VelocityChange:
-                    viw += force;
+                    peculiarVelocity += force;
                     break;
                 case ForceMode.Force:
                     nonGravAccel += force / myRigidbody.mass;
@@ -304,7 +303,7 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if ((value - _peculiarVelocity).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                if ((value - _peculiarVelocity).sqrMagnitude <= SRelativityUtil.FLT_EPSILON)
                 {
                     return;
                 }
@@ -365,7 +364,7 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if (isKinematic || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                if (isKinematic || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.FLT_EPSILON)
                 {
                     return;
                 }
@@ -834,7 +833,7 @@ namespace OpenRelativity.Objects
             contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
             transform.localScale = _localScale;
 
-            if (relVelMag > SRelativityUtil.divByZeroCutoff)
+            if (relVelMag > SRelativityUtil.FLT_EPSILON)
             {
                 Quaternion rot = transform.rotation;
 
@@ -1227,7 +1226,7 @@ namespace OpenRelativity.Objects
                         // This is not actually "proper acceleration," with this option active.
                         properAccel += state.conformalMap.GetRindlerAcceleration(piw);
                     }
-                    if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+                    if (properAccel.sqrMagnitude > SRelativityUtil.FLT_EPSILON)
                     {
                         myRigidbody.AddForce(gamma * properAccel, ForceMode.Acceleration);
                     }
@@ -1529,7 +1528,7 @@ namespace OpenRelativity.Objects
                 // Update riw
                 float aviwMag = aviw.magnitude;
                 Quaternion diffRot;
-                if (aviwMag <= SRelativityUtil.divByZeroCutoff)
+                if (aviwMag <= SRelativityUtil.FLT_EPSILON)
                 {
                     diffRot = Quaternion.identity;
                 }
@@ -1573,7 +1572,7 @@ namespace OpenRelativity.Objects
             // The Rindler horizon evaporates as a Schwarzschild event horizon with the same surface gravity, according to Strano.
             // We add any background radiation power, proportional to the fourth power of the background temperature.
             double alpha = myAccel.magnitude;
-            bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
+            bool isNonZeroTemp = alpha > SRelativityUtil.FLT_EPSILON;
 
             double r = double.PositiveInfinity;
             // If alpha is in equilibrium with the background temperature, there is no evaporation.
@@ -1594,7 +1593,7 @@ namespace OpenRelativity.Objects
             {
                 isNonZeroTemp = true;
                 r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
-                if (r <= SRelativityUtil.divByZeroCutoff)
+                if (r <= SRelativityUtil.FLT_EPSILON)
                 {
                     leviCivitaDevAccel += myAccel;
                 }
@@ -1640,7 +1639,7 @@ namespace OpenRelativity.Objects
                     myRigidbody.mass -= (float)dm;
                 }
 
-                if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
+                if (myRigidbody.mass > SRelativityUtil.FLT_EPSILON)
                 {
                     peculiarVelocity = momentum / myRigidbody.mass;
                 }

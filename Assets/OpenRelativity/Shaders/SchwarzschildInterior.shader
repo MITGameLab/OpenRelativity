@@ -11,7 +11,6 @@
 #pragma exclude_renderers xbox360
 #pragma glsl
 
-#define divByZeroCutoff 1e-8f
 #define PI_2 1.57079632679489661923
 
 //Color shift variables, used to make Gaussians for XYZ curves

@@ -5,7 +5,9 @@ namespace OpenRelativity
 {
     public static class SRelativityUtil
     {
-        public const float divByZeroCutoff = 1e-8f;
+        // It's acceptable if this is this is the difference between 1.0f and the immediate next higher representable value.
+        // See https://stackoverflow.com/questions/12627534/is-there-a-flt-epsilon-defined-in-the-net-framework
+        public const float FLT_EPSILON = 1.192092896e-07F;
 
         public static float c { get { return state.SpeedOfLight; } }
         public static float cSqrd { get { return state.SpeedOfLightSqrd; } }
@@ -35,7 +37,7 @@ namespace OpenRelativity
 
         public static float EffectiveRaditiativeRadius(float radius, float backgroundPlanckTemp)
         {
-            if (backgroundPlanckTemp <= divByZeroCutoff)
+            if (backgroundPlanckTemp <= FLT_EPSILON)
             {
                 return radius;
             }
@@ -111,7 +113,7 @@ namespace OpenRelativity
         public static Vector3 InverseContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
             float speedSqr = velocity.sqrMagnitude;
-            if (float.IsNaN(speedSqr) || float.IsInfinity(speedSqr) || speedSqr <= divByZeroCutoff)
+            if (float.IsNaN(speedSqr) || float.IsInfinity(speedSqr) || speedSqr <= FLT_EPSILON)
             {
                 return interval;
             }
@@ -160,7 +162,7 @@ namespace OpenRelativity
             float angFac = Vector3.Dot(avp, piw) / c;
             angFac *= angFac;
             float avpMagSqr = avp.sqrMagnitude;
-            Vector3 angVec = avpMagSqr <= divByZeroCutoff ? Vector3.zero : 2 * angFac / (c * avpMagSqr) * avp.normalized;
+            Vector3 angVec = avpMagSqr <= FLT_EPSILON ? Vector3.zero : 2 * angFac / (c * avpMagSqr) * avp.normalized;
 
             Matrix4x4 metric = new Matrix4x4(
                 new Vector4(-1, 0, 0, -angVec.x),
@@ -245,7 +247,7 @@ namespace OpenRelativity
 
             tisw += t2;
             //add the position offset due to acceleration
-            if (aiwMag > divByZeroCutoff)
+            if (aiwMag > FLT_EPSILON)
             {
                 riwTransformed = riwTransformed - aiwTransformed / aiwMag * cSqrd * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
             }
@@ -329,7 +331,7 @@ namespace OpenRelativity
 
             tisw += t2;
             //add the position offset due to acceleration
-            if (aiwMag > divByZeroCutoff)
+            if (aiwMag > FLT_EPSILON)
             {
                 riwTransformed = riwTransformed - aiwTransformed / aiwMag * cSqrd * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
             }
@@ -341,7 +343,7 @@ namespace OpenRelativity
             riw = (Vector3)riw + tisw * velocity;
 
             float speed = vpc.magnitude;
-            if (speed > divByZeroCutoff)
+            if (speed > FLT_EPSILON)
             {
                 float newz = speed * c * tisw;
                 Vector4 vpcUnit = vpc / speed;
@@ -375,7 +377,7 @@ namespace OpenRelativity
 
             //Transform fails and is unecessary if relative speed is zero:
             float speed = vpc.magnitude;
-            if (speed > divByZeroCutoff)
+            if (speed > FLT_EPSILON)
             {
                 Vector4 vpcUnit = vpc / speed;
                 float riwDotVpcUnit = Vector4.Dot(riw, vpcUnit);
@@ -384,7 +386,7 @@ namespace OpenRelativity
             }
 
             //Rotate all our vectors so that velocity is entirely along z direction:
-            Quaternion viwToZRot = viw.sqrMagnitude <= divByZeroCutoff ? Quaternion.identity : Quaternion.FromToRotation(viw, Vector3.forward);
+            Quaternion viwToZRot = viw.sqrMagnitude <= FLT_EPSILON ? Quaternion.identity : Quaternion.FromToRotation(viw, Vector3.forward);
             Vector4 riwTransformed = viwToZRot * ((Vector3)riw - velocity * tisw);
             riwTransformed.w = tisw;
             Vector3 aiwTransformed = viwToZRot * aiw;
@@ -402,7 +404,7 @@ namespace OpenRelativity
             float t2 = riwTransformed.w;
 
             float aiwMag = aiwTransformed.magnitude;
-            if (aiwMag > divByZeroCutoff)
+            if (aiwMag > FLT_EPSILON)
             {
                 //add the position offset due to acceleration
                 riwTransformed += (Vector4)(aiwTransformed) / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
@@ -486,7 +488,7 @@ namespace OpenRelativity
 
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)
         {
-            if (c <= divByZeroCutoff)
+            if (c <= FLT_EPSILON)
             {
                 return Vector4.zero;
             }

@@ -13,7 +13,7 @@ namespace OpenRelativity.ConformalMaps
             // Calculate and set spin difference, based on invariant radius.
             base.SetEffectiveRadius(piw);
 
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
+            if (electricCharge <= SRelativityUtil.FLT_EPSILON)
             {
                 chargeRadiusDiff = 0.0f;
                 return;

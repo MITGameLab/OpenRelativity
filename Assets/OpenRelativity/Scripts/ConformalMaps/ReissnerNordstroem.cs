@@ -10,7 +10,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
-            if (electricCharge <= SRelativityUtil.divByZeroCutoff)
+            if (electricCharge <= SRelativityUtil.FLT_EPSILON)
             {
                 chargeRadiusDiff = 0.0f;
                 return;

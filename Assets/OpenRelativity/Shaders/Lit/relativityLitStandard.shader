@@ -75,7 +75,7 @@ Shader "Relativity/Lit/Standard" {
 #define FORWARD_FOG (!defined(UNITY_PASS_DEFERRED) && defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
 
 //Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 #define CAST_LIGHTCOLOR0 float4((float)_LightColor0.r, (float)_LightColor0.g, (float)_LightColor0.b, (float)_LightColor0.a)
 
@@ -253,8 +253,8 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
-			if (bottom2 < divByZeroCutoff) {
-				bottom2 = divByZeroCutoff;
+			if (bottom2 < FLT_EPSILON) {
+				bottom2 = FLT_EPSILON;
 			}
 
 			float paramYShift = param.y * shift;
@@ -277,8 +277,8 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
-			if (bottom < divByZeroCutoff) {
-				bottom = divByZeroCutoff;
+			if (bottom < FLT_EPSILON) {
+				bottom = FLT_EPSILON;
 			}
 
 			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
@@ -295,8 +295,8 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
-			if (bottom < divByZeroCutoff) {
-				bottom = divByZeroCutoff;
+			if (bottom < FLT_EPSILON) {
+				bottom = FLT_EPSILON;
 			}
 
 			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
@@ -347,8 +347,8 @@ Shader "Relativity/Lit/Standard" {
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 #if DOPPLER_SHIFT
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			if (shift < divByZeroCutoff) {
-				shift = divByZeroCutoff;
+			if (shift < FLT_EPSILON) {
+				shift = FLT_EPSILON;
 			}
 
 			float mixIntensity = _dopplerIntensity;
@@ -465,7 +465,7 @@ Shader "Relativity/Lit/Standard" {
 			angFac *= angFac;
 			float avpMagSqr = dot(_avp.xyz, _avp.xyz);
 			float3 angVec = float3(0, 0, 0);
-			if (avpMagSqr > divByZeroCutoff) {
+			if (avpMagSqr > FLT_EPSILON) {
 				angVec = 2 * angFac / (_spdOfLight * avpMagSqr) * _avp.xyz;
 			}
 
@@ -520,7 +520,7 @@ Shader "Relativity/Lit/Standard" {
 			}
 			tisw += t2;
 			//add the position offset due to acceleration
-			if (paoMag > divByZeroCutoff)
+			if (paoMag > FLT_EPSILON)
 			{
 				riwTransformed.xyz -= paoTransformed.xyz / paoMag * _spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / _spdOfLight) * (paoMag * t2 / _spdOfLight)) - 1);
 			}
@@ -534,7 +534,7 @@ Shader "Relativity/Lit/Standard" {
 
 			float newz = speed * _spdOfLight * tisw;
 
-			if (speed > divByZeroCutoff) {
+			if (speed > FLT_EPSILON) {
 				float3 vpcUnit = _vpc.xyz / speed;
 				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
@@ -628,7 +628,7 @@ Shader "Relativity/Lit/Standard" {
 			float shift = 1.0f;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			if ((i.svc.x > divByZeroCutoff) && (dot(_vr.xyz, _vr.xyz) > divByZeroCutoff)) {
+			if ((i.svc.x > FLT_EPSILON) && (dot(_vr.xyz, _vr.xyz) > FLT_EPSILON)) {
 				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc.x;
 			}
 #endif
@@ -746,7 +746,7 @@ Shader "Relativity/Lit/Standard" {
 			// to calculate the reflectance, but this probably isn't physically meaningful: the albedo is a proper intrinsic property.
 
 			float pShift = 1.0f;
-			if ((i.svc.y > divByZeroCutoff) && (dot(_viw.xyz, _viw.xyz) > divByZeroCutoff)) {
+			if ((i.svc.y > FLT_EPSILON) && (dot(_viw.xyz, _viw.xyz) > FLT_EPSILON)) {
 				pShift = (1 - dot(lightDirection, _viw.xyz)) / i.svc.x;
 			}
 
