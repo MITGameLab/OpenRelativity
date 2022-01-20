@@ -6,9 +6,7 @@ namespace OpenRelativity.ConformalMaps
     {
         public float electricCharge;
 
-        protected float chargeRadius;
         protected float chargeRadiusDiff;
-        protected float radiusRoot;
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
@@ -53,8 +51,8 @@ namespace OpenRelativity.ConformalMaps
         override public void Start()
         {
             float dist = state.playerTransform.position.magnitude;
-            chargeRadius = electricCharge * electricCharge * state.gConst / (4.0f * Mathf.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd);
-            radiusRoot = Mathf.Sqrt(schwarzschildRadius * schwarzschildRadius - 4.0f * chargeRadius * chargeRadius);
+            float chargeRadius = electricCharge * electricCharge * state.gConst / (4.0f * Mathf.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd);
+            float radiusRoot = Mathf.Sqrt(schwarzschildRadius * schwarzschildRadius - 4.0f * chargeRadius * chargeRadius);
             float exteriorRadius = schwarzschildRadius + radiusRoot;
             float cauchyRadius = schwarzschildRadius - radiusRoot;
             isExterior = (dist > exteriorRadius) || (dist < cauchyRadius);
