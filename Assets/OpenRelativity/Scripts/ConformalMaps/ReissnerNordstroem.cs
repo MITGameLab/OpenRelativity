@@ -6,7 +6,9 @@ namespace OpenRelativity.ConformalMaps
     {
         public float electricCharge;
 
+        protected float chargeRadius;
         protected float chargeRadiusDiff;
+        protected float radiusRoot;
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
@@ -46,6 +48,33 @@ namespace OpenRelativity.ConformalMaps
             ResetSchwarschildRadius();
 
             return schwarzAccel;
+        }
+
+        override public void Start()
+        {
+            float dist = state.playerTransform.position.magnitude;
+            chargeRadius = electricCharge * electricCharge * state.gConst / (4.0f * Mathf.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd);
+            radiusRoot = Mathf.Sqrt(schwarzschildRadius * schwarzschildRadius - 4.0f * chargeRadius * chargeRadius);
+            float exteriorRadius = schwarzschildRadius + radiusRoot;
+            float cauchyRadius = schwarzschildRadius - radiusRoot;
+            isExterior = (dist > exteriorRadius) || (dist < cauchyRadius);
+
+            if (!isExterior)
+            {
+                SetEffectiveRadius((dist - cauchyRadius) * state.playerTransform.position / dist);
+
+                // From the exterior Schwarzschild perspective, the player's coordinate radius from origin (less than the
+                // coordinate distance from origin to event horizon) corresponds with the interior time.
+                state.playerTransform.position = state.SpeedOfLight * state.TotalTimeWorld * state.playerTransform.position.normalized;
+
+                // Theoretically, "first-person" local time extends infinitely back into the past and forward into the future,
+                // but the limit points for 0 Hubble sphere radius at either extreme might have a finite total time
+                // between the limit points.
+                state.TotalTimeWorld = dist / state.SpeedOfLight;
+                state.TotalTimePlayer = state.TotalTimeWorld;
+
+                ResetSchwarschildRadius();
+            }
         }
 
         override public void Update()

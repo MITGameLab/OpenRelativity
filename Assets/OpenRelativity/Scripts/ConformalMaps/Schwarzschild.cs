@@ -53,17 +53,6 @@ namespace OpenRelativity.ConformalMaps
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            if (schwarzschildRadius <= 0)
-            {
-                Vector4 toRet = piw;
-                toRet.w = properTDiff;
-                return new Comovement
-                {
-                    piw = toRet,
-                    riw = riw
-                };
-            }
-
             // Assume that the spatial component is in world coordinates, and the time is a local time differential 
             double r;
             double tau = properTDiff;
@@ -192,7 +181,13 @@ namespace OpenRelativity.ConformalMaps
         {
             EnforceHorizon();
 
-            if (schwarzschildRadius <= 0 || !doEvaporate || state.isMovementFrozen)
+            if (schwarzschildRadius <= 0)
+            {
+                schwarzschildRadius = 0;
+                return;
+            }
+
+            if (!doEvaporate || state.isMovementFrozen)
             {
                 return;
             }
