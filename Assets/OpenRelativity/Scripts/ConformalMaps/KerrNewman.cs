@@ -31,11 +31,38 @@ namespace OpenRelativity.ConformalMaps
             base.ResetSchwarschildRadius();
         }
 
+        override public void Start()
+        {
+            float dist = state.playerTransform.position.magnitude;
+            float chargeRadius = Mathf.Sqrt(electricCharge * electricCharge * state.gConst / (4.0f * Mathf.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd));
+            float radiusRoot = Mathf.Sqrt(schwarzschildRadius * schwarzschildRadius - 4.0f * chargeRadius * chargeRadius);
+            float exteriorRadius = schwarzschildRadius + radiusRoot;
+            float cauchyRadius = schwarzschildRadius - radiusRoot;
+            isExterior = (dist > exteriorRadius) || (dist < cauchyRadius);
+
+            if (!isExterior)
+            {
+                SetEffectiveRadius((dist - cauchyRadius) * state.playerTransform.position / dist);
+
+                // From the exterior Schwarzschild perspective, the player's coordinate radius from origin (less than the
+                // coordinate distance from origin to event horizon) corresponds with the interior time.
+                state.playerTransform.position = state.SpeedOfLight * state.TotalTimeWorld * state.playerTransform.position.normalized;
+
+                // Theoretically, "first-person" local time extends infinitely back into the past and forward into the future,
+                // but the limit points for 0 Hubble sphere radius at either extreme might have a finite total time
+                // between the limit points.
+                state.TotalTimeWorld = dist / state.SpeedOfLight;
+                state.TotalTimePlayer = state.TotalTimeWorld;
+
+                ResetSchwarschildRadius();
+            }
+        }
+
         override public void Update()
         {
             EnforceHorizon();
 
-            if (schwarzschildRadius <= 0 || !doEvaporate || state.isMovementFrozen)
+            if (schwarzschildRadius == 0 || !doEvaporate || state.isMovementFrozen)
             {
                 return;
             }
@@ -50,6 +77,18 @@ namespace OpenRelativity.ConformalMaps
                 electricCharge = 0;
                 spinMomentum = 0;
 
+                return;
+            }
+
+            if (electricCharge <= 0)
+            {
+                electricCharge = 0;
+                return;
+            }
+
+            if (spinMomentum <= 0)
+            {
+                spinMomentum = 0;
                 return;
             }
 

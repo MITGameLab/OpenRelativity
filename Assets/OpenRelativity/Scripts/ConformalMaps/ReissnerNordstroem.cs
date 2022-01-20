@@ -79,7 +79,7 @@ namespace OpenRelativity.ConformalMaps
         {
             EnforceHorizon();
 
-            if (schwarzschildRadius <= 0 || !doEvaporate || state.isMovementFrozen)
+            if (schwarzschildRadius == 0 || !doEvaporate || state.isMovementFrozen)
             {
                 return;
             }
