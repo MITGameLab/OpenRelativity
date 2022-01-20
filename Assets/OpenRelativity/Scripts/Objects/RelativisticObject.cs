@@ -1457,7 +1457,7 @@ namespace OpenRelativity.Objects
             if (state.conformalMap && !comoveViaAcceleration)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
-                if (!IsNaNOrInf(cm.piw.magnitude)) {
+                if (!IsNaNOrInf(cm.piw.sqrMagnitude)) {
                     Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
                     riw = cm.riw;
                     _piw = cm.piw;
