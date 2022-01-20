@@ -1457,14 +1457,16 @@ namespace OpenRelativity.Objects
             if (state.conformalMap && !comoveViaAcceleration)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
-                Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
-                riw = cm.riw;
-                _piw = cm.piw;
+                if (!IsNaNOrInf(cm.piw.magnitude)) {
+                    Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
+                    riw = cm.riw;
+                    _piw = cm.piw;
 
-                if (myRigidbody && !isNonrelativisticShader)
-                {
-                    myRigidbody.MovePosition(piw);
-                    // We'll MovePosition() for isNonrelativisticShader, further below.
+                    if (myRigidbody && !isNonrelativisticShader)
+                    {
+                        myRigidbody.MovePosition(piw);
+                        // We'll MovePosition() for isNonrelativisticShader, further below.
+                    }
                 }
             }
 
