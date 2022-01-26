@@ -598,3 +598,12 @@ AssetImportParameters requested are different than current active one (requested
   custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
   custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
   custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+========================================================================
+Received Import Request.
+  Time since last request: 442.451527 seconds.
+  path: Assets/Qrack/Qasm/TripletOxygen.cs
+  artifactKey: Guid(05b4045501a00944185826462433ae1f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Qrack/Qasm/TripletOxygen.cs using Guid(05b4045501a00944185826462433ae1f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'fa30d0691a835ed812dacaa7a2a5e19f') in 0.004529 seconds 
+  Import took 0.006327 seconds .
+
+AssetImportWorkerClient::OnTransportError - code=2 error=End of file

@@ -454,14 +454,14 @@ namespace Qrack
             MCSingleBitGate(controls, targetId, QuantumManager.MCT);
         }
 
-        public void MCADJS(uint[] controls, uint targetId)
+        public void MCAdjS(uint[] controls, uint targetId)
         {
-            MCSingleBitGate(controls, targetId, QuantumManager.MCADJS);
+            MCSingleBitGate(controls, targetId, QuantumManager.MCAdjS);
         }
 
-        public void MCADJT(uint[] controls, uint targetId)
+        public void MCAdjT(uint[] controls, uint targetId)
         {
-            MCSingleBitGate(controls, targetId, QuantumManager.MCADJT);
+            MCSingleBitGate(controls, targetId, QuantumManager.MCAdjT);
         }
 
         public void MCU(uint[] controls, uint targetId, double theta, double phi, double lambda)
@@ -517,14 +517,14 @@ namespace Qrack
             MCSingleBitGate(controls, targetId, QuantumManager.MACT);
         }
 
-        public void MACADJS(uint[] controls, uint targetId)
+        public void MACAdjS(uint[] controls, uint targetId)
         {
-            MCSingleBitGate(controls, targetId, QuantumManager.MACADJS);
+            MCSingleBitGate(controls, targetId, QuantumManager.MACAdjS);
         }
 
-        public void MACADJT(uint[] controls, uint targetId)
+        public void MACAdjT(uint[] controls, uint targetId)
         {
-            MCSingleBitGate(controls, targetId, QuantumManager.MACADJT);
+            MCSingleBitGate(controls, targetId, QuantumManager.MACAdjT);
         }
 
         public void MACU(uint[] controls, uint targetId, double theta, double phi, double lambda)
