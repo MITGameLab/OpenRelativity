@@ -5,6 +5,13 @@ using UnityEngine;
 
 namespace Qrack
 {
+    public class BlochSphereCoordinates
+    {
+        public double x { get; set; }
+        public double y { get; set; }
+        public double z { get; set; }
+    }
+
     public class QuantumManager : MonoBehaviour
     {
         public const string QRACKSIM_DLL_NAME = @"qrack_pinvoke";
@@ -284,6 +291,21 @@ namespace Qrack
         public static bool TrySeparate(uint simId, uint n, uint[] q, double error_tol)
         {
             return TrySeparateTol(simId, n, q, error_tol);
+        }
+
+        public static BlochSphereCoordinates Prob3Axis(uint simId, uint target)
+        {
+            BlochSphereCoordinates toRet = new BlochSphereCoordinates();
+
+            toRet.z = Prob(simId, target);
+            H(simId, target);
+            toRet.x = Prob(simId, target);
+            S(simId, target);
+            toRet.y = Prob(simId, target);
+            AdjS(simId, target);
+            H(simId, target);
+
+            return toRet;
         }
     }
 }

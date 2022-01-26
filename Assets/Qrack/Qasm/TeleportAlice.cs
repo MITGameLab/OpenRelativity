@@ -22,20 +22,14 @@ namespace Qrack
 
                     qs.Rand(0);
 
-                    float zProb = qs.Prob(0);
-                    qs.H(0);
-                    float xProb = qs.Prob(0);
-                    qs.S(0);
-                    float yProb = qs.Prob(0);
-                    qs.AdjS(0);
-                    qs.H(0);
+                    BlochSphereCoordinates coords = qs.Prob3Axis(0);
 
                     HistoryPoints.Add(new RealTimeQasmProgramHistoryPoint
                     {
                         WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
-                            ro.transform.eulerAngles = new Vector3(xProb * 360.0f, yProb * 360.0f, zProb * 360.0f);
+                            ro.transform.eulerAngles = new Vector3((float)(coords.x * 360.0), (float)(coords.y * 360.0), (float)(coords.z * 360.0));
                             ro.riw = qs.transform.rotation;
                         }
                     });
