@@ -76,10 +76,10 @@ namespace Qrack
         public static extern void MCT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCADJS")]
-        public static extern void MCADJS(uint simId, uint controlLen, uint[] controls, uint targetId);
+        public static extern void MCAdjS(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCADJT")]
-        public static extern void MCADJT(uint simId, uint controlLen, uint[] controls, uint targetId);
+        public static extern void MCAdjT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCU")]
         public static extern void MCU(uint simId, uint controlLen, uint[] controls, uint targetId, double theta, double phi, double lambda);
@@ -106,10 +106,10 @@ namespace Qrack
         public static extern void MACT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACADJS")]
-        public static extern void MACADJS(uint simId, uint controlLen, uint[] controls, uint targetId);
+        public static extern void MACAdjS(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACADJT")]
-        public static extern void MACADJT(uint simId, uint controlLen, uint[] controls, uint targetId);
+        public static extern void MACAdjT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACU")]
         public static extern void MACU(uint simId, uint controlLen, uint[] controls, uint targetId, double theta, double phi, double lambda);
