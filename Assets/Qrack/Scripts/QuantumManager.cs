@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 using UnityEngine;
@@ -7,9 +8,28 @@ namespace Qrack
 {
     public class BlochSphereCoordinates
     {
-        public double x { get; set; }
-        public double y { get; set; }
-        public double z { get; set; }
+        public double probX { get; private set; }
+        public double probY { get; private set; }
+        public double probZ { get; private set; }
+
+        public double r { get; private set; }
+        public double azimuth { get; private set; }
+        public double inclination { get; private set; }
+
+        public BlochSphereCoordinates(double px, double py, double pz)
+        {
+            probX = px;
+            probY = py;
+            probZ = pz;
+
+            double x = (1.0 / 2.0) - probX;
+            double y = (1.0 / 2.0) - probY;
+            double z = (1.0 / 2.0) - probZ;
+
+            r = 2 * Math.Sqrt(x * x + y * y + z * z);
+            inclination = Math.Atan2(Math.Sqrt(x * x + y * y), z);
+            azimuth = Math.Atan2(y, x);
+        }
     }
 
     public class QuantumManager : MonoBehaviour
@@ -235,7 +255,7 @@ namespace Qrack
 
         public static void Rand(uint simId, uint target)
         {
-            U(simId, target, Random.Range(0, 2 * Mathf.PI), Random.Range(0, 2 * Mathf.PI), Random.Range(0, 2 * Mathf.PI));
+            U(simId, target, UnityEngine.Random.Range(0, 2 * Mathf.PI), UnityEngine.Random.Range(0, 2 * Mathf.PI), UnityEngine.Random.Range(0, 2 * Mathf.PI));
         }
 
         public static void Exp(uint simId, uint target, double phi)
@@ -295,17 +315,15 @@ namespace Qrack
 
         public static BlochSphereCoordinates Prob3Axis(uint simId, uint target)
         {
-            BlochSphereCoordinates toRet = new BlochSphereCoordinates();
-
-            toRet.z = Prob(simId, target);
+            double probZ = Prob(simId, target);
             H(simId, target);
-            toRet.x = Prob(simId, target);
+            double probX = Prob(simId, target);
             S(simId, target);
-            toRet.y = Prob(simId, target);
+            double probY = Prob(simId, target);
             AdjS(simId, target);
             H(simId, target);
 
-            return toRet;
+            return new BlochSphereCoordinates(probX, probY, probZ);
         }
     }
 }

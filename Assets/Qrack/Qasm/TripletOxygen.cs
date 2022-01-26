@@ -41,8 +41,9 @@ namespace Qrack
                         WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
-                            ro.transform.localEulerAngles = new Vector3((float)(coords.x * 360.0), (float)(coords.y * 360.0), (float)(coords.z * 360.0));
+                            ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg);
                             ro.riw = qs.transform.rotation;
+                            ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
                         }
                     });
                 }
