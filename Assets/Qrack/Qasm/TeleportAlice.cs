@@ -27,8 +27,7 @@ namespace Qrack
                     float xProb = qs.Prob(0);
                     qs.S(0);
                     float yProb = qs.Prob(0);
-                    qs.Z(0);
-                    qs.S(0);
+                    qs.AdjS(0);
                     qs.H(0);
 
                     HistoryPoints.Add(new RealTimeQasmProgramHistoryPoint
@@ -36,7 +35,7 @@ namespace Qrack
                         WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
-                            ro.transform.eulerAngles = new Vector3(xProb * 180.0f, yProb * 180.0f, zProb * 180.0f);
+                            ro.transform.eulerAngles = new Vector3(xProb * 360.0f, yProb * 360.0f, zProb * 360.0f);
                             ro.riw = qs.transform.rotation;
                         }
                     });

@@ -39,8 +39,7 @@ namespace Qrack
                     float xProb = qs.Prob(0);
                     qs.S(0);
                     float yProb = qs.Prob(0);
-                    qs.Z(0);
-                    qs.S(0);
+                    qs.AdjS(0);
                     qs.H(0);
 
                     HistoryPoints.Add(new RealTimeQasmProgramHistoryPoint
