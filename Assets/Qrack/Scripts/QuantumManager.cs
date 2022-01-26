@@ -22,11 +22,11 @@ namespace Qrack
             probY = py;
             probZ = pz;
 
-            double x = (1.0 / 2.0) - probX;
-            double y = (1.0 / 2.0) - probY;
-            double z = (1.0 / 2.0) - probZ;
+            double x = 2 * ((1.0 / 2.0) - probX);
+            double y = 2 * ((1.0 / 2.0) - probY);
+            double z = 2 * ((1.0 / 2.0) - probZ);
 
-            r = 2 * Math.Sqrt(x * x + y * y + z * z);
+            r = Math.Sqrt(x * x + y * y + z * z);
             inclination = Math.Atan2(Math.Sqrt(x * x + y * y), z);
             azimuth = Math.Atan2(y, x);
         }
