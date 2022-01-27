@@ -221,6 +221,10 @@ namespace Qrack
             targetId = GetSystemIndex(targetId);
             CheckAlloc(new List<uint>() { targetId });
             func(SystemId, targetId);
+
+            if (GetError() != 0) {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void Rand(uint targetId)
@@ -272,6 +276,11 @@ namespace Qrack
             targetId = GetSystemIndex(targetId);
             CheckAlloc(new List<uint>() { targetId });
             QuantumManager.U(SystemId, targetId, theta, phi, lambda);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
@@ -280,6 +289,11 @@ namespace Qrack
             targetId = GetSystemIndex(targetId);
             CheckAlloc(new List<uint>() { targetId });
             QuantumManager.Mtrx(SystemId, m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Powers (and roots) of Pauli X
@@ -302,6 +316,11 @@ namespace Qrack
             };
 
             Mtrx(m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Powers (and roots) of Pauli Y
@@ -322,6 +341,11 @@ namespace Qrack
             };
 
             Mtrx(m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Powers (and roots) of Pauli Z
@@ -339,18 +363,33 @@ namespace Qrack
             };
 
             Mtrx(m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Powers (and roots) of "S" gate
         public void PowS(double p, uint targetId)
         {
             PowZ(p / 2.0, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Powers (and roots) of "T" gate
         public void PowT(double p, uint targetId)
         {
             PowZ(p / 4.0, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Powers (and roots) of Hadamard gate
@@ -377,6 +416,11 @@ namespace Qrack
             };
 
             Mtrx(m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void R(Pauli basis, double phi, uint targetId)
@@ -384,6 +428,11 @@ namespace Qrack
             targetId = GetSystemIndex(targetId);
             CheckAlloc(new List<uint>() { targetId });
             QuantumManager.R(SystemId, (uint)basis, phi, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         protected void SingleBitRotation(uint targetId, double phi, Action<uint, uint, double> func)
@@ -391,6 +440,11 @@ namespace Qrack
             targetId = GetSystemIndex(targetId);
             CheckAlloc(new List<uint>() { targetId });
             func(SystemId, targetId, phi);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void Exp(uint targetId, double phi)
@@ -422,6 +476,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             func(SystemId, (uint)mappedControls.Length, mappedControls, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void MCX(uint[] controls, uint targetId)
@@ -473,6 +532,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             QuantumManager.MCU(SystemId, (uint)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Multiply-controlled 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
@@ -485,6 +549,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             QuantumManager.MCMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void MACX(uint[] controls, uint targetId)
@@ -536,6 +605,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             QuantumManager.MACU(SystemId, (uint)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Multiply-controlled 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
@@ -548,6 +622,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             QuantumManager.MACMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         // Powers (and roots) of multiply-controlled Pauli X
@@ -576,6 +655,11 @@ namespace Qrack
             else
             {
                 MCMtrx(controls, m, targetId);
+            }
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
             }
         }
 
@@ -614,6 +698,11 @@ namespace Qrack
             {
                 MCMtrx(controls, m, targetId);
             }
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void PowMCY(double p, uint[] controls, uint targetId)
@@ -647,6 +736,11 @@ namespace Qrack
             else
             {
                 MCMtrx(controls, m, targetId);
+            }
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
             }
         }
 
@@ -706,6 +800,11 @@ namespace Qrack
             };
 
             MCMtrx(controls, m, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void MCPowHx(double p, uint[] controls, uint targetId, bool isAnti)
@@ -738,6 +837,11 @@ namespace Qrack
             {
                 MCMtrx(controls, m, targetId);
             }
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)
@@ -749,6 +853,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             QuantumManager.MCR(SystemId, (uint)basis, phi, (uint)mappedControls.Length, mappedControls, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         protected delegate void MCRot(uint systemId, uint controlLen, uint[] controls, uint targetId, double phi);
@@ -762,6 +871,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             func(SystemId, (uint)mappedControls.Length, mappedControls, targetId, phi);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void MCExp(uint[] controls, uint targetId, double phi)
@@ -792,12 +906,26 @@ namespace Qrack
                 return false;
             }
 
-            return QuantumManager.M(SystemId, targetId) > 0;
+            bool toRet = QuantumManager.M(SystemId, targetId) > 0;
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public uint MAll()
         {
-            return QuantumManager.MAll(SystemId);
+            uint toRet = QuantumManager.MAll(SystemId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public void QSET(uint targetId)
@@ -826,6 +954,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             func(SystemId, qInput1, qInput2, qOutput);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void QAND(uint qInput1, uint qInput2, uint qOutput)
@@ -867,6 +1000,11 @@ namespace Qrack
             CheckAlloc(bits);
 
             func(SystemId, cInput, qInput, qOutput);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void CQAND(bool cInput, uint qInput, uint qOutput)
@@ -907,12 +1045,24 @@ namespace Qrack
                 return 0;
             }
 
-            return (float)QuantumManager.Prob(SystemId, targetId);
+            float toRet = (float)QuantumManager.Prob(SystemId, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public void ResetAll()
         {
             QuantumManager.ResetAll(SystemId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public float PermutationExpectation(uint[] bits)
@@ -921,7 +1071,14 @@ namespace Qrack
             List<uint> mappedList = new List<uint>(mappedBits);
             CheckAlloc(mappedList);
 
-            return (float)QuantumManager.PermutationExpectation(SystemId, (uint)mappedBits.Length, mappedBits);
+            float toRet = (float)QuantumManager.PermutationExpectation(SystemId, (uint)mappedBits.Length, mappedBits);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public void SetBit(uint targetID, bool tOrF)
@@ -942,36 +1099,74 @@ namespace Qrack
             {
                 return true;
             }
-            return QuantumManager.TrySeparate(SystemId, q);
+            bool toRet = QuantumManager.TrySeparate(SystemId, q);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public bool TrySeparate(uint q1, uint q2)
         {
             CheckAlloc(new List<uint>() { q1, q2 });
-            return QuantumManager.TrySeparate(SystemId, GetSystemIndex(q1), GetSystemIndex(q2));
+            bool toRet = QuantumManager.TrySeparate(SystemId, GetSystemIndex(q1), GetSystemIndex(q2));
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public bool TrySeparate(uint[] q, double error_tol)
         {
             uint[] mappedQ = MapQubits(q);
-            return QuantumManager.TrySeparate(SystemId, (uint)mappedQ.Length, mappedQ, error_tol);
+            bool toRet = QuantumManager.TrySeparate(SystemId, (uint)mappedQ.Length, mappedQ, error_tol);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public void SetReactiveSeparate(bool irs)
         {
             QuantumManager.SetReactiveSeparate(SystemId, irs);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public uint Measure(uint[] bases, uint[] qubits)
         {
             uint[] mappedQ = MapQubits(qubits);
-            return QuantumManager.Measure(SystemId, bases, mappedQ);
+            uint toRet = QuantumManager.Measure(SystemId, bases, mappedQ);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
 
         public void MeasureShots(uint[] qubits, uint[] measureResults)
         {
             uint[] mappedQ = MapQubits(qubits);
             QuantumManager.MeasureShots(SystemId, mappedQ, measureResults);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public void TimeEvolve(double t, TimeEvolveOpHeader[] teos, double[] mtrx)
@@ -987,6 +1182,11 @@ namespace Qrack
             }
 
             QuantumManager.TimeEvolve(SystemId, t, (uint)mappedTeos.Length, mappedTeos, (uint)mtrx.Length, mtrx);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
         }
 
         public uint GetError()
@@ -998,7 +1198,14 @@ namespace Qrack
         {
             targetId = GetSystemIndex(targetId);
             CheckAlloc(new List<uint>() { targetId });
-            return QuantumManager.Prob3Axis(SystemId, targetId);
+            BlochSphereCoordinates toRet = QuantumManager.Prob3Axis(SystemId, targetId);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+
+            return toRet;
         }
     }
 }
