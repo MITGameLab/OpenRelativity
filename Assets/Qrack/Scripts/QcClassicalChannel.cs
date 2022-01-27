@@ -11,8 +11,7 @@ namespace Qrack
         public ActionIndicator visualUnitPrefab;
         private List<ActionIndicator> visualUnitsActive;
         private List<ActionIndicator> visualUnitsFree;
-        private List<bool> transmittingSignals;
-        private List<int> transmittingDestinations;
+        private Dictionary<int, QcClassicalSignal> transmittingSignals;
 
         public RealTimeQasmProgram source;
         public RealTimeQasmProgram destination;
@@ -21,13 +20,18 @@ namespace Qrack
 
         private Vector3 oldCameraPos;
 
+        public class QcClassicalSignal
+        {
+            public bool bit { get; set; }
+            public int destination { get; set; }
+        }
+
         // Use this for initialization
         protected void Start()
         {
             visualUnitsActive = new List<ActionIndicator>();
             visualUnitsFree = new List<ActionIndicator>();
-            transmittingSignals = new List<bool>();
-            transmittingDestinations = new List<int>();
+            transmittingSignals = new Dictionary<int, QcClassicalSignal>();
 
             oldCameraPos = state.playerTransform.position;
         }
@@ -46,8 +50,7 @@ namespace Qrack
                 emittedVU = Instantiate(visualUnitPrefab);
             }
             visualUnitsActive.Add(emittedVU);
-            transmittingSignals.Add(source.ClassicalBitRegisters[sourceIndex]);
-            transmittingDestinations.Add(destIndex);
+            transmittingSignals[sourceIndex] = (new QcClassicalSignal { bit = source.ClassicalBitRegisters[sourceIndex], destination = destIndex });
             emittedVU.SetState(true);
             emittedVU.transform.parent = transform;
             emittedVU.transform.position = source.RelativisticObject.opticalPiw;
@@ -85,7 +88,9 @@ namespace Qrack
                 if (disp.sqrMagnitude > (destPos - vuPos).sqrMagnitude)
                 {
                     visualUnitsActive.Remove(vu);
-                    destination.ClassicalBitRegisters[transmittingDestinations[signalIndex]] = transmittingSignals[signalIndex];
+                    QcClassicalSignal signal = transmittingSignals[signalIndex];
+                    transmittingSignals.Remove(signalIndex);
+                    destination.ClassicalBitRegisters[signal.destination] = signal.bit;
                     destination.isSignalledSources.Add(this);
                     visualUnitsFree.Add(vu);
                     vu.SetState(false);

@@ -30,7 +30,6 @@ namespace Qrack
                 quantumProgramUpdate = (x, deltaTime) =>
                 {
                     QuantumSystem qs = QuantumSystem;
-                    RelativisticObject ro = RelativisticObject;
 
                     qs.TimeEvolve(deltaTime, timeEvolveOpHeaders, hamiltonian);
 
@@ -41,7 +40,8 @@ namespace Qrack
                         WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
-                            ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg);
+                            RelativisticObject ro = RelativisticObject;
+                            ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0.0f);
                             ro.riw = qs.transform.rotation;
                             ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
                         }
