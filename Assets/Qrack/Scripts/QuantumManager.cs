@@ -319,7 +319,9 @@ namespace Qrack
             H(simId, target);
             double probX = Prob(simId, target);
             S(simId, target);
+            H(simId, target);
             double probY = Prob(simId, target);
+            H(simId, target);
             AdjS(simId, target);
             H(simId, target);
 

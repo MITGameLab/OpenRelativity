@@ -12,7 +12,7 @@ namespace Qrack
 
         protected override void Update()
         {
-            if (isSignalledSources.Count > 0)
+            if (isSignalledSources.Count == 2)
             {
                 isSignalledSources.Clear();
                 ProgramInstructions.Clear();

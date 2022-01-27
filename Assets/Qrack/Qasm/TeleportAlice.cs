@@ -24,6 +24,9 @@ namespace Qrack
 
                     BlochSphereCoordinates coords = qs.Prob3Axis(0);
 
+                    qs.MCX(new uint[] { 0 }, 1);
+                    qs.H(0);
+
                     HistoryPoints.Add(new RealTimeQasmProgramHistoryPoint
                     {
                         WorldTime = qs.VisualTime,
@@ -34,9 +37,6 @@ namespace Qrack
                             ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
                         }
                     });
-
-                    qs.MCX(new uint[] { 0 }, 1);
-                    qs.H(0);
                 }
             });
 
