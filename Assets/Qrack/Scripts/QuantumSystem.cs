@@ -390,7 +390,7 @@ namespace Qrack
         {
             targetId = GetSystemIndex(targetId);
             CheckAlloc(new List<uint>() { targetId });
-            func(SystemId, GetSystemIndex(targetId), phi);
+            func(SystemId, targetId, phi);
         }
 
         public void Exp(uint targetId, double phi)
@@ -786,12 +786,13 @@ namespace Qrack
 
         public bool M(uint targetId)
         {
+            targetId = GetSystemIndex(targetId);
             if (targetId >= QubitCount)
             {
                 return false;
             }
 
-            return QuantumManager.M(SystemId, GetSystemIndex(targetId)) > 0;
+            return QuantumManager.M(SystemId, targetId) > 0;
         }
 
         public uint MAll()
@@ -900,12 +901,13 @@ namespace Qrack
 
         public float Prob(uint targetId)
         {
+            targetId = GetSystemIndex(targetId);
             if (targetId >= QubitCount)
             {
                 return 0;
             }
 
-            return (float)QuantumManager.Prob(SystemId, GetSystemIndex(targetId));
+            return (float)QuantumManager.Prob(SystemId, targetId);
         }
 
         public void ResetAll()
@@ -935,11 +937,17 @@ namespace Qrack
 
         public bool TrySeparate(uint q)
         {
-            return QuantumManager.TrySeparate(SystemId, GetSystemIndex(q));
+            q = GetSystemIndex(q);
+            if (q >= QubitCount)
+            {
+                return true;
+            }
+            return QuantumManager.TrySeparate(SystemId, q);
         }
 
         public bool TrySeparate(uint q1, uint q2)
         {
+            CheckAlloc(new List<uint>() { q1, q2 });
             return QuantumManager.TrySeparate(SystemId, GetSystemIndex(q1), GetSystemIndex(q2));
         }
 
@@ -969,9 +977,11 @@ namespace Qrack
             QuantumManager.TimeEvolve(SystemId, t, (uint)mappedTeos.Length, mappedTeos, (uint)mtrx.Length, mtrx);
         }
 
-        public BlochSphereCoordinates Prob3Axis(uint target)
+        public BlochSphereCoordinates Prob3Axis(uint targetId)
         {
-            return QuantumManager.Prob3Axis(SystemId, GetSystemIndex(target));
+            targetId = GetSystemIndex(targetId);
+            CheckAlloc(new List<uint>() { targetId });
+            return QuantumManager.Prob3Axis(SystemId, targetId);
         }
     }
 }
