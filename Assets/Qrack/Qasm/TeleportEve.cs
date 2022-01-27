@@ -11,9 +11,7 @@
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = x.QuantumSystem;
-                    qs.SetBit(0, false);
-                    qs.SetBit(1, false);
-                    qs.SetBit(2, false);
+                    qs.ResetAll();
 
                     qs.H(1);
                     qs.MCX(new uint[] { 1 }, 2);

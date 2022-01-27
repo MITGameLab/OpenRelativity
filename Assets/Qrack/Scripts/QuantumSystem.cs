@@ -908,6 +908,11 @@ namespace Qrack
             return (float)QuantumManager.Prob(SystemId, GetSystemIndex(targetId));
         }
 
+        public void ResetAll()
+        {
+            QuantumManager.ResetAll(SystemId);
+        }
+
         public float PermutationExpectation(uint[] bits)
         {
             uint[] mappedBits = MapQubits(bits);

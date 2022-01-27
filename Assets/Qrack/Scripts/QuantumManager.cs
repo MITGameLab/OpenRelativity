@@ -195,6 +195,9 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "PermutationExpectation")]
         public static extern double PermutationExpectation(uint simId, uint n, uint[] c);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "ResetAll")]
+        public static extern void ResetAll(uint simId);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TrySeparate1Qb")]
         public static extern bool TrySeparate1Qb(uint simId, uint q);
 
