@@ -962,6 +962,18 @@ namespace Qrack
             QuantumManager.SetReactiveSeparate(SystemId, irs);
         }
 
+        public uint Measure(uint[] bases, uint[] qubits)
+        {
+            uint[] mappedQ = MapQubits(qubits);
+            return QuantumManager.Measure(SystemId, bases, mappedQ);
+        }
+
+        public void MeasureShots(uint[] qubits, uint[] measureResults)
+        {
+            uint[] mappedQ = MapQubits(qubits);
+            QuantumManager.MeasureShots(SystemId, mappedQ, measureResults);
+        }
+
         public void TimeEvolve(double t, TimeEvolveOpHeader[] teos, double[] mtrx)
         {
             TimeEvolveOpHeader[] mappedTeos = new TimeEvolveOpHeader[teos.Length];

@@ -322,6 +322,16 @@ namespace Qrack
             return TrySeparateTol(simId, n, q, error_tol);
         }
 
+        public static uint Measure(uint simId, uint[] bases, uint[] qubits)
+        {
+            return Measure(simId, (uint)bases.Length, bases, qubits);
+        }
+
+        public static void MeasureShots(uint simId, uint[] qubits, uint[] measureResults)
+        {
+            MeasureShots(simId, (uint)qubits.Length, qubits, (uint)measureResults.Length, measureResults);
+        }
+
         public static BlochSphereCoordinates Prob3Axis(uint simId, uint target)
         {
             double probZ = Prob(simId, target);
