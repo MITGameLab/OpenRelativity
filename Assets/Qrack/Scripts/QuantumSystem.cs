@@ -167,24 +167,10 @@ namespace Qrack
             }
         }
 
-        private uint[] MapQubits(uint[] controls, int controlLen = -1)
+        private uint[] MapQubits(uint[] controls)
         {
-            if (controls == null)
-            {
-                return null;
-            }
-
-            if (controlLen < 0) {
-                controlLen = controls.Length;
-            }
-
-            if (controlLen == 0)
-            {
-                return controls;
-            }
-
-            uint[] mappedControls = new uint[controlLen];
-            for (int i = 0; i < controlLen; i++)
+            uint[] mappedControls = new uint[controls.Length];
+            for (int i = 0; i < controls.Length; i++)
             {
                 mappedControls[i] = GetSystemIndex(controls[i]);
             }
@@ -1155,14 +1141,21 @@ namespace Qrack
             for (int i = 0; i < teos.Length; i++)
             {
                 mappedTeos[i].target = GetSystemIndex(teos[i].target);
-                mappedTeos[i].controls = new uint[teos[i].controlLen];
-                for (int j = 0; j < teos[i].controlLen; j++)
+                if (teos[i].controlLen > 0)
                 {
-                    mappedTeos[i].controls[j] = GetSystemIndex(teos[i].controls[j]);
+                    mappedTeos[i].controls = new uint[teos[i].controlLen];
+                    for (int j = 0; j < teos[i].controlLen; j++)
+                    {
+                        mappedTeos[i].controls[j] = GetSystemIndex(teos[i].controls[j]);
+                    }
+                    List<uint> bits = new List<uint> { mappedTeos[i].target };
+                    bits.AddRange(mappedTeos[i].controls);
+                    CheckAlloc(bits);
                 }
-                List<uint> bits = new List<uint> { mappedTeos[i].target };
-                bits.AddRange(mappedTeos[i].controls);
-                CheckAlloc(bits);
+                else
+                {
+                    mappedTeos[i].controls = null;
+                }
             }
 
             QuantumManager.TimeEvolve(SystemId, t, (uint)mappedTeos.Length, mappedTeos, (uint)mtrx.Length, mtrx);

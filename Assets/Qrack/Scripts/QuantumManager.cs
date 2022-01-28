@@ -42,6 +42,9 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_count")]
         public static extern uint Init(uint numQubits, bool hostPointer);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_count_type")]
+        public static extern uint InitType(uint numQubits, bool decomposeMulti, bool decompose, bool stabilizer, bool bdt, bool pager, bool fusion, bool hybrid, bool opencl, bool hostPointer);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_clone")]
         public static extern uint Clone(uint simId);
 
@@ -234,7 +237,9 @@ namespace Qrack
 
         public uint AllocateSimulator(uint numQubits)
         {
-            uint simId = Init(numQubits, false);
+            //uint simId = Init(numQubits, false);
+            // TODO: Stabilizer hybrid is temporarily bugged (first false parameter value below)
+            uint simId = InitType(numQubits, true, true, false, true, true, true, true, true, false);
             SimulatorIds.Add(simId);
             return simId;
         }
