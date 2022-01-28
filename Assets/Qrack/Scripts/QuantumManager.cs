@@ -102,10 +102,10 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCT")]
         public static extern void MCT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
-        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCADJS")]
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCAdjS")]
         public static extern void MCAdjS(uint simId, uint controlLen, uint[] controls, uint targetId);
 
-        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCADJT")]
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCAdjT")]
         public static extern void MCAdjT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCU")]
@@ -132,10 +132,10 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACT")]
         public static extern void MACT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
-        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACADJS")]
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACAdjS")]
         public static extern void MACAdjS(uint simId, uint controlLen, uint[] controls, uint targetId);
 
-        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACADJT")]
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACAdjT")]
         public static extern void MACAdjT(uint simId, uint controlLen, uint[] controls, uint targetId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACU")]
@@ -258,7 +258,7 @@ namespace Qrack
 
         public static void Rand(uint simId, uint target)
         {
-            U(simId, target, UnityEngine.Random.Range(0, 2 * Mathf.PI), UnityEngine.Random.Range(0, 2 * Mathf.PI), UnityEngine.Random.Range(0, 2 * Mathf.PI));
+            U(simId, target, UnityEngine.Random.Range(0, 4 * Mathf.PI), UnityEngine.Random.Range(0, 4 * Mathf.PI), UnityEngine.Random.Range(0, 4 * Mathf.PI));
         }
 
         public static void Exp(uint simId, uint target, double phi)
