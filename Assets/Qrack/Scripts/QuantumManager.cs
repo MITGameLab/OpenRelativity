@@ -153,6 +153,12 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MAll")]
         public static extern uint MAll(uint simId);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "Measure")]
+        public static extern uint Measure(uint simId, uint numQubits, uint[] bases, uint[] qubits);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MeasureShots")]
+        public static extern uint MeasureShots(uint simId, uint numQubits, uint[] qubits, uint shots, uint[] measureResults);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "AND")]
         public static extern void AND(uint simId, uint qi1, uint qi2, uint qo);
 
