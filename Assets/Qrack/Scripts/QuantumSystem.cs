@@ -1155,7 +1155,11 @@ namespace Qrack
             for (int i = 0; i < teos.Length; i++)
             {
                 mappedTeos[i].target = GetSystemIndex(teos[i].target);
-                mappedTeos[i].controls = MapQubits(teos[i].controls, (int)teos[i].controlLen);
+                mappedTeos[i].controls = new uint[teos[i].controlLen];
+                for (int j = 0; j < teos[i].controlLen; j++)
+                {
+                    mappedTeos[i].controls[j] = GetSystemIndex(teos[i].controls[j]);
+                }
                 List<uint> bits = new List<uint> { mappedTeos[i].target };
                 bits.AddRange(mappedTeos[i].controls);
                 CheckAlloc(bits);
