@@ -989,6 +989,11 @@ namespace Qrack
             QuantumManager.TimeEvolve(SystemId, t, (uint)mappedTeos.Length, mappedTeos, (uint)mtrx.Length, mtrx);
         }
 
+        public uint GetError()
+        {
+            return QuantumManager.GetError(SystemId);
+        }
+
         public BlochSphereCoordinates Prob3Axis(uint targetId)
         {
             targetId = GetSystemIndex(targetId);

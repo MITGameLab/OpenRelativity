@@ -36,6 +36,9 @@ namespace Qrack
     {
         public const string QRACKSIM_DLL_NAME = @"qrack_pinvoke";
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "get_error")]
+        public static extern uint GetError(uint simId);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_count")]
         public static extern uint Init(uint numQubits, bool hostPointer);
 
