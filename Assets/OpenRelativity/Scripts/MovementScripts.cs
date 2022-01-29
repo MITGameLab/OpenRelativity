@@ -10,7 +10,7 @@ namespace OpenRelativity
         protected const int INIT_FRAME_WAIT = 5;
         private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
         public float dragConstant = 0.75f;
-        public float controllerAcceleration = 8.0f;
+        public float controllerAcceleration = 24.0f;
         public bool useGravity = false;
         // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
         public bool comoveViaAcceleration = false;
