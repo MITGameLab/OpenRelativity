@@ -237,9 +237,15 @@ namespace Qrack
 
         public uint AllocateSimulator(uint numQubits)
         {
-            //uint simId = Init(numQubits, false);
-            // TODO: Stabilizer hybrid is temporarily bugged (first false parameter value below)
-            uint simId = InitType(numQubits, true, true, false, false, true, true, true, true, false);
+            uint simId;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                // TODO: Stabilizer hybrid is temporarily bugged (first false parameter value below)
+                simId = InitType(numQubits, true, true, false, false, true, true, true, true, false);
+            }
+            else
+            {
+                simId = Init(numQubits, false);
+            } 
             SimulatorIds.Add(simId);
             return simId;
         }
