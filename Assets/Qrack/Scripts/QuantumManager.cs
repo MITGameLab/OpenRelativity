@@ -35,7 +35,11 @@ namespace Qrack
     public class QuantumManager : MonoBehaviour
     {
 #if USE_SYSTEM_QRACK_INSTALL
+#if _LINUX
+        public const string QRACKSIM_DLL_NAME = @"/usr/local/lib/libqrack_pinvoke.so";
+#else
         public const string QRACKSIM_DLL_NAME = @"C:\\Program Files\\Qrack\\bin\\qrack_pinvoke.dll";
+#endif
 #else
         public const string QRACKSIM_DLL_NAME = @"qrack_pinvoke";
 #endif
