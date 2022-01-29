@@ -37,6 +37,8 @@ namespace Qrack
 #if USE_SYSTEM_QRACK_INSTALL
 #if _LINUX
         public const string QRACKSIM_DLL_NAME = @"/usr/local/lib/libqrack_pinvoke.so";
+#elif _DARWIN
+        public const string QRACKSIM_DLL_NAME = @"/usr/local/lib/libqrack_pinvoke.dylib";
 #else
         public const string QRACKSIM_DLL_NAME = @"C:\\Program Files\\Qrack\\bin\\qrack_pinvoke.dll";
 #endif
