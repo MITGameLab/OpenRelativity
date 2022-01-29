@@ -141,8 +141,10 @@ namespace OpenRelativity
             //Cursor.visible = false;
             //Set the speed of light to the starting speed of light in GameState
             speedOfLightTarget = (int)state.SpeedOfLight;
+
+            string[] names = Input.GetJoystickNames();
             // Inverted, at first
-            inverted = -1;
+            inverted = (names.Length > 0) ? -1 : 1;
             invertKeyDown = false;
 
             frames = 0;
@@ -241,7 +243,7 @@ namespace OpenRelativity
 
                 float temp;
                 // Movement due to forward/back input
-                totalAccel += new Vector3(0, 0, (temp = Input.GetAxis("Vertical")) * controllerAcceleration);
+                totalAccel += new Vector3(0, 0, (temp = inverted * -Input.GetAxis("Vertical")) * controllerAcceleration);
                 if (temp != 0)
                 {
                     state.keyHit = true;
