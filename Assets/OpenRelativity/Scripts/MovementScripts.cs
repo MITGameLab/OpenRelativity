@@ -141,7 +141,7 @@ namespace OpenRelativity
             //Cursor.visible = false;
             //Set the speed of light to the starting speed of light in GameState
             speedOfLightTarget = (int)state.SpeedOfLight;
-            //Inverted, at first
+            // Inverted, at first
             inverted = -1;
             invertKeyDown = false;
 
@@ -240,12 +240,13 @@ namespace OpenRelativity
                 Vector3 totalAccel = Vector3.zero;
 
                 float temp;
-                //Movement due to left/right input
-                totalAccel += new Vector3(0, 0, (temp = -Input.GetAxis("Vertical")) * controllerAcceleration);
+                // Movement due to forward/back input
+                totalAccel += new Vector3(0, 0, (temp = Input.GetAxis("Vertical")) * controllerAcceleration);
                 if (temp != 0)
                 {
                     state.keyHit = true;
                 }
+                // Movement due to left/right input
                 totalAccel += new Vector3((temp = -Input.GetAxis("Horizontal")) * controllerAcceleration, 0, 0);
                 if (temp != 0)
                 {
@@ -395,7 +396,7 @@ namespace OpenRelativity
                 float positionChangeX = -Input.GetAxis("Mouse X");
 
                 //Y axis position change
-                float positionChangeY = inverted * Input.GetAxis("Mouse Y");
+                float positionChangeY = inverted * -Input.GetAxis("Mouse Y");
 
                 //Use these to determine camera rotation, that is, to look around the world without changing direction of motion
                 //These two are for X axis rotation and Y axis rotation, respectively
