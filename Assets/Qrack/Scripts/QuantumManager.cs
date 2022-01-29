@@ -34,7 +34,11 @@ namespace Qrack
 
     public class QuantumManager : MonoBehaviour
     {
+#if USE_SYSTEM_QRACK_INSTALL
+        public const string QRACKSIM_DLL_NAME = @"C:\\Program Files\\Qrack\\bin\\qrack_pinvoke.dll";
+#else
         public const string QRACKSIM_DLL_NAME = @"qrack_pinvoke";
+#endif
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "get_error")]
         public static extern uint GetError(uint simId);
