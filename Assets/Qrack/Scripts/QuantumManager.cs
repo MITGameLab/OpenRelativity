@@ -239,7 +239,7 @@ namespace Qrack
         {
             //uint simId = Init(numQubits, false);
             // TODO: Stabilizer hybrid is temporarily bugged (first false parameter value below)
-            uint simId = InitType(numQubits, true, true, false, true, true, true, true, true, false);
+            uint simId = InitType(numQubits, true, true, false, false, true, true, true, true, false);
             SimulatorIds.Add(simId);
             return simId;
         }
