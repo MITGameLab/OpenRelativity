@@ -1728,7 +1728,15 @@ namespace OpenRelativity.Objects
             {
                 riw = myRigidbody.rotation;
                 Vector3 p = ((Vector4)myRigidbody.position).OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
-                _piw = isPhysics2D ? new Vector3(p.x, p.y, _piw.z) : p;
+                if (isPhysics2D && ((_piw.z - p.z) <= SRelativityUtil.FLT_EPSILON))
+                {
+                    _piw = new Vector3(p.x, p.y, _piw.z);
+                    myRigidbody.position = ((Vector4)_piw).WorldToOptical(peculiarVelocity, updateWorld4Acceleration);
+                }
+                else
+                {
+                    _piw = p;
+                }
             }
 
             isPhysicsUpdateFrame = true;
