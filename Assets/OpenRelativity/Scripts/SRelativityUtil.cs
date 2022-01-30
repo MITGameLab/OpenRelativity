@@ -486,6 +486,18 @@ namespace OpenRelativity
             return Mathf.Sqrt(-Vector4.Dot(flat3V, metric.Value.inverse * flat3V)) * rapidity.normalized;
         }
 
+        public static Vector2 RapidityToVelocity(this Vector2 rapidity, Matrix4x4? metric = null)
+        {
+            Vector3 flat3V = c * rapidity / Mathf.Sqrt(cSqrd + rapidity.sqrMagnitude);
+
+            if (metric == null)
+            {
+                return flat3V;
+            }
+
+            return (Vector2)(Mathf.Sqrt(-Vector4.Dot(flat3V, metric.Value.inverse * flat3V)) * rapidity.normalized);
+        }
+
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)
         {
             if (c <= FLT_EPSILON)
