@@ -204,14 +204,7 @@ namespace OpenRelativity
             // Apply world coordinates intrinsic curvature:
             if (intrinsicMetric == null)
             {
-                if (state.conformalMap)
-                {
-                    intrinsicMetric = state.conformalMap.GetMetric((Vector3)stpiw);
-                }
-                else
-                {
-                    intrinsicMetric = Matrix4x4.identity;
-                }
+                intrinsicMetric = state.conformalMap.GetMetric(stpiw);
             }
             metric = intrinsicMetric.Value.inverse * metric * intrinsicMetric.Value;
 
@@ -290,12 +283,7 @@ namespace OpenRelativity
             // Apply world coordinates intrinsic curvature:
             if (intrinsicMetric == null)
             {
-                if (state.conformalMap) {
-                    intrinsicMetric = state.conformalMap.GetMetric((Vector3)stpiw);
-                } else
-                {
-                    intrinsicMetric = Matrix4x4.identity;
-                }
+                intrinsicMetric = state.conformalMap.GetMetric(stpiw);
             }
             metric = intrinsicMetric.Value.inverse * metric * intrinsicMetric.Value;
 

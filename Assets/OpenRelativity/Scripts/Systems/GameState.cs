@@ -398,7 +398,7 @@ namespace OpenRelativity
 
             if (!isMovementFrozen && !float.IsNaN(DeltaTimePlayer) && (SpeedOfLight > 0))
             {
-                if (conformalMap != null && isPlayerComoving)
+                if (isPlayerComoving)
                 {
                     // Assume local player coordinates are comoving
                     Comovement cm = conformalMap.ComoveOptical(FixedDeltaTimePlayer, playerTransform.position, Quaternion.identity);

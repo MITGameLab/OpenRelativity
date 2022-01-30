@@ -265,7 +265,7 @@ namespace OpenRelativity
 
                 Vector3 quasiWorldAccel = totalAccel;
 
-                if (state.conformalMap && comoveViaAcceleration)
+                if (comoveViaAcceleration)
                 {
                     // Unlike RelativisticObject instances, this is optionally how the player "comoves."
                     // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
@@ -297,10 +297,7 @@ namespace OpenRelativity
                         quasiWorldAccel = new Vector3(quasiWorldAccel.x, 0, quasiWorldAccel.z);
                     }
 
-                    if (state.conformalMap != null)
-                    {
-                        totalAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
-                    }
+                    totalAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
                 }
 
                 if (isMonopoleAccel)

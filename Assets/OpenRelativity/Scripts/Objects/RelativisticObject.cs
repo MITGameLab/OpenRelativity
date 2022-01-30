@@ -138,15 +138,8 @@ namespace OpenRelativity.Objects
             Matrix4x4 invVpcLorentz = state.PlayerLorentzMatrix.inverse;
             metric = invVpcLorentz.transpose * metric * invVpcLorentz;
 
-            if (state.conformalMap == null)
-            {
-                return metric;
-            }
-            else
-            {
-                Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
-                return intrinsicMetric * metric * intrinsicMetric.inverse;
-            }
+            Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
+            return intrinsicMetric * metric * intrinsicMetric.inverse;
         }
 
         public Vector4 Get4Velocity()
@@ -331,7 +324,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                return (state.conformalMap == null) ? Vector3.zero : state.conformalMap.GetFreeFallVelocity(piw);
+                return state.conformalMap.GetFreeFallVelocity(piw);
             }
         }
 
@@ -400,10 +393,7 @@ namespace OpenRelativity.Objects
                     accel += Physics.gravity;
                 }
 
-                if (state.conformalMap)
-                {
-                    accel += state.conformalMap.GetRindlerAcceleration(piw);
-                }
+                accel += state.conformalMap.GetRindlerAcceleration(piw);
 
                 return accel;
             }
@@ -691,16 +681,9 @@ namespace OpenRelativity.Objects
             colliderShaderParams.spdOfLight = state.SpeedOfLight;
             colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
             colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
-            if (state.conformalMap) {
-                Matrix4x4 metric = state.conformalMap.GetMetric(piw);
-                colliderShaderParams.intrinsicMetric = metric;
-                colliderShaderParams.invIntrinsicMetric = metric.inverse;
-            }
-            else
-            {
-                colliderShaderParams.intrinsicMetric = Matrix4x4.identity;
-                colliderShaderParams.intrinsicMetric = Matrix4x4.identity;
-            }
+            Matrix4x4 metric = state.conformalMap.GetMetric(piw);
+            colliderShaderParams.intrinsicMetric = metric;
+            colliderShaderParams.invIntrinsicMetric = metric.inverse;
 
             ShaderParams[] spa = new ShaderParams[1];
             spa[0] = colliderShaderParams;
@@ -1158,10 +1141,7 @@ namespace OpenRelativity.Objects
             Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
 
             // Metric default (doesn't have correct signature):
-            Matrix4x4 intrinsicMetric = Matrix4x4.identity;
-            if (state.conformalMap) {
-                intrinsicMetric = state.conformalMap.GetMetric(piw);
-            }
+            Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
 
             colliderShaderParams.viw = tempViw;
             colliderShaderParams.pao = tempPao;
@@ -1248,7 +1228,7 @@ namespace OpenRelativity.Objects
                     myRigidbody.angularVelocity = gamma * aviw;
 
                     Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
-                    if (comoveViaAcceleration && state.conformalMap)
+                    if (comoveViaAcceleration)
                     {
                         // This is not actually "proper acceleration," with this option active.
                         properAccel += state.conformalMap.GetRindlerAcceleration(piw);
@@ -1509,7 +1489,7 @@ namespace OpenRelativity.Objects
                 return;
             }
 
-            if (state.conformalMap && !comoveViaAcceleration)
+            if (!comoveViaAcceleration)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 if (!IsNaNOrInf(cm.piw.sqrMagnitude)) {
