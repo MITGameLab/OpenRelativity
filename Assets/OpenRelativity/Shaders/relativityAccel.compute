@@ -104,13 +104,14 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	//Apply Lorentz transform:
 	metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
+
+	float4 paoTransformed = mul(viwLorentzMatrix, pao);
 	float4 riwTransformed = mul(viwLorentzMatrix, riw);
 	//Translate in time:
 	float tisw = riwTransformed.w;
 	riwTransformed.w = 0;
 
 	//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
-	float4 paoTransformed = mul(viwLorentzMatrix, pao);
 	float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 	float4 paot = mul(metric, paoTransformed);
 	float paoDotpao = -dot(paoTransformed, paot);
