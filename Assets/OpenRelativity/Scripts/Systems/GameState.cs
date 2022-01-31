@@ -219,6 +219,11 @@ namespace OpenRelativity
                 _instance = this;
             }
 
+            if (!conformalMap)
+            {
+                conformalMap = gameObject.AddComponent<Minkowski>();
+            }
+
             SqrtOneMinusVSquaredCWDividedByCSquared = 1.0f;
 
             //Initialize the player's speed to zero
