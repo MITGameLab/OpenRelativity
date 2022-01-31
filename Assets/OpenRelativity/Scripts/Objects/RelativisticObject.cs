@@ -528,7 +528,8 @@ namespace OpenRelativity.Objects
             }
             else
             {
-                transform.position = piw;
+                Vector3 pw = piw;
+                transform.position = isPhysics2D ? new Vector3(pw.x, pw.y, transform.position.z) : pw;
             }
 
             UpdatePhysicsCaches();
@@ -796,15 +797,18 @@ namespace OpenRelativity.Objects
             else if (isMyColliderGeneral)
             {
                 Vector4 aiw4 = GetComoving4Acceleration();
-                int offset = 0;
                 if (myColliders != null)
                 {
-                    offset = myColliders.Length;
-                    for (int i = 0; i < offset; i++)
+                    for (int i = 0; i < myColliders.Length; i++)
                     {
                         Collider collider = myColliders[i];
                         Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[i]);
-                        Vector3 testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4));
+                        Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
+                        if (isPhysics2D)
+                        {
+                            pw = new Vector3(pw.x, pw.y, collider.transform.position.z);
+                        }
+                        Vector3 testPos = transform.InverseTransformPoint(pw);
                         collider.transform.localPosition = testPos;
                     }
                 }
@@ -1311,8 +1315,7 @@ namespace OpenRelativity.Objects
                 baryonCount = mass * SRelativityUtil.avogadroNumber / initialAverageMolarMass;
             }
 
-            Vector3 p = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
-            _piw = isPhysics2D ? new Vector3(p.x, p.y, _piw.z) : p;
+            _piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
             riw = transform.rotation;
             checkSpeed();
             UpdatePhysicsCaches();
@@ -1402,8 +1405,18 @@ namespace OpenRelativity.Objects
             if (!isNonrelativisticShader && myRigidbody)
             {
                 // Get the relativistic position and rotation after the physics update:
-                riw = myRigidbody.rotation;
-                _piw = myRigidbody.position;
+                Quaternion r = myRigidbody.rotation;
+                Vector3 p = myRigidbody.position;
+                if (isPhysics2D)
+                {
+                    riw = Quaternion.Euler(riw.x, riw.y, r.z);
+                    _piw = new Vector3(p.x, p.y, _piw.z);
+                }
+                else
+                {
+                    riw = r;
+                    _piw = p;
+                }
             }
 
             // Now, update the velocity and angular velocity based on the collision result:
@@ -1413,7 +1426,7 @@ namespace OpenRelativity.Objects
                 if (isPhysics2D)
                 {
                     _peculiarVelocity = new Vector3(v.x, v.y, _peculiarVelocity.z);
-                    _aviw = av.z * Vector3.forward;
+                    _aviw = new Vector3(_aviw.x, _aviw.y, av.z);
                 }
                 else
                 {
@@ -1500,9 +1513,8 @@ namespace OpenRelativity.Objects
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
                 if (!IsNaNOrInf(cm.piw.sqrMagnitude)) {
-                    Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
                     riw = cm.riw;
-                    _piw = cm.piw;
+                    _piw = isPhysics2D ? new Vector3(cm.piw.x, cm.piw.y, _piw.z) : (Vector3)cm.piw;
 
                     if (!isNonrelativisticShader && myRigidbody)
                     {
@@ -1587,11 +1599,17 @@ namespace OpenRelativity.Objects
                 }
 
                 // Update piw from "peculiar velocity" in free fall coordinates.
-                _piw += deltaTime * peculiarVelocity;
+                Vector3 p = deltaTime * peculiarVelocity;
+                _piw += isPhysics2D ? new Vector3(p.x, p.y, _piw.z) : p;
 
                 transform.parent = null;
                 if (myRigidbody) {
-                    myRigidbody.MovePosition(opticalPiw);
+                    Vector3 op = opticalPiw;
+                    if (isPhysics2D)
+                    {
+                        op = new Vector3(op.x, op.y, contractor.position.z);
+                    }
+                    myRigidbody.MovePosition(op);
                     contractor.position = myRigidbody.position;
                 }
                 transform.parent = contractor;
