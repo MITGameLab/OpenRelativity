@@ -16,7 +16,7 @@ namespace Qrack
 #endif
     {
 
-        public uint QubitCount = 1;
+        public uint QubitCount = 0;
         public float ClockOffset;
 
         public uint SystemId { get; set; }
@@ -50,7 +50,7 @@ namespace Qrack
         {
             get
             {
-                return _myRO != null ? _myRO : _myRO = GetComponent<RelativisticObject>();
+                return _myRO ? _myRO : _myRO = GetComponent<RelativisticObject>();
             }
         }
 #endif
@@ -103,6 +103,14 @@ namespace Qrack
             }
         }
 
+        public void AllocateQubit(uint qid) {
+            QuantumManager.AllocateQubit(SystemId, qid);
+        }
+
+        public void ReleaseQubit(uint qid) {
+            QuantumManager.ReleaseQubit(SystemId, qid);
+        }
+
         // Awake() is called before Start()
         void Awake()
         {
@@ -139,7 +147,7 @@ namespace Qrack
 
                 for (uint i = lastQubitCount; i < QubitCount; i++)
                 {
-                    QuantumManager.AllocateQubit(SystemId, i);
+                    AllocateQubit(i);
                 }
             }
 
@@ -152,7 +160,7 @@ namespace Qrack
 
                 for (uint i = (lastQubitCount - 1); i >= QubitCount; i--)
                 {
-                    QuantumManager.ReleaseQubit(SystemId, i);
+                    ReleaseQubit(i);
                 }
             }
 
@@ -195,7 +203,7 @@ namespace Qrack
 
                 for (uint i = lastQubitCount; i < QubitCount; i++)
                 {
-                    QuantumManager.AllocateQubit(SystemId, i);
+                    AllocateQubit(i);
                 }
 
                 lastQubitCount = QubitCount;

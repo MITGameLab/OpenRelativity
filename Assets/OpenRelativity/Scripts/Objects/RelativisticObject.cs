@@ -81,8 +81,22 @@ namespace OpenRelativity.Objects
         #region Local Time
         //Acceleration desyncronizes our clock from the world clock:
         public float localTimeOffset { get; private set; }
-        public float localDeltaTime { get; private set; }
-        public float localFixedDeltaTime { get; private set; }
+        private float oldLocalTimeUpdate;
+        public float localDeltaTime
+        {
+            get
+            {
+                return GetLocalTime() - oldLocalTimeUpdate;
+            }
+        }
+        public float localFixedDeltaTime
+        {
+            get
+            {
+                return GetLocalTime() - oldLocalTimeFixedUpdate;
+            }
+        }
+        private float oldLocalTimeFixedUpdate;
         public float GetLocalTime()
         {
             return state.TotalTimeWorld + localTimeOffset;
@@ -1370,8 +1384,10 @@ namespace OpenRelativity.Objects
             isPhysicsCacheValid = true;
         }
 
-        protected void  AfterPhysicsUpdate()
+        protected void AfterPhysicsUpdate()
         {
+            oldLocalTimeFixedUpdate = GetLocalTime();
+
             if (!isNonrelativisticShader && myRigidbody)
             {
                 // Get the relativistic position and rotation after the physics update:
@@ -1421,6 +1437,11 @@ namespace OpenRelativity.Objects
             isPhysicsUpdateFrame = false;
         }
 
+        private void LateUpdate()
+        {
+            oldLocalTimeUpdate = GetLocalTime();
+        }
+
         void FixedUpdate()
         {
             if (isPhysicsUpdateFrame)
@@ -1445,8 +1466,7 @@ namespace OpenRelativity.Objects
             }
 
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-            localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
-            localTimeOffset += localFixedDeltaTime;
+            localTimeOffset += deltaTime - state.FixedDeltaTimeWorld;
 
             if (isLightMapStatic)
             {
