@@ -1208,11 +1208,6 @@ namespace OpenRelativity.Objects
 
         private void UpdateRigidbodyVelocity()
         {
-            if (isPhysicsUpdateFrame)
-            {
-                return;
-            }
-
             float gamma = GetTimeFactor();
 
             if (myRigidbody)
