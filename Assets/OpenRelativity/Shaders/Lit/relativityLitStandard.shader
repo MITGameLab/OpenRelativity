@@ -20,7 +20,6 @@ Shader "Relativity/Lit/Standard" {
 		[Toggle(SPECULAR)] _SpecularOn("Specular reflections", Range(0, 1)) = 0
 		_Smoothness("Smoothness", Range(0, 1)) = 0
 		_Metallic("Metallic", Range(0, 1)) = 0
-		_Metallic("Metallic", Range(0, 1)) = 0
 		_Attenuation("Attenuation", Range(0, 10)) = 1
 		[Toggle(_EMISSION)] _EmissionOn("Emission lighting", Range(0, 1)) = 0
 		_EmissionMap("Emission map", 2D) = "black" {}
