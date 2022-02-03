@@ -4,16 +4,26 @@ using System;
 
 namespace OpenRelativity
 {
-    public class MovementScripts : RelativisticBehavior
+    public class PlayerController : RelativisticBehavior
     {
-        //Consts
+        // Consts
         protected const int INIT_FRAME_WAIT = 5;
-        private const float DEGREE_TO_RADIAN_CONST = 57.2957795f;
+
+        #region Public Parameters
         public float dragConstant = 0.75f;
         public float controllerAcceleration = 24.0f;
         public bool useGravity = false;
         // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
         public bool comoveViaAcceleration = false;
+        public float controllerBoost = 6000;
+        // Affect our rotation speed
+        public float rotSpeed;
+        // For now, you can change this how you like.
+        public float mouseSensitivity;
+        // Keep track of the camera transform
+        public Transform camTransform;
+        #endregion
+
         //Needed to tell whether we are in free fall
         protected bool isFalling
         {
@@ -28,19 +38,12 @@ namespace OpenRelativity
             }
         }
         public List<Collider> collidersBelow { get; protected set; }
-        public float controllerBoost = 6000;
-        //Affect our rotation speed
-        public float rotSpeed;
-        //Keep track of the camera transform
-        public Transform camTransform;
         //Just turn this negative when they press the Y button for inversion.
         protected int inverted;
         //What is our current target for the speed of light?
         public int speedOfLightTarget { get; set; }
         //What is each step we take to reach that target?
         private float speedOfLightStep;
-        //For now, you can change this how you like.
-        public float mouseSensitivity;
         //So we can use getAxis as keyHit function
         public bool invertKeyDown { get; set; }
         //Keep track of total frames passed
@@ -159,17 +162,19 @@ namespace OpenRelativity
         //Again, use LateUpdate to solve some collision issues.
         public virtual void LateUpdate()
         {
-            if (!state.isMovementFrozen)
+            if (state.isMovementFrozen)
             {
-                Collider myColl = GetComponent<Collider>();
-                Vector3 extents = myColl.bounds.extents;
-                //We assume that the world "down" direction is the direction of gravity.
-                Vector3 playerPos = state.playerTransform.position;
-                Ray rayDown = new Ray(playerPos + 0.5f * extents.y * Vector3.down, Vector3.down);
-                RaycastHit hitInfo;
-                // TODO: Layer mask
-                isFalling = !Physics.Raycast(rayDown, out hitInfo, 0.5f * extents.y);
+                return;
             }
+
+            Collider myColl = GetComponent<Collider>();
+            Vector3 extents = myColl.bounds.extents;
+            //We assume that the world "down" direction is the direction of gravity.
+            Vector3 playerPos = state.playerTransform.position;
+            Ray rayDown = new Ray(playerPos + 0.5f * extents.y * Vector3.down, Vector3.down);
+            RaycastHit hitInfo;
+            // TODO: Layer mask
+            isFalling = !Physics.Raycast(rayDown, out hitInfo, 0.5f * extents.y);
 
             if (!isFalling)
             {
@@ -179,280 +184,258 @@ namespace OpenRelativity
                 }
             }
 
-            float viewRotX;
             //If we're not paused, update speed and rotation using player input.
-            if (!state.isMovementFrozen)
+            state.deltaRotation = Vector3.zero;
+
+            //If they press the Y button, invert all Y axes
+            if (Input.GetAxis("Invert Button") > 0 && !invertKeyDown)
             {
-                state.deltaRotation = Vector3.zero;
+                inverted *= -1;
+                invertKeyDown = true;
+            }
+            //And if they released it, set the invertkeydown to false.
+            else if (!(Input.GetAxis("Invert Button") > 0))
+            {
+                invertKeyDown = false;
+            }
 
-                //If they press the Y button, invert all Y axes
-                if (Input.GetAxis("Invert Button") > 0 && !invertKeyDown)
+            #region ControlScheme
+
+            //PLAYER MOVEMENT
+
+            //If we press W, move forward, if S, backwards.
+            //A adds speed to the left, D to the right. We're using FPS style controls
+            //Here's hoping they work.
+
+            //The acceleration relation is defined by the following equation
+            //vNew = (v+uParallel+ (uPerpendicular/gamma))/(1+(v*u)/c^2)
+
+            //Okay, so Gerd found a good equation that doesn't break when your velocity is zero, BUT your velocity has to be in the x direction.
+            //So, we're gonna reuse some code from our relativisticObject component, and rotate everything to be at the X axis.
+
+            //Cache our velocity
+            Vector3 playerVelocityVector = state.PlayerVelocityVector;
+
+            //Turn our camera rotation into a Quaternion. This allows us to make where we're pointing the direction of our added velocity.
+            //If you want to constrain the player to just x/z movement, with no Y direction movement, comment out the next two lines
+            //and uncomment the line below that is marked
+            float cameraRotationAngle = -Mathf.Deg2Rad * Mathf.Acos(Vector3.Dot(camTransform.forward, Vector3.forward));
+            Quaternion cameraRotation = Quaternion.AngleAxis(cameraRotationAngle, Vector3.Cross(camTransform.forward, Vector3.forward).normalized);
+
+            //UNCOMMENT THIS LINE if you would like to constrain the player to just x/z movement.
+            //Quaternion cameraRotation = Quaternion.AngleAxis(camTransform.eulerAngles.y, Vector3.up);
+
+            Vector3 totalAccel = Vector3.zero;
+
+            float temp;
+            // Movement due to forward/back input
+            totalAccel += new Vector3(0, 0, (temp = inverted * -Input.GetAxis("Vertical")) * controllerAcceleration);
+            if (temp != 0)
+            {
+                state.keyHit = true;
+            }
+            // Movement due to left/right input
+            totalAccel += new Vector3((temp = -Input.GetAxis("Horizontal")) * controllerAcceleration, 0, 0);
+            if (temp != 0)
+            {
+                state.keyHit = true;
+            }
+
+            //And rotate our added velocity by camera angle
+            totalAccel = cameraRotation * totalAccel;
+
+            //AUTO SLOW DOWN CODE BLOCK
+
+            //Add a fluid drag force (as for air)
+            totalAccel -= dragConstant * playerVelocityVector.sqrMagnitude * playerVelocityVector.normalized;
+
+            Vector3 quasiWorldAccel = totalAccel;
+
+            if (comoveViaAcceleration)
+            {
+                // Unlike RelativisticObject instances, this is optionally how the player "comoves."
+                // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
+                quasiWorldAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+            }
+
+            if (isFalling)
+            {
+                if (useGravity)
                 {
-                    inverted *= -1;
-                    invertKeyDown = true;
+                    quasiWorldAccel -= Physics.gravity;
                 }
-                //And if they released it, set the invertkeydown to false.
-                else if (!(Input.GetAxis("Invert Button") > 0))
+            }
+            else
+            {
+                if (quasiWorldAccel.y < 0)
                 {
-                    invertKeyDown = false;
-                }
-
-                #region ControlScheme
-
-                //PLAYER MOVEMENT
-
-                //If we press W, move forward, if S, backwards.
-                //A adds speed to the left, D to the right. We're using FPS style controls
-                //Here's hoping they work.
-
-                //The acceleration relation is defined by the following equation
-                //vNew = (v+uParallel+ (uPerpendicular/gamma))/(1+(v*u)/c^2)
-
-                //Okay, so Gerd found a good equation that doesn't break when your velocity is zero, BUT your velocity has to be in the x direction.
-                //So, we're gonna reuse some code from our relativisticObject component, and rotate everything to be at the X axis.
-
-                //Cache our velocity
-                Vector3 playerVelocityVector = state.PlayerVelocityVector;
-
-                //Get our angle between the velocity and the X axis. Get the angle in degrees (radians suck)
-                float rotationAroundX = DEGREE_TO_RADIAN_CONST * Mathf.Acos(Vector3.Dot(playerVelocityVector, Vector3.right) / playerVelocityVector.magnitude);
-
-                //Make a Quaternion from the angle, one to rotate, one to rotate back. 
-                Quaternion rotateX = Quaternion.AngleAxis(rotationAroundX, Vector3.Cross(playerVelocityVector, Vector3.right).normalized);
-                Quaternion unRotateX = Quaternion.AngleAxis(rotationAroundX, Vector3.Cross(Vector3.right, playerVelocityVector).normalized);
-
-
-                //If the magnitude's zero just make these angles zero and the Quaternions identity Q's
-                if (playerVelocityVector.sqrMagnitude == 0)
-                {
-                    rotateX = Quaternion.identity;
-                    unRotateX = Quaternion.identity;
-                }
-
-
-                //Turn our camera rotation into a Quaternion. This allows us to make where we're pointing the direction of our added velocity.
-                //If you want to constrain the player to just x/z movement, with no Y direction movement, comment out the next two lines
-                //and uncomment the line below that is marked
-                float cameraRotationAngle = -DEGREE_TO_RADIAN_CONST * Mathf.Acos(Vector3.Dot(camTransform.forward, Vector3.forward));
-                Quaternion cameraRotation = Quaternion.AngleAxis(cameraRotationAngle, Vector3.Cross(camTransform.forward, Vector3.forward).normalized);
-
-                //UNCOMMENT THIS LINE if you would like to constrain the player to just x/z movement.
-                //Quaternion cameraRotation = Quaternion.AngleAxis(camTransform.eulerAngles.y, Vector3.up);
-
-                Vector3 totalAccel = Vector3.zero;
-
-                float temp;
-                // Movement due to forward/back input
-                totalAccel += new Vector3(0, 0, (temp = inverted * -Input.GetAxis("Vertical")) * controllerAcceleration);
-                if (temp != 0)
-                {
-                    state.keyHit = true;
-                }
-                // Movement due to left/right input
-                totalAccel += new Vector3((temp = -Input.GetAxis("Horizontal")) * controllerAcceleration, 0, 0);
-                if (temp != 0)
-                {
-                    state.keyHit = true;
-                }
-
-                //And rotate our added velocity by camera angle
-                totalAccel = cameraRotation * totalAccel;
-
-                //AUTO SLOW DOWN CODE BLOCK
-
-                //Add a fluid drag force (as for air)
-                totalAccel -= dragConstant * playerVelocityVector.sqrMagnitude * playerVelocityVector.normalized;
-
-                Vector3 quasiWorldAccel = totalAccel;
-
-                if (comoveViaAcceleration)
-                {
-                    // Unlike RelativisticObject instances, this is optionally how the player "comoves."
-                    // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
-                    quasiWorldAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+                    quasiWorldAccel.y = 0;
                 }
 
-                if (isFalling)
+                if (totalAccel.y < 0)
                 {
-                    if (useGravity)
-                    {
-                        quasiWorldAccel -= Physics.gravity;
-                    }
-                }
-                else
-                {
-                    if (quasiWorldAccel.y < 0)
-                    {
-                        quasiWorldAccel.y = 0;
-                    }
-
-                    if (totalAccel.y < 0)
-                    {
-                        totalAccel.y = 0;
-                    }
-
-                    if (useGravity)
-                    {
-                        totalAccel -= Physics.gravity;
-                        quasiWorldAccel = new Vector3(quasiWorldAccel.x, 0, quasiWorldAccel.z);
-                    }
-
-                    totalAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+                    totalAccel.y = 0;
                 }
 
-                if (isMonopoleAccel)
+                if (useGravity)
                 {
-                    // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
-                    // (Relativity privileges no "inertial" frame, but there is intrinsic observable difference between "accelerated frames.")
-                    // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
-                    // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
-                    // has been known since Galileo.)
-
-                    // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
-                    // (which seems to imply the Higgs field vacuum)
-                    // then it will spontaneously emit this excitation, with a coupling constant proportional to the
-                    // gravitational constant "G" times (baryon) constituent particle rest mass.
-                    // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
-
-                    quasiWorldAccel += leviCivitaDevAccel;
-
-                    float softenFactor = 1.0f + monopoleAccelerationSoften;
-                    float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
-
-                    monopoleTemperature /= tempSoftenFactor;
-                    float origBackgroundTemp = state.gravityBackgroundPlanckTemperature;
-                    state.gravityBackgroundPlanckTemperature /= tempSoftenFactor;
-
-                    EvaporateMonopole(softenFactor * Time.deltaTime, totalAccel / softenFactor);
-
-                    state.gravityBackgroundPlanckTemperature = origBackgroundTemp;
-                    monopoleTemperature *= tempSoftenFactor;
+                    totalAccel -= Physics.gravity;
+                    quasiWorldAccel = new Vector3(quasiWorldAccel.x, 0, quasiWorldAccel.z);
                 }
 
-                //3-acceleration acts as classically on the rapidity, rather than velocity.
-                Vector3 totalVel = playerVelocityVector.AddVelocity((quasiWorldAccel * Time.deltaTime).RapidityToVelocity());
-                Vector3 projVOnG = Vector3.Project(totalVel, Physics.gravity);
-                if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
+                totalAccel -= state.conformalMap.GetRindlerAcceleration(state.playerTransform.position);
+            }
+
+            if (isMonopoleAccel)
+            {
+                // Per Strano 2019, acceleration "nudges" the preferred accelerated rest frame.
+                // (Relativity privileges no "inertial" frame, but there is intrinsic observable difference between "accelerated frames.")
+                // (The author speculates, this accelerated frame "nudge" might be equivalent to the 3-vector potential of the Higgs field.
+                // The scalar potential can excite the "fundamental" rest mass. The independence of the rest mass from gravitational acceleration
+                // has been known since Galileo.)
+
+                // If a gravitating body this RO is attracted to is already excited above the rest mass vacuum,
+                // (which seems to imply the Higgs field vacuum)
+                // then it will spontaneously emit this excitation, with a coupling constant proportional to the
+                // gravitational constant "G" times (baryon) constituent particle rest mass.
+                // (For video game purposes, there's maybe no easy way to precisely model the mass flow, so just control it with an editor variable.)
+
+                quasiWorldAccel += leviCivitaDevAccel;
+
+                float softenFactor = 1.0f + monopoleAccelerationSoften;
+                float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
+
+                monopoleTemperature /= tempSoftenFactor;
+                float origBackgroundTemp = state.gravityBackgroundPlanckTemperature;
+                state.gravityBackgroundPlanckTemperature /= tempSoftenFactor;
+
+                EvaporateMonopole(softenFactor * Time.deltaTime, totalAccel / softenFactor);
+
+                state.gravityBackgroundPlanckTemperature = origBackgroundTemp;
+                monopoleTemperature *= tempSoftenFactor;
+            }
+
+            //3-acceleration acts as classically on the rapidity, rather than velocity.
+            Vector3 totalVel = playerVelocityVector.AddVelocity((quasiWorldAccel * Time.deltaTime).RapidityToVelocity());
+            Vector3 projVOnG = Vector3.Project(totalVel, Physics.gravity);
+            if (useGravity && !isFalling && ((projVOnG - Physics.gravity).sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
+            {
+                totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
+                totalVel = new Vector3(totalVel.x, 0, totalVel.z);
+            }
+
+            float tvMag = totalVel.magnitude;
+
+            if (tvMag >= state.maxPlayerSpeed - .01f)
+            {
+                float gamma = totalVel.Gamma();
+                Vector3 diff = totalVel.normalized * (state.maxPlayerSpeed - .01f) - totalVel;
+                totalVel += diff;
+                totalAccel += diff * gamma;
+            } else if (float.IsInfinity(tvMag) || float.IsNaN(tvMag) )
+            {
+                totalVel = state.PlayerVelocityVector;
+                state.PlayerAccelerationVector = Vector3.zero;
+            }
+
+            state.PlayerVelocityVector = totalVel;
+            state.PlayerAccelerationVector = totalAccel;
+
+            //CHANGE the speed of light
+
+            //Get our input axis (DEFAULT N, M) value to determine how much to change the speed of light
+            int temp2 = (int)(Input.GetAxis("Speed of Light"));
+            //If it's too low, don't subtract from the speed of light, and reset the speed of light
+            if (temp2 < 0 && speedOfLightTarget <= state.MaxSpeed)
+            {
+                temp2 = 0;
+                speedOfLightTarget = (int)state.MaxSpeed;
+            }
+            if (temp2 != 0)
+            {
+                speedOfLightTarget += temp2;
+
+                speedOfLightStep = Mathf.Abs((state.SpeedOfLight - speedOfLightTarget) / 20);
+            }
+            //Now, if we're not at our target, move towards the target speed that we're hoping for
+            if (state.SpeedOfLight < speedOfLightTarget * .995)
+            {
+                //Then we change the speed of light, so that we get a smooth change from one speed of light to the next.
+                state.SpeedOfLight += speedOfLightStep;
+            }
+            else if (state.SpeedOfLight > speedOfLightTarget * 1.005)
+            {
+                //See above
+                state.SpeedOfLight -= speedOfLightStep;
+            }
+            //If we're within a +-.05 distance of our target, just set it to be our target.
+            else if (state.SpeedOfLight != speedOfLightTarget)
+            {
+                state.SpeedOfLight = speedOfLightTarget;
+            }
+
+            //MOUSE CONTROLS
+            //Current position of the mouse
+            //Difference between last frame's mouse position
+            //X axis position change
+            float positionChangeX = -Input.GetAxis("Mouse X");
+
+            //Y axis position change
+            float positionChangeY = inverted * -Input.GetAxis("Mouse Y");
+
+            //Use these to determine camera rotation, that is, to look around the world without changing direction of motion
+            //These two are for X axis rotation and Y axis rotation, respectively
+            float viewRotX, viewRotY;
+            if (Mathf.Abs(positionChangeX) <= 1 && Mathf.Abs(positionChangeY) <= 1)
+            {
+                //Take the position changes and translate them into an amount of rotation
+                viewRotX = -positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost;
+                viewRotY = positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost;
+            }
+            else
+            {
+                //Take the position changes and translate them into an amount of rotation
+                viewRotX = -positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity;
+                viewRotY = positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity;
+            }
+            //Perform Rotation on the camera, so that we can look in places that aren't the direction of movement
+            //Wait some frames on start up, otherwise we spin during the intialization when we can't see yet
+            if (frames > INIT_FRAME_WAIT)
+            {
+                camTransform.Rotate(new Vector3(0, viewRotX, 0), Space.World);
+                if ((camTransform.eulerAngles.x + viewRotY < 90 && camTransform.eulerAngles.x + viewRotY > 90 - 180) || (camTransform.eulerAngles.x + viewRotY > 270 && camTransform.eulerAngles.x + viewRotY < 270 + 180))
                 {
-                    totalVel = totalVel.AddVelocity(projVOnG * totalVel.Gamma());
-                    totalVel = new Vector3(totalVel.x, 0, totalVel.z);
+                    camTransform.Rotate(new Vector3(viewRotY, 0, 0));
                 }
+            }
+            else
+            {
+                //keep track of our frames
+                frames++;
+            }
 
-                float tvMag = totalVel.magnitude;
-
-                if (tvMag >= state.maxPlayerSpeed - .01f)
-                {
-                    float gamma = totalVel.Gamma();
-                    Vector3 diff = totalVel.normalized * (state.maxPlayerSpeed - .01f) - totalVel;
-                    totalVel += diff;
-                    totalAccel += diff * gamma;
-                } else if (float.IsInfinity(tvMag) || float.IsNaN(tvMag) )
-                {
-                    totalVel = state.PlayerVelocityVector;
-                    state.PlayerAccelerationVector = Vector3.zero;
-                }
-
-                state.PlayerVelocityVector = totalVel;
-                state.PlayerAccelerationVector = totalAccel;
-
-                //CHANGE the speed of light
-
-                //Get our input axis (DEFAULT N, M) value to determine how much to change the speed of light
-                int temp2 = (int)(Input.GetAxis("Speed of Light"));
-                //If it's too low, don't subtract from the speed of light, and reset the speed of light
-                if (temp2 < 0 && speedOfLightTarget <= state.MaxSpeed)
-                {
-                    temp2 = 0;
-                    speedOfLightTarget = (int)state.MaxSpeed;
-                }
-                if (temp2 != 0)
-                {
-                    speedOfLightTarget += temp2;
-
-                    speedOfLightStep = Mathf.Abs((state.SpeedOfLight - speedOfLightTarget) / 20);
-                }
-                //Now, if we're not at our target, move towards the target speed that we're hoping for
-                if (state.SpeedOfLight < speedOfLightTarget * .995)
-                {
-                    //Then we change the speed of light, so that we get a smooth change from one speed of light to the next.
-                    state.SpeedOfLight += speedOfLightStep;
-                }
-                else if (state.SpeedOfLight > speedOfLightTarget * 1.005)
-                {
-                    //See above
-                    state.SpeedOfLight -= speedOfLightStep;
-                }
-                //If we're within a +-.05 distance of our target, just set it to be our target.
-                else if (state.SpeedOfLight != speedOfLightTarget)
-                {
-                    state.SpeedOfLight = speedOfLightTarget;
-                }
-
-                //MOUSE CONTROLS
-                //Current position of the mouse
-                //Difference between last frame's mouse position
-                //X axis position change
-                float positionChangeX = -Input.GetAxis("Mouse X");
-
-                //Y axis position change
-                float positionChangeY = inverted * -Input.GetAxis("Mouse Y");
-
-                //Use these to determine camera rotation, that is, to look around the world without changing direction of motion
-                //These two are for X axis rotation and Y axis rotation, respectively
-                float viewRotY;
-                if (Mathf.Abs(positionChangeX) <= 1 && Mathf.Abs(positionChangeY) <= 1)
-                {
-                    //Take the position changes and translate them into an amount of rotation
-                    viewRotX = -positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost;
-                    viewRotY = positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity * controllerBoost;
-                }
-                else
-                {
-                    //Take the position changes and translate them into an amount of rotation
-                    viewRotX = -positionChangeX * Time.deltaTime * rotSpeed * mouseSensitivity;
-                    viewRotY = positionChangeY * Time.deltaTime * rotSpeed * mouseSensitivity;
-                }
-                //Perform Rotation on the camera, so that we can look in places that aren't the direction of movement
-                //Wait some frames on start up, otherwise we spin during the intialization when we can't see yet
-                if (frames > INIT_FRAME_WAIT)
-                {
-                    camTransform.Rotate(new Vector3(0, viewRotX, 0), Space.World);
-                    if ((camTransform.eulerAngles.x + viewRotY < 90 && camTransform.eulerAngles.x + viewRotY > 90 - 180) || (camTransform.eulerAngles.x + viewRotY > 270 && camTransform.eulerAngles.x + viewRotY < 270 + 180))
-                    {
-                        camTransform.Rotate(new Vector3(viewRotY, 0, 0));
-                    }
-                }
-                else
-                {
-                    //keep track of our frames
-                    frames++;
-                }
-
-                //If we have a speed of light less than max speed, fix it.
-                //This should never happen
-                if (state.SpeedOfLight < state.MaxSpeed)
-                {
-                    state.SpeedOfLight = state.MaxSpeed;
-                }
+            //If we have a speed of light less than max speed, fix it.
+            //This should never happen
+            if (state.SpeedOfLight < state.MaxSpeed)
+            {
+                state.SpeedOfLight = state.MaxSpeed;
+            }
 
 
-                #endregion
+            #endregion
 
-                //Send current speed of light to the shader
-                Shader.SetGlobalFloat("_spdOfLight", state.SpeedOfLight);
+            //Send current speed of light to the shader
+            Shader.SetGlobalFloat("_spdOfLight", state.SpeedOfLight);
 
-                if (Camera.main)
-                {
-                    Shader.SetGlobalFloat("xyr", Camera.main.pixelWidth / Camera.main.pixelHeight);
-                    Shader.SetGlobalFloat("xs", Mathf.Tan(Mathf.Deg2Rad * Camera.main.fieldOfView / 2f));
+            if (Camera.main)
+            {
+                Shader.SetGlobalFloat("xyr", Camera.main.pixelWidth / Camera.main.pixelHeight);
+                Shader.SetGlobalFloat("xs", Mathf.Tan(Mathf.Deg2Rad * Camera.main.fieldOfView / 2f));
 
-                    //Don't cull because at high speeds, things come into view that are not visible normally
-                    //This is due to the lorenz transformation, which is pretty cool but means that basic culling will not work.
-                    Camera.main.layerCullSpherical = true;
-                    Camera.main.useOcclusionCulling = false;
-                }
-
-
+                //Don't cull because at high speeds, things come into view that are not visible normally
+                //This is due to the lorenz transformation, which is pretty cool but means that basic culling will not work.
+                Camera.main.layerCullSpherical = true;
+                Camera.main.useOcclusionCulling = false;
             }
         }
 
