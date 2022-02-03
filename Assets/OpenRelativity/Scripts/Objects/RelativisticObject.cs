@@ -1392,8 +1392,8 @@ namespace OpenRelativity.Objects
 
             // Now, update the velocity and angular velocity based on the collision result:
             if (myRigidbody) {
-                _peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
                 _aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+                peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
             }
 
             if (isNonrelativisticShader)
@@ -1523,14 +1523,14 @@ namespace OpenRelativity.Objects
             {
                 if (myRigidbody)
                 {
-                    myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
+                    myRigidbody.velocity = Vector3.zero;
                 }
 
                 if (!isKinematic)
                 {
-                    _peculiarVelocity = Vector3.zero;
                     _aviw = Vector3.zero;
+                    peculiarVelocity = Vector3.zero;
                 }
                 else
                 {
