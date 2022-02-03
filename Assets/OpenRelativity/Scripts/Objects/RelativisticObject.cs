@@ -1383,15 +1383,16 @@ namespace OpenRelativity.Objects
         {
             oldLocalTimeFixedUpdate = GetLocalTime();
 
-            if (!isNonrelativisticShader && myRigidbody)
+            if (myRigidbody)
             {
-                // Get the relativistic position and rotation after the physics update:
-                riw = myRigidbody.rotation;
-                _piw = myRigidbody.position;
-            }
+                if (!isNonrelativisticShader)
+                {
+                    // Get the relativistic position and rotation after the physics update:
+                    riw = myRigidbody.rotation;
+                    _piw = myRigidbody.position;
+                }
 
-            // Now, update the velocity and angular velocity based on the collision result:
-            if (myRigidbody) {
+                // Now, update the velocity and angular velocity based on the collision result:
                 _aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
                 peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
             }
@@ -1557,19 +1558,14 @@ namespace OpenRelativity.Objects
                     diffRot = Quaternion.AngleAxis(Mathf.Rad2Deg * deltaTime * aviwMag, aviw / aviwMag);
                 }
                 riw = riw * diffRot;
-                if (myRigidbody)
-                {
-                    myRigidbody.MoveRotation(riw);
-                }
+                myRigidbody.MoveRotation(riw);
 
                 // Update piw from "peculiar velocity" in free fall coordinates.
                 _piw += deltaTime * peculiarVelocity;
 
                 transform.parent = null;
-                if (myRigidbody) {
-                    myRigidbody.MovePosition(opticalPiw);
-                    contractor.position = myRigidbody.position;
-                }
+                myRigidbody.MovePosition(opticalPiw);
+                contractor.position = myRigidbody.position;
                 transform.parent = contractor;
                 transform.localPosition = Vector3.zero;
                 ContractLength();
@@ -1690,7 +1686,7 @@ namespace OpenRelativity.Objects
         #region Rigidbody mechanics
         public void OnCollision()
         {
-            if (isKinematic || state.isMovementFrozen || (myRigidbody == null) || (myColliders == null))
+            if (isKinematic || state.isMovementFrozen || !myRigidbody)
             {
                 return;
             }
