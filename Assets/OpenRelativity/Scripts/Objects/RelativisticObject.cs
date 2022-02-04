@@ -1526,17 +1526,15 @@ namespace OpenRelativity.Objects
                 {
                     myRigidbody.angularVelocity = Vector3.zero;
                     myRigidbody.velocity = Vector3.zero;
+
+                    if (!isKinematic)
+                    {
+                        _aviw = Vector3.zero;
+                        UpdateMotion(Vector3.zero, Vector3.zero);
+                    }
                 }
 
-                if (!isKinematic)
-                {
-                    _aviw = Vector3.zero;
-                    peculiarVelocity = Vector3.zero;
-                }
-                else
-                {
-                    transform.position = isNonrelativisticShader ? opticalPiw : piw;
-                }
+                transform.position = isNonrelativisticShader ? opticalPiw : piw;
 
                 UpdateShaderParams();
 
