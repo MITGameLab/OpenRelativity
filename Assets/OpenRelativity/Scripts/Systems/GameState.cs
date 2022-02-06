@@ -259,7 +259,7 @@ namespace OpenRelativity
             else
             {
                 //When we pause, set our velocity to zero, show the cursor and unlock it.
-                GameObject.FindGameObjectWithTag(Tags.player).GetComponent<Rigidbody>().velocity = Vector3.zero;
+                GameObject.FindGameObjectWithTag(Tags.playerRigidbody).GetComponent<Rigidbody>().velocity = Vector3.zero;
                 isMovementFrozen = true;
                 Cursor.visible = true;
                 Cursor.lockState = CursorLockMode.None;
@@ -394,7 +394,7 @@ namespace OpenRelativity
 
         void FixedUpdate()
         {
-            Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<Rigidbody>();
+            Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerRigidbody).GetComponent<Rigidbody>();
 
             if (!isMovementFrozen && !float.IsNaN(DeltaTimePlayer) && (SpeedOfLight > 0))
             {
