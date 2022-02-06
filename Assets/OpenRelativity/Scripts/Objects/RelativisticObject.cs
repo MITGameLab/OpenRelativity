@@ -1534,7 +1534,10 @@ namespace OpenRelativity.Objects
                     }
                 }
 
-                transform.position = isNonrelativisticShader ? opticalPiw : piw;
+                if (!isLightMapStatic)
+                {
+                    transform.position = isNonrelativisticShader ? opticalPiw : piw;
+                }
 
                 UpdateShaderParams();
 
