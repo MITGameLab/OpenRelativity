@@ -719,6 +719,7 @@ namespace OpenRelativity.Objects
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
             trnsfrmdMesh.RecalculateBounds();
             trnsfrmdMesh.RecalculateNormals();
+            trnsfrmdMesh.RecalculateTangents();
             transformCollider.sharedMesh = trnsfrmdMesh;
 
             if (myRigidbody)
