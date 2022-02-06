@@ -16,7 +16,7 @@ namespace Qrack
 #endif
     {
 
-        public uint QubitCount = 0;
+        public uint QubitCount = 1;
         public float ClockOffset;
 
         public uint SystemId { get; set; }
