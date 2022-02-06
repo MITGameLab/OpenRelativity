@@ -564,6 +564,7 @@ namespace OpenRelativity.Objects
 
         //If we have a collider to transform, we cache it here
         private Collider[] myColliders;
+        private BoxCollider[] myBoxColliders;
 
         private Vector3[] colliderPiw { get; set; }
         public void MarkStaticColliderPos()
@@ -572,11 +573,11 @@ namespace OpenRelativity.Objects
             {
                 List<Vector3> sttcPosList = new List<Vector3>();
 
-                if (myColliders != null)
+                if (myBoxColliders != null)
                 {
-                    for (int i = 0; i < myColliders.Length; i++)
+                    for (int i = 0; i < myBoxColliders.Length; i++)
                     {
-                        sttcPosList.Add(myColliders[i].transform.localPosition);
+                        sttcPosList.Add(myBoxColliders[i].center);
                     }
                 }
 
@@ -760,8 +761,9 @@ namespace OpenRelativity.Objects
                 }
             }
 
-            myColliders = GetComponents<Collider>();
+            myBoxColliders = GetComponents<BoxCollider>();
 
+            myColliders = GetComponents<Collider>();
             List<PhysicMaterial> origMaterials = new List<PhysicMaterial>();
             for (int i = 0; i < myColliders.Length; i++)
             {
@@ -775,7 +777,7 @@ namespace OpenRelativity.Objects
 
         public void UpdateColliderPosition()
         {
-            if (isMyColliderVoxel || isNonrelativisticShader || (myColliders == null) || (myColliders.Length == 0))
+            if (isMyColliderVoxel || isNonrelativisticShader || (myColliders.Length == 0))
             {
                 return;
             }
@@ -789,16 +791,13 @@ namespace OpenRelativity.Objects
             else if (isMyColliderGeneral)
             {
                 Vector4 aiw4 = GetComoving4Acceleration();
-                if (myColliders != null)
+                for (int i = 0; i < myBoxColliders.Length; i++)
                 {
-                    for (int i = 0; i < myColliders.Length; i++)
-                    {
-                        Collider collider = myColliders[i];
-                        Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[i]);
-                        Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
-                        Vector3 testPos = transform.InverseTransformPoint(pw);
-                        collider.transform.localPosition = testPos;
-                    }
+                    BoxCollider collider = myBoxColliders[i];
+                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[i]);
+                    Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 testPos = transform.InverseTransformPoint(pw);
+                    collider.center = testPos;
                 }
             }
         }
@@ -1248,11 +1247,6 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularDrag = unityAngularDrag / gamma;
             }
 
-            if (myColliders == null)
-            {
-                return;
-            }
-
             for (int i = 0; i < myColliders.Length; i++)
             {
                 Collider collider = myColliders[i];
@@ -1470,6 +1464,8 @@ namespace OpenRelativity.Objects
                 {
                     EvaporateMonopole(deltaTime, aiw);
                 }
+
+                UpdateColliderPosition();
 
                 return;
             }
