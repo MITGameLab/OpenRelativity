@@ -564,7 +564,9 @@ namespace OpenRelativity.Objects
 
         //If we have a collider to transform, we cache it here
         private Collider[] myColliders;
+        private SphereCollider[] mySphereColliders;
         private BoxCollider[] myBoxColliders;
+        private CapsuleCollider[] myCapsuleColliders;
 
         private Vector3[] colliderPiw { get; set; }
         public void MarkStaticColliderPos()
@@ -573,12 +575,19 @@ namespace OpenRelativity.Objects
             {
                 List<Vector3> sttcPosList = new List<Vector3>();
 
-                if (myBoxColliders != null)
+                for (int i = 0; i < mySphereColliders.Length; i++)
                 {
-                    for (int i = 0; i < myBoxColliders.Length; i++)
-                    {
-                        sttcPosList.Add(myBoxColliders[i].center);
-                    }
+                    sttcPosList.Add(mySphereColliders[i].center);
+                }
+
+                for (int i = 0; i < myBoxColliders.Length; i++)
+                {
+                    sttcPosList.Add(myBoxColliders[i].center);
+                }
+
+                for (int i = 0; i < myCapsuleColliders.Length; i++)
+                {
+                    sttcPosList.Add(myCapsuleColliders[i].center);
                 }
 
                 colliderPiw = sttcPosList.ToArray();
@@ -761,7 +770,9 @@ namespace OpenRelativity.Objects
                 }
             }
 
+            mySphereColliders = GetComponents<SphereCollider>();
             myBoxColliders = GetComponents<BoxCollider>();
+            myCapsuleColliders = GetComponents<CapsuleCollider>();
 
             myColliders = GetComponents<Collider>();
             List<PhysicMaterial> origMaterials = new List<PhysicMaterial>();
@@ -791,13 +802,36 @@ namespace OpenRelativity.Objects
             else if (isMyColliderGeneral)
             {
                 Vector4 aiw4 = GetComoving4Acceleration();
-                for (int i = 0; i < myBoxColliders.Length; i++)
+
+                int iTot = 0;
+                for (int i = 0; i < mySphereColliders.Length; i++)
                 {
-                    BoxCollider collider = myBoxColliders[i];
-                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[i]);
+                    SphereCollider collider = mySphereColliders[i];
+                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
                     Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
                     Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
+                    iTot++;
+                }
+
+                for (int i = 0; i < myBoxColliders.Length; i++)
+                {
+                    BoxCollider collider = myBoxColliders[i];
+                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
+                    Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 testPos = transform.InverseTransformPoint(pw);
+                    collider.center = testPos;
+                    iTot++;
+                }
+
+                for (int i = 0; i < myCapsuleColliders.Length; i++)
+                {
+                    CapsuleCollider collider = myCapsuleColliders[i];
+                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
+                    Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 testPos = transform.InverseTransformPoint(pw);
+                    collider.center = testPos;
+                    iTot++;
                 }
             }
         }
