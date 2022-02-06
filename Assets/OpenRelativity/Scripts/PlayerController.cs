@@ -152,7 +152,7 @@ namespace OpenRelativity
 
             frames = 0;
 
-            meshFilter = transform.parent.GetComponent<MeshFilter>();
+            meshFilter = transform.GetComponent<MeshFilter>();
 
             if (myRigidbody != null)
             {
@@ -216,15 +216,6 @@ namespace OpenRelativity
             //Cache our velocity
             Vector3 playerVelocityVector = state.PlayerVelocityVector;
 
-            //Turn our camera rotation into a Quaternion. This allows us to make where we're pointing the direction of our added velocity.
-            //If you want to constrain the player to just x/z movement, with no Y direction movement, comment out the next two lines
-            //and uncomment the line below that is marked
-            float cameraRotationAngle = -Mathf.Deg2Rad * Mathf.Acos(Vector3.Dot(camTransform.forward, Vector3.forward));
-            Quaternion cameraRotation = Quaternion.AngleAxis(cameraRotationAngle, Vector3.Cross(camTransform.forward, Vector3.forward).normalized);
-
-            //UNCOMMENT THIS LINE if you would like to constrain the player to just x/z movement.
-            //Quaternion cameraRotation = Quaternion.AngleAxis(camTransform.eulerAngles.y, Vector3.up);
-
             Vector3 totalAccel = Vector3.zero;
 
             float temp;
@@ -240,6 +231,14 @@ namespace OpenRelativity
             {
                 state.keyHit = true;
             }
+
+            //Turn our camera rotation into a Quaternion. This allows us to make where we're pointing the direction of our added velocity.
+            //If you want to constrain the player to just x/z movement, with no Y direction movement, comment out the next two lines
+            //and uncomment the line below that is marked
+            Quaternion cameraRotation = Quaternion.LookRotation(camTransform.forward, camTransform.up);
+
+            //UNCOMMENT THIS LINE if you would like to constrain the player to just x/z movement.
+            //Quaternion cameraRotation = Quaternion.AngleAxis(camTransform.eulerAngles.y, Vector3.up);
 
             //And rotate our added velocity by camera angle
             totalAccel = cameraRotation * totalAccel;
@@ -332,10 +331,6 @@ namespace OpenRelativity
                 Vector3 diff = totalVel.normalized * (state.maxPlayerSpeed - .01f) - totalVel;
                 totalVel += diff;
                 totalAccel += diff * gamma;
-            } else if (float.IsInfinity(tvMag) || float.IsNaN(tvMag) )
-            {
-                totalVel = state.PlayerVelocityVector;
-                state.PlayerAccelerationVector = Vector3.zero;
             }
 
             state.PlayerVelocityVector = totalVel;
