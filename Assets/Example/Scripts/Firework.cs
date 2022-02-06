@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace OpenRelativity.Objects
 {
-    public class Firework : MonoBehaviour
+    public class Firework : RelativisticBehavior
     {
         public const float RAD_2_DEG = 57.2957795f;
         //Keep track of our own Mesh Filter
@@ -15,8 +15,6 @@ namespace OpenRelativity.Objects
         private Vector3[] rawVerts;
         //Store this object's velocity here.
         public Vector3 viw;
-        //Keep track of Game State so that we can reference it quickly
-        public GameState state;
         //When was this object created? use for moving objects
         private float startTime = 0;
         //When should we die? again, for moving objects
@@ -35,12 +33,6 @@ namespace OpenRelativity.Objects
         {
             timer = startTimer;
             ResetDeathTime();
-        }
-        //Grab the gamestate and keep it safe
-        void Awake()
-        {
-            //Get the player's GameState, use it later for general information
-            state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
         }
 
         // Get the start time of our object, so that we know where not to draw it

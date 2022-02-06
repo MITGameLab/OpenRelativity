@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace OpenRelativity.Objects
 {
-    public class RelativisticParent : MonoBehaviour
+    public class RelativisticParent : RelativisticBehavior
     {
         // Do we use (pseudo-Newtonian) world gravity?
         public bool useGravity = false;
@@ -20,8 +20,6 @@ namespace OpenRelativity.Objects
 
         // Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
-        // Keep track of the GameState singleton;
-        private GameState state;
 
         // When was this object created? use for moving objects
         private float startTime = 0;
@@ -31,7 +29,6 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             startTime = state.TotalTimeWorld;
         }
         // Set the death time, so that we know at what point to destroy the object in the player's view point.
@@ -42,7 +39,6 @@ namespace OpenRelativity.Objects
         // This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
-            if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             if (viw.magnitude > state.MaxSpeed - .01)
             {
                 viw = viw.normalized * (state.MaxSpeed - .01f);
@@ -169,15 +165,9 @@ namespace OpenRelativity.Objects
             transform.gameObject.SetActive(true);
             //End section of combining meshes
 
-
-
-            state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-
             meshFilter = GetComponent<MeshFilter>();
 
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
-
-
 
             //Then the standard RelativisticObject startup
             if (tempRenderer.materials[0].mainTexture != null)
