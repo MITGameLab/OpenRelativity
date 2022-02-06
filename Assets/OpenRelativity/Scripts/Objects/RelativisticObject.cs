@@ -781,7 +781,7 @@ namespace OpenRelativity.Objects
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (isMyColliderMesh && colliderShader && (myColliders.Length > 0) && SystemInfo.supportsComputeShaders)
+            if (isMyColliderMesh && colliderShader && SystemInfo.supportsComputeShaders)
             {
                 UpdateMeshCollider((MeshCollider)myColliders[0]);
             }
@@ -1471,7 +1471,6 @@ namespace OpenRelativity.Objects
                     EvaporateMonopole(deltaTime, aiw);
                 }
 
-                UpdateColliderPosition();
                 return;
             }
 
