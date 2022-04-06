@@ -24,3 +24,13 @@ The following packages were added:
   com.unity.timeline@1.4.8
   com.unity.ugui@1.0.0
   com.unity.xr.legacyinputhelpers@2.1.8
+
+=== Tue Apr  5 21:48:43 2022
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.vscode from version 1.2.4 to 1.2.5
+  com.unity.test-framework from version 1.1.29 to 1.1.31
+  com.unity.xr.legacyinputhelpers from version 2.1.8 to 2.1.9
