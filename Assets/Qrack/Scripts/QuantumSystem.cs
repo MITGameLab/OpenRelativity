@@ -818,6 +818,36 @@ namespace Qrack
             }
         }
 
+        public void MultiBitGate(uint[] targets, Action<uint, uint, uint[]> func)
+        {
+            uint[] mappedTargets = MapQubits(targets);
+            List<uint> bits = new List<uint>();
+            bits.AddRange(mappedTargets);
+            CheckAlloc(bits);
+
+            func(SystemId, (uint)mappedTargets.Length, mappedTargets);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+        }
+
+        public void MX(uint[] targets)
+        {
+            MultiBitGate(targets, QuantumManager.MX);
+        }
+
+        public void MY(uint[] targets)
+        {
+            MultiBitGate(targets, QuantumManager.MY);
+        }
+
+        public void MZ(uint[] targets)
+        {
+            MultiBitGate(targets, QuantumManager.MZ);
+        }
+
         public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)
         {
             targetId = GetSystemIndex(targetId);

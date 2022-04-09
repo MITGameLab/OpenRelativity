@@ -160,6 +160,15 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MACMtrx")]
         public static extern void MACMtrx(uint simId, uint controlLen, uint[] controls, double[] m, uint q);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MX")]
+        public static extern void MX(uint simId, uint targetLen, uint[] targets);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MY")]
+        public static extern void MY(uint simId, uint targetLen, uint[] targets);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MZ")]
+        public static extern void MZ(uint simId, uint targetLen, uint[] targets);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCR")]
         public static extern void MCR(uint simId, uint basis, double phi, uint controlLen, uint[] controls, uint targetId);
 
