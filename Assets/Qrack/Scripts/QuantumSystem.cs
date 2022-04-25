@@ -902,6 +902,76 @@ namespace Qrack
             MCSingleBitRotation(controls, targetId, phi, QuantumManager.MCRZ);
         }
 
+        protected void DoubleBitGate(uint target1, uint target2, Action<uint, uint, uint> func)
+        {
+            target1 = GetSystemIndex(target1);
+            target2 = GetSystemIndex(target2);
+            CheckAlloc(new List<uint>() { target1, target2 });
+            func(SystemId, target1, target2);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+        }
+
+        public void SWAP(uint target1, uint target2)
+        {
+            DoubleBitGate(target1, target2, QuantumManager.SWAP);
+        }
+
+        public void ISWAP(uint target1, uint target2)
+        {
+            DoubleBitGate(target1, target2, QuantumManager.ISWAP);
+        }
+
+        public void AdjISWAP(uint target1, uint target2)
+        {
+            DoubleBitGate(target1, target2, QuantumManager.AdjISWAP);
+        }
+
+        public void FSim(double theta, double phi, uint target1, uint target2)
+        {
+            target1 = GetSystemIndex(target1);
+            target2 = GetSystemIndex(target2);
+            CheckAlloc(new List<uint>() { target1, target2 });
+            QuantumManager.FSim(SystemId, theta, phi, target1, target2);
+        }
+
+        public void CSWAP(uint[] controls, uint target1, uint target2)
+        {
+            target1 = GetSystemIndex(target1);
+            target2 = GetSystemIndex(target2);
+            uint[] mappedControls = MapQubits(controls);
+            List<uint> bits = new List<uint> { target1, target2 };
+            bits.AddRange(mappedControls);
+            CheckAlloc(bits);
+
+            QuantumManager.CSWAP(SystemId, (uint)mappedControls.Length, mappedControls, target1, target2);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+        }
+
+        public void ACSWAP(uint[] controls, uint target1, uint target2)
+        {
+            target1 = GetSystemIndex(target1);
+            target2 = GetSystemIndex(target2);
+            uint[] mappedControls = MapQubits(controls);
+            List<uint> bits = new List<uint> { target1, target2 };
+            bits.AddRange(mappedControls);
+            CheckAlloc(bits);
+
+            QuantumManager.ACSWAP(SystemId, (uint)mappedControls.Length, mappedControls, target1, target2);
+
+            if (GetError() != 0)
+            {
+                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            }
+        }
+
         public bool M(uint targetId)
         {
             targetId = GetSystemIndex(targetId);

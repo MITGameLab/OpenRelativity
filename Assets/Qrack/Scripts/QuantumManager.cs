@@ -172,6 +172,24 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "MCR")]
         public static extern void MCR(uint simId, uint basis, double phi, uint controlLen, uint[] controls, uint targetId);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SWAP")]
+        public static extern void SWAP(uint simId, uint target1, uint target2);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "ISWAP")]
+        public static extern void ISWAP(uint simId, uint target1, uint target2);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "AdjISWAP")]
+        public static extern void AdjISWAP(uint simId, uint target1, uint target2);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "FSim")]
+        public static extern void FSim(uint simId, double theta, double phi, uint target1, uint target2);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "CSWAP")]
+        public static extern void CSWAP(uint simId, uint n, uint[] c, uint target1, uint target2);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "CSWAP")]
+        public static extern void ACSWAP(uint simId, uint n, uint[] c, uint target1, uint target2);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "M")]
         public static extern uint M(uint simId, uint qubitId);
 
