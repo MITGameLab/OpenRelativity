@@ -14,7 +14,7 @@ namespace Qrack
 
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 3.0f,
+                DeltaTime = 2.0f,
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = QuantumSystem;
@@ -32,6 +32,7 @@ namespace Qrack
                         Action = (time) =>
                         {
                             RelativisticObject ro = RelativisticObject;
+                            ro.transform.rotation = Quaternion.identity;
                             ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0.0f);
                             ro.riw = qs.transform.rotation;
                             ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);

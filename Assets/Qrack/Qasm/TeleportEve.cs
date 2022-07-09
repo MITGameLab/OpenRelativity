@@ -7,7 +7,7 @@
         {
             ProgramInstructions.Add(new RealTimeQasmInstruction()
             {
-                DeltaTime = 0.0f,
+                DeltaTime = 0.1f,
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = x.QuantumSystem;
