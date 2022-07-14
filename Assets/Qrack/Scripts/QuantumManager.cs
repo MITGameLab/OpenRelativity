@@ -22,9 +22,9 @@ namespace Qrack
             probY = py;
             probZ = pz;
 
-            double x = 2 * ((1.0 / 2.0) - probX);
-            double y = 2 * ((1.0 / 2.0) - probY);
-            double z = 2 * ((1.0 / 2.0) - probZ);
+            double x = 1.0 - 2 * probX;
+            double y = 1.0 - 2 * probY;
+            double z = 1.0 - 2 * probZ;
 
             r = Math.Sqrt(x * x + y * y + z * z);
             inclination = Math.Atan2(Math.Sqrt(x * x + y * y), z);
@@ -381,9 +381,7 @@ namespace Qrack
             H(simId, target);
             double probX = Prob(simId, target);
             S(simId, target);
-            H(simId, target);
             double probY = Prob(simId, target);
-            H(simId, target);
             AdjS(simId, target);
             H(simId, target);
 
