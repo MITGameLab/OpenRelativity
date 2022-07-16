@@ -16,12 +16,12 @@ namespace Qrack
 #endif
     {
 
-        public uint QubitCount = 1;
+        public ulong QubitCount = 1;
         public float ClockOffset;
 
-        public uint SystemId { get; set; }
+        public ulong SystemId { get; set; }
 
-        protected uint lastQubitCount;
+        protected ulong lastQubitCount;
 
         private QuantumManager _qMan = null;
 
@@ -38,7 +38,7 @@ namespace Qrack
             }
         }
 
-        virtual protected uint GetSystemIndex(uint registerIndex)
+        virtual protected ulong GetSystemIndex(ulong registerIndex)
         {
             return registerIndex;
         }
@@ -103,11 +103,11 @@ namespace Qrack
             }
         }
 
-        public void AllocateQubit(uint qid) {
+        public void AllocateQubit(ulong qid) {
             QuantumManager.AllocateQubit(SystemId, qid);
         }
 
-        public void ReleaseQubit(uint qid) {
+        public void ReleaseQubit(ulong qid) {
             QuantumManager.ReleaseQubit(SystemId, qid);
         }
 
@@ -145,7 +145,7 @@ namespace Qrack
                     Debug.Log("Automatically allocated qubits in system " + SystemId + ", original: " + lastQubitCount + ", new: " + QubitCount);
                 }
 
-                for (uint i = lastQubitCount; i < QubitCount; i++)
+                for (ulong i = lastQubitCount; i < QubitCount; i++)
                 {
                     AllocateQubit(i);
                 }
@@ -158,7 +158,7 @@ namespace Qrack
                     Debug.Log("Automatically deallocated qubits in system " + SystemId + ", original: " + lastQubitCount + ", new: " + QubitCount);
                 }
 
-                for (uint i = (lastQubitCount - 1); i >= QubitCount; i--)
+                for (ulong i = (lastQubitCount - 1); i >= QubitCount; i--)
                 {
                     ReleaseQubit(i);
                 }
@@ -175,9 +175,9 @@ namespace Qrack
             }
         }
 
-        private uint[] MapQubits(uint[] controls)
+        private ulong[] MapQubits(ulong[] controls)
         {
-            uint[] mappedControls = new uint[controls.Length];
+            ulong[] mappedControls = new ulong[controls.Length];
             for (int i = 0; i < controls.Length; i++)
             {
                 mappedControls[i] = GetSystemIndex(controls[i]);
@@ -186,11 +186,11 @@ namespace Qrack
             return mappedControls;
         }
 
-        public virtual void CheckAlloc(List<uint> bits)
+        public virtual void CheckAlloc(List<ulong> bits)
         {
             bits.Sort();
 
-            uint highBit = bits[bits.Count - 1];
+            ulong highBit = bits[bits.Count - 1];
 
             if (highBit >= QubitCount)
             {
@@ -201,7 +201,7 @@ namespace Qrack
 
                 QubitCount = highBit + 1;
 
-                for (uint i = lastQubitCount; i < QubitCount; i++)
+                for (ulong i = lastQubitCount; i < QubitCount; i++)
                 {
                     AllocateQubit(i);
                 }
@@ -210,10 +210,10 @@ namespace Qrack
             }
         }
 
-        protected void SingleBitGate(uint targetId, Action<uint, uint> func)
+        protected void SingleBitGate(ulong targetId, Action<ulong, ulong> func)
         {
             targetId = GetSystemIndex(targetId);
-            CheckAlloc(new List<uint>() { targetId });
+            CheckAlloc(new List<ulong>() { targetId });
             func(SystemId, targetId);
 
             if (GetError() != 0) {
@@ -221,54 +221,54 @@ namespace Qrack
             }
         }
 
-        public void Rand(uint targetId)
+        public void Rand(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.Rand);
         }
 
-        public void X(uint targetId)
+        public void X(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.X);
         }
 
-        public void Y(uint targetId)
+        public void Y(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.Y);
         }
 
-        public void Z(uint targetId)
+        public void Z(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.Z);
         }
 
-        public void H(uint targetId)
+        public void H(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.H);
         }
-        public void S(uint targetId)
+        public void S(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.S);
         }
 
-        public void T(uint targetId)
+        public void T(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.T);
         }
 
-        public void AdjS(uint targetId)
+        public void AdjS(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.AdjS);
         }
 
-        public void AdjT(uint targetId)
+        public void AdjT(ulong targetId)
         {
             SingleBitGate(targetId, QuantumManager.AdjT);
         }
 
-        public void U(uint targetId, double theta, double phi, double lambda)
+        public void U(ulong targetId, double theta, double phi, double lambda)
         {
             targetId = GetSystemIndex(targetId);
-            CheckAlloc(new List<uint>() { targetId });
+            CheckAlloc(new List<ulong>() { targetId });
             QuantumManager.U(SystemId, targetId, theta, phi, lambda);
 
             if (GetError() != 0)
@@ -278,10 +278,10 @@ namespace Qrack
         }
 
         // 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
-        public void Mtrx(double[] m, uint targetId)
+        public void Mtrx(double[] m, ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
-            CheckAlloc(new List<uint>() { targetId });
+            CheckAlloc(new List<ulong>() { targetId });
             QuantumManager.Mtrx(SystemId, m, targetId);
 
             if (GetError() != 0)
@@ -291,7 +291,7 @@ namespace Qrack
         }
 
         // Powers (and roots) of Pauli X
-        public void PowX(double p, uint targetId)
+        public void PowX(double p, ulong targetId)
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
@@ -318,7 +318,7 @@ namespace Qrack
         }
 
         // Powers (and roots) of Pauli Y
-        public void PowY(double p, uint targetId)
+        public void PowY(double p, ulong targetId)
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
@@ -343,7 +343,7 @@ namespace Qrack
         }
 
         // Powers (and roots) of Pauli Z
-        public void PowZ(double p, uint targetId)
+        public void PowZ(double p, ulong targetId)
         {
             double[] m = {
                 // 0-0
@@ -365,7 +365,7 @@ namespace Qrack
         }
 
         // Powers (and roots) of "S" gate
-        public void PowS(double p, uint targetId)
+        public void PowS(double p, ulong targetId)
         {
             PowZ(p / 2.0, targetId);
 
@@ -376,7 +376,7 @@ namespace Qrack
         }
 
         // Powers (and roots) of "T" gate
-        public void PowT(double p, uint targetId)
+        public void PowT(double p, ulong targetId)
         {
             PowZ(p / 4.0, targetId);
 
@@ -387,7 +387,7 @@ namespace Qrack
         }
 
         // Powers (and roots) of Hadamard gate
-        public void PowH(double p, uint targetId)
+        public void PowH(double p, ulong targetId)
         {
             double sqrt2 = Math.Sqrt(2.0);
             double sqrt2x2 = 2.0 * sqrt2;
@@ -417,11 +417,11 @@ namespace Qrack
             }
         }
 
-        public void R(Pauli basis, double phi, uint targetId)
+        public void R(Pauli basis, double phi, ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
-            CheckAlloc(new List<uint>() { targetId });
-            QuantumManager.R(SystemId, (uint)basis, phi, targetId);
+            CheckAlloc(new List<ulong>() { targetId });
+            QuantumManager.R(SystemId, (ulong)basis, phi, targetId);
 
             if (GetError() != 0)
             {
@@ -429,10 +429,10 @@ namespace Qrack
             }
         }
 
-        protected void SingleBitRotation(uint targetId, double phi, Action<uint, uint, double> func)
+        protected void SingleBitRotation(ulong targetId, double phi, Action<ulong, ulong, double> func)
         {
             targetId = GetSystemIndex(targetId);
-            CheckAlloc(new List<uint>() { targetId });
+            CheckAlloc(new List<ulong>() { targetId });
             func(SystemId, targetId, phi);
 
             if (GetError() != 0)
@@ -441,35 +441,35 @@ namespace Qrack
             }
         }
 
-        public void Exp(uint targetId, double phi)
+        public void Exp(ulong targetId, double phi)
         {
             SingleBitRotation(targetId, phi, QuantumManager.Exp);
         }
 
-        public void RX(uint targetId, double phi)
+        public void RX(ulong targetId, double phi)
         {
             SingleBitRotation(targetId, phi, QuantumManager.RX);
         }
 
-        public void RY(uint targetId, double phi)
+        public void RY(ulong targetId, double phi)
         {
             SingleBitRotation(targetId, phi, QuantumManager.RY);
         }
 
-        public void RZ(uint targetId, double phi)
+        public void RZ(ulong targetId, double phi)
         {
             SingleBitRotation(targetId, phi, QuantumManager.RZ);
         }
 
-        public void MCSingleBitGate(uint[] controls, uint targetId, Action<uint, uint, uint[], uint> func)
+        public void MCSingleBitGate(ulong[] controls, ulong targetId, Action<ulong, ulong, ulong[], ulong> func)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { targetId };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            func(SystemId, (uint)mappedControls.Length, mappedControls, targetId);
+            func(SystemId, (ulong)mappedControls.Length, mappedControls, targetId);
 
             if (GetError() != 0)
             {
@@ -477,55 +477,55 @@ namespace Qrack
             }
         }
 
-        public void MCX(uint[] controls, uint targetId)
+        public void MCX(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCX);
         }
 
-        public void MCY(uint[] controls, uint targetId)
+        public void MCY(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCY);
         }
 
-        public void MCZ(uint[] controls, uint targetId)
+        public void MCZ(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCZ);
         }
 
-        public void MCH(uint[] controls, uint targetId)
+        public void MCH(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCH);
         }
 
-        public void MCS(uint[] controls, uint targetId)
+        public void MCS(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCS);
         }
 
-        public void MCT(uint[] controls, uint targetId)
+        public void MCT(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCT);
         }
 
-        public void MCAdjS(uint[] controls, uint targetId)
+        public void MCAdjS(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCAdjS);
         }
 
-        public void MCAdjT(uint[] controls, uint targetId)
+        public void MCAdjT(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MCAdjT);
         }
 
-        public void MCU(uint[] controls, uint targetId, double theta, double phi, double lambda)
+        public void MCU(ulong[] controls, ulong targetId, double theta, double phi, double lambda)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { targetId };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            QuantumManager.MCU(SystemId, (uint)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
+            QuantumManager.MCU(SystemId, (ulong)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
 
             if (GetError() != 0)
             {
@@ -534,15 +534,15 @@ namespace Qrack
         }
 
         // Multiply-controlled 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
-        public void MCMtrx(uint[] controls, double[] m, uint targetId)
+        public void MCMtrx(ulong[] controls, double[] m, ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { targetId };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            QuantumManager.MCMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
+            QuantumManager.MCMtrx(SystemId, (ulong)mappedControls.Length, mappedControls, m, targetId);
 
             if (GetError() != 0)
             {
@@ -550,55 +550,55 @@ namespace Qrack
             }
         }
 
-        public void MACX(uint[] controls, uint targetId)
+        public void MACX(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACX);
         }
 
-        public void MACY(uint[] controls, uint targetId)
+        public void MACY(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACY);
         }
 
-        public void MACZ(uint[] controls, uint targetId)
+        public void MACZ(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACZ);
         }
 
-        public void MACH(uint[] controls, uint targetId)
+        public void MACH(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACH);
         }
 
-        public void MACS(uint[] controls, uint targetId)
+        public void MACS(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACS);
         }
 
-        public void MACT(uint[] controls, uint targetId)
+        public void MACT(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACT);
         }
 
-        public void MACAdjS(uint[] controls, uint targetId)
+        public void MACAdjS(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACAdjS);
         }
 
-        public void MACAdjT(uint[] controls, uint targetId)
+        public void MACAdjT(ulong[] controls, ulong targetId)
         {
             MCSingleBitGate(controls, targetId, QuantumManager.MACAdjT);
         }
 
-        public void MACU(uint[] controls, uint targetId, double theta, double phi, double lambda)
+        public void MACU(ulong[] controls, ulong targetId, double theta, double phi, double lambda)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { targetId };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            QuantumManager.MACU(SystemId, (uint)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
+            QuantumManager.MACU(SystemId, (ulong)mappedControls.Length, mappedControls, targetId, theta, phi, lambda);
 
             if (GetError() != 0)
             {
@@ -607,15 +607,15 @@ namespace Qrack
         }
 
         // Multiply-controlled 2x2 complex number matrix gate, (serialized as 8 doubles, real-imaginary adjacent, then row-major)
-        public void MACMtrx(uint[] controls, double[] m, uint targetId)
+        public void MACMtrx(ulong[] controls, double[] m, ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { targetId };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            QuantumManager.MACMtrx(SystemId, (uint)mappedControls.Length, mappedControls, m, targetId);
+            QuantumManager.MACMtrx(SystemId, (ulong)mappedControls.Length, mappedControls, m, targetId);
 
             if (GetError() != 0)
             {
@@ -624,7 +624,7 @@ namespace Qrack
         }
 
         // Powers (and roots) of multiply-controlled Pauli X
-        protected void PowMCNOTx(double p, uint[] controls, uint targetId, bool isAnti)
+        protected void PowMCNOTx(double p, ulong[] controls, ulong targetId, bool isAnti)
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
@@ -657,18 +657,18 @@ namespace Qrack
             }
         }
 
-        public void PowMCNOT(double p, uint[] controls, uint targetId)
+        public void PowMCNOT(double p, ulong[] controls, ulong targetId)
         {
             PowMCNOTx(p, controls, targetId, false);
         }
 
-        public void PowMACNOT(double p, uint[] controls, uint targetId)
+        public void PowMACNOT(double p, ulong[] controls, ulong targetId)
         {
             PowMCNOTx(p, controls, targetId, true);
         }
 
         // Powers (and roots) of multiply-controlled Pauli Y
-        public void PowMCYx(double p, uint[] controls, uint targetId, bool isAnti)
+        public void PowMCYx(double p, ulong[] controls, ulong targetId, bool isAnti)
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
@@ -699,18 +699,18 @@ namespace Qrack
             }
         }
 
-        public void PowMCY(double p, uint[] controls, uint targetId)
+        public void PowMCY(double p, ulong[] controls, ulong targetId)
         {
             PowMCYx(p, controls, targetId, false);
         }
 
-        public void PowMACY(double p, uint[] controls, uint targetId)
+        public void PowMACY(double p, ulong[] controls, ulong targetId)
         {
             PowMCYx(p, controls, targetId, true);
         }
 
         // Powers (and roots) of multiply-controlled Pauli Z
-        public void PowMCZx(double p, uint[] controls, uint targetId, bool isAnti)
+        public void PowMCZx(double p, ulong[] controls, ulong targetId, bool isAnti)
         {
             double[] m = {
                 // 0-0
@@ -738,50 +738,50 @@ namespace Qrack
             }
         }
 
-        public void PowMCZ(double p, uint[] controls, uint targetId)
+        public void PowMCZ(double p, ulong[] controls, ulong targetId)
         {
             PowMCZx(p, controls, targetId, false);
         }
 
-        public void PowMACZ(double p, uint[] controls, uint targetId)
+        public void PowMACZ(double p, ulong[] controls, ulong targetId)
         {
             PowMCZx(p, controls, targetId, true);
         }
 
         // Powers (and roots) of multiply-controlled "S" gate
-        public void PowMCS(double p, uint[] controls, uint targetId)
+        public void PowMCS(double p, ulong[] controls, ulong targetId)
         {
             PowMCZ(p / 2.0, controls, targetId);
         }
 
-        public void PowMACS(double p, uint[] controls, uint targetId)
+        public void PowMACS(double p, ulong[] controls, ulong targetId)
         {
             PowMACZ(p / 2.0, controls, targetId);
         }
 
         // Powers (and roots) of multiply-controlled "T" gate
-        public void PowMCT(double p, uint[] controls, uint targetId)
+        public void PowMCT(double p, ulong[] controls, ulong targetId)
         {
             PowMCZ(p / 4.0, controls, targetId);
         }
 
-        public void PowMACT(double p, uint[] controls, uint targetId)
+        public void PowMACT(double p, ulong[] controls, ulong targetId)
         {
             PowMACZ(p / 4.0, controls, targetId);
         }
 
         // Powers (and roots) of multiply-controlled Hadamard gate
-        public void MCPowH(double p, uint[] controls, uint targetId)
+        public void MCPowH(double p, ulong[] controls, ulong targetId)
         {
             MCPowHx(p, controls, targetId, false);
         }
 
-        public void MACPowH(double p, uint[] controls, uint targetId)
+        public void MACPowH(double p, ulong[] controls, ulong targetId)
         {
             MCPowHx(p, controls, targetId, true);
         }
 
-        public void MCPowHx(double p, uint[] controls, uint targetId, bool isAnti)
+        public void MCPowHx(double p, ulong[] controls, ulong targetId, bool isAnti)
         {
             double sqrt2 = Math.Sqrt(2.0);
             double sqrt2x2 = 2.0 * sqrt2;
@@ -818,14 +818,14 @@ namespace Qrack
             }
         }
 
-        public void MultiBitGate(uint[] targets, Action<uint, uint, uint[]> func)
+        public void MultiBitGate(ulong[] targets, Action<ulong, ulong, ulong[]> func)
         {
-            uint[] mappedTargets = MapQubits(targets);
-            List<uint> bits = new List<uint>();
+            ulong[] mappedTargets = MapQubits(targets);
+            List<ulong> bits = new List<ulong>();
             bits.AddRange(mappedTargets);
             CheckAlloc(bits);
 
-            func(SystemId, (uint)mappedTargets.Length, mappedTargets);
+            func(SystemId, (ulong)mappedTargets.Length, mappedTargets);
 
             if (GetError() != 0)
             {
@@ -833,30 +833,30 @@ namespace Qrack
             }
         }
 
-        public void MX(uint[] targets)
+        public void MX(ulong[] targets)
         {
             MultiBitGate(targets, QuantumManager.MX);
         }
 
-        public void MY(uint[] targets)
+        public void MY(ulong[] targets)
         {
             MultiBitGate(targets, QuantumManager.MY);
         }
 
-        public void MZ(uint[] targets)
+        public void MZ(ulong[] targets)
         {
             MultiBitGate(targets, QuantumManager.MZ);
         }
 
-        public void MCR(Pauli basis, double phi, uint[] controls, uint targetId)
+        public void MCR(Pauli basis, double phi, ulong[] controls, ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { targetId };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            QuantumManager.MCR(SystemId, (uint)basis, phi, (uint)mappedControls.Length, mappedControls, targetId);
+            QuantumManager.MCR(SystemId, (ulong)basis, phi, (ulong)mappedControls.Length, mappedControls, targetId);
 
             if (GetError() != 0)
             {
@@ -864,17 +864,17 @@ namespace Qrack
             }
         }
 
-        protected delegate void MCRot(uint systemId, uint controlLen, uint[] controls, uint targetId, double phi);
+        protected delegate void MCRot(ulong systemId, ulong controlLen, ulong[] controls, ulong targetId, double phi);
 
-        protected void MCSingleBitRotation(uint[] controls, uint targetId, double phi, MCRot func)
+        protected void MCSingleBitRotation(ulong[] controls, ulong targetId, double phi, MCRot func)
         {
             targetId = GetSystemIndex(targetId);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { targetId };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { targetId };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            func(SystemId, (uint)mappedControls.Length, mappedControls, targetId, phi);
+            func(SystemId, (ulong)mappedControls.Length, mappedControls, targetId, phi);
 
             if (GetError() != 0)
             {
@@ -882,31 +882,31 @@ namespace Qrack
             }
         }
 
-        public void MCExp(uint[] controls, uint targetId, double phi)
+        public void MCExp(ulong[] controls, ulong targetId, double phi)
         {
             MCSingleBitRotation(controls, targetId, phi, QuantumManager.MCExp);
         }
 
-        public void MCRX(uint[] controls, uint targetId, double phi)
+        public void MCRX(ulong[] controls, ulong targetId, double phi)
         {
             MCSingleBitRotation(controls, targetId, phi, QuantumManager.MCRX);
         }
 
-        public void MCRY(uint[] controls, uint targetId, double phi)
+        public void MCRY(ulong[] controls, ulong targetId, double phi)
         {
             MCSingleBitRotation(controls, targetId, phi, QuantumManager.MCRY);
         }
 
-        public void MCRZ(uint[] controls, uint targetId, double phi)
+        public void MCRZ(ulong[] controls, ulong targetId, double phi)
         {
             MCSingleBitRotation(controls, targetId, phi, QuantumManager.MCRZ);
         }
 
-        protected void DoubleBitGate(uint target1, uint target2, Action<uint, uint, uint> func)
+        protected void DoubleBitGate(ulong target1, ulong target2, Action<ulong, ulong, ulong> func)
         {
             target1 = GetSystemIndex(target1);
             target2 = GetSystemIndex(target2);
-            CheckAlloc(new List<uint>() { target1, target2 });
+            CheckAlloc(new List<ulong>() { target1, target2 });
             func(SystemId, target1, target2);
 
             if (GetError() != 0)
@@ -915,39 +915,39 @@ namespace Qrack
             }
         }
 
-        public void SWAP(uint target1, uint target2)
+        public void SWAP(ulong target1, ulong target2)
         {
             DoubleBitGate(target1, target2, QuantumManager.SWAP);
         }
 
-        public void ISWAP(uint target1, uint target2)
+        public void ISWAP(ulong target1, ulong target2)
         {
             DoubleBitGate(target1, target2, QuantumManager.ISWAP);
         }
 
-        public void AdjISWAP(uint target1, uint target2)
+        public void AdjISWAP(ulong target1, ulong target2)
         {
             DoubleBitGate(target1, target2, QuantumManager.AdjISWAP);
         }
 
-        public void FSim(double theta, double phi, uint target1, uint target2)
+        public void FSim(double theta, double phi, ulong target1, ulong target2)
         {
             target1 = GetSystemIndex(target1);
             target2 = GetSystemIndex(target2);
-            CheckAlloc(new List<uint>() { target1, target2 });
+            CheckAlloc(new List<ulong>() { target1, target2 });
             QuantumManager.FSim(SystemId, theta, phi, target1, target2);
         }
 
-        public void CSWAP(uint[] controls, uint target1, uint target2)
+        public void CSWAP(ulong[] controls, ulong target1, ulong target2)
         {
             target1 = GetSystemIndex(target1);
             target2 = GetSystemIndex(target2);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { target1, target2 };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { target1, target2 };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            QuantumManager.CSWAP(SystemId, (uint)mappedControls.Length, mappedControls, target1, target2);
+            QuantumManager.CSWAP(SystemId, (ulong)mappedControls.Length, mappedControls, target1, target2);
 
             if (GetError() != 0)
             {
@@ -955,16 +955,16 @@ namespace Qrack
             }
         }
 
-        public void ACSWAP(uint[] controls, uint target1, uint target2)
+        public void ACSWAP(ulong[] controls, ulong target1, ulong target2)
         {
             target1 = GetSystemIndex(target1);
             target2 = GetSystemIndex(target2);
-            uint[] mappedControls = MapQubits(controls);
-            List<uint> bits = new List<uint> { target1, target2 };
+            ulong[] mappedControls = MapQubits(controls);
+            List<ulong> bits = new List<ulong> { target1, target2 };
             bits.AddRange(mappedControls);
             CheckAlloc(bits);
 
-            QuantumManager.ACSWAP(SystemId, (uint)mappedControls.Length, mappedControls, target1, target2);
+            QuantumManager.ACSWAP(SystemId, (ulong)mappedControls.Length, mappedControls, target1, target2);
 
             if (GetError() != 0)
             {
@@ -972,7 +972,7 @@ namespace Qrack
             }
         }
 
-        public bool M(uint targetId)
+        public bool M(ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
             if (targetId >= QubitCount)
@@ -990,9 +990,9 @@ namespace Qrack
             return toRet;
         }
 
-        public uint MAll()
+        public ulong MAll()
         {
-            uint toRet = QuantumManager.MAll(SystemId);
+            ulong toRet = QuantumManager.MAll(SystemId);
 
             if (GetError() != 0)
             {
@@ -1002,7 +1002,7 @@ namespace Qrack
             return toRet;
         }
 
-        public void QSET(uint targetId)
+        public void QSET(ulong targetId)
         {
             if (!M(targetId))
             {
@@ -1010,7 +1010,7 @@ namespace Qrack
             }
         }
 
-        public void QRESET(uint targetId)
+        public void QRESET(ulong targetId)
         {
             if (M(targetId))
             {
@@ -1018,13 +1018,13 @@ namespace Qrack
             }
         }
 
-        public void BoolGate(uint qInput1, uint qInput2, uint qOutput, Action<uint, uint, uint, uint> func)
+        public void BoolGate(ulong qInput1, ulong qInput2, ulong qOutput, Action<ulong, ulong, ulong, ulong> func)
         {
             qInput1 = GetSystemIndex(qInput1);
             qInput2 = GetSystemIndex(qInput2);
             qOutput = GetSystemIndex(qOutput);
 
-            List<uint> bits = new List<uint> { qInput1, qInput2, qOutput };
+            List<ulong> bits = new List<ulong> { qInput1, qInput2, qOutput };
             CheckAlloc(bits);
 
             func(SystemId, qInput1, qInput2, qOutput);
@@ -1035,42 +1035,42 @@ namespace Qrack
             }
         }
 
-        public void QAND(uint qInput1, uint qInput2, uint qOutput)
+        public void QAND(ulong qInput1, ulong qInput2, ulong qOutput)
         {
             BoolGate(qInput1, qInput2, qOutput, QuantumManager.AND);
         }
 
-        public void QOR(uint qInput1, uint qInput2, uint qOutput)
+        public void QOR(ulong qInput1, ulong qInput2, ulong qOutput)
         {
             BoolGate(qInput1, qInput2, qOutput, QuantumManager.OR);
         }
 
-        public void QXOR(uint qInput1, uint qInput2, uint qOutput)
+        public void QXOR(ulong qInput1, ulong qInput2, ulong qOutput)
         {
             BoolGate(qInput1, qInput2, qOutput, QuantumManager.XOR);
         }
 
-        public void QNAND(uint qInput1, uint qInput2, uint qOutput)
+        public void QNAND(ulong qInput1, ulong qInput2, ulong qOutput)
         {
             BoolGate(qInput1, qInput2, qOutput, QuantumManager.NAND);
         }
 
-        public void QNOR(uint qInput1, uint qInput2, uint qOutput)
+        public void QNOR(ulong qInput1, ulong qInput2, ulong qOutput)
         {
             BoolGate(qInput1, qInput2, qOutput, QuantumManager.NOR);
         }
 
-        public void QXNOR(uint qInput1, uint qInput2, uint qOutput)
+        public void QXNOR(ulong qInput1, ulong qInput2, ulong qOutput)
         {
             BoolGate(qInput1, qInput2, qOutput, QuantumManager.XNOR);
         }
 
-        public void SemiBoolGate(bool cInput, uint qInput, uint qOutput, Action<uint, bool, uint, uint> func)
+        public void SemiBoolGate(bool cInput, ulong qInput, ulong qOutput, Action<ulong, bool, ulong, ulong> func)
         {
             qInput = GetSystemIndex(qInput);
             qOutput = GetSystemIndex(qOutput);
 
-            List<uint> bits = new List<uint> { qInput, qOutput };
+            List<ulong> bits = new List<ulong> { qInput, qOutput };
             CheckAlloc(bits);
 
             func(SystemId, cInput, qInput, qOutput);
@@ -1081,37 +1081,37 @@ namespace Qrack
             }
         }
 
-        public void CQAND(bool cInput, uint qInput, uint qOutput)
+        public void CQAND(bool cInput, ulong qInput, ulong qOutput)
         {
             SemiBoolGate(cInput, qInput, qOutput, QuantumManager.CLAND);
         }
 
-        public void CQOR(bool cInput, uint qInput, uint qOutput)
+        public void CQOR(bool cInput, ulong qInput, ulong qOutput)
         {
             SemiBoolGate(cInput, qInput, qOutput, QuantumManager.CLOR);
         }
 
-        public void CQXOR(bool cInput, uint qInput, uint qOutput)
+        public void CQXOR(bool cInput, ulong qInput, ulong qOutput)
         {
             SemiBoolGate(cInput, qInput, qOutput, QuantumManager.CLXOR);
         }
 
-        public void CQNAND(bool cInput, uint qInput, uint qOutput)
+        public void CQNAND(bool cInput, ulong qInput, ulong qOutput)
         {
             SemiBoolGate(cInput, qInput, qOutput, QuantumManager.CLNAND);
         }
 
-        public void CQNOR(bool cInput, uint qInput, uint qOutput)
+        public void CQNOR(bool cInput, ulong qInput, ulong qOutput)
         {
             SemiBoolGate(cInput, qInput, qOutput, QuantumManager.CLNOR);
         }
 
-        public void CQXNOR(bool cInput, uint qInput, uint qOutput)
+        public void CQXNOR(bool cInput, ulong qInput, ulong qOutput)
         {
             SemiBoolGate(cInput, qInput, qOutput, QuantumManager.CLXNOR);
         }
 
-        public float Prob(uint targetId)
+        public float Prob(ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
             if (targetId >= QubitCount)
@@ -1139,13 +1139,13 @@ namespace Qrack
             }
         }
 
-        public float PermutationExpectation(uint[] bits)
+        public float PermutationExpectation(ulong[] bits)
         {
-            uint[] mappedBits = MapQubits(bits);
-            List<uint> mappedList = new List<uint>(mappedBits);
+            ulong[] mappedBits = MapQubits(bits);
+            List<ulong> mappedList = new List<ulong>(mappedBits);
             CheckAlloc(mappedList);
 
-            float toRet = (float)QuantumManager.PermutationExpectation(SystemId, (uint)mappedBits.Length, mappedBits);
+            float toRet = (float)QuantumManager.PermutationExpectation(SystemId, (ulong)mappedBits.Length, mappedBits);
 
             if (GetError() != 0)
             {
@@ -1155,7 +1155,7 @@ namespace Qrack
             return toRet;
         }
 
-        public void SetBit(uint targetID, bool tOrF)
+        public void SetBit(ulong targetID, bool tOrF)
         {
             if (tOrF)
             {
@@ -1166,7 +1166,7 @@ namespace Qrack
             }
         }
 
-        public bool TrySeparate(uint q)
+        public bool TrySeparate(ulong q)
         {
             q = GetSystemIndex(q);
             if (q >= QubitCount)
@@ -1183,9 +1183,9 @@ namespace Qrack
             return toRet;
         }
 
-        public bool TrySeparate(uint q1, uint q2)
+        public bool TrySeparate(ulong q1, ulong q2)
         {
-            CheckAlloc(new List<uint>() { q1, q2 });
+            CheckAlloc(new List<ulong>() { q1, q2 });
             bool toRet = QuantumManager.TrySeparate(SystemId, GetSystemIndex(q1), GetSystemIndex(q2));
 
             if (GetError() != 0)
@@ -1196,10 +1196,10 @@ namespace Qrack
             return toRet;
         }
 
-        public bool TrySeparate(uint[] q, double error_tol)
+        public bool TrySeparate(ulong[] q, double error_tol)
         {
-            uint[] mappedQ = MapQubits(q);
-            bool toRet = QuantumManager.TrySeparate(SystemId, (uint)mappedQ.Length, mappedQ, error_tol);
+            ulong[] mappedQ = MapQubits(q);
+            bool toRet = QuantumManager.TrySeparate(SystemId, (ulong)mappedQ.Length, mappedQ, error_tol);
 
             if (GetError() != 0)
             {
@@ -1219,10 +1219,10 @@ namespace Qrack
             }
         }
 
-        public uint Measure(uint[] bases, uint[] qubits)
+        public ulong Measure(ulong[] bases, ulong[] qubits)
         {
-            uint[] mappedQ = MapQubits(qubits);
-            uint toRet = QuantumManager.Measure(SystemId, bases, mappedQ);
+            ulong[] mappedQ = MapQubits(qubits);
+            ulong toRet = QuantumManager.Measure(SystemId, bases, mappedQ);
 
             if (GetError() != 0)
             {
@@ -1232,9 +1232,9 @@ namespace Qrack
             return toRet;
         }
 
-        public void MeasureShots(uint[] qubits, uint[] measureResults)
+        public void MeasureShots(ulong[] qubits, ulong[] measureResults)
         {
-            uint[] mappedQ = MapQubits(qubits);
+            ulong[] mappedQ = MapQubits(qubits);
             QuantumManager.MeasureShots(SystemId, mappedQ, measureResults);
 
             if (GetError() != 0)
@@ -1251,12 +1251,12 @@ namespace Qrack
                 mappedTeos[i].target = GetSystemIndex(teos[i].target);
                 if (teos[i].controlLen > 0)
                 {
-                    mappedTeos[i].controls = new uint[teos[i].controlLen];
-                    for (int j = 0; j < teos[i].controlLen; j++)
+                    mappedTeos[i].controls = new ulong[teos[i].controlLen];
+                    for (ulong j = 0; j < teos[i].controlLen; j++)
                     {
                         mappedTeos[i].controls[j] = GetSystemIndex(teos[i].controls[j]);
                     }
-                    List<uint> bits = new List<uint> { mappedTeos[i].target };
+                    List<ulong> bits = new List<ulong> { mappedTeos[i].target };
                     bits.AddRange(mappedTeos[i].controls);
                     CheckAlloc(bits);
                 }
@@ -1266,7 +1266,7 @@ namespace Qrack
                 }
             }
 
-            QuantumManager.TimeEvolve(SystemId, t, (uint)mappedTeos.Length, mappedTeos, (uint)mtrx.Length, mtrx);
+            QuantumManager.TimeEvolve(SystemId, t, (ulong)mappedTeos.Length, mappedTeos, (ulong)mtrx.Length, mtrx);
 
             if (GetError() != 0)
             {
@@ -1274,15 +1274,15 @@ namespace Qrack
             }
         }
 
-        public uint GetError()
+        public int GetError()
         {
             return QuantumManager.GetError(SystemId);
         }
 
-        public BlochSphereCoordinates Prob3Axis(uint targetId)
+        public BlochSphereCoordinates Prob3Axis(ulong targetId)
         {
             targetId = GetSystemIndex(targetId);
-            CheckAlloc(new List<uint>() { targetId });
+            CheckAlloc(new List<ulong>() { targetId });
             BlochSphereCoordinates toRet = QuantumManager.Prob3Axis(SystemId, targetId);
 
             if (GetError() != 0)

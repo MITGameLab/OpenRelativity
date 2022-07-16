@@ -1,4 +1,6 @@
-﻿namespace Qrack
+﻿using UnityEngine;
+
+namespace Qrack
 {
     public class TeleportEve : RealTimeQasmProgram
     {
@@ -14,7 +16,7 @@
                     qs.ResetAll();
 
                     qs.H(1);
-                    qs.MCX(new uint[] { 1 }, 2);
+                    qs.MCX(new ulong[] { 1 }, 2);
                 }
             });
         }

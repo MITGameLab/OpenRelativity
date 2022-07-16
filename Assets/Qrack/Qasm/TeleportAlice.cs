@@ -23,7 +23,7 @@ namespace Qrack
 
                     BlochSphereCoordinates coords = qs.Prob3Axis(0);
 
-                    qs.MCX(new uint[] { 0 }, 1);
+                    qs.MCX(new ulong[] { 0 }, 1);
                     qs.H(0);
 
                     HistoryPoints.Add(new RealTimeQasmProgramHistoryPoint
@@ -32,8 +32,7 @@ namespace Qrack
                         Action = (time) =>
                         {
                             RelativisticObject ro = RelativisticObject;
-                            ro.transform.rotation = Quaternion.identity;
-                            ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0.0f);
+                            ro.transform.rotation = Quaternion.Euler((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0.0f);
                             ro.riw = qs.transform.rotation;
                             ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
                         }

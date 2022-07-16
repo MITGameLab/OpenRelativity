@@ -8,7 +8,7 @@ namespace Qrack
         public OpenRelativity.GameState state;
         public OpenRelativity.ConformalMaps.Schwarzschild schwarzschild;
 
-        public int maxQubits = 28;
+        public ulong maxQubits = 28;
 
         protected class QftHistoryPoint
         {
@@ -16,7 +16,7 @@ namespace Qrack
             public float Radius { get; set; }
         }
 
-        protected void InitRandomQubit(QuantumSystem qs, uint i)
+        protected void InitRandomQubit(QuantumSystem qs, ulong i)
         {
             System.Random rng = new System.Random();
             double a1 = 2 * Math.PI * rng.NextDouble();
@@ -30,7 +30,7 @@ namespace Qrack
         {
             InitRandomQubit(QuantumSystem, 0);
             QuantumSystem.H(0);
-            uint[] bits = new uint[1] { 0 };
+            ulong[] bits = new ulong[1] { 0 };
 
             expectationFrames.Add(new QftHistoryPoint
             {
@@ -40,13 +40,13 @@ namespace Qrack
 
             schwarzschild.schwarzschildRadius = expectationFrames[0].Radius / 2;
 
-            for (uint i = 1; i < maxQubits; i++)
+            for (ulong i = 1; i < maxQubits; i++)
             {
                 AddLayer(i);
             }
         }
 
-        private void AddLayer(uint i)
+        private void AddLayer(ulong i)
         {
             // We need to calculate 1 time ahead of the current fold.
             // We also need to calculate all folds before the starting TotalTimeWorld.
@@ -64,16 +64,16 @@ namespace Qrack
                     QuantumSystem qs = x.QuantumSystem;
                     InitRandomQubit(qs, i);
 
-                    for (uint j = 0; j < i; j++)
+                    for (ulong j = 0; j < i; j++)
                     {
-                        uint[] c = new uint[1] { i };
-                        uint t = (i - 1U) - j;
+                        ulong[] c = new ulong[1] { i };
+                        ulong t = (i - 1U) - j;
                         double lambda = 2 * Math.PI / Math.Pow(2.0, j);
                         qs.MCU(c, t, 0, 0, lambda);
                     }
                     qs.H(i);
-                    List<uint> expBits = new List<uint>();
-                    for (uint bit = 0; bit <= i; bit++)
+                    List<ulong> expBits = new List<ulong>();
+                    for (ulong bit = 0; bit <= i; bit++)
                     {
                         expBits.Add(bit);
                     }
