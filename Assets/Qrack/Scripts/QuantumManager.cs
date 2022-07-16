@@ -274,7 +274,8 @@ namespace Qrack
 
         public uint AllocateSimulator(uint numQubits)
         {
-            uint simId = Init(numQubits, false);
+            // uint simId = Init(numQubits, false);
+            uint simId = InitType(numQubits, false, false, false, false, false, false, false, false, false);
             SimulatorIds.Add(simId);
             return simId;
         }
@@ -381,9 +382,7 @@ namespace Qrack
             H(simId, target);
             double probX = Prob(simId, target);
             S(simId, target);
-            H(simId, target);
             double probY = Prob(simId, target);
-            H(simId, target);
             AdjS(simId, target);
             H(simId, target);
 

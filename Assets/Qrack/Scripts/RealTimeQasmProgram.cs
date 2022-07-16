@@ -15,7 +15,7 @@ namespace Qrack
         public RelativisticObject RelativisticObject { get; set; }
 
         public List<bool> ClassicalBitRegisters;
-        public List<QcClassicalChannel> isSignalledSources;
+        public List<QcClassicalChannel> isSignalledSources { get; set; }
 
         private float nextInstructionTime;
         private float lastInstructionTime;
