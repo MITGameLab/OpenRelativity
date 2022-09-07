@@ -44,3 +44,11 @@ The following packages were updated:
   com.unity.ide.rider from version 2.0.7 to 3.0.15
   com.unity.ide.visualstudio from version 2.0.14 to 2.0.16
   com.unity.timeline from version 1.4.8 to 1.6.4
+
+=== Tue Sep  6 12:25:05 2022
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.xr.legacyinputhelpers from version 2.1.9 to 2.1.10
