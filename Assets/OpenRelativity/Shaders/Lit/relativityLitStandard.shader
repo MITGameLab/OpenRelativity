@@ -953,15 +953,15 @@ Shader "Relativity/Lit/Standard" {
 
 				sampler2D _GIAlbedoTex;
 				fixed4 _GIAlbedoColor;
-				float4 frag_meta2(v2f i) : SV_Target
+				float4 frag_meta2(v2f_meta i) : SV_Target
 				{
 					// We're interested in diffuse & specular colors
 					// and surface roughness to produce final albedo.
 
-					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.albedoUV.xy,0,0));
+					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.uv.xy,0,0));
 					UnityMetaInput o;
 					UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
-					fixed4 c = tex2D(_GIAlbedoTex, i.albedoUV);
+					fixed4 c = tex2D(_GIAlbedoTex, i.uv);
 #if _EMISSION
 					o.Emission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
 #else

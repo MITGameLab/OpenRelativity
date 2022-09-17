@@ -10,7 +10,7 @@ Available memory:        31863 MB
 Using pre-set license
 Pro License: YES
 
-(Unity:6476): Gdk-CRITICAL **: 07:54:25.607: gdk_window_get_cursor: assertion 'GDK_IS_WINDOW (window)' failed
+(Unity:8531): Gdk-CRITICAL **: 08:06:24.615: gdk_window_get_cursor: assertion 'GDK_IS_WINDOW (window)' failed
 Desktop is 1920 x 1080 @ 60 Hz
 Initialize udev device monitor.
 
@@ -20,13 +20,13 @@ Unity
 -batchMode
 -noUpm
 -name
-AssetImportWorker0
+AssetImportWorker1
 -projectPath
 /home/iamu/GitHub/OpenRelativity
 -logFile
-Logs/AssetImportWorker0.log
+Logs/AssetImportWorker1.log
 -srvPort
-45667
+42301
 Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
 /home/iamu/GitHub/OpenRelativity
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
@@ -58,11 +58,7 @@ Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
     "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/ARM64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/ARMv7/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Refreshing native plugins compatible for Editor in 17.10 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 14.91 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 2021.3.9f1 (ad3870b89536)
 [Subsystems] Discovering subsystems at path /home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/Resources/UnitySubsystems
@@ -83,89 +79,81 @@ blend_equation_advanced_coherent GL_NVX_blend_equation_advanced_multi_draw_buffe
 der_passthrough GL_NV_gpu_program4 GL_NV_internalformat_sample_query GL_NV_gpu_program4_1 GL_NV_gpu_program5 GL_NV_gpu_program5_mem_extended GL_NV_gpu_program_fp64 GL_NV_gpu_shader5 GL_NV_half_float GL_NV_light_max_exponent GL_NV_memory_attachment GL_NV_mesh_shader GL_NV_multisample_coverage GL_NV_multisample_filter_hint GL_NV_occlusion_query GL_NV_packed_depth_stencil GL_NV_parameter_buffer_object GL_NV_parameter_buffer_object2 GL_NV_path_rendering GL_NV_path_rendering_shared_edge GL_NV_pixel_data_range GL_NV_point_sprite GL_NV_primitive_restart GL_NV_query_resource GL_NV_query_resource_tag GL_NV_register_combiners GL_NV_register_combiners2 GL_NV_representative_fragment_test GL_NV_sample_locations GL_NV_sample_mask_override_coverage GL_NV_scissor_exclusive GL_NV_shader_atomic_counters GL_NV_shader_atomic_float GL_NV_shader_atomic_float64 GL_NV_shader_atomic_fp16_vector GL_NV_shader_atomic_int64 GL_NV_shader_buffer_load GL_NV_shader_storage_buffer_object GL_NV_shader_subgroup_partitioned GL_NV_shader_texture
 _footprint GL_NV_shading_rate_image GL_NV_stereo_view_rendering GL_NV_texgen_reflection GL_NV_texture_barrier GL_NV_texture_compression_vtc GL_NV_texture_env_combine4 GL_NV_texture_multisample GL_NV_texture_rectangle GL_NV_texture_rectangle_compressed GL_NV_texture_shader GL_NV_texture_shader2 GL_NV_texture_shader3 GL_NV_transform_feedback GL_NV_transform_feedback2 GL_NV_uniform_buffer_unified_memory GL_NV_vdpau_interop GL_NV_vdpau_interop2 GL_NV_vertex_array_range GL_NV_vertex_array_range2 GL_NV_vertex_attrib_integer_64bit GL_NV_vertex_buffer_unified_memory GL_NV_vertex_program GL_NV_vertex_program1_1 GL_NV_vertex_program2 GL_NV_vertex_program2_option GL_NV_vertex_program3 GL_NV_viewport_array2 GL_NV_viewport_swizzle GL_NVX_conditional_render GL_NV_gpu_multicast GL_NVX_progress_fence GL_NVX_gpu_memory_info GL_NVX_nvenc_interop GL_NV_shader_thread_group GL_NV_shader_thread_shuffle GL_KHR_blend_equation_advanced GL_KHR_blend_equation_advanced_coherent GL_OVR_multiview GL_OVR_multiview2 GL_SGIS_generate_mipmap
  GL_SGIS_texture_lod GL_SGIX_depth_texture GL_SGIX_shadow GL_SUN_slice_accum
-OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle -1021077864
+OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle -390384216
 Initialize mono
 Mono path[0] = '/home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/Managed'
 Mono path[1] = '/home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
 Mono config path = '/home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56476
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56531
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.003784 seconds.
+Registered in 0.003880 seconds.
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/ARM64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/ARMv7/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Refreshing native plugins compatible for Editor in 12.42 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 13.89 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.435 seconds
+- Completed reload, in  0.470 seconds
 Domain Reload Profiling:
-	ReloadAssembly (435ms)
-		BeginReloadAssembly (40ms)
+	ReloadAssembly (470ms)
+		BeginReloadAssembly (42ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (0ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
 			CreateAndSetChildDomain (1ms)
-		EndReloadAssembly (312ms)
-			LoadAssemblies (39ms)
+		EndReloadAssembly (338ms)
+			LoadAssemblies (41ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (86ms)
+			SetupTypeCache (90ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (26ms)
-			SetupLoadedEditorAssemblies (162ms)
+			RebuildScriptCaches (27ms)
+			SetupLoadedEditorAssemblies (182ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (33ms)
+				InitializePlatformSupportModulesInManaged (37ms)
 				SetLoadedEditorAssemblies (0ms)
-				RefreshPlugins (12ms)
+				RefreshPlugins (14ms)
 				BeforeProcessingInitializeOnLoad (1ms)
-				ProcessInitializeOnLoadAttributes (83ms)
-				ProcessInitializeOnLoadMethodAttributes (33ms)
+				ProcessInitializeOnLoadAttributes (93ms)
+				ProcessInitializeOnLoadMethodAttributes (37ms)
 				AfterProcessingInitializeOnLoad (0ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
 			AwakeInstancesAfterBackupRestoration (0ms)
 Platform modules already initialized, skipping
 Registering precompiled user dll's ...
-Registered in 0.000279 seconds.
+Registered in 0.000307 seconds.
 Begin MonoManager ReloadAssembly
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/ARM64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/ARMv7/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Refreshing native plugins compatible for Editor in 0.36 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.536 seconds
+- Completed reload, in  0.554 seconds
 Domain Reload Profiling:
-	ReloadAssembly (537ms)
-		BeginReloadAssembly (63ms)
+	ReloadAssembly (554ms)
+		BeginReloadAssembly (69ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (5ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (13ms)
-		EndReloadAssembly (387ms)
-			LoadAssemblies (27ms)
+			CreateAndSetChildDomain (14ms)
+		EndReloadAssembly (396ms)
+			LoadAssemblies (30ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
 			SetupTypeCache (101ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (37ms)
-			SetupLoadedEditorAssemblies (176ms)
+			RebuildScriptCaches (36ms)
+			SetupLoadedEditorAssemblies (185ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (16ms)
+				InitializePlatformSupportModulesInManaged (17ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (0ms)
-				BeforeProcessingInitializeOnLoad (37ms)
-				ProcessInitializeOnLoadAttributes (93ms)
-				ProcessInitializeOnLoadMethodAttributes (24ms)
+				BeforeProcessingInitializeOnLoad (39ms)
+				ProcessInitializeOnLoadAttributes (100ms)
+				ProcessInitializeOnLoadMethodAttributes (25ms)
 				AfterProcessingInitializeOnLoad (4ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
@@ -177,25 +165,60 @@ Launched and connected shader compiler UnityShaderCompiler after 0.01 seconds
 -------- Shader Relativity/Lit/Standard
 -------- GLSL link error: Link info
 ---------
+error: "vs_TEXCOORD3" not declared as input from previous stage
+
+
+Note: Creation of internal variant of shader 'Relativity/Lit/Standard' failed.
+Shader warning in 'Relativity/Lit/Standard': use of potentially uninitialized variable (BoxProjection) at line 342 (on glcore)
+
+Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
+Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
+Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
+Shader warning in 'Relativity/Lit/Standard': Output value 'vert' is not completely initialized at line 416 (on glcore)
+
+Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
+Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
+Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
+-------- Shader Relativity/Lit/Standard
+-------- GLSL link error: Link info
+---------
+error: "vs_TEXCOORD3" not declared as input from previous stage
+
+
+Note: Creation of internal variant of shader 'Relativity/Lit/Standard' failed.
+Shader warning in 'Relativity/Lit/Standard': use of potentially uninitialized variable (BoxProjection) at line 342 (on glcore)
+
+Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
+Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
+Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
+Shader warning in 'Relativity/Lit/Standard': Output value 'vert' is not completely initialized at line 416 (on glcore)
+
+Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
+Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
+Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
+-------- Shader Relativity/Lit/Standard
+-------- GLSL link error: Link info
+---------
 error: "vs_TEXCOORD1" not declared as an output from the previous stage
 
 
 Note: Creation of internal variant of shader 'Relativity/Lit/Standard' failed.
 Shader warning in 'Relativity/Lit/Standard': use of potentially uninitialized variable (BoxProjection) at line 342 (on glcore)
 
-Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DOPPLER_SHIFT IS_STATIC LIGHTPROBE_SH LORENTZ_TRANSFORM SPECULAR
+Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
 Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
-Disabled keywords: DIRLIGHTMAP_COMBINED DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP FOG_EXP2 FOG_LINEAR LIGHTMAP_ON LIGHTMAP_SHADOW_MIXING SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/ARM64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Linux/x86_64/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Multiple plugins with the same name 'qrack_pinvoke' (found at 'Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so' and 'Assets/Qrack/Plugin/Android/ARMv7/libqrack_pinvoke.so'). That means one or more plugins are set to be compatible with Editor. Only one plugin at the time can be used by Editor.
-Refreshing native plugins compatible for Editor in 0.29 ms, found 1 plugins.
+Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
+Shader warning in 'Relativity/Lit/Standard': Output value 'vert' is not completely initialized at line 416 (on glcore)
+
+Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
+Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
+Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
+Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 1111 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 33 unused Assets / (73.8 KB). Loaded Objects now: 1576.
+Unloading 33 unused Assets / (73.9 KB). Loaded Objects now: 1576.
 Memory consumption went from 51.9 MB to 51.8 MB.
-Total: 2.714197 ms (FindLiveObjects: 0.089127 ms CreateObjectMapping: 0.029389 ms MarkObjects: 2.471778 ms  DeleteObjects: 0.123255 ms)
+Total: 2.740215 ms (FindLiveObjects: 0.094568 ms CreateObjectMapping: 0.028465 ms MarkObjects: 2.520281 ms  DeleteObjects: 0.096263 ms)
 
 AssetImportParameters requested are different than current active one (requested -> active):
   custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
@@ -207,26 +230,56 @@ AssetImportParameters requested are different than current active one (requested
   custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
   custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
 ========================================================================
-Received Import Request.
-  Time since last request: 3877.129006 seconds.
-  path: Assets/Qrack/Plugin/Android/ARM64/libqrack_pinvoke.so
-  artifactKey: Guid(4947a4efb6a3496458f833c73e51cdf8) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/Android/ARM64/libqrack_pinvoke.so using Guid(4947a4efb6a3496458f833c73e51cdf8) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '697ed5046dd63f91a269e67337d0dfc7') in 0.008754 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 9.992596 seconds.
-  path: Assets/Qrack/Plugin/Android/ARMv7/libqrack_pinvoke.so
-  artifactKey: Guid(e1cf91113b72ce943a9b0f5c66cf8cf8) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/Android/ARMv7/libqrack_pinvoke.so using Guid(e1cf91113b72ce943a9b0f5c66cf8cf8) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '58a894fe61d55bd583617ca158058c77') in 0.001171 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 8.979730 seconds.
-  path: Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so
-  artifactKey: Guid(6579d093babfb5941b5d306f3de49eac) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/Android/x86/libqrack_pinvoke.so using Guid(6579d093babfb5941b5d306f3de49eac) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '2a1b4be7128680a3403325d151e4c087') in 0.001349 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 8.547350 seconds.
-  path: Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so
-  artifactKey: Guid(a9fd9e8904ca46b4b9ff1024665210a1) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/Android/x86_64/libqrack_pinvoke.so using Guid(a9fd9e8904ca46b4b9ff1024665210a1) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '388851fecaf05bb54d2568fbd0522561') in 0.001403 seconds 
+Received Prepare
+Registering precompiled user dll's ...
+Registered in 0.000241 seconds.
+Begin MonoManager ReloadAssembly
+Native extension for LinuxStandalone target not found
+Native extension for Android target not found
+Refreshing native plugins compatible for Editor in 0.22 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Mono: successfully reloaded assembly
+- Completed reload, in  0.533 seconds
+Domain Reload Profiling:
+	ReloadAssembly (533ms)
+		BeginReloadAssembly (75ms)
+			ExecutionOrderSort (0ms)
+			DisableScriptedObjects (6ms)
+			BackupInstance (0ms)
+			ReleaseScriptingObjects (0ms)
+			CreateAndSetChildDomain (19ms)
+		EndReloadAssembly (385ms)
+			LoadAssemblies (31ms)
+			RebuildTransferFunctionScriptingTraits (0ms)
+			SetupTypeCache (101ms)
+			ReleaseScriptCaches (0ms)
+			RebuildScriptCaches (29ms)
+			SetupLoadedEditorAssemblies (177ms)
+				LogAssemblyErrors (0ms)
+				InitializePlatformSupportModulesInManaged (19ms)
+				SetLoadedEditorAssemblies (0ms)
+				RefreshPlugins (0ms)
+				BeforeProcessingInitializeOnLoad (35ms)
+				ProcessInitializeOnLoadAttributes (95ms)
+				ProcessInitializeOnLoadMethodAttributes (24ms)
+				AfterProcessingInitializeOnLoad (5ms)
+				EditorAssembliesLoaded (0ms)
+			ExecutionOrderSort2 (0ms)
+			AwakeInstancesAfterBackupRestoration (3ms)
+Platform modules already initialized, skipping
+Refreshing native plugins compatible for Editor in 1.16 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 21 unused Assets / (57.2 KB). Loaded Objects now: 1579.
+Memory consumption went from 50.7 MB to 50.7 MB.
+Total: 2.322923 ms (FindLiveObjects: 0.104335 ms CreateObjectMapping: 0.037522 ms MarkObjects: 2.152495 ms  DeleteObjects: 0.027824 ms)
+
+AssetImportParameters requested are different than current active one (requested -> active):
+  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
+  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
+  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
+  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
+  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
+  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
+  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
