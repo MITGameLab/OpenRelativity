@@ -563,9 +563,9 @@ namespace OpenRelativity
                 if (frames > INIT_FRAME_WAIT)
                 {
                     Vector3 pVel = state.PlayerVelocityVector;
-                    Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
                     if (pVel.y > 0.0f)
                     {
+                        Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
                         state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
                         Vector3 totalVel = state.PlayerVelocityVector;
                         state.PlayerVelocityVector = new Vector3(totalVel.x, 0, totalVel.z);
@@ -573,16 +573,8 @@ namespace OpenRelativity
                         myRB.velocity = new Vector3(myRB.velocity.x, 0, myRB.velocity.z);
                     }
 
-                    Vector3 pAccel = state.PlayerAccelerationVector;
-                    if (pAccel.y > 0.0f)
-                    {
-                        pAccel.y = 0.0f;
-                        state.PlayerAccelerationVector = pAccel;
-                    }
-
-                    
                     dist = 0.5f * extents.y - hitInfo.distance;
-                    if (dist > 0.02f)
+                    if (dist > 0.05f)
                     {
                         Vector3 pos = state.playerTransform.position;
                         state.playerTransform.position = new Vector3(pos.x, pos.y + dist, pos.z);
