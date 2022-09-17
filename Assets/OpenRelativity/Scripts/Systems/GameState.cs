@@ -396,7 +396,7 @@ namespace OpenRelativity
         {
             Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerRigidbody).GetComponent<Rigidbody>();
 
-            if (!isMovementFrozen && !float.IsNaN(DeltaTimePlayer) && (SpeedOfLight > 0))
+            if (!isMovementFrozen && (SpeedOfLight > 0))
             {
                 if (isPlayerComoving)
                 {
