@@ -963,7 +963,7 @@ Shader "Relativity/Lit/Standard" {
 					UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
 					fixed4 c = tex2D(_GIAlbedoTex, i.uv);
 #if _EMISSION
-					o.Emission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
+					o.Emission = (tex2D(_EmissionMap, i.uv) * _EmissionMultiplier) * _EmissionColor;
 #else
 					o.Emission = 0;
 #endif
