@@ -5,7 +5,7 @@ namespace OpenRelativity
 {
     public static class SRelativityUtil
     {
-        // It's acceptable if this is this is the difference between 1.0f and the immediate next higher representable value.
+        // It's acceptable if this is the difference between 1.0f and the immediate next higher representable value.
         // See https://stackoverflow.com/questions/12627534/is-there-a-flt-epsilon-defined-in-the-net-framework
         public const float FLT_EPSILON = 1.192092896e-07F;
 
@@ -73,27 +73,21 @@ namespace OpenRelativity
         public static Vector3 RelativeVelocityTo(this Vector3 myWorldVel, Vector3 otherWorldVel)
         {
             float speedSqr = myWorldVel.sqrMagnitude / cSqrd;
-            //Get player velocity dotted with velocity of the object.
-            float vuDot = Vector3.Dot(myWorldVel, otherWorldVel) / cSqrd;
-            Vector3 vr;
+
             //If our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speedSqr > FLT_EPSILON)
-            {
-                //Get the parallel component of the object's velocity
-                Vector3 uparra = (vuDot / speedSqr) * myWorldVel / c;
-                //Get the perpendicular component of our velocity, just by subtraction
-                Vector3 uperp = otherWorldVel / c - uparra;
-                //relative velocity calculation
-                vr = (myWorldVel / c - uparra - (Mathf.Sqrt(1 - speedSqr)) * uperp) / (1 + vuDot);
-            }
-            //If our speed is nearly zero, it could lead to infinities.
-            else
-            {
-                //relative velocity calculation
-                vr = -otherWorldVel / c;
+            if (speedSqr <= FLT_EPSILON) {
+                return -otherWorldVel;
             }
 
-            return vr * c;
+            //Get player velocity dotted with velocity of the object.
+            float vuDot = Vector3.Dot(myWorldVel, otherWorldVel) / cSqrd;
+            //Get the parallel component of the object's velocity
+            Vector3 uparra = (vuDot / speedSqr) * myWorldVel / c;
+            //Get the perpendicular component of our velocity, just by subtraction
+            Vector3 uperp = otherWorldVel / c - uparra;
+
+            //relative velocity calculation
+            return c * (myWorldVel / c - uparra - (Mathf.Sqrt(1 - speedSqr)) * uperp) / (1 + vuDot);
         }
 
         public static Vector3 ContractLengthBy(this Vector3 interval, Vector3 velocity)
@@ -127,24 +121,26 @@ namespace OpenRelativity
         public static Matrix4x4 GetLorentzTransformMatrix(Vector3 vpc)
         {
             float beta = vpc.magnitude;
+            if (beta <= FLT_EPSILON)
+            {
+                return Matrix4x4.identity;
+            }
+
             float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
-            if (beta > FLT_EPSILON)
-            {
-                Vector4 vpcTransUnit = -vpc / beta;
-                vpcTransUnit.w = 1;
-                Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
-                spatialComp.w = -gamma * beta;
-                Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
-                tComp.Scale(vpcTransUnit);
-                vpcLorentzMatrix.SetColumn(3, tComp);
-                vpcLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
-                vpcLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
-                vpcLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
-                vpcLorentzMatrix.m00 += 1;
-                vpcLorentzMatrix.m11 += 1;
-                vpcLorentzMatrix.m22 += 1;
-            }
+            Vector4 vpcTransUnit = -vpc / beta;
+            vpcTransUnit.w = 1;
+            Vector4 spatialComp = (gamma - 1) * vpcTransUnit;
+            spatialComp.w = -gamma * beta;
+            Vector4 tComp = -gamma * (new Vector4(beta, beta, beta, -1));
+            tComp.Scale(vpcTransUnit);
+            vpcLorentzMatrix.SetColumn(3, tComp);
+            vpcLorentzMatrix.SetColumn(0, vpcTransUnit.x * spatialComp);
+            vpcLorentzMatrix.SetColumn(1, vpcTransUnit.y * spatialComp);
+            vpcLorentzMatrix.SetColumn(2, vpcTransUnit.z * spatialComp);
+            vpcLorentzMatrix.m00 += 1;
+            vpcLorentzMatrix.m11 += 1;
+            vpcLorentzMatrix.m22 += 1;
 
             return vpcLorentzMatrix;
         }

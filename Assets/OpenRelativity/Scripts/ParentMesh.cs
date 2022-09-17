@@ -26,8 +26,9 @@ namespace OpenRelativity
 
                 i++;
             }
-            transform.GetComponent<MeshFilter>().mesh = new Mesh();
-            transform.GetComponent<MeshFilter>().mesh.CombineMeshes(combine);
+            Mesh mesh = new Mesh();
+            transform.GetComponent<MeshFilter>().mesh = mesh;
+            mesh.CombineMeshes(combine);
             transform.gameObject.SetActive(true);
         }
     }
