@@ -30,19 +30,18 @@ namespace OpenRelativity.ConformalMaps
 
             float a = aParam;
             float aSqr = a * a;
-
             float rSqr = piw.sqrMagnitude;
             // Radius:
             float r = Mathf.Sqrt(rSqr);
             // Inclination:
             float cosInc = piw.z / r;
             float cosIncSqr = cosInc * cosInc;
-            float sinIncSqr = 1 - cosIncSqr;
+            float sinIncSqr = 1.0f - cosIncSqr;
 
             float sigma = rSqr + aSqr * cosIncSqr;
             float delta = rSqr - schwarzschildRadius * r + aSqr;
 
-            float effectiveR = (schwarzschildRadius * r * r) / (r * r + a * a * cosInc * cosInc);
+            float effectiveR = (schwarzschildRadius * rSqr) / (rSqr + aSqr * cosIncSqr);
 
             float kerrScale = Mathf.Sqrt(((aSqr + rSqr) * (aSqr + rSqr) - aSqr * delta * sinIncSqr) / (delta * sigma));
             float schwarzScale = 1.0f / Mathf.Sqrt(1.0f - effectiveR / r);
@@ -65,14 +64,14 @@ namespace OpenRelativity.ConformalMaps
             SetTimeCoordScale(piw);
 
             float rs = schwarzschildRadius;
-            float r = piw.magnitude;
-            float cosInc = piw.z / r;
+            float rSqr = piw.sqrMagnitude;
+            float cosIncSqr = piw.z * piw.z / rSqr;
             float a = aParam;
 
             // I'm forced to approximate, for now. This might be avoided with tractable free fall coordinates.
             // This is a more accurate approximation, as (rs * r) tends >> (a * a * sinInc * sinInc),
             // such as at the equator or long radial distances.
-            spinRadiusDiff = rs - (rs * r * r) / (r * r + a * a * cosInc * cosInc);
+            spinRadiusDiff = rs - (rs * rSqr) / (rSqr + a * a * cosIncSqr);
 
             schwarzschildRadius -= spinRadiusDiff;
         }
@@ -89,15 +88,13 @@ namespace OpenRelativity.ConformalMaps
             float rSqr = piw.sqrMagnitude;
             // Radius:
             float r = Mathf.Sqrt(rSqr);
-            // Inclination:
-            float inc = Mathf.Acos(piw.z / r);
             // Azimuth:
-            float azi = Mathf.Atan2(piw.y, piw.x);
+            float cosAzi = Mathf.Cos(Mathf.Atan2(piw.y, piw.x));
+            // Inclination:
+            float cosInc = Mathf.Cos(Mathf.Acos(piw.z / r));
 
             float a = spinMomentum / (schwarzschildRadius * state.planckMass / state.planckLength);
             float aSqr = a * a;
-            float cosAzi = Mathf.Cos(azi);
-            float cosInc = Mathf.Cos(inc);
 
             float sigma = rSqr + aSqr * cosAzi * cosAzi;
 

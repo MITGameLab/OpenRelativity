@@ -53,12 +53,11 @@ namespace OpenRelativity.ConformalMaps
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            // Assume that the spatial component is in world coordinates, and the time is a local time differential 
-            double r;
+            // Assume that the spatial component is in world coordinates, and the time is a local time differential
             double tau = properTDiff;
             double rsCubeRoot = Math.Pow(schwarzschildRadius, 1.0 / 3.0);
+            double r;
             double rho;
-
             if (isExterior)
             {
                 r = piw.magnitude;
@@ -146,11 +145,6 @@ namespace OpenRelativity.ConformalMaps
                 // This is speculative, but it can simply be turned off, in the editor.
                 // This attempts to simulate black hole evaporation at a rate inversely proportional to Schwarzschild radius.
                 // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
-                if (float.IsInfinity(state.DeltaTimeWorld) || float.IsNaN(state.DeltaTimeWorld))
-                {
-                    return 0;
-                }
-
                 double r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundPlanckTemperature);
 
                 double diffR;
@@ -193,16 +187,9 @@ namespace OpenRelativity.ConformalMaps
             }
 
             float deltaT = state.FixedDeltaTimeWorld;
-
-            if (float.IsNaN(deltaT) || float.IsInfinity(deltaT))
-            {
-                return;
-            }
-
-            float f = fold;
-            float deltaF = (isExterior ? -deltaT : deltaT) / (state.planckTime * Mathf.Pow(2.0f, f));
-
-            float deltaR = Mathf.Pow(2.0f, f) * deltaF * (float)rng.NextDouble() / 2.0f;
+            float powf = Mathf.Pow(2.0f, fold);
+            float deltaF = (isExterior ? -deltaT : deltaT) / (state.planckTime * powf);
+            float deltaR = powf * deltaF * (float)rng.NextDouble() / 2.0f;
             float thermoDeltaR = deltaRadius;
 
             schwarzschildRadius += (isExterior != (deltaR > thermoDeltaR)) ? thermoDeltaR : deltaR;
