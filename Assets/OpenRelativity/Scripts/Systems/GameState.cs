@@ -413,7 +413,7 @@ namespace OpenRelativity
                 Vector3 pVel = -PlayerVelocityVector;
                 playerRB.velocity = pVel / SqrtOneMinusVSquaredCWDividedByCSquared;
                 pVel = playerRB.velocity;
-                if (!IsPlayerFalling && ((pVel.y > 0.0f) || (pVel .y <= Physics.bounceThreshold))) {
+                if (!IsPlayerFalling && (-pVel .y <= Physics.bounceThreshold)) {
                     Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
                     playerRB.velocity = pVel.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
                 }
