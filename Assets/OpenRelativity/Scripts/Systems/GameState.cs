@@ -410,12 +410,12 @@ namespace OpenRelativity
                     }
                 }
 
-                Vector3 velocity = -PlayerVelocityVector;
-                playerRB.velocity = velocity / SqrtOneMinusVSquaredCWDividedByCSquared;
-                if (!IsPlayerFalling) {
-                    Vector3 pVel = playerRB.velocity;
+                Vector3 pVel = -PlayerVelocityVector;
+                playerRB.velocity = pVel / SqrtOneMinusVSquaredCWDividedByCSquared;
+                pVel = playerRB.velocity;
+                if (!IsPlayerFalling && (pVel.y > 0.0f)) {
                     Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
-                    playerRB.velocity = playerRB.velocity.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
+                    playerRB.velocity = pVel.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
                 }
             } else
             {
