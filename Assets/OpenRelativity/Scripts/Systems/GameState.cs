@@ -438,23 +438,12 @@ namespace OpenRelativity
             float ySqrd = y * y;
             float zSqrd = z * z;
 
-            Matrix4x4 matrix;
-            matrix.m00 = wSqrd + xSqrd - ySqrd - zSqrd;
-            matrix.m01 = 2 * x * y - 2 * w * z;
-            matrix.m02 = 2 * x * z + 2 * w * y;
-            matrix.m03 = 0;
-            matrix.m10 = 2 * x * y + 2 * w * z;
-            matrix.m11 = wSqrd - xSqrd + ySqrd - zSqrd;
-            matrix.m12 = 2 * y * z + 2 * w * x;
-            matrix.m13 = 0;
-            matrix.m20 = 2 * x * z - 2 * w * y;
-            matrix.m21 = 2 * y * z - 2 * w * x;
-            matrix.m22 = wSqrd - xSqrd - ySqrd + zSqrd;
-            matrix.m23 = 0;
-            matrix.m30 = 0;
-            matrix.m31 = 0;
-            matrix.m32 = 0;
-            matrix.m33 = 1;
+            Matrix4x4 matrix = new Matrix4x4();
+            matrix.SetColumn(0, new Vector4(wSqrd + xSqrd - ySqrd - zSqrd, 2 * x * y + 2 * w * z, 2 * x * z - 2 * w * y, 0));
+            matrix.SetColumn(1, new Vector4(2 * x * y - 2 * w * z, wSqrd - xSqrd + ySqrd - zSqrd, 2 * y * z - 2 * w * x, 0));
+            matrix.SetColumn(2, new Vector4(2 * x * z + 2 * w * y, 2 * y * z + 2 * w * x, wSqrd - xSqrd - ySqrd + zSqrd, 0));
+            matrix.SetColumn(3, new Vector4(0, 0, 0, 1));
+
             return matrix;
         }
         #endregion
