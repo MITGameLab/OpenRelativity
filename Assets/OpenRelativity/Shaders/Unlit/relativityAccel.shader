@@ -112,13 +112,13 @@ Shader "Relativity/Unlit/ColorLorentz"
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 			if (_MainTex_TexelSize.y < 0)
-				o.uv1.y = 1.0 - o.uv1.y;
+				o.uv1.y = 1 - o.uv1.y;
 #endif 
 
-			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1));
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 
-            float speedSqr = dot(_vpc.xyz, _vpc.xyz);
+			float speedSqr = dot(_vpc.xyz, _vpc.xyz);
 			float speed = sqrt(speedSqr);
 			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
@@ -199,7 +199,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			riw += float4(_playerOffset.xyz, 0);
 
 			//Transform the vertex back into local space for the mesh to use
-			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1.0f));
+			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1));
 			o.pos = float4(tempPos.xyz / tempPos.w, 0);
 
 			o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
@@ -247,7 +247,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
 			if (bottom2 == 0) {
-				bottom2 = 1.0f;
+				bottom2 = 1;
 			}
 
 			float paramYShift = param.y * shift;
@@ -271,7 +271,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float bottom = param.z * shift;
 			bottom *= bottom;
 			if (bottom == 0) {
-				bottom = 1.0f;
+				bottom = 1;
 			}
 
 			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
@@ -290,7 +290,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float bottom = param.z * shift;
 			bottom *= bottom;
 			if (bottom == 0) {
-				bottom = 1.0f;
+				bottom = 1;
 			}
 
 			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
@@ -343,11 +343,11 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam = float3(weights.x, 615.0f, 8.0f);
-			gParam = float3(weights.y, 550.0f, 4.0f);
-			bParam = float3(weights.z, 463.0f, 5.0f);
-			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+			rParam = float3(weights.x, 615, 8);
+			gParam = float3(weights.y, 550, 4);
+			bParam = float3(weights.z, 463, 5.);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5);
 
 			xyz = float3(
 				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + mixIntensity * (getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift))),

@@ -27,12 +27,12 @@ namespace OpenRelativity
         public static double SchwarzRadiusToPlanckScaleTemp(double radius)
         {
             double rsp = radius / state.planckLength;
-            return Math.Pow(sigmaPlanck * 8.0 * Math.PI * Math.Pow(rsp, 3.0), -1.0 / 4.0);
+            return Math.Pow(sigmaPlanck * 8 * Math.PI * Math.Pow(rsp, 3), -1.0 / 4.0);
         }
 
         public static double PlanckScaleTempToSchwarzRadius(double temp)
         {
-            return state.planckLength / Math.Pow(sigmaPlanck * 8.0 * Math.PI * Math.Pow(temp, 4.0), 1.0 / 3.0);
+            return state.planckLength / Math.Pow(sigmaPlanck * 8 * Math.PI * Math.Pow(temp, 4), 1.0 / 3.0);
         }
 
         public static float EffectiveRaditiativeRadius(float radius, float backgroundPlanckTemp)
@@ -44,9 +44,9 @@ namespace OpenRelativity
 
             double rsp = radius / state.planckLength;
             return (float)PlanckScaleTempToSchwarzRadius(
-                4.0 * Math.PI * rsp * rsp * (
-                    Math.Pow(SchwarzRadiusToPlanckScaleTemp(radius), 4.0) -
-                    Math.Pow(backgroundPlanckTemp / state.planckTemperature, 4.0)
+                4 * Math.PI * rsp * rsp * (
+                    Math.Pow(SchwarzRadiusToPlanckScaleTemp(radius), 4) -
+                    Math.Pow(backgroundPlanckTemp / state.planckTemperature, 4)
                 )
             );
         }
@@ -65,8 +65,8 @@ namespace OpenRelativity
 
             Vector3 parra = Vector3.Project(toAdd, orig);
             Vector3 perp = toAdd - parra;
-            perp = orig.InverseGamma() * perp / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
-            parra = (parra + orig) / (1.0f + Vector3.Dot(orig, parra) / cSqrd);
+            perp = orig.InverseGamma() * perp / (1 + Vector3.Dot(orig, parra) / cSqrd);
+            parra = (parra + orig) / (1 + Vector3.Dot(orig, parra) / cSqrd);
             return parra + perp;
         }
 
@@ -97,7 +97,7 @@ namespace OpenRelativity
             {
                 return interval;
             }
-            float invGamma = Mathf.Sqrt(1.0f - speedSqr / cSqrd);
+            float invGamma = Mathf.Sqrt(1 - speedSqr / cSqrd);
             Quaternion rot = Quaternion.FromToRotation(velocity / Mathf.Sqrt(speedSqr), Vector3.forward);
             Vector3 rotInt = rot * interval;
             rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z * invGamma);
@@ -126,7 +126,7 @@ namespace OpenRelativity
                 return Matrix4x4.identity;
             }
 
-            float gamma = 1.0f / Mathf.Sqrt(1 - beta * beta);
+            float gamma = 1 / Mathf.Sqrt(1 - beta * beta);
             Matrix4x4 vpcLorentzMatrix = Matrix4x4.identity;
             Vector4 vpcTransUnit = -vpc / beta;
             vpcTransUnit.w = 1;
@@ -308,7 +308,7 @@ namespace OpenRelativity
             float sqrtArg = riwDotRiw * (cSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * cSqrd)) / ((cSqrd - riwDotAiw) * (cSqrd - riwDotAiw));
             float aiwMagSqr = aiwTransformed.sqrMagnitude;
             float aiwMag = aiwTransformed.magnitude;
-            tisw += (sqrtArg > 0) ? (float)(-Math.Sqrt(sqrtArg)) : 0;
+            tisw += (sqrtArg > 0) ? -Mathf.Sqrt(sqrtArg) : 0;
             //add the position offset due to acceleration
             if (aiwMag > FLT_EPSILON)
             {
@@ -401,20 +401,20 @@ namespace OpenRelativity
         {
             if (metric == null)
             {
-                return 1.0f / Mathf.Sqrt(1.0f - velocity.sqrMagnitude / cSqrd);
+                return 1 / Mathf.Sqrt(1 - velocity.sqrMagnitude / cSqrd);
             }
             
-            return 1.0f / Mathf.Sqrt(1.0f - (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
+            return 1 / Mathf.Sqrt(1 - (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
         }
 
         public static float InverseGamma(this Vector3 velocity, Matrix4x4? metric = null)
         {
             if (metric == null)
             {
-                return 1.0f / Mathf.Sqrt(1.0f + velocity.sqrMagnitude / cSqrd);
+                return 1 / Mathf.Sqrt(1 + velocity.sqrMagnitude / cSqrd);
             }
 
-            return 1.0f / Mathf.Sqrt(1.0f + (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
+            return 1 / Mathf.Sqrt(1 + (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
         }
 
         public static Vector3 RapidityToVelocity(this Vector3 rapidity, Matrix4x4? metric = null)
@@ -466,7 +466,7 @@ namespace OpenRelativity
             var triangles = mesh.triangles;
             var vertices = mesh.vertices;
 
-            float sum = 0.0f;
+            float sum = 0;
 
             for (int i = 0; i < triangles.Length; i += 3)
             {
@@ -477,7 +477,7 @@ namespace OpenRelativity
                 sum += Vector3.Cross(a, b).magnitude;
             }
 
-            return sum / 2.0f;
+            return sum / 2;
         }
 
         // Strano 2019 monopole methods
@@ -490,7 +490,7 @@ namespace OpenRelativity
                 r = state.planckLength;
             }
 
-            double deltaR = -deltaTime * Math.Sqrt(state.hbarOverG * Math.Pow(c, 7.0f)) * 2.0 / r;
+            double deltaR = -deltaTime * Math.Sqrt(state.hbarOverG * Math.Pow(c, 7)) * 2 / r;
 
             if ((origR + deltaR) < 0)
             {

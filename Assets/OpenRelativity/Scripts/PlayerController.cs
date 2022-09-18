@@ -11,7 +11,7 @@ namespace OpenRelativity
 
         #region Public Parameters
         public float dragConstant = 0.75f;
-        public float controllerAcceleration = 24.0f;
+        public float controllerAcceleration = 24;
         public bool useGravity = false;
         // If using comoveViaAcceleration, turn off isPlayerComoving in GameState.
         public bool comoveViaAcceleration = false;
@@ -53,7 +53,7 @@ namespace OpenRelativity
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool isMonopoleAccel = false;
-        public float monopoleAccelerationSoften = 0.0f;
+        public float monopoleAccelerationSoften = 0;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
         public float gravitonEmissivity = 0.1f;
         // By default, 12g per baryon mole would be carbon-12, and this controls the total baryons estimated in the object
@@ -65,7 +65,7 @@ namespace OpenRelativity
             {
                 if (!myRigidbody)
                 {
-                    return 0.0f;
+                    return 0;
                 }
 
                 return myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
@@ -88,7 +88,7 @@ namespace OpenRelativity
             {
                 if (!myRigidbody)
                 {
-                    return 0.0f;
+                    return 0;
                 }
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
@@ -103,7 +103,7 @@ namespace OpenRelativity
                 double nuclearMass = myRigidbody.mass / baryonCount;
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
                 double excitationEnergy = (nuclearMass - fundamentalNuclearMass) * state.SpeedOfLightSqrd;
-                double temperature = excitationEnergy * 2.0 / state.boltzmannConstant;
+                double temperature = 2 * excitationEnergy / state.boltzmannConstant;
 
                 return (float)temperature;
 
@@ -118,7 +118,7 @@ namespace OpenRelativity
                 }
 
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
-                double excitationEnergy = value * state.boltzmannConstant / 2.0;
+                double excitationEnergy = value * state.boltzmannConstant / 2;
                 double nuclearMass = excitationEnergy / state.SpeedOfLightSqrd + fundamentalNuclearMass;
 
                 myRigidbody.mass = (float)(nuclearMass * baryonCount);
@@ -301,7 +301,7 @@ namespace OpenRelativity
 
                 quasiWorldAccel += leviCivitaDevAccel;
 
-                float softenFactor = 1.0f + monopoleAccelerationSoften;
+                float softenFactor = 1 + monopoleAccelerationSoften;
                 float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
 
                 monopoleTemperature /= tempSoftenFactor;
@@ -484,7 +484,7 @@ namespace OpenRelativity
                 if (meshFilter == null)
                 {
                     Vector3 lwh = transform.localScale;
-                    surfaceArea = 2.0f * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
+                    surfaceArea = 2 * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
                 }
                 else
                 {
@@ -492,7 +492,7 @@ namespace OpenRelativity
                 }
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
                 double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : state.gravityBackgroundPlanckTemperature;
-                double dm = (gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4.0f) - Math.Pow(ambientTemperature, 4.0f))) / state.planckArea;
+                double dm = (gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4))) / state.planckArea;
 
                 // Momentum is conserved. (Energy changes.)
                 Vector3 momentum = myRigidbody.mass * state.PlayerVelocityVector;
@@ -563,10 +563,10 @@ namespace OpenRelativity
                 if (frames > INIT_FRAME_WAIT)
                 {
                     Vector3 pVel = state.PlayerVelocityVector;
-                    if (pVel.y > 0.0f)
+                    if (pVel.y > 0)
                     {
                         Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
-                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
+                        state.PlayerVelocityVector = state.PlayerVelocityVector.AddVelocity(new Vector3(0, -pVel.y * pVelPerp.Gamma(), 0));
                         Vector3 totalVel = state.PlayerVelocityVector;
                         state.PlayerVelocityVector = new Vector3(totalVel.x, 0, totalVel.z);
                         Rigidbody myRB = transform.parent.GetComponent<Rigidbody>();
@@ -583,23 +583,23 @@ namespace OpenRelativity
             }
 
             Vector3 direction = Vector3.zero;
-            if (collider.Raycast(rayForward, out hitInfo, 2.0f * extents.z))
+            if (collider.Raycast(rayForward, out hitInfo, 2 * extents.z))
             {
                 direction = Vector3.forward;
             }
-            else if (collider.Raycast(rayBack, out hitInfo, 2.0f * extents.z))
+            else if (collider.Raycast(rayBack, out hitInfo, 2 * extents.z))
             {
                 direction = Vector3.back;
             }
-            else if (collider.Raycast(rayLeft, out hitInfo, 2.0f * extents.x))
+            else if (collider.Raycast(rayLeft, out hitInfo, 2 * extents.x))
             {
                 direction = Vector3.left;
             }
-            else if (collider.Raycast(rayRight, out hitInfo, 2.0f * extents.x))
+            else if (collider.Raycast(rayRight, out hitInfo, 2 * extents.x))
             {
                 direction = Vector3.right;
             }
-            else if (collider.Raycast(rayUp, out hitInfo, 2.0f * extents.y))
+            else if (collider.Raycast(rayUp, out hitInfo, 2 * extents.y))
             {
                 direction = Vector3.up;
             }
@@ -607,10 +607,10 @@ namespace OpenRelativity
             if (direction != Vector3.zero)
             {
                 Vector3 pVel = state.PlayerVelocityVector;
-                if (Vector3.Dot(pVel, direction) < 0.0f)
+                if (Vector3.Dot(pVel, direction) < 0)
                 {
                     //Decompose velocity in parallel and perpendicular components:
-                    Vector3 myParraVel = Vector3.Project(pVel, direction) * 2.0f;
+                    Vector3 myParraVel = Vector3.Project(pVel, direction) * 2;
                     //Vector3 myPerpVel = Vector3.Cross(direction, Vector3.Cross(direction, pVel));
                     //Relativistically cancel the downward velocity:
                     state.PlayerVelocityVector = state.PlayerVelocityVector - myParraVel;

@@ -17,9 +17,9 @@ namespace OpenRelativity.Objects
         // Use this if not using an explicitly relativistic shader
         public bool isNonrelativisticShader = false;
         // We set the Rigidbody "drag" parameter in this object.
-        public float unityDrag = 0.0f;
+        public float unityDrag = 0;
         // We also set the Rigidbody "angularDrag" parameter in this object.
-        public float unityAngularDrag = 0.0f;
+        public float unityAngularDrag = 0;
         // Comove via ConformalMap acceleration, or ComoveOptical?
         public bool comoveViaAcceleration = false;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
@@ -36,7 +36,7 @@ namespace OpenRelativity.Objects
                     return myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
                 }
 
-                return 0.0f;
+                return 0;
             }
             protected set
             {
@@ -103,7 +103,7 @@ namespace OpenRelativity.Objects
         }
         public void ResetLocalTime()
         {
-            localTimeOffset = 0.0f;
+            localTimeOffset = 0;
         }
         public float GetTisw(Vector3? pos = null)
         {
@@ -455,7 +455,7 @@ namespace OpenRelativity.Objects
             {
                 if (!myRigidbody)
                 {
-                    return 0.0f;
+                    return 0;
                 }
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
@@ -474,11 +474,11 @@ namespace OpenRelativity.Objects
                 {
                     // We can't support negative temperatures, yet, for realistic constants,
                     // (not that we'd necessarily want them).
-                    return 0.0f;
+                    return 0;
                 }
 
                 double excitationEnergy = (nuclearMass - fundamentalNuclearMass) * state.SpeedOfLightSqrd;
-                double temperature = excitationEnergy * 2.0 / state.boltzmannConstant;
+                double temperature = 2 * excitationEnergy / state.boltzmannConstant;
 
                 return (float)temperature;
 
@@ -493,10 +493,10 @@ namespace OpenRelativity.Objects
                 }
 
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
-                double excitationEnergy = value * state.boltzmannConstant / 2.0;
-                if (excitationEnergy < 0.0)
+                double excitationEnergy = value * state.boltzmannConstant / 2;
+                if (excitationEnergy < 0)
                 {
-                    excitationEnergy = 0.0;
+                    excitationEnergy = 0;
                 }
                 double nuclearMass = excitationEnergy / state.SpeedOfLightSqrd + fundamentalNuclearMass;
 
@@ -624,7 +624,7 @@ namespace OpenRelativity.Objects
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool isMonopoleAccel = false;
-        public float monopoleAccelerationSoften = 0.0f;
+        public float monopoleAccelerationSoften = 0;
         #endregion
 
         #region Collider transformation and update
@@ -845,7 +845,7 @@ namespace OpenRelativity.Objects
             if (contractor)
             {
                 contractor.parent = null;
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                contractor.localScale = new Vector3(1, 1, 1);
                 transform.parent = null;
                 Destroy(contractor.gameObject);
             }
@@ -873,7 +873,7 @@ namespace OpenRelativity.Objects
 
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:
-            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            contractor.localScale = new Vector3(1, 1, 1);
             transform.localScale = _localScale;
 
             if (relVelMag > SRelativityUtil.FLT_EPSILON)
@@ -893,7 +893,7 @@ namespace OpenRelativity.Objects
                 transform.rotation = origRot;
 
                 // - Set the scale based only on the velocity relative to the player:
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f).ContractLengthBy(relVelMag * Vector3.forward);
+                contractor.localScale = new Vector3(1, 1, 1).ContractLengthBy(relVelMag * Vector3.forward);
             }
         }
 
@@ -1434,7 +1434,7 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                float softenFactor = 1.0f + monopoleAccelerationSoften;
+                float softenFactor = 1 + monopoleAccelerationSoften;
                 float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
 
                 monopoleTemperature /= tempSoftenFactor;
@@ -1663,7 +1663,7 @@ namespace OpenRelativity.Objects
                 if (meshFilter == null)
                 {
                     Vector3 lwh = transform.localScale;
-                    surfaceArea = 2.0f * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
+                    surfaceArea = 2 * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
                 }
                 else
                 {
@@ -1671,7 +1671,7 @@ namespace OpenRelativity.Objects
                 }
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
                 double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : state.gravityBackgroundPlanckTemperature;
-                double dm = (gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4.0f) - Math.Pow(ambientTemperature, 4.0f))) / state.planckArea;
+                double dm = (gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4))) / state.planckArea;
 
                 // Momentum is conserved. (Energy changes.)
                 Vector3 momentum = mass * peculiarVelocity;

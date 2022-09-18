@@ -362,11 +362,11 @@ Shader "Relativity/Lit/Standard" {
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam = float3(weights.x, 615.0f, 8.0f);
-			gParam = float3(weights.y, 550.0f, 4.0f);
-			bParam = float3(weights.z, 463.0f, 5.0f);
-			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+			rParam = float3(weights.x, 615, 8);
+			gParam = float3(weights.y, 550, 4);
+			bParam = float3(weights.z, 463, 5);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5);
 
 			xyz = float3(
 				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + mixIntensity * (getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift))),
@@ -426,14 +426,14 @@ Shader "Relativity/Lit/Standard" {
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 			if (_MainTex_TexelSize.y < 0)
-				o.albedoUV.y = 1.0f - o.albedoUV.y;
+				o.albedoUV.y = 1 - o.albedoUV.y;
 #endif 
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			o.emissionUV.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy;
 #endif
 
-			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1));
 #if FORWARD_FOG
 			o.pos3 = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 			o.pos = o.pos3;
@@ -533,7 +533,7 @@ Shader "Relativity/Lit/Standard" {
 			riw += float4(_playerOffset.xyz, 0);
 
 			//Transform the vertex back into local space for the mesh to use
-			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1.0f));
+			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1));
 			o.pos = float4(tempPos.xyz / tempPos.w, 0);
 
 			o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
@@ -572,12 +572,12 @@ Shader "Relativity/Lit/Standard" {
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
 					unity_4LightPosY0[index],
-					unity_4LightPosZ0[index], 1.0f);
+					unity_4LightPosZ0[index], 1);
 				lightSourceToVertex =
 					mul(_viwLorentzMatrix, float4((o.pos2.xyz + _playerOffset.xyz) - _WorldSpaceLightPos0.xyz, 0));
 				squaredDistance = -dot(lightSourceToVertex.xyz, mul(metric, lightSourceToVertex).xyz);
-				if (squaredDistance < 0.0f) {
-					squaredDistance = 0.0f;
+				if (squaredDistance < 0) {
+					squaredDistance = 0;
 				}
 
 				// Red/blue shift light due to gravity
@@ -585,18 +585,18 @@ Shader "Relativity/Lit/Standard" {
 
 				if (unity_SpotDirection[index].z != 1) // directional light?
 				{
-					attenuation = 1.0f; // no attenuation
+					attenuation = 1; // no attenuation
 					lightDirection =
 						normalize(unity_SpotDirection[index]);
 				}
 				else {
-					attenuation = 1.0f / (1.0f +
+					attenuation = 1 / (1 +
 						unity_4LightAtten0[index] * squaredDistance * _Attenuation);
 					lightDirection = normalize(-lightSourceToVertex);
 				}
 				diffuseReflection = attenuation
 					* lightColor * _Color.rgb
-					* max(0.0f, dot(o.normal.xyz, lightDirection));
+					* max(0, dot(o.normal.xyz, lightDirection));
 
 				o.diff.rgb += diffuseReflection;
 			}
@@ -615,7 +615,7 @@ Shader "Relativity/Lit/Standard" {
 		//Per pixel shader, does color modifications
 		f2o frag(v2f i)
 		{
-			float shift = 1.0f;
+			float shift = 1;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 			if ((i.svc.x > FLT_EPSILON) && (dot(_vr.xyz, _vr.xyz) > FLT_EPSILON)) {
@@ -658,7 +658,7 @@ Shader "Relativity/Lit/Standard" {
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.lightmapUV));
 
 		#if defined(DIRLIGHTMAP_COMBINED)
-			attenuation = 1.0f;
+			attenuation = 1;
 
 			lightDirection = UNITY_SAMPLE_TEX2D_SAMPLER(
 				unity_LightmapInd, unity_Lightmap, i.lightmapUV
@@ -691,8 +691,8 @@ Shader "Relativity/Lit/Standard" {
 			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - halfAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			specFactor = min(1.0f, specFactor);
-			lightRgb *= 1.0f - specFactor;
+			specFactor = min(1, specFactor);
+			lightRgb *= 1 - specFactor;
 			lightRgb += lightRgb * specFactor;
 			#endif
 
@@ -705,9 +705,9 @@ Shader "Relativity/Lit/Standard" {
 			i.diff = float4((float3)lms, 0);
 		#endif
 	#elif defined(POINT)
-			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
+			if (0 == _WorldSpaceLightPos0.w) // directional light?
 			{
-				attenuation = 1.0f; // no attenuation
+				attenuation = 1; // no attenuation
 				lightDirection = normalize(_WorldSpaceLightPos0.xyz);
 			}
 			else // point or spot light
@@ -715,10 +715,10 @@ Shader "Relativity/Lit/Standard" {
 				float3 lightSourceToVertex =
 					mul(_viwLorentzMatrix, float4((i.pos2.xyz + _playerOffset.xyz) - _WorldSpaceLightPos0.xyz, 0));
 				float squaredDistance = -dot(lightSourceToVertex.xyz, i.lstv.xyz);
-				if (squaredDistance < 0.0f) {
-					squaredDistance = 0.0f;
+				if (squaredDistance < 0) {
+					squaredDistance = 0;
 				}
-				attenuation = 1.0f / (1.0f + squaredDistance * _Attenuation);
+				attenuation = 1 / (1 + squaredDistance * _Attenuation);
 				lightDirection = normalize(-lightSourceToVertex);
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
@@ -735,14 +735,14 @@ Shader "Relativity/Lit/Standard" {
 			// Assuming the Doppler shift were perfect, this should behave similarly to INVERSE Doppler shifting the albedo color
 			// to calculate the reflectance, but this probably isn't physically meaningful: the albedo is a proper intrinsic property.
 
-			float pShift = 1.0f;
+			float pShift = 1;
 			if ((i.svc.y > FLT_EPSILON) && (dot(_viw.xyz, _viw.xyz) > FLT_EPSILON)) {
 				pShift = (1 - dot(lightDirection, _viw.xyz)) / i.svc.x;
 			}
 
 			float3 albedoColor = _Color.rgb;
 
-			albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1.0f / pShift);
+			albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1 / pShift);
 
 			float3 lightRgb = FadeShadows(i, attenuation) * CAST_LIGHTCOLOR0.rgb * albedoColor * nl;
 
@@ -755,8 +755,8 @@ Shader "Relativity/Lit/Standard" {
 			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - halfAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			specFactor = min(1.0f, specFactor);
-			lightRgb *= 1.0f - specFactor;
+			specFactor = min(1, specFactor);
+			lightRgb *= 1 - specFactor;
 			lightRgb += lightRgb * specFactor;
 		#endif
 			i.diff += float4(lightRgb, 0);
@@ -783,8 +783,8 @@ Shader "Relativity/Lit/Standard" {
 			float specFactor2 = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			specFactor2 = min(1.0f, specFactor2);
-			rgbFinal *= 1.0f - specFactor2;
+			specFactor2 = min(1, specFactor2);
+			rgbFinal *= 1 - specFactor2;
 
 	#if !(defined(UNITY_PASS_DEFERRED) && UNITY_ENABLE_REFLECTION_BUFFERS)
 			Unity_GlossyEnvironmentData envData;
@@ -856,9 +856,9 @@ Shader "Relativity/Lit/Standard" {
 #if defined(UNITY_PASS_DEFERRED)
 			output.gBuffer0.rgb = albedo.rgb;
 			output.gBuffer0.a = 1; // No occlusion
-			output.gBuffer1.rgb = float3(1.0f, 1.0f, 1.0f);
+			output.gBuffer1.rgb = float3(1, 1, 1);
 			output.gBuffer1.a = _Smoothness;
-			output.gBuffer2 = float4(i.normal.xyz * 0.5f + 0.5f, 1.0f);
+			output.gBuffer2 = float4((1 + i.normal.xyz) / 2, 1);
 			output.gBuffer3 = float4(rgbFinal.rgb, albedo.a);
 #if !defined(UNITY_HDR_ON)
 			output.gBuffer3.rgb = exp2(-output.gBuffer3.rgb);

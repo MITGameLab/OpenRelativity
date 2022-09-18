@@ -66,10 +66,10 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	float4x4 invIntrinsicMetric = glblPrms[0].invIntrinsicMetric;
 
 	float4 pos = float4(verts[id.x].xyz, 0);
-	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1.0f));
+	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1));
 	pos = float4(tempPos.xyz / tempPos.w - playerOffset.xyz, 0);
 
-    float speedSqr = dot(vpc.xyz, vpc.xyz);
+	float speedSqr = dot(vpc.xyz, vpc.xyz);
 	float speed = sqrt(speedSqr);
 	float spdOfLightSqrd = spdOfLight * spdOfLight;
 
@@ -145,6 +145,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	riw += float4(playerOffset.xyz, 0);
 
 	//Transform the vertex back into local space for the mesh to use it
-	tempPos = mul(wtlMatrix, float4(riw.xyz, 1.0f));
+	tempPos = mul(wtlMatrix, float4(riw.xyz, 1));
 	verts[id.x] = tempPos.xyz / tempPos.w;
 }
