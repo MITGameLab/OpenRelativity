@@ -215,7 +215,7 @@ namespace OpenRelativity
             Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
             //Translate in time:
-            float tisw = riwTransformed.w;
+            double tisw = riwTransformed.w;
             riwForMetric.w = 0;
             riw = vpcLorentzMatrix.Value * riwForMetric;
             riwTransformed = viwLorentzMatrix.Value * riw;
@@ -229,19 +229,18 @@ namespace OpenRelativity
             double sqrtArg = (double)riwDotRiw * ((double)cSqrd - (double)riwDotAiw + (double)aiwDotAiw * (double)riwDotRiw / (4 * (double)cSqrd)) / (((double)cSqrd - (double)riwDotAiw) * ((double)cSqrd - (double)riwDotAiw));
             double aiwMagSqr = aiwTransformed.sqrMagnitude;
             double aiwMag = Math.Sqrt(aiwMagSqr);
-            tisw += (sqrtArg > 0) ? (float)(-Math.Sqrt(sqrtArg)) : 0;
+            tisw += (sqrtArg > 0) ? -Math.Sqrt(sqrtArg) : 0;
             //add the position offset due to acceleration
             if (aiwMag > FLT_EPSILON)
             {
                 riwTransformed = riwTransformed - aiwTransformed * (float)((double)cSqrd * (Math.Sqrt(1 + sqrtArg * aiwMagSqr / (double)cSqrd) - 1) / aiwMag);
             }
-            riwTransformed.w = tisw;
+            riwTransformed.w = (float)tisw;
             //Inverse Lorentz transform the position:
             viwLorentzMatrix = viwLorentzMatrix.Value.inverse;
             riw = viwLorentzMatrix.Value * riwTransformed;
-            tisw = riw.w;
 
-            return tisw;
+            return riw.w;
         }
 
         public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
@@ -289,7 +288,7 @@ namespace OpenRelativity
             Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
             //Translate in time:
-            float tisw = riwTransformed.w;
+            double tisw = riwTransformed.w;
             riwForMetric.w = 0;
             riw = vpcLorentzMatrix.Value * riwForMetric;
             riwTransformed = viwLorentzMatrix.Value * riw;
@@ -303,23 +302,23 @@ namespace OpenRelativity
             double sqrtArg = (double)riwDotRiw * ((double)cSqrd - (double)riwDotAiw + (double)aiwDotAiw * (double)riwDotRiw / (4 * (double)cSqrd)) / (((double)cSqrd - (double)riwDotAiw) * ((double)cSqrd - (double)riwDotAiw));
             double aiwMagSqr = aiwTransformed.sqrMagnitude;
             double aiwMag = Math.Sqrt(aiwMagSqr);
-            tisw += (sqrtArg > 0) ? (float)(-Math.Sqrt(sqrtArg)) : 0;
+            tisw += (sqrtArg > 0) ? -Math.Sqrt(sqrtArg) : 0;
             //add the position offset due to acceleration
             if (aiwMag > FLT_EPSILON)
             {
                 riwTransformed = riwTransformed - aiwTransformed * (float)((double)cSqrd * (Math.Sqrt(1 + sqrtArg * aiwMagSqr / (double)cSqrd) - 1) / aiwMag);
             }
-            riwTransformed.w = tisw;
+            riwTransformed.w = (float)tisw;
             //Inverse Lorentz transform the position:
             viwLorentzMatrix = viwLorentzMatrix.Value.inverse;
             riw = viwLorentzMatrix.Value * riwTransformed;
             tisw = riw.w;
-            riw = (Vector3)riw + tisw * velocity;
+            riw = (Vector3)riw + (float)tisw * velocity;
 
             float speed = vpc.magnitude;
             if (speed > FLT_EPSILON)
             {
-                float newz = speed * c * tisw;
+                float newz = speed * c * (float)tisw;
                 Vector4 vpcUnit = vpc / speed;
                 newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - vpc.sqrMagnitude);
                 riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
