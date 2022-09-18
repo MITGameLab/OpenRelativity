@@ -1623,7 +1623,7 @@ namespace OpenRelativity.Objects
                 r = state.planckLength;
             }
 
-            if (!IsNaNOrInf((float)r))
+            if (!double.IsInfinity(r) && !double.IsNaN(r))
             {
                 isNonZeroTemp = true;
                 r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
@@ -1722,10 +1722,5 @@ namespace OpenRelativity.Objects
             isPhysicsUpdateFrame = false;
         }
         #endregion
-
-        private bool IsNaNOrInf(float p)
-        {
-            return float.IsInfinity(p) || float.IsNaN(p);
-        }
     }
 }
