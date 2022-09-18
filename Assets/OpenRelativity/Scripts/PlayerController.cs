@@ -171,10 +171,10 @@ namespace OpenRelativity
             Vector3 extents = myColl.bounds.extents;
             //We assume that the world "down" direction is the direction of gravity.
             Vector3 playerPos = state.playerTransform.position;
-            Ray rayDown = new Ray(playerPos + 0.5f * extents.y * Vector3.down, Vector3.down);
+            Ray rayDown = new Ray(playerPos + extents.y * Vector3.down / 2, Vector3.down);
             RaycastHit hitInfo;
             // TODO: Layer mask
-            isFalling = !Physics.Raycast(rayDown, out hitInfo, 0.5f * extents.y);
+            isFalling = !Physics.Raycast(rayDown, out hitInfo, extents.y / 2);
 
             if (!isFalling)
             {
@@ -550,7 +550,7 @@ namespace OpenRelativity
             Vector3 extents = myColl.bounds.extents;
             //We assume that the world "down" direction is the direction of gravity.
             Vector3 playerPos = state.playerTransform.position;
-            Ray rayDown = new Ray(playerPos + 0.5f * extents.y * Vector3.down, Vector3.down);
+            Ray rayDown = new Ray(playerPos + extents.y * Vector3.down / 2, Vector3.down);
             Ray rayUp = new Ray(playerPos + extents.y * Vector3.down, Vector3.up);
             Ray rayLeft = new Ray(playerPos + extents.x * Vector3.right, Vector3.left);
             Ray rayRight = new Ray(playerPos + extents.x * Vector3.left, Vector3.right);
@@ -558,7 +558,7 @@ namespace OpenRelativity
             Ray rayBack = new Ray(playerPos + extents.z * Vector3.forward, Vector3.back);
             RaycastHit hitInfo;
             float dist;
-            if (collider.Raycast(rayDown, out hitInfo, 0.5f * extents.y))
+            if (collider.Raycast(rayDown, out hitInfo, extents.y / 2))
             {
                 if (frames > INIT_FRAME_WAIT)
                 {
@@ -573,7 +573,7 @@ namespace OpenRelativity
                         myRB.velocity = new Vector3(myRB.velocity.x, 0, myRB.velocity.z);
                     }
 
-                    dist = 0.5f * extents.y - hitInfo.distance;
+                    dist = extents.y / 2 - hitInfo.distance;
                     if (dist > 0.05f)
                     {
                         Vector3 pos = state.playerTransform.position;
