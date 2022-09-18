@@ -10,7 +10,7 @@ Available memory:        31863 MB
 Using pre-set license
 Pro License: YES
 
-(Unity:8528): Gdk-CRITICAL **: 08:06:24.532: gdk_window_get_cursor: assertion 'GDK_IS_WINDOW (window)' failed
+(Unity:9135): Gdk-CRITICAL **: 09:48:13.511: gdk_window_get_cursor: assertion 'GDK_IS_WINDOW (window)' failed
 Desktop is 1920 x 1080 @ 60 Hz
 Initialize udev device monitor.
 
@@ -26,7 +26,7 @@ AssetImportWorker0
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-42301
+43771
 Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
 /home/iamu/GitHub/OpenRelativity
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
@@ -58,7 +58,7 @@ Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
     "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Refreshing native plugins compatible for Editor in 14.13 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 12.89 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 2021.3.9f1 (ad3870b89536)
 [Subsystems] Discovering subsystems at path /home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/Resources/UnitySubsystems
@@ -79,44 +79,44 @@ blend_equation_advanced_coherent GL_NVX_blend_equation_advanced_multi_draw_buffe
 der_passthrough GL_NV_gpu_program4 GL_NV_internalformat_sample_query GL_NV_gpu_program4_1 GL_NV_gpu_program5 GL_NV_gpu_program5_mem_extended GL_NV_gpu_program_fp64 GL_NV_gpu_shader5 GL_NV_half_float GL_NV_light_max_exponent GL_NV_memory_attachment GL_NV_mesh_shader GL_NV_multisample_coverage GL_NV_multisample_filter_hint GL_NV_occlusion_query GL_NV_packed_depth_stencil GL_NV_parameter_buffer_object GL_NV_parameter_buffer_object2 GL_NV_path_rendering GL_NV_path_rendering_shared_edge GL_NV_pixel_data_range GL_NV_point_sprite GL_NV_primitive_restart GL_NV_query_resource GL_NV_query_resource_tag GL_NV_register_combiners GL_NV_register_combiners2 GL_NV_representative_fragment_test GL_NV_sample_locations GL_NV_sample_mask_override_coverage GL_NV_scissor_exclusive GL_NV_shader_atomic_counters GL_NV_shader_atomic_float GL_NV_shader_atomic_float64 GL_NV_shader_atomic_fp16_vector GL_NV_shader_atomic_int64 GL_NV_shader_buffer_load GL_NV_shader_storage_buffer_object GL_NV_shader_subgroup_partitioned GL_NV_shader_texture
 _footprint GL_NV_shading_rate_image GL_NV_stereo_view_rendering GL_NV_texgen_reflection GL_NV_texture_barrier GL_NV_texture_compression_vtc GL_NV_texture_env_combine4 GL_NV_texture_multisample GL_NV_texture_rectangle GL_NV_texture_rectangle_compressed GL_NV_texture_shader GL_NV_texture_shader2 GL_NV_texture_shader3 GL_NV_transform_feedback GL_NV_transform_feedback2 GL_NV_uniform_buffer_unified_memory GL_NV_vdpau_interop GL_NV_vdpau_interop2 GL_NV_vertex_array_range GL_NV_vertex_array_range2 GL_NV_vertex_attrib_integer_64bit GL_NV_vertex_buffer_unified_memory GL_NV_vertex_program GL_NV_vertex_program1_1 GL_NV_vertex_program2 GL_NV_vertex_program2_option GL_NV_vertex_program3 GL_NV_viewport_array2 GL_NV_viewport_swizzle GL_NVX_conditional_render GL_NV_gpu_multicast GL_NVX_progress_fence GL_NVX_gpu_memory_info GL_NVX_nvenc_interop GL_NV_shader_thread_group GL_NV_shader_thread_shuffle GL_KHR_blend_equation_advanced GL_KHR_blend_equation_advanced_coherent GL_OVR_multiview GL_OVR_multiview2 GL_SGIS_generate_mipmap
  GL_SGIS_texture_lod GL_SGIX_depth_texture GL_SGIX_shadow GL_SUN_slice_accum
-OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle -1801161496
+OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle 927977672
 Initialize mono
 Mono path[0] = '/home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/Managed'
 Mono path[1] = '/home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
 Mono config path = '/home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56528
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56135
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.9f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.003955 seconds.
+Registered in 0.003839 seconds.
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Refreshing native plugins compatible for Editor in 12.96 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 12.49 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.468 seconds
+- Completed reload, in  0.455 seconds
 Domain Reload Profiling:
-	ReloadAssembly (468ms)
-		BeginReloadAssembly (37ms)
+	ReloadAssembly (456ms)
+		BeginReloadAssembly (45ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (0ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
 			CreateAndSetChildDomain (1ms)
-		EndReloadAssembly (334ms)
-			LoadAssemblies (36ms)
+		EndReloadAssembly (327ms)
+			LoadAssemblies (44ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (90ms)
+			SetupTypeCache (86ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (27ms)
-			SetupLoadedEditorAssemblies (178ms)
+			RebuildScriptCaches (26ms)
+			SetupLoadedEditorAssemblies (177ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (35ms)
+				InitializePlatformSupportModulesInManaged (34ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (13ms)
 				BeforeProcessingInitializeOnLoad (1ms)
-				ProcessInitializeOnLoadAttributes (90ms)
+				ProcessInitializeOnLoadAttributes (91ms)
 				ProcessInitializeOnLoadMethodAttributes (38ms)
 				AfterProcessingInitializeOnLoad (0ms)
 				EditorAssembliesLoaded (0ms)
@@ -124,36 +124,36 @@ Domain Reload Profiling:
 			AwakeInstancesAfterBackupRestoration (0ms)
 Platform modules already initialized, skipping
 Registering precompiled user dll's ...
-Registered in 0.000380 seconds.
+Registered in 0.000259 seconds.
 Begin MonoManager ReloadAssembly
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 0.22 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.555 seconds
+- Completed reload, in  0.562 seconds
 Domain Reload Profiling:
-	ReloadAssembly (556ms)
-		BeginReloadAssembly (69ms)
+	ReloadAssembly (563ms)
+		BeginReloadAssembly (72ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (5ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
 			CreateAndSetChildDomain (15ms)
-		EndReloadAssembly (397ms)
+		EndReloadAssembly (388ms)
 			LoadAssemblies (29ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (102ms)
+			SetupTypeCache (98ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (36ms)
-			SetupLoadedEditorAssemblies (186ms)
+			RebuildScriptCaches (35ms)
+			SetupLoadedEditorAssemblies (182ms)
 				LogAssemblyErrors (0ms)
 				InitializePlatformSupportModulesInManaged (16ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (0ms)
 				BeforeProcessingInitializeOnLoad (37ms)
-				ProcessInitializeOnLoadAttributes (103ms)
-				ProcessInitializeOnLoadMethodAttributes (24ms)
+				ProcessInitializeOnLoadAttributes (101ms)
+				ProcessInitializeOnLoadMethodAttributes (23ms)
 				AfterProcessingInitializeOnLoad (4ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
@@ -162,63 +162,12 @@ Platform modules already initialized, skipping
 ========================================================================
 Worker process is ready to serve import requests
 Launched and connected shader compiler UnityShaderCompiler after 0.01 seconds
--------- Shader Relativity/Lit/Standard
--------- GLSL link error: Link info
----------
-error: "vs_TEXCOORD3" not declared as input from previous stage
-
-
-Note: Creation of internal variant of shader 'Relativity/Lit/Standard' failed.
-Shader warning in 'Relativity/Lit/Standard': use of potentially uninitialized variable (BoxProjection) at line 342 (on glcore)
-
-Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
-Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
-Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
-Shader warning in 'Relativity/Lit/Standard': Output value 'vert' is not completely initialized at line 416 (on glcore)
-
-Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
-Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
-Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
--------- Shader Relativity/Lit/Standard
--------- GLSL link error: Link info
----------
-error: "vs_TEXCOORD3" not declared as input from previous stage
-
-
-Note: Creation of internal variant of shader 'Relativity/Lit/Standard' failed.
-Shader warning in 'Relativity/Lit/Standard': use of potentially uninitialized variable (BoxProjection) at line 342 (on glcore)
-
-Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
-Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
-Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
-Shader warning in 'Relativity/Lit/Standard': Output value 'vert' is not completely initialized at line 416 (on glcore)
-
-Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
-Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
-Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
--------- Shader Relativity/Lit/Standard
--------- GLSL link error: Link info
----------
-error: "vs_TEXCOORD1" not declared as an output from the previous stage
-
-
-Note: Creation of internal variant of shader 'Relativity/Lit/Standard' failed.
-Shader warning in 'Relativity/Lit/Standard': use of potentially uninitialized variable (BoxProjection) at line 342 (on glcore)
-
-Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
-Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
-Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
-Shader warning in 'Relativity/Lit/Standard': Output value 'vert' is not completely initialized at line 416 (on glcore)
-
-Compiling Subshader: 0, Pass: <Unnamed Pass 0>, Vertex program with DIRECTIONAL DIRLIGHTMAP_COMBINED DOPPLER_SHIFT FOG_EXP IS_STATIC LIGHTMAP_ON LORENTZ_TRANSFORM SPECULAR
-Platform defines: SHADER_API_DESKTOP UNITY_COLORSPACE_GAMMA UNITY_ENABLE_DETAIL_NORMALMAP UNITY_ENABLE_REFLECTION_BUFFERS UNITY_LIGHTMAP_RGBM_ENCODING UNITY_LIGHT_PROBE_PROXY_VOLUME UNITY_PASS_FORWARDBASE UNITY_PBS_USE_BRDF1 UNITY_SPECCUBE_BLENDING UNITY_SPECCUBE_BOX_PROJECTION UNITY_USE_DITHER_MASK_FOR_ALPHABLENDED_SHADOWS
-Disabled keywords: DOPPLER_MIX DYNAMICLIGHTMAP_ON FOG_EXP2 FOG_LINEAR LIGHTMAP_SHADOW_MIXING LIGHTPROBE_SH SHADER_API_GLES30 SHADOWS_SCREEN SHADOWS_SHADOWMASK UNITY_ASTC_NORMALMAP_ENCODING UNITY_ENABLE_NATIVE_SHADOW_LOOKUPS UNITY_FRAMEBUFFER_FETCH_AVAILABLE UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS UNITY_HARDWARE_TIER1 UNITY_HARDWARE_TIER2 UNITY_HARDWARE_TIER3 UNITY_LIGHTMAP_DLDR_ENCODING UNITY_LIGHTMAP_FULL_HDR UNITY_METAL_SHADOWS_USE_POINT_FILTERING UNITY_NO_DXT5nm UNITY_NO_FULL_STANDARD_SHADER UNITY_NO_SCREENSPACE_SHADOWS UNITY_PBS_USE_BRDF2 UNITY_PBS_USE_BRDF3 UNITY_PRETRANSFORM_TO_DISPLAY_ORIENTATION UNITY_UNIFIED_SHADER_PRECISION_MODEL UNITY_VIRTUAL_TEXTURING UV_IR_TEXTURES VERTEXLIGHT_ON _EMISSION
-Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 0.21 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 1111 Unused Serialized files (Serialized files now loaded: 0)
 Unloading 33 unused Assets / (73.9 KB). Loaded Objects now: 1576.
-Memory consumption went from 51.9 MB to 51.8 MB.
-Total: 3.007509 ms (FindLiveObjects: 0.116877 ms CreateObjectMapping: 0.041948 ms MarkObjects: 2.747576 ms  DeleteObjects: 0.100222 ms)
+Memory consumption went from 51.7 MB to 51.7 MB.
+Total: 3.079256 ms (FindLiveObjects: 0.114879 ms CreateObjectMapping: 0.032733 ms MarkObjects: 2.798412 ms  DeleteObjects: 0.132604 ms)
 
 AssetImportParameters requested are different than current active one (requested -> active):
   custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
@@ -231,126 +180,444 @@ AssetImportParameters requested are different than current active one (requested
   custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
 ========================================================================
 Received Import Request.
-  Time since last request: 4596.168549 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'eb4b00f28c290039d872272acc31009d') in 0.021634 seconds 
+  Time since last request: 3119.603806 seconds.
+  path: Assets/OpenRelativity/Shaders/Unlit/relativityAccel.shader
+  artifactKey: Guid(718619af405ff86409b8353468c3c0ed) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/Unlit/relativityAccel.shader using Guid(718619af405ff86409b8353468c3c0ed) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'dfac395fb28aba5050664dc04b8a81e3') in 0.010614 seconds 
 ========================================================================
 Received Import Request.
-  Time since last request: 19.633948 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'a982d6eea8991a0a0dd667f6bfb7b9ea') in 0.000745 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 107.591059 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '80d0b4d419e0fe60bca9a186acffe7a6') in 0.000588 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 10.043740 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'a9b31f7e98f085e6c31a0c1e6ebbd2a0') in 0.000738 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 73.434333 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '90e29ac621af7cd11e9c9f79b61b1d80') in 0.000815 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 654.919874 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '13c4f882f1db24a86128e75d876a5b0a') in 0.000689 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 51.648168 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'b46f4cf6ffcc14bb840516696a9e3ae0') in 0.000875 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 80.982145 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'c62f9e87caef1d7715c77cb36aeb4ae3') in 0.000623 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 42.928323 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '713a256becfbfd4e934842f00f072201') in 0.000766 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 115.796905 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '7631c325007277a5517201141e7e16ae') in 0.000524 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 128.471109 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '1ebc8f9fc69090c01792d2673e8ff1ff') in 0.000544 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 177.354087 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '134a77288471ad47858e412b6d3f2801') in 0.000466 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 32.679711 seconds.
-  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
-  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'caa2bbc428d200bcb4df3e07b8da9529') in 0.000707 seconds 
+  Time since last request: 0.370338 seconds.
+  path: Assets/OpenRelativity/Shaders/Unlit/relativityColorOnly.shader
+  artifactKey: Guid(60d1b5e87bd9a9b48b8bbc472f32e75f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/Unlit/relativityColorOnly.shader using Guid(60d1b5e87bd9a9b48b8bbc472f32e75f) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'd9430d2c32b94605a61f4d57a84f0bb6') in 0.000585 seconds 
 ========================================================================
 Received Prepare
 Registering precompiled user dll's ...
-Registered in 0.000257 seconds.
+Registered in 0.000312 seconds.
 Begin MonoManager ReloadAssembly
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Refreshing native plugins compatible for Editor in 0.21 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 0.24 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.535 seconds
+- Completed reload, in  0.543 seconds
 Domain Reload Profiling:
-	ReloadAssembly (535ms)
+	ReloadAssembly (543ms)
 		BeginReloadAssembly (76ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (6ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (20ms)
-		EndReloadAssembly (385ms)
-			LoadAssemblies (32ms)
+			CreateAndSetChildDomain (18ms)
+		EndReloadAssembly (392ms)
+			LoadAssemblies (33ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
 			SetupTypeCache (102ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (30ms)
-			SetupLoadedEditorAssemblies (177ms)
+			RebuildScriptCaches (29ms)
+			SetupLoadedEditorAssemblies (183ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (18ms)
+				InitializePlatformSupportModulesInManaged (19ms)
+				SetLoadedEditorAssemblies (0ms)
+				RefreshPlugins (0ms)
+				BeforeProcessingInitializeOnLoad (37ms)
+				ProcessInitializeOnLoadAttributes (99ms)
+				ProcessInitializeOnLoadMethodAttributes (22ms)
+				AfterProcessingInitializeOnLoad (4ms)
+				EditorAssembliesLoaded (0ms)
+			ExecutionOrderSort2 (0ms)
+			AwakeInstancesAfterBackupRestoration (3ms)
+Platform modules already initialized, skipping
+Refreshing native plugins compatible for Editor in 1.21 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 21 unused Assets / (57.3 KB). Loaded Objects now: 1580.
+Memory consumption went from 50.6 MB to 50.6 MB.
+Total: 2.498135 ms (FindLiveObjects: 0.106609 ms CreateObjectMapping: 0.028417 ms MarkObjects: 2.341787 ms  DeleteObjects: 0.020696 ms)
+
+AssetImportParameters requested are different than current active one (requested -> active):
+  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
+  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
+  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
+  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
+  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
+  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
+  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+========================================================================
+Received Import Request.
+  Time since last request: 419.345257 seconds.
+  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
+  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '56c9571303156a58b86e10a6495f0e37') in 0.009411 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 46.052200 seconds.
+  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
+  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '3813f2997d9b6f394710b42f57d07ba4') in 0.000506 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 12.267998 seconds.
+  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
+  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '0743e74e31917ac069f420c52406131c') in 0.000513 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 33.228536 seconds.
+  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
+  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '2f1e430672706eb7283d1b0753eaac04') in 0.000476 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 18.908682 seconds.
+  path: Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader
+  artifactKey: Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/Lit/relativityLitStandard.shader using Guid(e719e71b07309fb429c0a08249d38523) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'ab0a2c455951ad88267d3c11b5af58ca') in 0.000759 seconds 
+========================================================================
+Received Prepare
+Registering precompiled user dll's ...
+Registered in 0.000261 seconds.
+Begin MonoManager ReloadAssembly
+Native extension for LinuxStandalone target not found
+Native extension for Android target not found
+Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Mono: successfully reloaded assembly
+- Completed reload, in  0.548 seconds
+Domain Reload Profiling:
+	ReloadAssembly (548ms)
+		BeginReloadAssembly (71ms)
+			ExecutionOrderSort (0ms)
+			DisableScriptedObjects (7ms)
+			BackupInstance (0ms)
+			ReleaseScriptingObjects (0ms)
+			CreateAndSetChildDomain (16ms)
+		EndReloadAssembly (401ms)
+			LoadAssemblies (29ms)
+			RebuildTransferFunctionScriptingTraits (0ms)
+			SetupTypeCache (109ms)
+			ReleaseScriptCaches (0ms)
+			RebuildScriptCaches (29ms)
+			SetupLoadedEditorAssemblies (186ms)
+				LogAssemblyErrors (0ms)
+				InitializePlatformSupportModulesInManaged (19ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (0ms)
 				BeforeProcessingInitializeOnLoad (35ms)
-				ProcessInitializeOnLoadAttributes (95ms)
+				ProcessInitializeOnLoadAttributes (106ms)
+				ProcessInitializeOnLoadMethodAttributes (21ms)
+				AfterProcessingInitializeOnLoad (4ms)
+				EditorAssembliesLoaded (0ms)
+			ExecutionOrderSort2 (0ms)
+			AwakeInstancesAfterBackupRestoration (3ms)
+Platform modules already initialized, skipping
+Refreshing native plugins compatible for Editor in 1.21 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 21 unused Assets / (57.2 KB). Loaded Objects now: 1583.
+Memory consumption went from 50.6 MB to 50.5 MB.
+Total: 2.129237 ms (FindLiveObjects: 0.088314 ms CreateObjectMapping: 0.029008 ms MarkObjects: 1.991495 ms  DeleteObjects: 0.019903 ms)
+
+AssetImportParameters requested are different than current active one (requested -> active):
+  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
+  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
+  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
+  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
+  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
+  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
+  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+========================================================================
+Received Prepare
+Registering precompiled user dll's ...
+Registered in 0.000290 seconds.
+Begin MonoManager ReloadAssembly
+Native extension for LinuxStandalone target not found
+Native extension for Android target not found
+Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Mono: successfully reloaded assembly
+- Completed reload, in  0.548 seconds
+Domain Reload Profiling:
+	ReloadAssembly (548ms)
+		BeginReloadAssembly (72ms)
+			ExecutionOrderSort (0ms)
+			DisableScriptedObjects (6ms)
+			BackupInstance (0ms)
+			ReleaseScriptingObjects (0ms)
+			CreateAndSetChildDomain (17ms)
+		EndReloadAssembly (397ms)
+			LoadAssemblies (30ms)
+			RebuildTransferFunctionScriptingTraits (0ms)
+			SetupTypeCache (104ms)
+			ReleaseScriptCaches (0ms)
+			RebuildScriptCaches (30ms)
+			SetupLoadedEditorAssemblies (184ms)
+				LogAssemblyErrors (0ms)
+				InitializePlatformSupportModulesInManaged (19ms)
+				SetLoadedEditorAssemblies (0ms)
+				RefreshPlugins (0ms)
+				BeforeProcessingInitializeOnLoad (36ms)
+				ProcessInitializeOnLoadAttributes (102ms)
+				ProcessInitializeOnLoadMethodAttributes (22ms)
+				AfterProcessingInitializeOnLoad (4ms)
+				EditorAssembliesLoaded (0ms)
+			ExecutionOrderSort2 (0ms)
+			AwakeInstancesAfterBackupRestoration (3ms)
+Platform modules already initialized, skipping
+Refreshing native plugins compatible for Editor in 1.18 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 21 unused Assets / (57.3 KB). Loaded Objects now: 1586.
+Memory consumption went from 50.6 MB to 50.5 MB.
+Total: 2.182899 ms (FindLiveObjects: 0.098761 ms CreateObjectMapping: 0.035863 ms MarkObjects: 2.022774 ms  DeleteObjects: 0.024771 ms)
+
+AssetImportParameters requested are different than current active one (requested -> active):
+  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
+  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
+  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
+  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
+  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
+  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
+  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+========================================================================
+Received Import Request.
+  Time since last request: 37.283951 seconds.
+  path: Assets/OpenRelativity/Shaders/desaturateShader.shader
+  artifactKey: Guid(f10b9076907ea104a98ea401d3e3d6e9) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/desaturateShader.shader using Guid(f10b9076907ea104a98ea401d3e3d6e9) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '1a288efe6e35361c4ad3905ecde22a41') in 0.009136 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 0.857857 seconds.
+  path: Assets/OpenRelativity/Shaders/SchwarzschildInterior.shader
+  artifactKey: Guid(bd67b28e522c61744931d082d6d3f178) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/SchwarzschildInterior.shader using Guid(bd67b28e522c61744931d082d6d3f178) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'f8923445d5c079e32b289bf4871b6f64') in 0.001685 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 0.915361 seconds.
+  path: Assets/OpenRelativity/Shaders/SchwarzschildLens.shader
+  artifactKey: Guid(6c865939b02f64c4bbb11106dad37540) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/SchwarzschildLens.shader using Guid(6c865939b02f64c4bbb11106dad37540) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'dd56ba2875d3a2b6c8dfabfcbd291902') in 0.001997 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 2.268135 seconds.
+  path: Assets/OpenRelativity/Shaders/skybox.shader
+  artifactKey: Guid(a8b469e68b8081c4b8475b25057170bd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/skybox.shader using Guid(a8b469e68b8081c4b8475b25057170bd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '765b97e9faa1feb981c1c79f3a20458a') in 0.002231 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 170.808224 seconds.
+  path: Assets/OpenRelativity/Shaders/relativityAccel.compute
+  artifactKey: Guid(83bf030bd1f21d24e99aa1f6b356488a) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/OpenRelativity/Shaders/relativityAccel.compute using Guid(83bf030bd1f21d24e99aa1f6b356488a) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'edd466e82b8929f2f69dcd10725eda13') in 0.000807 seconds 
+========================================================================
+Received Prepare
+Registering precompiled user dll's ...
+Registered in 0.000265 seconds.
+Begin MonoManager ReloadAssembly
+Native extension for LinuxStandalone target not found
+Native extension for Android target not found
+Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Mono: successfully reloaded assembly
+- Completed reload, in  0.538 seconds
+Domain Reload Profiling:
+	ReloadAssembly (539ms)
+		BeginReloadAssembly (70ms)
+			ExecutionOrderSort (0ms)
+			DisableScriptedObjects (6ms)
+			BackupInstance (0ms)
+			ReleaseScriptingObjects (0ms)
+			CreateAndSetChildDomain (17ms)
+		EndReloadAssembly (392ms)
+			LoadAssemblies (29ms)
+			RebuildTransferFunctionScriptingTraits (0ms)
+			SetupTypeCache (102ms)
+			ReleaseScriptCaches (0ms)
+			RebuildScriptCaches (29ms)
+			SetupLoadedEditorAssemblies (182ms)
+				LogAssemblyErrors (0ms)
+				InitializePlatformSupportModulesInManaged (19ms)
+				SetLoadedEditorAssemblies (0ms)
+				RefreshPlugins (0ms)
+				BeforeProcessingInitializeOnLoad (36ms)
+				ProcessInitializeOnLoadAttributes (98ms)
+				ProcessInitializeOnLoadMethodAttributes (23ms)
+				AfterProcessingInitializeOnLoad (5ms)
+				EditorAssembliesLoaded (0ms)
+			ExecutionOrderSort2 (0ms)
+			AwakeInstancesAfterBackupRestoration (3ms)
+Platform modules already initialized, skipping
+Refreshing native plugins compatible for Editor in 1.18 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 21 unused Assets / (57.3 KB). Loaded Objects now: 1589.
+Memory consumption went from 50.6 MB to 50.5 MB.
+Total: 5.169375 ms (FindLiveObjects: 0.088916 ms CreateObjectMapping: 0.029860 ms MarkObjects: 5.029334 ms  DeleteObjects: 0.020667 ms)
+
+AssetImportParameters requested are different than current active one (requested -> active):
+  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
+  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
+  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
+  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
+  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
+  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
+  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+========================================================================
+Received Prepare
+Registering precompiled user dll's ...
+Registered in 0.000291 seconds.
+Begin MonoManager ReloadAssembly
+Native extension for LinuxStandalone target not found
+Native extension for Android target not found
+Refreshing native plugins compatible for Editor in 0.33 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Mono: successfully reloaded assembly
+- Completed reload, in  0.557 seconds
+Domain Reload Profiling:
+	ReloadAssembly (558ms)
+		BeginReloadAssembly (72ms)
+			ExecutionOrderSort (0ms)
+			DisableScriptedObjects (6ms)
+			BackupInstance (0ms)
+			ReleaseScriptingObjects (0ms)
+			CreateAndSetChildDomain (17ms)
+		EndReloadAssembly (406ms)
+			LoadAssemblies (30ms)
+			RebuildTransferFunctionScriptingTraits (0ms)
+			SetupTypeCache (104ms)
+			ReleaseScriptCaches (0ms)
+			RebuildScriptCaches (30ms)
+			SetupLoadedEditorAssemblies (189ms)
+				LogAssemblyErrors (0ms)
+				InitializePlatformSupportModulesInManaged (19ms)
+				SetLoadedEditorAssemblies (0ms)
+				RefreshPlugins (0ms)
+				BeforeProcessingInitializeOnLoad (37ms)
+				ProcessInitializeOnLoadAttributes (106ms)
+				ProcessInitializeOnLoadMethodAttributes (22ms)
+				AfterProcessingInitializeOnLoad (4ms)
+				EditorAssembliesLoaded (0ms)
+			ExecutionOrderSort2 (0ms)
+			AwakeInstancesAfterBackupRestoration (3ms)
+Platform modules already initialized, skipping
+Refreshing native plugins compatible for Editor in 1.18 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 21 unused Assets / (57.4 KB). Loaded Objects now: 1592.
+Memory consumption went from 50.6 MB to 50.5 MB.
+Total: 2.197045 ms (FindLiveObjects: 0.093848 ms CreateObjectMapping: 0.031979 ms MarkObjects: 2.048687 ms  DeleteObjects: 0.021609 ms)
+
+AssetImportParameters requested are different than current active one (requested -> active):
+  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
+  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
+  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
+  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
+  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
+  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
+  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+========================================================================
+Received Prepare
+Registering precompiled user dll's ...
+Registered in 0.000332 seconds.
+Begin MonoManager ReloadAssembly
+Native extension for LinuxStandalone target not found
+Native extension for Android target not found
+Refreshing native plugins compatible for Editor in 0.23 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Mono: successfully reloaded assembly
+- Completed reload, in  0.554 seconds
+Domain Reload Profiling:
+	ReloadAssembly (555ms)
+		BeginReloadAssembly (72ms)
+			ExecutionOrderSort (0ms)
+			DisableScriptedObjects (6ms)
+			BackupInstance (0ms)
+			ReleaseScriptingObjects (0ms)
+			CreateAndSetChildDomain (17ms)
+		EndReloadAssembly (404ms)
+			LoadAssemblies (30ms)
+			RebuildTransferFunctionScriptingTraits (0ms)
+			SetupTypeCache (104ms)
+			ReleaseScriptCaches (0ms)
+			RebuildScriptCaches (30ms)
+			SetupLoadedEditorAssemblies (190ms)
+				LogAssemblyErrors (0ms)
+				InitializePlatformSupportModulesInManaged (19ms)
+				SetLoadedEditorAssemblies (0ms)
+				RefreshPlugins (0ms)
+				BeforeProcessingInitializeOnLoad (37ms)
+				ProcessInitializeOnLoadAttributes (106ms)
+				ProcessInitializeOnLoadMethodAttributes (23ms)
+				AfterProcessingInitializeOnLoad (5ms)
+				EditorAssembliesLoaded (0ms)
+			ExecutionOrderSort2 (0ms)
+			AwakeInstancesAfterBackupRestoration (3ms)
+Platform modules already initialized, skipping
+Refreshing native plugins compatible for Editor in 1.18 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 21 unused Assets / (57.2 KB). Loaded Objects now: 1595.
+Memory consumption went from 50.6 MB to 50.5 MB.
+Total: 2.260933 ms (FindLiveObjects: 0.091139 ms CreateObjectMapping: 0.033165 ms MarkObjects: 2.114954 ms  DeleteObjects: 0.020973 ms)
+
+AssetImportParameters requested are different than current active one (requested -> active):
+  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
+  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
+  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
+  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
+  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
+  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
+  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+========================================================================
+Received Prepare
+Registering precompiled user dll's ...
+Registered in 0.000307 seconds.
+Begin MonoManager ReloadAssembly
+Native extension for LinuxStandalone target not found
+Native extension for Android target not found
+Refreshing native plugins compatible for Editor in 0.22 ms, found 1 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Mono: successfully reloaded assembly
+- Completed reload, in  0.554 seconds
+Domain Reload Profiling:
+	ReloadAssembly (555ms)
+		BeginReloadAssembly (72ms)
+			ExecutionOrderSort (0ms)
+			DisableScriptedObjects (6ms)
+			BackupInstance (0ms)
+			ReleaseScriptingObjects (0ms)
+			CreateAndSetChildDomain (17ms)
+		EndReloadAssembly (404ms)
+			LoadAssemblies (30ms)
+			RebuildTransferFunctionScriptingTraits (0ms)
+			SetupTypeCache (105ms)
+			ReleaseScriptCaches (0ms)
+			RebuildScriptCaches (30ms)
+			SetupLoadedEditorAssemblies (190ms)
+				LogAssemblyErrors (0ms)
+				InitializePlatformSupportModulesInManaged (19ms)
+				SetLoadedEditorAssemblies (0ms)
+				RefreshPlugins (0ms)
+				BeforeProcessingInitializeOnLoad (37ms)
+				ProcessInitializeOnLoadAttributes (106ms)
 				ProcessInitializeOnLoadMethodAttributes (23ms)
 				AfterProcessingInitializeOnLoad (4ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
 			AwakeInstancesAfterBackupRestoration (3ms)
 Platform modules already initialized, skipping
-Refreshing native plugins compatible for Editor in 1.22 ms, found 1 plugins.
+Refreshing native plugins compatible for Editor in 1.18 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 1097 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 21 unused Assets / (57.2 KB). Loaded Objects now: 1580.
-Memory consumption went from 50.7 MB to 50.7 MB.
-Total: 2.259122 ms (FindLiveObjects: 0.097008 ms CreateObjectMapping: 0.039322 ms MarkObjects: 2.100344 ms  DeleteObjects: 0.021747 ms)
+Unloading 21 unused Assets / (57.4 KB). Loaded Objects now: 1598.
+Memory consumption went from 50.6 MB to 50.5 MB.
+Total: 2.297073 ms (FindLiveObjects: 0.093202 ms CreateObjectMapping: 0.032741 ms MarkObjects: 2.148479 ms  DeleteObjects: 0.021982 ms)
 
 AssetImportParameters requested are different than current active one (requested -> active):
   custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 

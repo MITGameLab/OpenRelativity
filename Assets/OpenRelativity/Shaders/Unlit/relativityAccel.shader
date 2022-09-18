@@ -118,7 +118,8 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 
-			float speed = length(_vpc.xyz);
+            float speedSqr = dot(_vpc.xyz, _vpc.xyz);
+			float speed = sqrt(speedSqr);
 			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
 			//relative speed
@@ -172,17 +173,13 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float riwDotpao = -dot(riwTransformed, paot);
 
 			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotpao) * (spdOfLightSqrd - riwDotpao));
-			float paoMag = length(paoTransformed.xyz);
-			float t2 = 0;
-			if (sqrtArg > 0)
-			{
-				t2 = -sqrt(sqrtArg);
-			}
-			tisw += t2;
+			float paoMagSqr = dot(paoTransformed.xyz, paoTransformed.xyz);
+			float paoMag = sqrt(paoMagSqr);
+			tisw += (sqrtArg > 0) ? -sqrt(sqrtArg) : 0;
 			//add the position offset due to acceleration
 			if (paoMag > FLT_EPSILON)
 			{
-				riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / _spdOfLight) * (paoMag * t2 / _spdOfLight)) - 1);
+				riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + sqrtArg * paoMagSqr / spdOfLightSqrd) - 1);
 			}
 			riwTransformed.w = tisw;
 
@@ -195,7 +192,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 
 			if (speed > FLT_EPSILON) {
 				float3 vpcUnit = _vpc.xyz / speed;
-				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+				newz = (dot(riw.xyz, vpcUnit) + newz) / sqrt(1 - speedSqr);
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 			}
 

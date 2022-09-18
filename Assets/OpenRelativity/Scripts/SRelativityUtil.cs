@@ -306,18 +306,13 @@ namespace OpenRelativity
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
 
             float sqrtArg = riwDotRiw * (cSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * cSqrd)) / ((cSqrd - riwDotAiw) * (cSqrd - riwDotAiw));
+            float aiwMagSqr = aiwTransformed.sqrMagnitude;
             float aiwMag = aiwTransformed.magnitude;
-            float t2 = 0;
-            if (sqrtArg > 0)
-            {
-                t2 = -Mathf.Sqrt(sqrtArg);
-            }
-
-            tisw += t2;
+            tisw += (sqrtArg > 0) ? (float)(-Math.Sqrt(sqrtArg)) : 0;
             //add the position offset due to acceleration
             if (aiwMag > FLT_EPSILON)
             {
-                riwTransformed = riwTransformed - aiwTransformed / aiwMag * cSqrd * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
+                riwTransformed = riwTransformed - aiwTransformed * cSqrd * (Mathf.Sqrt(1 + sqrtArg * aiwMagSqr / cSqrd) - 1) / aiwMag;
             }
             riwTransformed.w = tisw;
             //Inverse Lorentz transform the position:
@@ -331,7 +326,7 @@ namespace OpenRelativity
             {
                 float newz = speed * c * tisw;
                 Vector4 vpcUnit = vpc / speed;
-                newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - (speed * speed));
+                newz = (Vector4.Dot(riw, vpcUnit) + newz) / Mathf.Sqrt(1 - vpc.sqrMagnitude);
                 riw = riw + (newz - Vector4.Dot(riw, vpcUnit)) * vpcUnit;
             }
 
@@ -339,9 +334,6 @@ namespace OpenRelativity
 
             return riw;
         }
-
-        const int defaultOpticalToWorldMaxIterations = 5;
-        const float defaultOpticalToWorldSqrErrorTolerance = 0.0001f;
 
         public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
         {
@@ -365,7 +357,7 @@ namespace OpenRelativity
             {
                 Vector4 vpcUnit = vpc / speed;
                 float riwDotVpcUnit = Vector4.Dot(riw, vpcUnit);
-                float newz = (riwDotVpcUnit + speed * c * tisw) / Mathf.Sqrt(1 - (speed * speed));
+                float newz = (riwDotVpcUnit + speed * c * tisw) / Mathf.Sqrt(1 - vpc.sqrMagnitude);
                 riw -= (newz - riwDotVpcUnit) * vpcUnit;
             }
 
@@ -387,11 +379,12 @@ namespace OpenRelativity
 
             float t2 = riwTransformed.w;
 
+            float aiwMagSqr = aiwTransformed.sqrMagnitude;
             float aiwMag = aiwTransformed.magnitude;
             if (aiwMag > FLT_EPSILON)
             {
                 //add the position offset due to acceleration
-                riwTransformed += (Vector4)(aiwTransformed) / aiwMag * c * c * (Mathf.Sqrt(1 + (aiwMag * t2 / c) * (aiwMag * t2 / c)) - 1);
+                riwTransformed += (Vector4)aiwTransformed * (float)(cSqrd * (Mathf.Sqrt(1 + t2 * t2 * aiwMagSqr / cSqrd) - 1) / aiwMag);
             }
 
             //Inverse Lorentz transform the position:
@@ -402,40 +395,6 @@ namespace OpenRelativity
             riw.w = riwTransformed.w;
 
             return riw;
-        }
-
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
-        {
-            return opticalPos.OpticalToWorldHighPrecision(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix, intrinsicMetric);
-        }
-
-        public static Vector3 OpticalToWorldHighPrecision(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector4 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentz = null, Matrix4x4? viwLorentz = null, Matrix4x4? intrinsicMetric = null)
-        {
-            Vector4 startPoint = opticalPos;
-            Vector3 est, offset, newEst;
-            est = opticalPos.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz, intrinsicMetric);
-            offset = ((Vector4)est).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz, intrinsicMetric)- (Vector3)opticalPos;
-
-            float sqrError = offset.sqrMagnitude;
-            float oldSqrError = sqrError + 1.0f;
-            float iterations = 1;
-            while ((iterations < defaultOpticalToWorldMaxIterations)
-                && (sqrError > defaultOpticalToWorldSqrErrorTolerance)
-                && (sqrError < oldSqrError))
-            {
-                iterations++;
-                startPoint += (Vector4)offset / 2.0f;
-                newEst = startPoint.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw);
-                offset = ((Vector4)newEst).WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, vpcLorentz, viwLorentz, intrinsicMetric)- (Vector3)startPoint;
-                oldSqrError = sqrError;
-                sqrError = offset.sqrMagnitude;
-                if (sqrError < oldSqrError)
-                {
-                    est = newEst;
-                }
-            }
-
-            return est;
         }
 
         public static float Gamma(this Vector3 velocity, Matrix4x4? metric = null)
