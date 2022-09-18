@@ -215,7 +215,7 @@ namespace OpenRelativity
             Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
             //Translate in time:
-            double tisw = riwTransformed.w;
+            float tisw = riwTransformed.w;
             riwForMetric.w = 0;
             riw = vpcLorentzMatrix.Value * riwForMetric;
             riwTransformed = viwLorentzMatrix.Value * riw;
@@ -226,14 +226,14 @@ namespace OpenRelativity
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
 
-            double sqrtArg = (double)riwDotRiw * ((double)cSqrd - (double)riwDotAiw + (double)aiwDotAiw * (double)riwDotRiw / (4 * (double)cSqrd)) / (((double)cSqrd - (double)riwDotAiw) * ((double)cSqrd - (double)riwDotAiw));
-            double aiwMagSqr = aiwTransformed.sqrMagnitude;
-            double aiwMag = Math.Sqrt(aiwMagSqr);
-            tisw += (sqrtArg > 0) ? -Math.Sqrt(sqrtArg) : 0;
+            float sqrtArg = riwDotRiw * (cSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * cSqrd)) / ((cSqrd - riwDotAiw) * (cSqrd - riwDotAiw));
+            float aiwMagSqr = aiwTransformed.sqrMagnitude;
+            float aiwMag = Mathf.Sqrt(aiwMagSqr);
+            tisw += (sqrtArg > 0) ? -Mathf.Sqrt(sqrtArg) : 0;
             //add the position offset due to acceleration
             if (aiwMag > FLT_EPSILON)
             {
-                riwTransformed = riwTransformed - aiwTransformed * (float)((double)cSqrd * (Math.Sqrt(1 + sqrtArg * aiwMagSqr / (double)cSqrd) - 1) / aiwMag);
+                riwTransformed = riwTransformed - aiwTransformed * cSqrd * (Mathf.Sqrt(1 + sqrtArg * aiwMagSqr / cSqrd) - 1) / aiwMag;
             }
             riwTransformed.w = (float)tisw;
             //Inverse Lorentz transform the position:
@@ -288,7 +288,7 @@ namespace OpenRelativity
             Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
             Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
             //Translate in time:
-            double tisw = riwTransformed.w;
+            float tisw = riwTransformed.w;
             riwForMetric.w = 0;
             riw = vpcLorentzMatrix.Value * riwForMetric;
             riwTransformed = viwLorentzMatrix.Value * riw;
@@ -299,14 +299,14 @@ namespace OpenRelativity
             float aiwDotAiw = -Vector4.Dot(aiwTransformed, metric * aiwTransformed);
             float riwDotAiw = -Vector4.Dot(riwTransformed, metric * aiwTransformed);
 
-            double sqrtArg = (double)riwDotRiw * ((double)cSqrd - (double)riwDotAiw + (double)aiwDotAiw * (double)riwDotRiw / (4 * (double)cSqrd)) / (((double)cSqrd - (double)riwDotAiw) * ((double)cSqrd - (double)riwDotAiw));
-            double aiwMagSqr = aiwTransformed.sqrMagnitude;
-            double aiwMag = Math.Sqrt(aiwMagSqr);
-            tisw += (sqrtArg > 0) ? -Math.Sqrt(sqrtArg) : 0;
+            float sqrtArg = riwDotRiw * (cSqrd - riwDotAiw + aiwDotAiw * riwDotRiw / (4 * cSqrd)) / ((cSqrd - riwDotAiw) * (cSqrd - riwDotAiw));
+            float aiwMagSqr = aiwTransformed.sqrMagnitude;
+            float aiwMag = Mathf.Sqrt(aiwMagSqr);
+            tisw += (sqrtArg > 0) ? -Mathf.Sqrt(sqrtArg) : 0;
             //add the position offset due to acceleration
             if (aiwMag > FLT_EPSILON)
             {
-                riwTransformed = riwTransformed - aiwTransformed * (float)((double)cSqrd * (Math.Sqrt(1 + sqrtArg * aiwMagSqr / (double)cSqrd) - 1) / aiwMag);
+                riwTransformed = riwTransformed - aiwTransformed * cSqrd * (Mathf.Sqrt(1 + sqrtArg * aiwMagSqr / cSqrd) - 1) / aiwMag;
             }
             riwTransformed.w = (float)tisw;
             //Inverse Lorentz transform the position:
@@ -371,13 +371,13 @@ namespace OpenRelativity
             riwTransformed = viwLorentzMatrix.Value * riwTransformed;
             aiwTransformed = viwLorentzMatrix.Value * aiwTransformed;
 
-            double t2 = riwTransformed.w;
-            double aiwMagSqr = aiwTransformed.sqrMagnitude;
-            double aiwMag = Math.Sqrt(aiwMagSqr);
+            float t2 = riwTransformed.w;
+            float aiwMagSqr = aiwTransformed.sqrMagnitude;
+            float aiwMag = Mathf.Sqrt(aiwMagSqr);
             if (aiwMag > FLT_EPSILON)
             {
                 //add the position offset due to acceleration
-                riwTransformed += (Vector4)aiwTransformed * (float)((double)cSqrd * (Math.Sqrt(1 + t2 * t2 * aiwMagSqr / (double)cSqrd) - 1) / aiwMag);
+                riwTransformed += (Vector4)aiwTransformed * cSqrd * (Mathf.Sqrt(1 + t2 * t2 * aiwMagSqr / cSqrd) - 1) / aiwMag;
             }
 
             //Inverse Lorentz transform the position:
