@@ -27,12 +27,12 @@ namespace OpenRelativity
         public static double SchwarzRadiusToPlanckScaleTemp(double radius)
         {
             double rsp = radius / state.planckLength;
-            return Math.Pow(sigmaPlanck * 8 * Math.PI * Math.Pow(rsp, 3), -1.0 / 4.0);
+            return Math.Pow(sigmaPlanck * 8 * Math.PI * Math.Pow(rsp, 3), -1.0 / 4);
         }
 
         public static double PlanckScaleTempToSchwarzRadius(double temp)
         {
-            return state.planckLength / Math.Pow(sigmaPlanck * 8 * Math.PI * Math.Pow(temp, 4), 1.0 / 3.0);
+            return state.planckLength / Math.Pow(sigmaPlanck * 8 * Math.PI * Math.Pow(temp, 4), 1.0 / 3);
         }
 
         public static float EffectiveRaditiativeRadius(float radius, float backgroundPlanckTemp)
@@ -111,7 +111,7 @@ namespace OpenRelativity
             {
                 return interval;
             }
-            float invGamma = Mathf.Sqrt(1.0f - speedSqr / cSqrd);
+            float invGamma = Mathf.Sqrt(1 - speedSqr / cSqrd);
             Quaternion rot = Quaternion.FromToRotation(velocity / Mathf.Sqrt(speedSqr), Vector3.forward);
             Vector3 rotInt = rot * interval;
             rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z / invGamma);

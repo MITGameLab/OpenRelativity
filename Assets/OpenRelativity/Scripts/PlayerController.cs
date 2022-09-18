@@ -302,7 +302,7 @@ namespace OpenRelativity
                 quasiWorldAccel += leviCivitaDevAccel;
 
                 float softenFactor = 1 + monopoleAccelerationSoften;
-                float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
+                float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4);
 
                 monopoleTemperature /= tempSoftenFactor;
                 float origBackgroundTemp = state.gravityBackgroundPlanckTemperature;
