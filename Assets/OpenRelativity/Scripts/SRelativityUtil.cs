@@ -70,26 +70,6 @@ namespace OpenRelativity
             return parra + perp;
         }
 
-        public static Vector3 RelativeVelocityTo(this Vector3 myWorldVel, Vector3 otherWorldVel)
-        {
-            float speedSqr = myWorldVel.sqrMagnitude / cSqrd;
-
-            //If our speed is zero, this parallel velocity component will be NaN, so we have a check here just to be safe
-            if (speedSqr <= FLT_EPSILON) {
-                return -otherWorldVel;
-            }
-
-            //Get player velocity dotted with velocity of the object.
-            float vuDot = Vector3.Dot(myWorldVel, otherWorldVel) / cSqrd;
-            //Get the parallel component of the object's velocity
-            Vector3 uparra = (vuDot / speedSqr) * myWorldVel / c;
-            //Get the perpendicular component of our velocity, just by subtraction
-            Vector3 uperp = otherWorldVel / c - uparra;
-
-            //relative velocity calculation
-            return c * (myWorldVel / c - uparra - (Mathf.Sqrt(1 - speedSqr)) * uperp) / (1 + vuDot);
-        }
-
         public static Vector3 ContractLengthBy(this Vector3 interval, Vector3 velocity)
         {
             float speedSqr = velocity.sqrMagnitude;
@@ -101,20 +81,6 @@ namespace OpenRelativity
             Quaternion rot = Quaternion.FromToRotation(velocity / Mathf.Sqrt(speedSqr), Vector3.forward);
             Vector3 rotInt = rot * interval;
             rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z * invGamma);
-            return Quaternion.Inverse(rot) * rotInt;
-        }
-
-        public static Vector3 InverseContractLengthBy(this Vector3 interval, Vector3 velocity)
-        {
-            float speedSqr = velocity.sqrMagnitude;
-            if (float.IsNaN(speedSqr) || float.IsInfinity(speedSqr) || speedSqr <= FLT_EPSILON)
-            {
-                return interval;
-            }
-            float invGamma = Mathf.Sqrt(1 - speedSqr / cSqrd);
-            Quaternion rot = Quaternion.FromToRotation(velocity / Mathf.Sqrt(speedSqr), Vector3.forward);
-            Vector3 rotInt = rot * interval;
-            rotInt = new Vector3(rotInt.x, rotInt.y, rotInt.z / invGamma);
             return Quaternion.Inverse(rot) * rotInt;
         }
 
@@ -420,18 +386,6 @@ namespace OpenRelativity
             }
 
             return Mathf.Sqrt(-Vector4.Dot(flat3V, metric.Value.inverse * flat3V)) * rapidity.normalized;
-        }
-
-        public static Vector2 RapidityToVelocity(this Vector2 rapidity, Matrix4x4? metric = null)
-        {
-            Vector3 flat3V = c * rapidity / Mathf.Sqrt(cSqrd + rapidity.sqrMagnitude);
-
-            if (metric == null)
-            {
-                return flat3V;
-            }
-
-            return (Vector2)(Mathf.Sqrt(-Vector4.Dot(flat3V, metric.Value.inverse * flat3V)) * rapidity.normalized);
         }
 
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)
