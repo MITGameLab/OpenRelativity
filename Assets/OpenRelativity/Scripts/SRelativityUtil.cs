@@ -356,36 +356,37 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static float Gamma(this Vector3 velocity, Matrix4x4? metric = null)
+        public static float Gamma(this Vector3 velocity)
         {
-            if (metric == null)
-            {
-                return 1 / Mathf.Sqrt(1 - velocity.sqrMagnitude / cSqrd);
-            }
-            
-            return 1 / Mathf.Sqrt(1 - (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
+            return 1 / Mathf.Sqrt(1 - velocity.sqrMagnitude / cSqrd);
         }
 
-        public static float InverseGamma(this Vector3 velocity, Matrix4x4? metric = null)
+        public static float Gamma(this Vector3 velocity, Matrix4x4 metric)
         {
-            if (metric == null)
-            {
-                return 1 / Mathf.Sqrt(1 + velocity.sqrMagnitude / cSqrd);
-            }
-
-            return 1 / Mathf.Sqrt(1 + (Vector4.Dot(velocity, metric.Value * velocity) / state.SpeedOfLightSqrd));
+            return 1 / Mathf.Sqrt(1 - (Vector4.Dot(velocity, metric * velocity) / state.SpeedOfLightSqrd));
         }
 
-        public static Vector3 RapidityToVelocity(this Vector3 rapidity, Matrix4x4? metric = null)
+        public static float InverseGamma(this Vector3 velocity)
+        {
+            return 1 / Mathf.Sqrt(1 + velocity.sqrMagnitude / cSqrd);
+        }
+
+
+        public static float InverseGamma(this Vector3 velocity, Matrix4x4 metric)
+        {
+            return 1 / Mathf.Sqrt(1 + (Vector4.Dot(velocity, metric * velocity) / state.SpeedOfLightSqrd));
+        }
+
+        public static Vector3 RapidityToVelocity(this Vector3 rapidity)
+        {
+            return c * rapidity / Mathf.Sqrt(cSqrd + rapidity.sqrMagnitude);
+        }
+
+        public static Vector3 RapidityToVelocity(this Vector3 rapidity, Matrix4x4 metric)
         {
             Vector3 flat3V = c * rapidity / Mathf.Sqrt(cSqrd + rapidity.sqrMagnitude);
 
-            if (metric == null)
-            {
-                return flat3V;
-            }
-
-            return Mathf.Sqrt(-Vector4.Dot(flat3V, metric.Value.inverse * flat3V)) * rapidity.normalized;
+            return Mathf.Sqrt(-Vector4.Dot(flat3V, metric.inverse * flat3V)) * rapidity.normalized;
         }
 
         public static Vector4 ToMinkowski4Viw(this Vector3 viw)
