@@ -1492,15 +1492,13 @@ namespace OpenRelativity.Objects
             if (!comoveViaAcceleration)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
-                if (!IsNaNOrInf(cm.piw.sqrMagnitude)) {
-                    riw = cm.riw;
-                    _piw = cm.piw;
+                riw = cm.riw;
+                _piw = cm.piw;
 
-                    if (!isNonrelativisticShader && myRigidbody)
-                    {
-                        // We'll MovePosition() for isNonrelativisticShader, further below.
-                        myRigidbody.MovePosition(piw);
-                    }
+                if (!isNonrelativisticShader && myRigidbody)
+                {
+                    // We'll MovePosition() for isNonrelativisticShader, further below.
+                    myRigidbody.MovePosition(piw);
                 }
             }
 
@@ -1662,7 +1660,7 @@ namespace OpenRelativity.Objects
 
                 double camm = (mass - dm) * SRelativityUtil.avogadroNumber / baryonCount;
 
-                if ((myTemperature >= 0) && (IsNaNOrInf((float)dm) || (camm < fundamentalAverageMolarMass)))
+                if ((myTemperature >= 0) && (camm < fundamentalAverageMolarMass))
                 {
                     currentAverageMolarMass = fundamentalAverageMolarMass;
                 }
