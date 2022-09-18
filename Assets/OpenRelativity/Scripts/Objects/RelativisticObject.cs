@@ -186,30 +186,14 @@ namespace OpenRelativity.Objects
                 pVel = state.PlayerVelocityVector;
             }
 
-            if (isPhysicsCacheValid)
+            if (isPhysicsCacheValid && (pVel == viw))
             {
-                if (pVel == state.PlayerAngularVelocityVector)
-                {
-                    return updatePlayerViwTimeFactor;
-                }
-
-                if (pVel == viw)
-                {
-                    return updateViwTimeFactor;
-                }
+                return updateViwTimeFactor;
             }
 
             // However, sometimes we want a different velocity, at this space-time point,
             // such as this RO's own velocity.
-            Matrix4x4 metric = GetMetric();
-
-            float toRet = pVel.Value.InverseGamma(metric);
-            if ((toRet == 0) || IsNaNOrInf(toRet))
-            {
-                toRet = 1;
-            }
-
-            return toRet;
+            return pVel.Value.InverseGamma(GetMetric());
         }
         #endregion
 
@@ -1248,7 +1232,7 @@ namespace OpenRelativity.Objects
             {
                 // If movement is frozen, set to zero.
                 // If we're in an invalid state, (such as before full initialization,) set to zero.
-                if (state.isMovementFrozen || (updatePlayerViwTimeFactor == 0))
+                if (state.isMovementFrozen)
                 {
                     myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
