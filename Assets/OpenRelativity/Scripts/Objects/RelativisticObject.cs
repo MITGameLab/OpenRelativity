@@ -1271,8 +1271,10 @@ namespace OpenRelativity.Objects
                 Collider collider = myColliders[i];
 
                 // Energy dissipation goes like mu * F_N * d.
-                // d "already looks like" d / gamma, to player,
-                // so multiply gamma * mu.
+                // If the path parallel to d is also parallel to relative velocity,
+                // d "already looks like" d' / gamma, to player, so multiply gamma * mu.
+                // If the path parallel to d is perpendicular to relative velocity,
+                // F_N "already looks like" it's being applied in time t' / gamma, to player, so multiply gamma * mu.
                 collider.material.staticFriction = gamma * origPhysicMaterials[i].staticFriction;
                 collider.material.dynamicFriction = gamma * origPhysicMaterials[i].dynamicFriction;
                 // rapidity_after / rapidity_before - Doesn't seem to need an adjustment.
