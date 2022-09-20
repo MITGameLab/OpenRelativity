@@ -338,7 +338,7 @@ namespace OpenRelativity
 
         public static float Gamma(this Vector3 velocity, Matrix4x4 metric)
         {
-            return 1 / Mathf.Sqrt(1 - (Vector4.Dot(velocity, metric * velocity) / state.SpeedOfLightSqrd));
+            return 1 / Mathf.Sqrt(1 - (Vector4.Dot(velocity, metric * velocity) / cSqrd));
         }
 
         public static float InverseGamma(this Vector3 velocity)
@@ -348,7 +348,7 @@ namespace OpenRelativity
 
         public static float InverseGamma(this Vector3 velocity, Matrix4x4 metric)
         {
-            return 1 / Mathf.Sqrt(1 + (Vector4.Dot(velocity, metric * velocity) / state.SpeedOfLightSqrd));
+            return 1 / Mathf.Sqrt(1 + (Vector4.Dot(velocity, metric * velocity) / cSqrd));
         }
 
         public static Vector3 RapidityToVelocity(this Vector3 rapidity)
