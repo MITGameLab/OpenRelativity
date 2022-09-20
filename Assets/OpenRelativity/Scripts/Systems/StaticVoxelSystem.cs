@@ -336,7 +336,7 @@ namespace OpenRelativity
                     break;
                 }
                 queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(
-                    ((Vector4)queuedOrigPositionsList[i]).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
+                    ((Vector4)queuedOrigPositionsList[i]).WorldToOptical(Vector3.zero, state.conformalMap.GetRindlerAcceleration(queuedOrigPositionsList[i]))
                 );
 
                 //Change mesh:
@@ -382,7 +382,7 @@ namespace OpenRelativity
             for (int i = 0; i < origPositionsList.Count; i++)
             {
                 // Don't cull anything (spherically) close to the player.
-                Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity);
+                Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, state.conformalMap.GetRindlerAcceleration(queuedOrigPositionsList[i]));
                 distSqr = (colliderPos - playerPos).sqrMagnitude;
                 if (distSqr < cullingSqrDistance)
                 {

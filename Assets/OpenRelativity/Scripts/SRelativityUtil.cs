@@ -136,12 +136,15 @@ namespace OpenRelativity
             return metric;
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
         {
-            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, null, viwLorentzMatrix, intrinsicMetric);
+            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
-
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        {
+            return stpiw.GetTisw(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
+        }
+        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -149,42 +152,28 @@ namespace OpenRelativity
             //riw = location in world, for reference
             Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
 
-            if (vpcLorentzMatrix == null)
-            {
-                vpcLorentzMatrix = GetLorentzTransformMatrix(vpc);
-            }
             // Boost to rest frame of player
-            Vector4 riwForMetric = vpcLorentzMatrix.Value * riw;
+            Vector4 riwForMetric = vpcLorentzMatrix * riw;
 
             //Find metric based on player acceleration and rest frame:
             Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
 
             //Lorentz boost back to world frame;
-            vpcLorentzMatrix = vpcLorentzMatrix.Value.inverse;
-            metric = vpcLorentzMatrix.Value.transpose * metric * vpcLorentzMatrix.Value;
+            vpcLorentzMatrix = vpcLorentzMatrix.inverse;
+            metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
             // Apply world coordinates intrinsic curvature:
-            if (intrinsicMetric == null)
-            {
-                intrinsicMetric = state.conformalMap.GetMetric(stpiw);
-            }
-            metric = intrinsicMetric.Value.inverse * metric * intrinsicMetric.Value;
-
-            //We'll also Lorentz transform the vectors:
-            if (viwLorentzMatrix == null)
-            {
-                viwLorentzMatrix = GetLorentzTransformMatrix(viw);
-            }
+            metric = intrinsicMetric.inverse * metric * intrinsicMetric;
 
             //Apply Lorentz transform;
-            metric = viwLorentzMatrix.Value.transpose * metric * viwLorentzMatrix.Value;
-            Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
-            Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
+            metric = viwLorentzMatrix.transpose * metric * viwLorentzMatrix;
+            Vector4 aiwTransformed = viwLorentzMatrix * aiw;
+            Vector4 riwTransformed = viwLorentzMatrix * riw;
             //Translate in time:
             float tisw = riwTransformed.w;
             riwForMetric.w = 0;
-            riw = vpcLorentzMatrix.Value * riwForMetric;
-            riwTransformed = viwLorentzMatrix.Value * riw;
+            riw = vpcLorentzMatrix * riwForMetric;
+            riwTransformed = viwLorentzMatrix * riw;
             riwTransformed.w = 0;
 
             //(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
@@ -203,18 +192,21 @@ namespace OpenRelativity
             }
             riwTransformed.w = (float)tisw;
             //Inverse Lorentz transform the position:
-            viwLorentzMatrix = viwLorentzMatrix.Value.inverse;
-            riw = viwLorentzMatrix.Value * riwTransformed;
+            viwLorentzMatrix = viwLorentzMatrix.inverse;
+            riw = viwLorentzMatrix * riwTransformed;
 
             return riw.w;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4 aiw, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
         {
-            return stpiw.WorldToOptical(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, state.PlayerLorentzMatrix, viwLorentzMatrix, intrinsicMetric);
+            return stpiw.WorldToOptical(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
-
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        {
+            return stpiw.WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
+        }
+        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -222,42 +214,28 @@ namespace OpenRelativity
             //riw = location in world, for reference
             Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
 
-            if (vpcLorentzMatrix == null)
-            {
-                vpcLorentzMatrix = GetLorentzTransformMatrix(vpc);
-            }
             // Boost to rest frame of player
-            Vector4 riwForMetric = vpcLorentzMatrix.Value * riw;
+            Vector4 riwForMetric = vpcLorentzMatrix * riw;
 
             // Find metric based on player acceleration and rest frame:
             Matrix4x4 metric = GetRindlerMetric(riwForMetric, pap, avp);
 
             // Lorentz boost back to world frame:
-            vpcLorentzMatrix = vpcLorentzMatrix.Value.inverse;
-            metric = vpcLorentzMatrix.Value.transpose * metric * vpcLorentzMatrix.Value;
+            vpcLorentzMatrix = vpcLorentzMatrix.inverse;
+            metric = vpcLorentzMatrix.transpose * metric * vpcLorentzMatrix;
 
             // Apply world coordinates intrinsic curvature:
-            if (intrinsicMetric == null)
-            {
-                intrinsicMetric = state.conformalMap.GetMetric(stpiw);
-            }
-            metric = intrinsicMetric.Value.inverse * metric * intrinsicMetric.Value;
-
-            // We'll also Lorentz transform the vectors:
-            if (viwLorentzMatrix == null)
-            {
-                viwLorentzMatrix = GetLorentzTransformMatrix(viw);
-            }
+            metric = intrinsicMetric.inverse * metric * intrinsicMetric;
 
             //Apply Lorentz transform;
-            metric = viwLorentzMatrix.Value.transpose * metric * viwLorentzMatrix.Value;
-            Vector4 aiwTransformed = viwLorentzMatrix.Value * aiw;
-            Vector4 riwTransformed = viwLorentzMatrix.Value * riw;
+            metric = viwLorentzMatrix.transpose * metric * viwLorentzMatrix;
+            Vector4 aiwTransformed = viwLorentzMatrix * aiw;
+            Vector4 riwTransformed = viwLorentzMatrix * riw;
             //Translate in time:
             float tisw = riwTransformed.w;
             riwForMetric.w = 0;
-            riw = vpcLorentzMatrix.Value * riwForMetric;
-            riwTransformed = viwLorentzMatrix.Value * riw;
+            riw = vpcLorentzMatrix * riwForMetric;
+            riwTransformed = viwLorentzMatrix * riw;
             riwTransformed.w = 0;
 
             //(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
@@ -276,8 +254,8 @@ namespace OpenRelativity
             }
             riwTransformed.w = (float)tisw;
             //Inverse Lorentz transform the position:
-            viwLorentzMatrix = viwLorentzMatrix.Value.inverse;
-            riw = viwLorentzMatrix.Value * riwTransformed;
+            viwLorentzMatrix = viwLorentzMatrix.inverse;
+            riw = viwLorentzMatrix * riwTransformed;
             tisw = riw.w;
             riw = (Vector3)riw + (float)tisw * velocity;
 
@@ -295,12 +273,15 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
+        public static Vector4 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
         {
-            return opticalPos.OpticalToWorld(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw, vpcLorentzMatrix, viwLorentzMatrix, intrinsicMetric);
+            return stpiw.OpticalToWorld(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
-
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4? vpcLorentzMatrix = null, Matrix4x4? viwLorentzMatrix = null, Matrix4x4? intrinsicMetric = null)
+        public static Vector4 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        {
+            return stpiw.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(velocity / c));
+        }
+        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 viwLorentzMatrix)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -327,15 +308,9 @@ namespace OpenRelativity
             riwTransformed.w = tisw;
             Vector3 aiwTransformed = viwToZRot * aiw;
 
-            //We'll also Lorentz transform the vectors:
-            if (viwLorentzMatrix == null)
-            {
-                viwLorentzMatrix = GetLorentzTransformMatrix(viw);
-            }
-
             //Apply Lorentz transform;
-            riwTransformed = viwLorentzMatrix.Value * riwTransformed;
-            aiwTransformed = viwLorentzMatrix.Value * aiwTransformed;
+            riwTransformed = viwLorentzMatrix * riwTransformed;
+            aiwTransformed = viwLorentzMatrix * aiwTransformed;
 
             float t2 = riwTransformed.w;
             float aiwMagSqr = aiwTransformed.sqrMagnitude;
@@ -347,7 +322,7 @@ namespace OpenRelativity
             }
 
             //Inverse Lorentz transform the position:
-            riwTransformed = viwLorentzMatrix.Value.inverse * riwTransformed;
+            riwTransformed = viwLorentzMatrix.inverse * riwTransformed;
             riw = Quaternion.Inverse(viwToZRot) * riwTransformed;
 
             riw = (Vector3)riw + origin;
@@ -370,7 +345,6 @@ namespace OpenRelativity
         {
             return 1 / Mathf.Sqrt(1 + velocity.sqrMagnitude / cSqrd);
         }
-
 
         public static float InverseGamma(this Vector3 velocity, Matrix4x4 metric)
         {
