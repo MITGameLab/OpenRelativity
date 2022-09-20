@@ -112,7 +112,7 @@ namespace OpenRelativity.Objects
                 return updateTisw;
             }
 
-            return ((Vector4)piw).GetTisw(viw, GetComoving4Acceleration());
+            return piw.GetTisw(viw, GetComoving4Acceleration());
         }
         public float GetVisualTime()
         {
@@ -267,17 +267,17 @@ namespace OpenRelativity.Objects
         public Vector3 opticalPiw {
             get
             {
-                return ((Vector4)piw).WorldToOptical(peculiarVelocity, GetComoving4Acceleration());
+                return piw.WorldToOptical(peculiarVelocity, GetComoving4Acceleration());
             }
             set
             {
-                piw = ((Vector4)value).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration());
+                piw = value.OpticalToWorld(peculiarVelocity, GetComoving4Acceleration());
             }
         }
 
         public void ResetPiw()
         {
-            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
+            piw = isNonrelativisticShader ? transform.position.OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
         }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
@@ -492,7 +492,7 @@ namespace OpenRelativity.Objects
 
             float timeFac = GetTimeFactor();
 
-            _piw = ((Vector4)((Vector4)piw).WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac))).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
+            _piw = piw.WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac)).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
 
             if (isNonrelativisticShader)
             {
@@ -781,7 +781,7 @@ namespace OpenRelativity.Objects
                 {
                     SphereCollider collider = mySphereColliders[i];
                     Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
-                    Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 pw = pos.WorldToOptical(peculiarVelocity, aiw4);
                     Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
                     ++iTot;
@@ -791,7 +791,7 @@ namespace OpenRelativity.Objects
                 {
                     BoxCollider collider = myBoxColliders[i];
                     Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
-                    Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 pw = pos.WorldToOptical(peculiarVelocity, aiw4);
                     Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
                     ++iTot;
@@ -801,7 +801,7 @@ namespace OpenRelativity.Objects
                 {
                     CapsuleCollider collider = myCapsuleColliders[i];
                     Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
-                    Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 pw = pos.WorldToOptical(peculiarVelocity, aiw4);
                     Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
                     ++iTot;
@@ -1297,7 +1297,7 @@ namespace OpenRelativity.Objects
                 baryonCount = mass * SRelativityUtil.avogadroNumber / initialAverageMolarMass;
             }
             
-            _piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
+            _piw = isNonrelativisticShader ? transform.position.OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
             riw = transform.rotation;
             checkSpeed();
             UpdatePhysicsCaches();
@@ -1377,7 +1377,7 @@ namespace OpenRelativity.Objects
             updatePlayerViwTimeFactor = state.PlayerVelocityVector.InverseGamma(updateMetric);
             updateViwTimeFactor = viw.InverseGamma(updateMetric);
             updateWorld4Acceleration = comovingAccel.ProperToWorldAccel(viw, updateViwTimeFactor);
-            updateTisw = ((Vector4)piw).GetTisw(viw, updateWorld4Acceleration);
+            updateTisw = piw.GetTisw(viw, updateWorld4Acceleration);
 
             isPhysicsCacheValid = true;
         }
@@ -1704,7 +1704,7 @@ namespace OpenRelativity.Objects
             if (isNonrelativisticShader)
             {
                 riw = myRigidbody.rotation;
-                _piw = ((Vector4)myRigidbody.position).OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
+                _piw = myRigidbody.position.OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
             }
 
             isPhysicsUpdateFrame = true;

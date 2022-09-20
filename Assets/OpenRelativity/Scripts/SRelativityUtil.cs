@@ -136,21 +136,21 @@ namespace OpenRelativity
             return metric;
         }
 
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
+        public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector4 aiw)
         {
             return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
         {
             return stpiw.GetTisw(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
         }
-        public static float GetTisw(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
+        public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
 
             //riw = location in world, for reference
-            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
+            Vector4 riw = (Vector4)(stpiw - origin);//Position that will be used in the output
 
             // Boost to rest frame of player
             Vector4 riwForMetric = vpcLorentzMatrix * riw;
@@ -198,21 +198,21 @@ namespace OpenRelativity
             return riw.w;
         }
 
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
+        public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector4 aiw)
         {
             return stpiw.WorldToOptical(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
         {
             return stpiw.WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
         }
-        public static Vector3 WorldToOptical(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
+        public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
 
             //riw = location in world, for reference
-            Vector4 riw = stpiw - (Vector4)origin;//Position that will be used in the output
+            Vector4 riw = (Vector4)(stpiw - origin);//Position that will be used in the output
 
             // Boost to rest frame of player
             Vector4 riwForMetric = vpcLorentzMatrix * riw;
@@ -273,21 +273,21 @@ namespace OpenRelativity
             return riw;
         }
 
-        public static Vector4 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector4 aiw)
+        public static Vector3 OpticalToWorld(this Vector3 stpiw, Vector3 velocity, Vector4 aiw)
         {
             return stpiw.OpticalToWorld(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
         }
-        public static Vector4 OpticalToWorld(this Vector4 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        public static Vector3 OpticalToWorld(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
         {
             return stpiw.OpticalToWorld(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(velocity / c));
         }
-        public static Vector4 OpticalToWorld(this Vector4 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 viwLorentzMatrix)
+        public static Vector3 OpticalToWorld(this Vector3 opticalPos, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 viwLorentzMatrix)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
 
             //riw = location in world, for reference
-            Vector4 riw = opticalPos - (Vector4)origin; //Position that will be used in the output
+            Vector4 riw = (Vector4)(opticalPos - origin); //Position that will be used in the output
             Vector4 pos = (Vector3)riw;
 
             float tisw = -pos.magnitude / c;
