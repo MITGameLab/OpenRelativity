@@ -105,19 +105,14 @@ namespace OpenRelativity.Objects
         {
             localTimeOffset = 0;
         }
-        public float GetTisw(Vector3? pos = null)
+        public float GetTisw()
         {
-            if (pos == null)
-            {
-                pos = piw;
-            }
-
-            if (isPhysicsCacheValid && pos == piw)
+            if (isPhysicsCacheValid)
             {
                 return updateTisw;
             }
 
-            return ((Vector4)pos.Value).GetTisw(viw, GetComoving4Acceleration());
+            return ((Vector4)piw).GetTisw(viw, GetComoving4Acceleration());
         }
         public float GetVisualTime()
         {
@@ -166,34 +161,27 @@ namespace OpenRelativity.Objects
                 return updateWorld4Acceleration;
             }
 
-            return comovingAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
+            return comovingAccel.ProperToWorldAccel(viw, GetTimeFactor());
         }
 
         public Vector4 GetWorld4Acceleration()
         {
-            return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
+            return aiw.ProperToWorldAccel(viw, GetTimeFactor());
         }
 
         // This is the factor commonly referred to as "gamma," for length contraction and time dilation,
         // only also with consideration for a gravitationally curved background, such as due to Rindler coordinates.
         // (Rindler coordinates are actually Minkowski flat, but the same principle applies.)
-        public float GetTimeFactor(Vector3? pVel = null)
+        public float GetTimeFactor()
         {
-            if (!pVel.HasValue)
-            {
-                // The common default case is, we want the player's "gamma,"
-                // at this RO's position in space-time.
-                pVel = state.PlayerVelocityVector;
-            }
-
-            if (isPhysicsCacheValid && (pVel == viw))
+            if (isPhysicsCacheValid)
             {
                 return updateViwTimeFactor;
             }
 
             // However, sometimes we want a different velocity, at this space-time point,
             // such as this RO's own velocity.
-            return pVel.Value.InverseGamma(GetMetric());
+            return viw.InverseGamma(GetMetric());
         }
         #endregion
 
