@@ -24,11 +24,11 @@ namespace OpenRelativity.ConformalMaps
             Vector3 unitVec = Physics.gravity / (float)g;
             Vector3 projD = Vector3.Project(piw - origin, unitVec);
             double d = projD.magnitude;
-            double arg = 1.0 + g * d / cSqr;
-            double properT = (c / g) * Math.Log(arg + Math.Sqrt((arg + 1.0) * (arg - 1.0)));
+            double arg = 1 + g * d / cSqr;
+            double properT = (c / g) * Math.Log(arg + Math.Sqrt((arg + 1) * (arg - 1)));
             arg = g * properT / c;
             double expArg = Math.Exp(arg);
-            double t = (c / g) * (expArg - 1.0f / expArg) / 2.0;
+            double t = (c / g) * (expArg - 1 / expArg) / 2;
 
             properT = properTDiff + ((Vector3.Dot(projD.normalized, unitVec) < 0) ? -properT : properT);
             if (properT < 0)
@@ -39,12 +39,12 @@ namespace OpenRelativity.ConformalMaps
 
             arg = g * properT / c;
             expArg = Math.Exp(arg); 
-            d = (cSqr / g) * ((expArg + 1.0f / expArg) / 2.0f - 1.0f);
+            d = (cSqr / g) * ((expArg + 1 / expArg) / 2 - 1);
             piw = (piw - projD) + (float)d * unitVec;
 
             arg = g * properT / c;
             expArg = Math.Exp(arg);
-            double deltaT = (c / g) * (expArg - 1.0f / expArg) / 2.0f - t;
+            double deltaT = (c / g) * (expArg - 1 / expArg) / 2 - t;
 
             Vector4 piw4 = piw;
             piw4.w = (float)deltaT;
@@ -83,9 +83,9 @@ namespace OpenRelativity.ConformalMaps
                 unitVec = -unitVec;
             }
 
-            double t = Math.Sqrt((d * d / state.SpeedOfLightSqrd) + 2.0 * d / g);
+            double t = Math.Sqrt((d * d / state.SpeedOfLightSqrd) + 2 * d / g);
 
-            return (float)(g * t / Math.Sqrt(1.0 + (g * t) * (g * t) / state.SpeedOfLightSqrd)) * unitVec;
+            return (float)(g * t / Math.Sqrt(1 + (g * t) * (g * t) / state.SpeedOfLightSqrd)) * unitVec;
         }
     }
 }

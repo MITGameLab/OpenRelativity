@@ -108,7 +108,7 @@ namespace Qrack
                     }
 
                     lastInstructionTime = time;
-                    InstructionIndex++;
+                    ++InstructionIndex;
 
                     if (InstructionIndex >= ProgramInstructions.Count)
                     {

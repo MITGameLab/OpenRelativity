@@ -6,7 +6,7 @@ namespace Qrack
 {
     public class RealTimeQubit : RealTimeQasmProgram
     {
-        public float gateTime = 1.0f;
+        public float gateTime = 1;
         const int frameCount = 60;
 
         protected override void StartProgram()
@@ -19,7 +19,7 @@ namespace Qrack
         {
             bool doReset = ProgramInstructions.Count > 0;
 
-            for (int i = 0; i < frameCount; i++)
+            for (int i = 0; i < frameCount; ++i)
             {
                 ProgramInstructions.Add(new RealTimeQasmInstruction()
                 {
@@ -38,7 +38,7 @@ namespace Qrack
                             Action = (time) =>
                             {
                                 RelativisticObject ro = RelativisticObject;
-                                ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0.0f);
+                                ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0);
                                 ro.riw = qs.transform.rotation;
                                 ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
                             }

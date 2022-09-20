@@ -24,7 +24,7 @@ namespace OpenRelativity
                 combine[i].transform = meshFilters[i].transform.localToWorldMatrix;
                 meshFilters[i].gameObject.SetActive(false);
 
-                i++;
+                ++i;
             }
             Mesh mesh = new Mesh();
             transform.GetComponent<MeshFilter>().mesh = mesh;

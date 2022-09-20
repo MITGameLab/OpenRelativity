@@ -24,7 +24,7 @@ namespace Qrack
 
             controlLen = (ulong)c.Length;
             
-            for (int i = 0; i < c.Length; i++)
+            for (int i = 0; i < c.Length; ++i)
             {
                 controls[i] = c[i];
             }

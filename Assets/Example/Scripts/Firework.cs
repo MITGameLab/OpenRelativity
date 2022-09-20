@@ -83,9 +83,9 @@ namespace OpenRelativity.Objects
             //At high speeds the Lorenz contraction means that some objects not normally in the view frame are actually visible
             //If we did frustrum culling, these objects would be ignored (because we cull BEFORE running the shader, which does the lorenz contraction)
             Transform camTransform = Camera.main.transform;
-            float distToCenter = (Camera.main.farClipPlane + Camera.main.nearClipPlane) / 2.0f;
+            float distToCenter = (Camera.main.farClipPlane + Camera.main.nearClipPlane) / 2;
             Vector3 center = camTransform.position + camTransform.forward * distToCenter;
-            float extremeBound = 500000.0f;
+            float extremeBound = 500000;
             meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
         }
         //If you reenable the object, it will destroy itself unless you reset the death time
@@ -109,7 +109,7 @@ namespace OpenRelativity.Objects
                     {
                         float judder = UnityEngine.Random.Range(-.25f, .25f);
                         float judderTwo = UnityEngine.Random.Range(-.25f, .25f);
-                        EmitParticle((j + judderTwo) / 2.0f * spacing, (i + judder) * spacing);
+                        EmitParticle((j + judderTwo) / 2 * spacing, (i + judder) * spacing);
                     }
                 }
             }
@@ -240,7 +240,7 @@ namespace OpenRelativity.Objects
                         //Attempt to correct for acceleration:
                         Vector3 playerPos = state.playerTransform.position;
                         Vector3 playerVel = state.PlayerVelocityVector;
-                        tempViw /= 1.0f + 1.0f / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos);
+                        tempViw /= 1 + 1 / state.SpeedOfLightSqrd * Vector3.Dot(state.PlayerAccelerationVector, transform.position - playerPos);
                     }
 
                     if (myRO != null && !isParticle)
@@ -296,7 +296,7 @@ namespace OpenRelativity.Objects
         //This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
-            if (viw.magnitude > state.MaxSpeed - .01)
+            if (viw.magnitude > state.MaxSpeed - .01f)
             {
                 viw = viw.normalized * (float)(state.MaxSpeed - .01f);
             }

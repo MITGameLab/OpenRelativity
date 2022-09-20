@@ -547,17 +547,17 @@ namespace OpenRelativity.Objects
             {
                 List<Vector3> sttcPosList = new List<Vector3>();
 
-                for (int i = 0; i < mySphereColliders.Length; i++)
+                for (int i = 0; i < mySphereColliders.Length; ++i)
                 {
                     sttcPosList.Add(mySphereColliders[i].center);
                 }
 
-                for (int i = 0; i < myBoxColliders.Length; i++)
+                for (int i = 0; i < myBoxColliders.Length; ++i)
                 {
                     sttcPosList.Add(myBoxColliders[i].center);
                 }
 
-                for (int i = 0; i < myCapsuleColliders.Length; i++)
+                for (int i = 0; i < myCapsuleColliders.Length; ++i)
                 {
                     sttcPosList.Add(myCapsuleColliders[i].center);
                 }
@@ -749,7 +749,7 @@ namespace OpenRelativity.Objects
 
             myColliders = GetComponents<Collider>();
             List<PhysicMaterial> origMaterials = new List<PhysicMaterial>();
-            for (int i = 0; i < myColliders.Length; i++)
+            for (int i = 0; i < myColliders.Length; ++i)
             {
                 // Friction needs a relativistic correction, so we need variable PhysicMaterial parameters.
                 Collider collider = myColliders[i];
@@ -777,34 +777,34 @@ namespace OpenRelativity.Objects
                 Vector4 aiw4 = GetComoving4Acceleration();
 
                 int iTot = 0;
-                for (int i = 0; i < mySphereColliders.Length; i++)
+                for (int i = 0; i < mySphereColliders.Length; ++i)
                 {
                     SphereCollider collider = mySphereColliders[i];
                     Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
                     Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
                     Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
-                    iTot++;
+                    ++iTot;
                 }
 
-                for (int i = 0; i < myBoxColliders.Length; i++)
+                for (int i = 0; i < myBoxColliders.Length; ++i)
                 {
                     BoxCollider collider = myBoxColliders[i];
                     Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
                     Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
                     Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
-                    iTot++;
+                    ++iTot;
                 }
 
-                for (int i = 0; i < myCapsuleColliders.Length; i++)
+                for (int i = 0; i < myCapsuleColliders.Length; ++i)
                 {
                     CapsuleCollider collider = myCapsuleColliders[i];
                     Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
                     Vector3 pw = ((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4);
                     Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
-                    iTot++;
+                    ++iTot;
                 }
             }
         }
@@ -942,7 +942,7 @@ namespace OpenRelativity.Objects
             List<string> uniqueMaterialNames = new List<string>();
 
             //For every meshfilter,
-            for (int y = 0; y < meshFilterLength; y++)
+            for (int y = 0; y < meshFilterLength; ++y)
             {
                 //If it's null, ignore it.
                 if (!meshFilters[y]) continue;
@@ -962,7 +962,7 @@ namespace OpenRelativity.Objects
             //And make a triangle array for every submesh
             int[][] tempTriangles = new int[subMeshCounts][];
 
-            for (int u = 0; u < subMeshCounts; u++)
+            for (int u = 0; u < subMeshCounts; ++u)
             {
                 //Make every array the correct length of triangles
                 tempTriangles[u] = new int[triangleCount];
@@ -976,7 +976,7 @@ namespace OpenRelativity.Objects
             Mesh MFs;
             int subMeshIndex = 0;
             //For all meshfilters
-            for (int i = 0; i < meshFilterLength; i++)
+            for (int i = 0; i < meshFilterLength; ++i)
             {
                 //just doublecheck that the mesh isn't null
                 MFs = meshFilters[i].sharedMesh;
@@ -984,7 +984,7 @@ namespace OpenRelativity.Objects
                 if (!MFs.isReadable) continue;
 
                 //Otherwise, for all submeshes in the current mesh
-                for (int q = 0; q < subMeshCount[i]; q++)
+                for (int q = 0; q < subMeshCount[i]; ++q)
                 {
                     //turn off the original renderer
                     meshRenderers[i].enabled = false;
@@ -1005,21 +1005,21 @@ namespace OpenRelativity.Objects
                     //Grab its triangles
                     int[] tempSubTriangles = MFs.GetTriangles(q);
                     //And put them into the submesh's triangle array
-                    for (int k = 0; k < tempSubTriangles.Length; k++)
+                    for (int k = 0; k < tempSubTriangles.Length; ++k)
                     {
                         tempTriangles[subMeshIndex][k] = tempSubTriangles[k] + vertIndex;
                     }
                     //Increment the submesh index
-                    subMeshIndex++;
+                    ++subMeshIndex;
                 }
                 Matrix4x4 cTrans = worldLocalMatrix * meshFilters[i].transform.localToWorldMatrix;
                 //For all the vertices in the mesh
-                for (int v = 0; v < MFs.vertices.Length; v++)
+                for (int v = 0; v < MFs.vertices.Length; ++v)
                 {
                     //Get the vertex and the UV coordinate
                     tempVerts[vertIndex] = cTrans.MultiplyPoint3x4(MFs.vertices[v]);
                     tempUVs[vertIndex] = MFs.uv[v];
-                    vertIndex++;
+                    ++vertIndex;
                 }
             }
 
@@ -1029,11 +1029,11 @@ namespace OpenRelativity.Objects
             myMesh.subMeshCount = uniqueMaterials.Count;
             myMesh.vertices = tempVerts;
             Material[] finalMaterials = new Material[uniqueMaterials.Count];
-            for (int i = 0; i < uniqueMaterialNames.Count; i++)
+            for (int i = 0; i < uniqueMaterialNames.Count; ++i)
             {
                 string uniqueName = uniqueMaterialNames[i];
                 List<int> combineTriangles = new List<int>();
-                for (int j = 0; j < tempMaterials.Length; j++)
+                for (int j = 0; j < tempMaterials.Length; ++j)
                 {
                     string name = tempMaterials[j].name.Replace(" (Instance)", "");
                     if (uniqueName.Equals(name))
@@ -1089,7 +1089,7 @@ namespace OpenRelativity.Objects
             {
                 MeshCollider[] childrenColliders = GetComponentsInChildren<MeshCollider>();
                 List<Collider> dupes = new List<Collider>();
-                for (int i = 0; i < childrenColliders.Length; i++)
+                for (int i = 0; i < childrenColliders.Length; ++i)
                 {
                     MeshCollider orig = childrenColliders[i];
                     MeshCollider dupe = CopyComponent(childrenColliders[i], gameObject);
@@ -1108,7 +1108,7 @@ namespace OpenRelativity.Objects
                 }
             }
             //"Delete" all children.
-            for (int i = 0; i < transform.childCount; i++)
+            for (int i = 0; i < transform.childCount; ++i)
             {
                 GameObject child = transform.GetChild(i).gameObject;
                 if (child.tag != "Contractor" && child.tag != "Voxel Collider")
@@ -1157,7 +1157,7 @@ namespace OpenRelativity.Objects
             colliderShaderParams.pao = tempPao;
             colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
             colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
-            for (int i = 0; i < myRenderer.materials.Length; i++)
+            for (int i = 0; i < myRenderer.materials.Length; ++i)
             {
                 myRenderer.materials[i].SetVector("_viw", tempViw);
                 myRenderer.materials[i].SetVector("_pao", tempPao);
@@ -1200,7 +1200,7 @@ namespace OpenRelativity.Objects
             // The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
 
-            for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+            for (int i = 0; i < trnsfrmdMeshVerts.Length; ++i)
             {
                 Vector3 disp = Vector3.Scale(trnsfrmdMeshVerts[i], transform.lossyScale);
                 Vector3 tangentialVel = Vector3.Cross(aviw, disp);
@@ -1254,7 +1254,7 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularDrag = unityAngularDrag / gamma;
             }
 
-            for (int i = 0; i < myColliders.Length; i++)
+            for (int i = 0; i < myColliders.Length; ++i)
             {
                 Collider collider = myColliders[i];
 
@@ -1346,7 +1346,7 @@ namespace OpenRelativity.Objects
             if (myRenderer && !isLightMapStatic)
             {
                 //And if we have a texture on our material
-                for (int i = 0; i < myRenderer.materials.Length; i++)
+                for (int i = 0; i < myRenderer.materials.Length; ++i)
                 {
                     //So that we can set unique values to every moving object, we have to instantiate a material
                     //It's the same as our old one, but now it's not connected to every other object with the same material
@@ -1511,7 +1511,7 @@ namespace OpenRelativity.Objects
                         AudioSource[] audioSources = GetComponents<AudioSource>();
                         if (audioSources.Length > 0)
                         {
-                            for (int i = 0; i < audioSources.Length; i++)
+                            for (int i = 0; i < audioSources.Length; ++i)
                             {
                                 audioSources[i].enabled = true;
                             }

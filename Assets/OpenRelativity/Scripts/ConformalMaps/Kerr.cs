@@ -7,14 +7,14 @@ namespace OpenRelativity.ConformalMaps
         public float spinMomentum;
         public Vector3 spinAxis = Vector3.up;
 
-        protected float spinRadiusDiff = 0.0f;
-        protected float timeScale = 1.0f;
+        protected float spinRadiusDiff = 0;
+        protected float timeScale = 1;
 
         virtual public float aParam
         {
             get
             {
-                return spinMomentum / (2 * state.gConst * Mathf.Pow(state.SpeedOfLight, 4.0f) * schwarzschildRadius);
+                return spinMomentum / (2 * state.gConst * Mathf.Pow(state.SpeedOfLight, 4) * schwarzschildRadius);
             }
         }
 
@@ -36,7 +36,7 @@ namespace OpenRelativity.ConformalMaps
             // Inclination:
             float cosInc = piw.z / r;
             float cosIncSqr = cosInc * cosInc;
-            float sinIncSqr = 1.0f - cosIncSqr;
+            float sinIncSqr = 1 - cosIncSqr;
 
             float sigma = rSqr + aSqr * cosIncSqr;
             float delta = rSqr - schwarzschildRadius * r + aSqr;
@@ -44,7 +44,7 @@ namespace OpenRelativity.ConformalMaps
             float effectiveR = (schwarzschildRadius * rSqr) / (rSqr + aSqr * cosIncSqr);
 
             float kerrScale = Mathf.Sqrt(((aSqr + rSqr) * (aSqr + rSqr) - aSqr * delta * sinIncSqr) / (delta * sigma));
-            float schwarzScale = 1.0f / Mathf.Sqrt(1.0f - effectiveR / r);
+            float schwarzScale = 1 / Mathf.Sqrt(1 - effectiveR / r);
 
             timeScale = kerrScale / schwarzScale;
         }
@@ -53,8 +53,8 @@ namespace OpenRelativity.ConformalMaps
         {
             if (spinMomentum <= SRelativityUtil.FLT_EPSILON)
             {
-                spinRadiusDiff = 0.0f;
-                timeScale = 1.0f;
+                spinRadiusDiff = 0;
+                timeScale = 1;
                 return;
             }
 
@@ -79,8 +79,8 @@ namespace OpenRelativity.ConformalMaps
         override public void ResetSchwarschildRadius()
         {
             schwarzschildRadius += spinRadiusDiff;
-            spinRadiusDiff = 0.0f;
-            timeScale = 1.0f;
+            spinRadiusDiff = 0;
+            timeScale = 1;
         }
 
         virtual public float GetOmega(Vector3 piw)
@@ -129,7 +129,7 @@ namespace OpenRelativity.ConformalMaps
             float omega = GetOmega(piw);
             float frameDragAngle = omega * tDiff;
             // We will apply HALF the rotation, at BOTH ends of the finite difference time interval.
-            Quaternion frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2.0f, spinAxis);
+            Quaternion frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2, spinAxis);
 
             // If interior... (reverse signature change).
             if (!isExterior)
@@ -160,7 +160,7 @@ namespace OpenRelativity.ConformalMaps
             omega = GetOmega(piw);
             frameDragAngle = omega * tDiff;
             // We will apply HALF the rotation, at BOTH ends of the finite difference time interval.
-            frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2.0f, spinAxis);
+            frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2, spinAxis);
 
             // If interior... (reverse signature change).
             if (!isExterior)
@@ -206,7 +206,7 @@ namespace OpenRelativity.ConformalMaps
 
             Vector3 frameDragAccel = (omega * omega * lpiw.magnitude) * Vector3.ProjectOnPlane(lpiw, spinAxis).normalized;
 
-            Vector3 totalAccel = 1.0f / (timeScale * timeScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
+            Vector3 totalAccel = 1 / (timeScale * timeScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
 
             ResetSchwarschildRadius();
 

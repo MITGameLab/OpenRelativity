@@ -22,9 +22,9 @@ namespace Qrack
             probY = py;
             probZ = pz;
 
-            double x = 2 * ((1.0 / 2.0) - probX);
-            double y = 2 * ((1.0 / 2.0) - probY);
-            double z = 2 * ((1.0 / 2.0) - probZ);
+            double x = 2 * ((1.0 / 2) - probX);
+            double y = 2 * ((1.0 / 2) - probY);
+            double z = 2 * ((1.0 / 2) - probZ);
 
             r = Math.Sqrt(x * x + y * y + z * z);
             inclination = Math.Atan2(Math.Sqrt(x * x + y * y), z);
@@ -266,7 +266,7 @@ namespace Qrack
 
         private void OnDestroy()
         {
-            for (int i = 0; i < SimulatorIds.Count; i++)
+            for (int i = 0; i < SimulatorIds.Count; ++i)
             {
                 Destroy(SimulatorIds[i]);
             }

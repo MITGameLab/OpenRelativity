@@ -568,7 +568,7 @@ Shader "Relativity/Lit/Standard" {
 			float4 lightPosition;
 			float3 lightSourceToVertex, lightDirection, diffuseReflection;
 			float squaredDistance, attenuation, shift;
-			for (int index = 0; index < 4; index++)
+			for (int index = 0; index < 4; ++index)
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
 					unity_4LightPosY0[index],
@@ -668,7 +668,7 @@ Shader "Relativity/Lit/Standard" {
 
 			// The length of the direction vector is the light's "directionality", i.e. 1 for all light coming from this direction,
 			// lower values for more spread out, ambient light.
-			float directionality = max(0.001, length(lightDirection));
+			float directionality = max(0.001f, length(lightDirection));
 			lightDirection /= directionality;
 
 			lightDirection = normalize(mul(_viwLorentzMatrix, float4(lightDirection, 0)).xyz);

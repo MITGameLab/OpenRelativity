@@ -35,9 +35,9 @@ public class SchwarzschildLens : GravityLens
         }
         else
         {
-            jFrac = 0.0f;
-            spinColatitude = 0.0f;
-            spinTilt = 0.0f;
+            jFrac = 0;
+            spinColatitude = 0;
+            spinTilt = 0;
         }
 
         if (r == 0)
@@ -76,7 +76,7 @@ public class SchwarzschildLens : GravityLens
         float playerDist = cam.transform.position.magnitude;
 
         Vector3 lensUVPos = cam.WorldToViewportPoint(Vector3.zero);
-        float frustumHeight = 2.0f * playerDist * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        float frustumHeight = 2 * playerDist * Mathf.Tan(cam.fieldOfView * Mathf.Deg2Rad / 2);
         float frustumWidth = frustumHeight * cam.aspect;
 
         lensMaterial.SetFloat("_playerDist", playerDist);
@@ -89,7 +89,7 @@ public class SchwarzschildLens : GravityLens
         lensMaterial.SetFloat("_lensVPos", lensUVPos.y);
         lensMaterial.SetFloat("_frustumWidth", frustumWidth);
         lensMaterial.SetFloat("_frustumHeight", frustumHeight);
-        lensMaterial.SetFloat("_isExterior", schwarzschild.isExterior ? 1.0f : 0.0f);
+        lensMaterial.SetFloat("_isExterior", schwarzschild.isExterior ? 1 : 0);
 
         schwarzschild.ResetSchwarschildRadius();
     }

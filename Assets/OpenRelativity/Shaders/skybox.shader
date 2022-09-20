@@ -92,7 +92,7 @@ Shader "Relativity/SkyboxShift" {
 		//You need this otherwise the screen flips and weird stuff happens
 		#ifdef SHADER_API_D3D9
 		if (_MainTex_TexelSize.y < 0)
-			 o.uv1.y = 1.0- o.uv1.y;
+			 o.uv1.y = 1- o.uv1.y;
 		#endif 
 		
 		return o;
@@ -223,7 +223,7 @@ Shader "Relativity/SkyboxShift" {
 	
 		if(_colorShift == 0)
 		{
-			svc = 1.0f;
+			svc = 1;
 		}
 		//Get initial color
 		float3 rgb = tex2D (_MainTex, i.uv1).rgb;  
@@ -246,7 +246,7 @@ Shader "Relativity/SkyboxShift" {
 		float3 rgbFinal = XYZToRGBC(xyz);
 		//rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z);
 
-  		float4x4 temp  = mul(1.0*unity_ObjectToWorld, unity_WorldToObject);
+  		float4x4 temp  = mul(unity_ObjectToWorld, unity_WorldToObject);
 		float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1));
 		//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1);
 		return temp2; 

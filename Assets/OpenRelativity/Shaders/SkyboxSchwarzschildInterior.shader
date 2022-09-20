@@ -237,17 +237,17 @@
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 
 			if (shift == 0) {
-				shift = 1.0f;
+				shift = 1;
 			}
 
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam = float3(weights.x, 615.0f, 8.0f);
-			gParam = float3(weights.y, 550.0f, 4.0f);
-			bParam = float3(weights.z, 463.0f, 5.0f);
-			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+			rParam = float3(weights.x, 615, 8);
+			gParam = float3(weights.y, 550, 4);
+			bParam = float3(weights.z, 463, 5);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5);
 
 			xyz = float3(
 				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
@@ -262,7 +262,7 @@
             c = c * _Tint.rgb * unity_ColorSpaceDouble.rgb;
             c *= _Exposure;
 
-            float shift = 1.0f / sqrt(_lensRadius / _playerDist - 1);
+            float shift = 1 / sqrt(_lensRadius / _playerDist - 1);
 
             return float4(DopplerShift(c, bFac * c.b, rFac * c.r, shift), tex.w);
         }

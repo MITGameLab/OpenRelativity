@@ -55,26 +55,26 @@ namespace OpenRelativity.ConformalMaps
         {
             // Assume that the spatial component is in world coordinates, and the time is a local time differential
             double tau = properTDiff;
-            double rsCubeRoot = Math.Pow(schwarzschildRadius, 1.0 / 3.0);
+            double rsCubeRoot = Math.Pow(schwarzschildRadius, 1 / 3.0);
             double r;
             double rho;
             if (isExterior)
             {
                 r = piw.magnitude;
-                rho = (2.0 * r * Math.Sqrt(r / rsCubeRoot)) / (3.0 * rsCubeRoot);
+                rho = (2 * r * Math.Sqrt(r / rsCubeRoot)) / (3 * rsCubeRoot);
             } else {
                 tau *= -1;
                 rho = state.SpeedOfLight * state.TotalTimeWorld;
-                r = Math.Pow(rho / (2 * rsCubeRoot), 2.0 / 3.0);
+                r = Math.Pow(rho / (2 * rsCubeRoot), 2 / 3.0);
             }
 
             // Partial differential, finite difference approach:
-            //double diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
+            //double diffR = Mathf.Pow(2 * radius / (rho - tau), 1 / 3.0f);
             //r -= diffR;
             // Unless we have a really small and/or adaptive finite difference time step, the above approximation fails close to the event horizon.
 
             // We can try the integral form, instead, with a major caveat...
-            double nR = Math.Pow(schwarzschildRadius * Math.Pow(3.0 / 2.0 * (rho - tau), 2.0), 1.0 / 3.0);
+            double nR = Math.Pow(schwarzschildRadius * Math.Pow(3.0 / 2 * (rho - tau), 2), 1 / 3.0);
             double diffR = nR - r;
             // The equation we derive this closed-form integral from has many roots.
             // Some of these roots are not admissible without the existence of complex numbers.
@@ -154,7 +154,7 @@ namespace OpenRelativity.ConformalMaps
                 }
                 else
                 {
-                    diffR = -state.DeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+                    diffR = -state.DeltaTimeWorld * state.planckLength / (2 * state.planckTime);
                 }
 
                 if (!isExterior)
@@ -187,9 +187,9 @@ namespace OpenRelativity.ConformalMaps
             }
 
             float deltaT = state.FixedDeltaTimeWorld;
-            float powf = Mathf.Pow(2.0f, fold);
+            float powf = Mathf.Pow(2, fold);
             float deltaF = (isExterior ? -deltaT : deltaT) / (state.planckTime * powf);
-            float deltaR = powf * deltaF * (float)rng.NextDouble() / 2.0f;
+            float deltaR = powf * deltaF * (float)rng.NextDouble() / 2;
             float thermoDeltaR = deltaRadius;
 
             schwarzschildRadius += (isExterior != (deltaR > thermoDeltaR)) ? thermoDeltaR : deltaR;

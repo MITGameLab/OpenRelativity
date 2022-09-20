@@ -362,7 +362,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
-			float shift = 1.0f;
+			float shift = 1;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 			if ((i.svc.x > FLT_EPSILON) && (dot(_vr.xyz, _vr.xyz) > FLT_EPSILON)) {

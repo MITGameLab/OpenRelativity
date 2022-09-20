@@ -32,7 +32,7 @@ namespace Qrack
                         Action = (time) =>
                         {
                             RelativisticObject ro = RelativisticObject;
-                            ro.transform.rotation = Quaternion.Euler((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0.0f);
+                            ro.transform.rotation = Quaternion.Euler((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0);
                             ro.riw = qs.transform.rotation;
                             ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
                         }

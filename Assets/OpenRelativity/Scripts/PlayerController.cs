@@ -353,12 +353,12 @@ namespace OpenRelativity
                 speedOfLightStep = Mathf.Abs((state.SpeedOfLight - speedOfLightTarget) / 20);
             }
             //Now, if we're not at our target, move towards the target speed that we're hoping for
-            if (state.SpeedOfLight < speedOfLightTarget * .995)
+            if (state.SpeedOfLight < speedOfLightTarget * .995f)
             {
                 //Then we change the speed of light, so that we get a smooth change from one speed of light to the next.
                 state.SpeedOfLight += speedOfLightStep;
             }
-            else if (state.SpeedOfLight > speedOfLightTarget * 1.005)
+            else if (state.SpeedOfLight > speedOfLightTarget * 1.005f)
             {
                 //See above
                 state.SpeedOfLight -= speedOfLightStep;
@@ -406,7 +406,7 @@ namespace OpenRelativity
             else
             {
                 //keep track of our frames
-                frames++;
+                ++frames;
             }
 
             //If we have a speed of light less than max speed, fix it.

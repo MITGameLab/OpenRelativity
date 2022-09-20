@@ -12,7 +12,7 @@ namespace OpenRelativity.ConformalMaps
         {
             if (electricCharge <= SRelativityUtil.FLT_EPSILON)
             {
-                chargeRadiusDiff = 0.0f;
+                chargeRadiusDiff = 0;
                 return;
             }
 
@@ -23,7 +23,7 @@ namespace OpenRelativity.ConformalMaps
         override public void ResetSchwarschildRadius()
         {
             schwarzschildRadius += chargeRadiusDiff;
-            chargeRadiusDiff = 0.0f;
+            chargeRadiusDiff = 0;
         }
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
@@ -51,8 +51,8 @@ namespace OpenRelativity.ConformalMaps
         override public void Start()
         {
             float dist = state.playerTransform.position.magnitude;
-            float chargeRadius = Mathf.Sqrt(electricCharge * electricCharge * state.gConst / (4.0f * Mathf.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd));
-            float radiusRoot = Mathf.Sqrt(schwarzschildRadius * schwarzschildRadius - 4.0f * chargeRadius * chargeRadius);
+            float chargeRadius = Mathf.Sqrt(electricCharge * electricCharge * state.gConst / (4 * Mathf.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd));
+            float radiusRoot = Mathf.Sqrt(schwarzschildRadius * schwarzschildRadius - 4 * chargeRadius * chargeRadius);
             float exteriorRadius = schwarzschildRadius + radiusRoot;
             float cauchyRadius = schwarzschildRadius - radiusRoot;
             isExterior = (dist > exteriorRadius) || (dist < cauchyRadius);

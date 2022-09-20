@@ -15,8 +15,8 @@ namespace Qrack
 
         public RealTimeQasmProgram source;
         public RealTimeQasmProgram destination;
-        public float emissionInterval = 1.0f;
-        public float historyLength = 50.0f;
+        public float emissionInterval = 1;
+        public float historyLength = 50;
 
         private Vector3 oldCameraPos;
 
@@ -99,9 +99,9 @@ namespace Qrack
                 {
                     vu.transform.position = vuPos + disp;
                     vuRO.piw = vu.transform.position;
-                    vuIndex++;
+                    ++vuIndex;
                 }
-                signalIndex++;
+                ++signalIndex;
             }
             oldCameraPos = cameraPos;
         }

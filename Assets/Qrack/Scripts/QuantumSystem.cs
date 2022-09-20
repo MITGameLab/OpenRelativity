@@ -145,7 +145,7 @@ namespace Qrack
                     Debug.Log("Automatically allocated qubits in system " + SystemId + ", original: " + lastQubitCount + ", new: " + QubitCount);
                 }
 
-                for (ulong i = lastQubitCount; i < QubitCount; i++)
+                for (ulong i = lastQubitCount; i < QubitCount; ++i)
                 {
                     AllocateQubit(i);
                 }
@@ -178,7 +178,7 @@ namespace Qrack
         private ulong[] MapQubits(ulong[] controls)
         {
             ulong[] mappedControls = new ulong[controls.Length];
-            for (int i = 0; i < controls.Length; i++)
+            for (int i = 0; i < controls.Length; ++i)
             {
                 mappedControls[i] = GetSystemIndex(controls[i]);
             }
@@ -201,7 +201,7 @@ namespace Qrack
 
                 QubitCount = highBit + 1;
 
-                for (ulong i = lastQubitCount; i < QubitCount; i++)
+                for (ulong i = lastQubitCount; i < QubitCount; ++i)
                 {
                     AllocateQubit(i);
                 }
@@ -295,18 +295,18 @@ namespace Qrack
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
-            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
-            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+            double cosPi1P = Math.Cos(Math.PI * (1 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1 + p));
 
             double[] m = {
                 // 0-0
-                0.5 * (1.0 - cosPi1P), -0.5 * sinPi1P,
+                (1 - cosPi1P) / 2, -sinPi1P / 2,
                 // 0-1
-                0.5 * (1.0 + cosPi1P), 0.5 * sinPi1P,
+                (1 + cosPi1P) / 2, sinPi1P / 2,
                 // 1-0
-                0.5 * (1.0 - cosPiP), -0.5 * sinPiP,
+                (1 - cosPiP) / 2, -sinPiP / 2,
                 // 1-1
-                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
+                (1 + cosPiP) / 2, sinPiP / 2
             };
 
             Mtrx(m, targetId);
@@ -325,13 +325,13 @@ namespace Qrack
 
             double[] m = {
                 // 0-0
-                0.5 * (1.0 + cosPiP), 0.5 * sinPiP,
+                (1 + cosPiP) / 2, sinPiP / 2,
                 // 0-1
-                -0.5 * sinPiP, 0.5 * (-1.0 + cosPiP),
+                -sinPiP / 2, (-1 + cosPiP) / 2,
                 // 1-0
-                0.5 * sinPiP, 0.5 * (1.0 - cosPiP),
+                sinPiP / 2, (1 - cosPiP) / 2,
                 // 1-1
-                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
+                (1 + cosPiP) / 2, sinPiP / 2
             };
 
             Mtrx(m, targetId);
@@ -347,11 +347,11 @@ namespace Qrack
         {
             double[] m = {
                 // 0-0
-                1.0, 0.0,
+                1, 0,
                 // 0-1
-                0.0, 0.0,
+                0, 0,
                 // 1-0
-                0.0, 0.0,
+                0, 0,
                 // 1-1
                 Math.Cos(Math.PI * p), Math.Sin(Math.PI * p)
             };
@@ -367,7 +367,7 @@ namespace Qrack
         // Powers (and roots) of "S" gate
         public void PowS(double p, ulong targetId)
         {
-            PowZ(p / 2.0, targetId);
+            PowZ(p / 2, targetId);
 
             if (GetError() != 0)
             {
@@ -378,7 +378,7 @@ namespace Qrack
         // Powers (and roots) of "T" gate
         public void PowT(double p, ulong targetId)
         {
-            PowZ(p / 4.0, targetId);
+            PowZ(p / 4, targetId);
 
             if (GetError() != 0)
             {
@@ -389,22 +389,22 @@ namespace Qrack
         // Powers (and roots) of Hadamard gate
         public void PowH(double p, ulong targetId)
         {
-            double sqrt2 = Math.Sqrt(2.0);
-            double sqrt2x2 = 2.0 * sqrt2;
-            double sqrt2p1 = 1.0 + sqrt2;
-            double sqrt2m1 = -1.0 + sqrt2;
+            double sqrt2 = Math.Sqrt(2);
+            double sqrt2x2 = 2 * sqrt2;
+            double sqrt2p1 = 1 + sqrt2;
+            double sqrt2m1 = -1 + sqrt2;
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
-            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
-            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+            double cosPi1P = Math.Cos(Math.PI * (1 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1 + p));
 
             double[] m = {
                 // 0-0
                 (sqrt2p1 - sqrt2m1 * cosPi1P) / sqrt2x2, -sqrt2m1 * sinPi1P / sqrt2x2,
                 // 0-1
-                sqrt2m1 * sqrt2p1 * (1.0 + cosPi1P) / sqrt2x2, sqrt2p1 * sqrt2m1 * sinPi1P / sqrt2x2,
+                sqrt2m1 * sqrt2p1 * (1 + cosPi1P) / sqrt2x2, sqrt2p1 * sqrt2m1 * sinPi1P / sqrt2x2,
                 // 1-0
-                (1.0 - cosPiP) / sqrt2x2, -sinPiP / sqrt2x2,
+                (1 - cosPiP) / sqrt2x2, -sinPiP / sqrt2x2,
                 // 1-1
                 (sqrt2m1 + sqrt2p1 * cosPiP) / sqrt2x2, sqrt2p1 * sinPiP / sqrt2x2
             };
@@ -628,18 +628,18 @@ namespace Qrack
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
-            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
-            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+            double cosPi1P = Math.Cos(Math.PI * (1 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1 + p));
 
             double[] m = {
                 // 0-0
-                0.5 * (1.0 - cosPi1P), -0.5 * sinPi1P,
+                (1 - cosPi1P) / 2, -sinPi1P / 2,
                 // 0-1
-                0.5 * (1.0 + cosPi1P), 0.5 * sinPi1P,
+                (1 + cosPi1P) / 2, sinPi1P / 2,
                 // 1-0
-                0.5 * (1.0 - cosPiP), -0.5 * sinPiP,
+                (1 - cosPiP) / 2, -sinPiP / 2,
                 // 1-1
-                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
+                (1 + cosPiP) / 2, sinPiP / 2
             };
 
             if (isAnti)
@@ -675,13 +675,13 @@ namespace Qrack
 
             double[] m = {
                 // 0-0
-                0.5 * (1.0 + cosPiP), 0.5 * sinPiP,
+                (1 + cosPiP) / 2, sinPiP / 2,
                 // 0-1
-                -0.5 * sinPiP, 0.5 * (-1.0 + cosPiP),
+                -sinPiP / 2, (-1 + cosPiP) / 2,
                 // 1-0
-                0.5 * sinPiP, 0.5 * (1.0 - cosPiP),
+                sinPiP / 2, (1 - cosPiP) / 2,
                 // 1-1
-                0.5 * (1.0 + cosPiP), 0.5 * sinPiP
+                (1 + cosPiP) / 2, sinPiP / 2
             };
 
             if (isAnti)
@@ -714,11 +714,11 @@ namespace Qrack
         {
             double[] m = {
                 // 0-0
-                1.0, 0.0,
+                1, 0,
                 // 0-1
-                0.0, 0.0,
+                0, 0,
                 // 1-0
-                0.0, 0.0,
+                0, 0,
                 // 1-1
                 Math.Cos(Math.PI * p), Math.Sin(Math.PI * p)
             };
@@ -751,23 +751,23 @@ namespace Qrack
         // Powers (and roots) of multiply-controlled "S" gate
         public void PowMCS(double p, ulong[] controls, ulong targetId)
         {
-            PowMCZ(p / 2.0, controls, targetId);
+            PowMCZ(p / 2, controls, targetId);
         }
 
         public void PowMACS(double p, ulong[] controls, ulong targetId)
         {
-            PowMACZ(p / 2.0, controls, targetId);
+            PowMACZ(p / 2, controls, targetId);
         }
 
         // Powers (and roots) of multiply-controlled "T" gate
         public void PowMCT(double p, ulong[] controls, ulong targetId)
         {
-            PowMCZ(p / 4.0, controls, targetId);
+            PowMCZ(p / 4, controls, targetId);
         }
 
         public void PowMACT(double p, ulong[] controls, ulong targetId)
         {
-            PowMACZ(p / 4.0, controls, targetId);
+            PowMACZ(p / 4, controls, targetId);
         }
 
         // Powers (and roots) of multiply-controlled Hadamard gate
@@ -783,22 +783,22 @@ namespace Qrack
 
         public void MCPowHx(double p, ulong[] controls, ulong targetId, bool isAnti)
         {
-            double sqrt2 = Math.Sqrt(2.0);
-            double sqrt2x2 = 2.0 * sqrt2;
-            double sqrt2p1 = 1.0 + sqrt2;
-            double sqrt2m1 = -1.0 + sqrt2;
+            double sqrt2 = Math.Sqrt(2);
+            double sqrt2x2 = 2 * sqrt2;
+            double sqrt2p1 = 1 + sqrt2;
+            double sqrt2m1 = -1 + sqrt2;
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
-            double cosPi1P = Math.Cos(Math.PI * (1.0 + p));
-            double sinPi1P = Math.Sin(Math.PI * (1.0 + p));
+            double cosPi1P = Math.Cos(Math.PI * (1 + p));
+            double sinPi1P = Math.Sin(Math.PI * (1 + p));
 
             double[] m = {
                 // 0-0
                 (sqrt2p1 - sqrt2m1 * cosPi1P) / sqrt2x2, -sqrt2m1 * sinPi1P / sqrt2x2,
                 // 0-1
-                sqrt2m1 * sqrt2p1 * (1.0 + cosPi1P) / sqrt2x2, sqrt2p1 * sqrt2m1 * sinPi1P / sqrt2x2,
+                sqrt2m1 * sqrt2p1 * (1 + cosPi1P) / sqrt2x2, sqrt2p1 * sqrt2m1 * sinPi1P / sqrt2x2,
                 // 1-0
-                (1.0 - cosPiP) / sqrt2x2, -sinPiP / sqrt2x2,
+                (1 - cosPiP) / sqrt2x2, -sinPiP / sqrt2x2,
                 // 1-1
                 (sqrt2m1 + sqrt2p1 * cosPiP) / sqrt2x2, sqrt2p1 * sinPiP / sqrt2x2
             };
@@ -1246,13 +1246,13 @@ namespace Qrack
         public void TimeEvolve(double t, TimeEvolveOpHeader[] teos, double[] mtrx)
         {
             TimeEvolveOpHeader[] mappedTeos = new TimeEvolveOpHeader[teos.Length];
-            for (int i = 0; i < teos.Length; i++)
+            for (int i = 0; i < teos.Length; ++i)
             {
                 mappedTeos[i].target = GetSystemIndex(teos[i].target);
                 if (teos[i].controlLen > 0)
                 {
                     mappedTeos[i].controls = new ulong[teos[i].controlLen];
-                    for (ulong j = 0; j < teos[i].controlLen; j++)
+                    for (ulong j = 0; j < teos[i].controlLen; ++j)
                     {
                         mappedTeos[i].controls[j] = GetSystemIndex(teos[i].controls[j]);
                     }

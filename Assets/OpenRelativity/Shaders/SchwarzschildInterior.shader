@@ -162,7 +162,7 @@
 
 	float4 frag(Interpolators i) : SV_Target{
 		float3 sourceColor = tex2D(_MainTex, i.uv).rgb;
-		float shift = 1.0f / sqrt(_lensRadius / _playerDist - 1);
+		float shift = 1 / sqrt(_lensRadius / _playerDist - 1);
 
 		//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 		// Ignore IR and UV

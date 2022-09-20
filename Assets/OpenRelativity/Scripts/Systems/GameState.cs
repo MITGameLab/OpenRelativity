@@ -34,12 +34,12 @@ namespace OpenRelativity
         public float hbar = 1e-12f;
         public float gConst = 1;
         public float boltzmannConstant = 1;
-        public float vacuumPermeability = 1.0f;
+        public float vacuumPermeability = 1;
         public float vacuumPermittivity
         {
             get
             {
-                return 1.0f / (vacuumPermeability * SpeedOfLightSqrd);
+                return 1 / (vacuumPermeability * SpeedOfLightSqrd);
             }
         }
         public float hbarOverG
@@ -104,7 +104,7 @@ namespace OpenRelativity
             get
             {
                 //The energy required to accumulate one Planck charge on a sphere one Planck length in diameter will make the sphere one Planck mass heavier
-                return Mathf.Sqrt(4.0f * Mathf.PI * vacuumPermittivity * hbar * SpeedOfLight);
+                return Mathf.Sqrt(4 * Mathf.PI * vacuumPermittivity * hbar * SpeedOfLight);
             }
         }
         public float planckAccel
@@ -224,7 +224,7 @@ namespace OpenRelativity
                 conformalMap = gameObject.AddComponent<Minkowski>();
             }
 
-            SqrtOneMinusVSquaredCWDividedByCSquared = 1.0f;
+            SqrtOneMinusVSquaredCWDividedByCSquared = 1;
 
             //Initialize the player's speed to zero
             playerVelocity = 0;
@@ -325,13 +325,13 @@ namespace OpenRelativity
                 //colors changing so they can apperciate the other effects
                 if (shaderOff)
                 {
-                    Shader.SetGlobalFloat("_colorShift", 0.0f);
-                    //shaderParams.colorShift = 0.0f;
+                    Shader.SetGlobalFloat("_colorShift", 0);
+                    //shaderParams.colorShift = 0;
                 }
                 else
                 {
                     Shader.SetGlobalFloat("_colorShift", 1);
-                    //shaderParams.colorShift = 1.0f;
+                    //shaderParams.colorShift = 1;
                 }
 
                 //Send velocities and acceleration to shader
@@ -382,7 +382,7 @@ namespace OpenRelativity
 
                 cameraForward = playerTransform.forward;
                 deltaCameraAngle = Vector3.SignedAngle(oldCameraForward, cameraForward, playerTransform.up);
-                if (deltaCameraAngle == 180.0f)
+                if (deltaCameraAngle == 180)
                 {
                     deltaCameraAngle = 0;
                 }
@@ -415,7 +415,7 @@ namespace OpenRelativity
                 pVel = playerRB.velocity;
                 if (!IsPlayerFalling && (-pVel .y <= Physics.bounceThreshold)) {
                     Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
-                    playerRB.velocity = pVel.AddVelocity(new Vector3(0.0f, -pVel.y * pVelPerp.Gamma(), 0.0f));
+                    playerRB.velocity = pVel.AddVelocity(new Vector3(0, -pVel.y * pVelPerp.Gamma(), 0));
                 }
             } else
             {

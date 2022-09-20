@@ -269,7 +269,7 @@ Shader "Relativity/Unlit/ColorOnly"
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 		float shift;
 		if ((i.svc <= FLT_EPSILON) || (dot(_vr.xyz, _vr.xyz) <= FLT_EPSILON)) {
-			shift = 1.0f;
+			shift = 1;
 		}
 		else
 		{

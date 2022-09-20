@@ -68,7 +68,7 @@ namespace Qrack
                     {
                         ulong[] c = new ulong[1] { i };
                         ulong t = (i - 1U) - j;
-                        double lambda = 2 * Math.PI / Math.Pow(2.0, j);
+                        double lambda = 2 * Math.PI / Math.Pow(2, j);
                         qs.MCU(c, t, 0, 0, lambda);
                     }
                     qs.H(i);
