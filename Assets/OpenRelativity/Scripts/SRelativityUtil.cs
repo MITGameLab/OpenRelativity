@@ -138,13 +138,13 @@ namespace OpenRelativity
 
         public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector4 aiw)
         {
-            return stpiw.GetTisw(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
+            return stpiw.GetTisw(velocity, aiw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector);
         }
-        public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector4 aiw, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp)
         {
-            return stpiw.GetTisw(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
+            return stpiw.GetTisw(velocity, aiw, origin, playerVel, pap, avp, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
         }
-        public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
+        public static float GetTisw(this Vector3 stpiw, Vector3 velocity, Vector4 aiw, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
@@ -200,13 +200,13 @@ namespace OpenRelativity
 
         public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector4 aiw)
         {
-            return stpiw.WorldToOptical(velocity, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, aiw);
+            return stpiw.WorldToOptical(velocity, aiw, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector);
         }
-        public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw)
+        public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector4 aiw, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp)
         {
-            return stpiw.WorldToOptical(velocity, origin, playerVel, pap, avp, aiw, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
+            return stpiw.WorldToOptical(velocity, aiw, origin, playerVel, pap, avp, GetLorentzTransformMatrix(-playerVel / c), GetLorentzTransformMatrix(velocity / c), state.conformalMap.GetMetric(stpiw));
         }
-        public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Vector4 aiw, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
+        public static Vector3 WorldToOptical(this Vector3 stpiw, Vector3 velocity, Vector4 aiw, Vector3 origin, Vector3 playerVel, Vector3 pap, Vector3 avp, Matrix4x4 vpcLorentzMatrix, Matrix4x4 viwLorentzMatrix, Matrix4x4 intrinsicMetric)
         {
             Vector3 vpc = -playerVel / c;
             Vector3 viw = velocity / c;
