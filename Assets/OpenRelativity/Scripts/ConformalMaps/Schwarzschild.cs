@@ -29,7 +29,7 @@ namespace OpenRelativity.ConformalMaps
                 // Can we actually back-track to perfect 0 folds on the basis of exterior time?
                 // We don't know exactly how long the evaporation will take, in the quantum limit.
                 // If the black hole is "hairless," shouldn't this only depend on radius, rather than time?
-                return Mathf.Log(schwarzschildRadius / state.planckLength) / Mathf.Log(2);
+                return (float)(Math.Log(schwarzschildRadius / state.planckLength) / Math.Log(2));
             }
         }
 
@@ -188,7 +188,7 @@ namespace OpenRelativity.ConformalMaps
 
             float deltaT = state.FixedDeltaTimeWorld;
             float powf = Mathf.Pow(2, fold);
-            float deltaF = (isExterior ? -deltaT : deltaT) / (state.planckTime * powf);
+            float deltaF = (float)((isExterior ? -deltaT : deltaT) / (state.planckTime * powf));
             float deltaR = powf * deltaF * (float)rng.NextDouble() / 2;
             float thermoDeltaR = deltaRadius;
 

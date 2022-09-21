@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
@@ -20,7 +21,7 @@ namespace OpenRelativity.ConformalMaps
             }
 
             // Calculate and set charge difference, (which does not depend on invariant radius).
-            chargeRadiusDiff = state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude);
+            chargeRadiusDiff = (float)(state.gConst * electricCharge * electricCharge / (state.SpeedOfLightSqrd * piw.magnitude));
             schwarzschildRadius -= chargeRadiusDiff;
         }
 
@@ -34,7 +35,7 @@ namespace OpenRelativity.ConformalMaps
         override public void Start()
         {
             float dist = state.playerTransform.position.magnitude;
-            float chargeRadius = Mathf.Sqrt(electricCharge * electricCharge * state.gConst / (4 * Mathf.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd));
+            float chargeRadius = (float)Math.Sqrt(electricCharge * electricCharge * state.gConst / (4 * Math.PI * state.vacuumPermittivity * state.SpeedOfLightSqrd * state.SpeedOfLightSqrd));
             float radiusRoot = Mathf.Sqrt(schwarzschildRadius * schwarzschildRadius - 4 * chargeRadius * chargeRadius);
             float exteriorRadius = schwarzschildRadius + radiusRoot;
             float cauchyRadius = schwarzschildRadius - radiusRoot;
@@ -92,11 +93,11 @@ namespace OpenRelativity.ConformalMaps
                 return;
             }
 
-            float constRatio = state.planckCharge / state.planckLength;
+            float constRatio = (float)(state.planckCharge / state.planckLength);
             float extremalFrac = electricCharge / (schwarzschildRadius * constRatio);
             electricCharge += extremalFrac * deltaR * constRatio;
 
-            constRatio = state.planckMomentum;
+            constRatio = (float)state.planckMomentum;
             extremalFrac = spinMomentum / (schwarzschildRadius * constRatio);
             spinMomentum += extremalFrac * deltaR * constRatio;
         }

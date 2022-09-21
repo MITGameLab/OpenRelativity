@@ -29,7 +29,7 @@ public class SchwarzschildLens : GravityLens
         float jFrac, spinColatitude, spinTilt;
         if (schwarzschild is Kerr) {
             Kerr kerr = schwarzschild as Kerr;
-            jFrac = (kerr.spinMomentum / r) * (state.planckLength / state.planckAngularMomentum);
+            jFrac = (float)((kerr.spinMomentum / r) * (state.planckLength / state.planckAngularMomentum));
             spinColatitude = Mathf.Deg2Rad * Vector3.Angle(-cam.transform.position, kerr.spinAxis);
             spinTilt = Mathf.Deg2Rad * Vector3.Angle(cam.transform.up, kerr.spinAxis);
         }

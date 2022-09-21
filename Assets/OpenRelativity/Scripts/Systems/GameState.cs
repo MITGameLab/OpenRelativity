@@ -22,27 +22,27 @@ namespace OpenRelativity
         //player Velocity as a scalar magnitude
         public float playerVelocity { get; set; }
         public bool IsPlayerFalling { get; set; }
-        //speed of light
-        private float c = 200;
         //max speed the player can achieve (starting value accessible from Unity Editor)
         public float maxPlayerSpeed;
+        //speed of light
+        private double c = 200;
         //Speed of light that is affected by the Unity editor
-        public float totalC = 200;
+        public double totalC = 200;
         // Reduced Planck constant divided by gravitational constant
         // (WARNING: Effects implemented based on this have not been peer reviewed,
         // but that doesn't mean they wouldn't be "cool" in a video game, at least.)
-        public float hbar = 1e-12f;
-        public float gConst = 1;
-        public float boltzmannConstant = 1;
-        public float vacuumPermeability = 1;
-        public float vacuumPermittivity
+        public double hbar = 1e-12f;
+        public double gConst = 1;
+        public double boltzmannConstant = 1;
+        public double vacuumPermeability = 1;
+        public double vacuumPermittivity
         {
             get
             {
                 return 1 / (vacuumPermeability * SpeedOfLightSqrd);
             }
         }
-        public float hbarOverG
+        public double hbarOverG
         {
             // Physically would be ~7.038e-45f m^5/s^3, in our universe
             get
@@ -50,78 +50,78 @@ namespace OpenRelativity
                 return hbar / gConst;
             }
         }
-        public float planckLength
+        public double planckLength
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst / Mathf.Pow(SpeedOfLight, 3));
+                return Math.Sqrt(hbar * gConst / Math.Pow(SpeedOfLight, 3));
             }
         }
-        public float planckArea
+        public double planckArea
         {
             get
             {
-                return hbar * gConst / Mathf.Pow(SpeedOfLight, 3);
+                return hbar * gConst / Math.Pow(SpeedOfLight, 3);
             }
         }
-        public float planckTime
+        public double planckTime
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst / Mathf.Pow(SpeedOfLight, 5));
+                return Math.Sqrt(hbar * gConst / Math.Pow(SpeedOfLight, 5));
             }
         }
-        public float planckMass
+        public double planckMass
         {
             get
             {
-                return Mathf.Sqrt(hbar * SpeedOfLight / gConst);
+                return Math.Sqrt(hbar * SpeedOfLight / gConst);
             }
         }
-        public float planckEnergy
+        public double planckEnergy
         {
             get
             {
-                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5) / gConst);
+                return Math.Sqrt(hbar * Math.Pow(SpeedOfLight, 5) / gConst);
             }
         }
-        public float planckPower
+        public double planckPower
         {
             get
             {
-                return Mathf.Pow(SpeedOfLight, 5) / gConst;
+                return Math.Pow(SpeedOfLight, 5) / gConst;
             }
         }
-        public float planckTemperature
+        public double planckTemperature
         {
             get
             {
-                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5) / (gConst * boltzmannConstant * boltzmannConstant));
+                return Math.Sqrt(hbar * Math.Pow(SpeedOfLight, 5) / (gConst * boltzmannConstant * boltzmannConstant));
             }
         }
-        public float planckCharge
+        public double planckCharge
         {
             get
             {
                 //The energy required to accumulate one Planck charge on a sphere one Planck length in diameter will make the sphere one Planck mass heavier
-                return Mathf.Sqrt(4 * Mathf.PI * vacuumPermittivity * hbar * SpeedOfLight);
+                return Math.Sqrt(4 * Math.PI * vacuumPermittivity * hbar * SpeedOfLight);
             }
         }
-        public float planckAccel
+        public double planckAccel
         {
             get
             {
-                return Mathf.Sqrt(Mathf.Pow(SpeedOfLight, 7) / (hbar * gConst));
+                return Math.Sqrt(Math.Pow(SpeedOfLight, 7) / (hbar * gConst));
             }
         }
-        public float planckMomentum
+        public double planckMomentum
         {
             get
             {
-                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 3) / gConst);
+                return Math.Sqrt(hbar * Math.Pow(SpeedOfLight, 3) / gConst);
             }
         }
-        public float planckAngularMomentum
+        public double planckAngularMomentum
         {
             get
             {
@@ -179,7 +179,7 @@ namespace OpenRelativity
         public float TotalTimePlayer { get; set; }
         public float TotalTimeWorld;
         public float SpeedOfLight {
-            get { return c; }
+            get { return (float)c; }
             set { c = value; SpeedOfLightSqrd = value * value; }
         }
         public float SpeedOfLightSqrd { get; private set; }
@@ -233,7 +233,7 @@ namespace OpenRelativity
             MaxSpeed = maxPlayerSpeed;
 
             c = totalC;
-            SpeedOfLightSqrd = c * c;
+            SpeedOfLightSqrd = (float)(c * c);
             //And ensure that the game starts
             isMovementFrozen = false;
             menuKeyDown = false;
@@ -312,7 +312,7 @@ namespace OpenRelativity
 
                 //update our player velocity
                 playerVelocity = PlayerVelocityVector.magnitude;
-                Vector4 vpc = -PlayerVelocityVector / c;
+                Vector4 vpc = -PlayerVelocityVector / (float)c;
                 PlayerLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(vpc);
 
                 //update our acceleration (which relates rapidities rather than velocities)

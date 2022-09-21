@@ -34,7 +34,7 @@ namespace Qrack
 
             expectationFrames.Add(new QftHistoryPoint
             {
-                Time = state.planckTime,
+                Time = (float)state.planckTime,
                 Radius = QuantumSystem.PermutationExpectation(bits)
             });
 

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
@@ -14,7 +15,7 @@ namespace OpenRelativity.ConformalMaps
         {
             get
             {
-                return spinMomentum / (2 * state.gConst * Mathf.Pow(state.SpeedOfLight, 4) * schwarzschildRadius);
+                return (float)(spinMomentum / (2 * state.gConst * Math.Pow(state.SpeedOfLight, 4) * schwarzschildRadius));
             }
         }
 
@@ -93,7 +94,7 @@ namespace OpenRelativity.ConformalMaps
             // Inclination:
             float cosInc = Mathf.Cos(Mathf.Acos(piw.z / r));
 
-            float a = spinMomentum / (schwarzschildRadius * state.planckMass / state.planckLength);
+            float a = (float)(spinMomentum / (schwarzschildRadius * state.planckMass / state.planckLength));
             float aSqr = a * a;
 
             float sigma = rSqr + aSqr * cosAzi * cosAzi;
@@ -241,7 +242,7 @@ namespace OpenRelativity.ConformalMaps
 
             // These happen to be equal:
             // float constRatio = state.planckAngularMomentum / state.planckLength;
-            float constRatio = state.planckMomentum;
+            float constRatio = (float)state.planckMomentum;
             float extremalFrac = spinMomentum / (schwarzschildRadius * constRatio);
             spinMomentum += extremalFrac * deltaR * constRatio;
         }
