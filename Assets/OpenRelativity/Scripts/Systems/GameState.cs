@@ -15,7 +15,7 @@ namespace OpenRelativity
         #region Static Variables
         // We want a "System" (in Entity-Component-Systems) to be unique.
         private static GameState _instance;
-        public static GameState Instance { get { return _instance; } }
+        public static GameState Instance { get { return _instance ? _instance : FindObjectOfType<GameState>(); } }
         #endregion
 
         #region Member Variables
@@ -214,6 +214,43 @@ namespace OpenRelativity
 
         public void OnEnable()
         {
+            // Ensure a singleton
+            if (_instance != null && _instance != this)
+            {
+                Destroy(this.gameObject);
+                return;
+            }
+            else
+            {
+                _instance = this;
+            }
+
+            if (!conformalMap)
+            {
+                conformalMap = gameObject.AddComponent<Minkowski>();
+            }
+
+            SqrtOneMinusVSquaredCWDividedByCSquared = 1;
+
+            //Initialize the player's speed to zero
+            playerVelocity = 0;
+            
+            //Set our constants
+            MaxSpeed = maxPlayerSpeed;
+
+            c = totalC;
+            SpeedOfLightSqrd = (float)(c * c);
+            //And ensure that the game starts
+            isMovementFrozen = false;
+            menuKeyDown = false;
+            shaderKeyDown = false;
+            keyHit = false;
+
+            playerRotation = Vector3.zero;
+            deltaRotation = Vector3.zero;
+
+            PlayerLorentzMatrix = Matrix4x4.identity;
+
             // See https://docs.unity3d.com/Manual/ProgressiveLightmapper-CustomFallOff.html
             Lightmapping.RequestLightsDelegate testDel = (Light[] requests, Unity.Collections.NativeArray<LightDataGI> lightsOutput) =>
             {
@@ -247,45 +284,6 @@ namespace OpenRelativity
         void OnDisable()
         {
             Lightmapping.ResetDelegate();
-        }
-
-        public virtual void Awake()
-        {
-            // Ensure a singleton
-            if (_instance != null && _instance != this)
-            {
-                Destroy(this.gameObject);
-            }
-            else
-            {
-                _instance = this;
-            }
-
-            if (!conformalMap)
-            {
-                conformalMap = gameObject.AddComponent<Minkowski>();
-            }
-
-            SqrtOneMinusVSquaredCWDividedByCSquared = 1;
-
-            //Initialize the player's speed to zero
-            playerVelocity = 0;
-            
-            //Set our constants
-            MaxSpeed = maxPlayerSpeed;
-
-            c = totalC;
-            SpeedOfLightSqrd = (float)(c * c);
-            //And ensure that the game starts
-            isMovementFrozen = false;
-            menuKeyDown = false;
-            shaderKeyDown = false;
-            keyHit = false;
-
-            playerRotation = Vector3.zero;
-            deltaRotation = Vector3.zero;
-
-            PlayerLorentzMatrix = Matrix4x4.identity;
         }
 
         //Call this function to pause and unpause the game

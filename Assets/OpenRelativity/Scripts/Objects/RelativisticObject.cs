@@ -2,9 +2,11 @@ using OpenRelativity.ConformalMaps;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace OpenRelativity.Objects
 {
+    [ExecuteInEditMode]
     public class RelativisticObject : RelativisticBehavior
     {
         #region Public Settings
@@ -1135,7 +1137,7 @@ namespace OpenRelativity.Objects
 
         private void UpdateShaderParams()
         {
-            if (!myRenderer)
+            if (!Application.isPlaying || !myRenderer)
             {
                 return;
             }
@@ -1167,6 +1169,43 @@ namespace OpenRelativity.Objects
                 myRenderer.materials[i].SetMatrix("_invIntrinsicMetric", intrinsicMetric.inverse);
                 myRenderer.materials[i].SetVector("_vr", tempVr);
                 myRenderer.materials[i].SetFloat("_lastUpdateSeconds", Time.time);
+            }
+        }
+
+        private void UpdateBakingShaderParams()
+        {
+            if (!myRenderer)
+            {
+                return;
+            }
+
+            //Send our object's v/c (Velocity over the Speed of Light) to the shader
+
+            Vector3 tempViw = peculiarVelocity / state.SpeedOfLight;
+            Vector4 tempPao = GetComoving4Acceleration();
+            Vector4 tempVr = (-state.PlayerVelocityVector).AddVelocity(peculiarVelocity) / state.SpeedOfLight;
+
+            //Velocity of object Lorentz transforms are the same for all points in an object,
+            // so it saves redundant GPU time to calculate them beforehand.
+            Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
+
+            // Metric default (doesn't have correct signature):
+            Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
+
+            colliderShaderParams.viw = tempViw;
+            colliderShaderParams.pao = tempPao;
+            colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
+            colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
+            for (int i = 0; i < myRenderer.sharedMaterials.Length; ++i)
+            {
+                myRenderer.sharedMaterials[i].SetVector("_viw", tempViw);
+                myRenderer.sharedMaterials[i].SetVector("_pao", tempPao);
+                myRenderer.sharedMaterials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
+                myRenderer.sharedMaterials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
+                myRenderer.sharedMaterials[i].SetMatrix("_intrinsicMetric", intrinsicMetric);
+                myRenderer.sharedMaterials[i].SetMatrix("_invIntrinsicMetric", intrinsicMetric.inverse);
+                myRenderer.sharedMaterials[i].SetVector("_vr", tempVr);
+                myRenderer.sharedMaterials[i].SetFloat("_lastUpdateSeconds", Time.time);
             }
         }
 
@@ -1276,7 +1315,20 @@ namespace OpenRelativity.Objects
         {
             if (paramsBuffer != null) paramsBuffer.Release();
             if (vertBuffer != null) vertBuffer.Release();
-            if (contractor != null) Destroy(contractor.gameObject);
+            if (Application.isPlaying && (contractor != null)) Destroy(contractor.gameObject);
+        }
+
+        void OnEnable() {
+            //Also get the meshrenderer so that we can give it a unique material
+            if (myRenderer == null)
+            {
+                myRenderer = GetComponent<Renderer>();
+            }
+            //If we have a MeshRenderer on our object and it's not world-static
+            if (myRenderer)
+            {
+                UpdateBakingShaderParams();
+            }
         }
 
         void Awake()
@@ -1333,37 +1385,6 @@ namespace OpenRelativity.Objects
             {
                 //Native rigidbody gravity should not be used except during isFullPhysX.
                 myRigidbody.useGravity = useGravity && !isLightMapStatic;
-            }
-
-            colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
-
-            //Also get the meshrenderer so that we can give it a unique material
-            if (myRenderer == null)
-            {
-                myRenderer = GetComponent<Renderer>();
-            }
-            //If we have a MeshRenderer on our object and it's not world-static
-            if (myRenderer && !isLightMapStatic)
-            {
-                //And if we have a texture on our material
-                for (int i = 0; i < myRenderer.materials.Length; ++i)
-                {
-                    //So that we can set unique values to every moving object, we have to instantiate a material
-                    //It's the same as our old one, but now it's not connected to every other object with the same material
-                    Material quickSwapMaterial = Instantiate(myRenderer.materials[i]) as Material;
-                    //Then, set the value that we want
-                    quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 1));
-                    quickSwapMaterial.SetVector("_vr", new Vector4(0, 0, 0, 1));
-                    quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
-                    quickSwapMaterial.SetMatrix("_viwLorentzMatrix", Matrix4x4.identity);
-                    quickSwapMaterial.SetMatrix("_invViwLorentzMatrix", Matrix4x4.identity);
-                    quickSwapMaterial.SetMatrix("_intrinsicMetric", Matrix4x4.identity);
-                    quickSwapMaterial.SetMatrix("_invIntrinsicMetric", Matrix4x4.identity);
-
-
-                    //And stick it back into our renderer. We'll do the SetVector thing every frame.
-                    myRenderer.materials[i] = quickSwapMaterial;
-                }
             }
         }
 
