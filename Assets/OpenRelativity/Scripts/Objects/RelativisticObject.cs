@@ -873,7 +873,7 @@ namespace OpenRelativity.Objects
 
         public void UpdateContractorPosition()
         {
-            if (!isNonrelativisticShader)
+            if (!Application.isPlaying || !isNonrelativisticShader)
             {
                 return;
             }
