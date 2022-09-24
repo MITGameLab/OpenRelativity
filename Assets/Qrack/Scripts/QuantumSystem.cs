@@ -293,6 +293,12 @@ namespace Qrack
         // Powers (and roots) of Pauli X
         public void PowX(double p, ulong targetId)
         {
+            PowMCX(null, p, targetId);
+        }
+
+        // Powers (and roots) of CNOT
+        public void PowMCX(ulong[] controlIds, double p, ulong targetId)
+        {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
             double cosPi1P = Math.Cos(Math.PI * (1 + p));
@@ -309,7 +315,11 @@ namespace Qrack
                 (1 + cosPiP) / 2, sinPiP / 2
             };
 
-            Mtrx(m, targetId);
+            if ((controlIds == null) || (controlIds.Length == 0)) {
+                Mtrx(m, targetId);
+            } else {
+                MCMtrx(controlIds, m, targetId);
+            }
 
             if (GetError() != 0)
             {
@@ -319,6 +329,12 @@ namespace Qrack
 
         // Powers (and roots) of Pauli Y
         public void PowY(double p, ulong targetId)
+        {
+            PowMCY(null, p, targetId);
+        }
+
+        // Powers (and roots) of CY
+        public void PowMCY(ulong[] controlIds, double p, ulong targetId)
         {
             double cosPiP = Math.Cos(Math.PI * p);
             double sinPiP = Math.Sin(Math.PI * p);
@@ -334,7 +350,11 @@ namespace Qrack
                 (1 + cosPiP) / 2, sinPiP / 2
             };
 
-            Mtrx(m, targetId);
+            if ((controlIds == null) || (controlIds.Length == 0)) {
+                Mtrx(m, targetId);
+            } else {
+                MCMtrx(controlIds, m, targetId);
+            }
 
             if (GetError() != 0)
             {
@@ -344,6 +364,12 @@ namespace Qrack
 
         // Powers (and roots) of Pauli Z
         public void PowZ(double p, ulong targetId)
+        {
+            PowMCZ(null, p, targetId);
+        }
+
+        // Powers (and roots) of CZ
+        public void PowMCZ(ulong[] controlIds, double p, ulong targetId)
         {
             double[] m = {
                 // 0-0
@@ -356,29 +382,11 @@ namespace Qrack
                 Math.Cos(Math.PI * p), Math.Sin(Math.PI * p)
             };
 
-            Mtrx(m, targetId);
-
-            if (GetError() != 0)
-            {
-                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
+            if ((controlIds == null) || (controlIds.Length == 0)) {
+                Mtrx(m, targetId);
+            } else {
+                MCMtrx(controlIds, m, targetId);
             }
-        }
-
-        // Powers (and roots) of "S" gate
-        public void PowS(double p, ulong targetId)
-        {
-            PowZ(p / 2, targetId);
-
-            if (GetError() != 0)
-            {
-                throw new InvalidOperationException("QrackSimulator C++ library raised exception.");
-            }
-        }
-
-        // Powers (and roots) of "T" gate
-        public void PowT(double p, ulong targetId)
-        {
-            PowZ(p / 4, targetId);
 
             if (GetError() != 0)
             {
@@ -388,6 +396,12 @@ namespace Qrack
 
         // Powers (and roots) of Hadamard gate
         public void PowH(double p, ulong targetId)
+        {
+            PowMCH(null, p, targetId);
+        }
+
+        // Powers (and roots) of CH
+        public void PowMCH(ulong[] controlIds, double p, ulong targetId)
         {
             double sqrt2 = Math.Sqrt(2);
             double sqrt2x2 = 2 * sqrt2;
@@ -409,7 +423,11 @@ namespace Qrack
                 (sqrt2m1 + sqrt2p1 * cosPiP) / sqrt2x2, sqrt2p1 * sinPiP / sqrt2x2
             };
 
-            Mtrx(m, targetId);
+            if ((controlIds == null) || (controlIds.Length == 0)) {
+                Mtrx(m, targetId);
+            } else {
+                MCMtrx(controlIds, m, targetId);
+            }
 
             if (GetError() != 0)
             {
