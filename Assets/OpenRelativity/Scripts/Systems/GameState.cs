@@ -249,7 +249,27 @@ namespace OpenRelativity
             playerRotation = Vector3.zero;
             deltaRotation = Vector3.zero;
 
-            PlayerLorentzMatrix = Matrix4x4.identity;
+            PlayerAccelerationVector = conformalMap.GetRindlerAcceleration(playerTransform.position);
+            PlayerLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(Vector3.zero);
+
+            if (shaderOff)
+            {
+                Shader.SetGlobalFloat("_colorShift", 0);
+                //shaderParams.colorShift = 0;
+            }
+            else
+            {
+                Shader.SetGlobalFloat("_colorShift", 1);
+                //shaderParams.colorShift = 1;
+            }
+
+            //Send velocities and acceleration to shader
+            Shader.SetGlobalVector("_playerOffset", new Vector4(playerTransform.position.x, playerTransform.position.y, playerTransform.position.z, 0));
+            Shader.SetGlobalVector("_vpc", Vector3.zero);
+            Shader.SetGlobalVector("_pap", PlayerAccelerationVector);
+            Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
+            Shader.SetGlobalMatrix("_vpcLorentzMatrix", PlayerLorentzMatrix);
+            Shader.SetGlobalMatrix("_invVpcLorentzMatrix", PlayerLorentzMatrix.inverse);
 
             // See https://docs.unity3d.com/Manual/ProgressiveLightmapper-CustomFallOff.html
             Lightmapping.RequestLightsDelegate testDel = (Light[] requests, Unity.Collections.NativeArray<LightDataGI> lightsOutput) =>
