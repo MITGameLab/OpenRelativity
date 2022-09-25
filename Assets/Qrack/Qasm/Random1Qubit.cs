@@ -24,6 +24,30 @@ namespace Qrack
             }
         }
 
+        protected void EvolveGate(float dTime, QuantumSystem qs) {
+            if  (gate == 0) {
+                qs.PowX(dTime, 0);
+            } else if (gate == 1) {
+                qs.PowY(dTime, 0);
+            } else if (gate == 2) {
+                qs.PowZ(dTime, 0);
+            } else if (gate == 3) {
+                qs.PowH(dTime, 0);
+            } else if (gate == 4) {
+                if (isGateAdj) {
+                    qs.PowZ(-dTime / 2, 0);
+                } else {
+                    qs.PowZ(dTime / 2, 0);
+                }
+            } else {
+                if (isGateAdj) {
+                    qs.PowZ(-dTime / 4, 0);
+                } else {
+                    qs.PowZ(dTime / 4, 0);
+                }
+            }
+        }
+
         // Prepare a Bell pair for Alice and Bob to share
         protected override void StartProgram()
         {
@@ -40,38 +64,18 @@ namespace Qrack
                     float dTime = deltaTime;
                     timer += deltaTime;
                     if (isGateActing && (timer >= gateInterval)) {
+                        EvolveGate(gateInterval + deltaTime - timer, qs);
                         isGateActing = false;
                         timer -= gateInterval;
-                        dTime -= timer;
                     } else if (!isGateActing && (timer >= gateDelay)) {
+                        PickGate();
                         isGateActing = true;
                         timer -= gateDelay;
-                        dTime -= timer;
-                        PickGate();
+                        dTime = timer;
                     }
 
                     if (isGateActing) {
-                        if  (gate == 0) {
-                            qs.PowX(dTime, 0);
-                        } else if (gate == 1) {
-                            qs.PowY(dTime, 0);
-                        } else if (gate == 2) {
-                            qs.PowZ(dTime, 0);
-                        } else if (gate == 3) {
-                            qs.PowH(dTime, 0);
-                        } else if (gate == 4) {
-                            if (isGateAdj) {
-                                qs.PowZ(-dTime / 2, 0);
-                            } else {
-                                qs.PowZ(dTime / 2, 0);
-                            }
-                        } else {
-                            if (isGateAdj) {
-                                qs.PowZ(-dTime / 4, 0);
-                            } else {
-                                qs.PowZ(dTime / 4, 0);
-                            }
-                        }
+                        EvolveGate(dTime, qs);
                     }
 
                     BlochSphereCoordinates coords = qs.Prob3Axis(0);
