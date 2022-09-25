@@ -16,6 +16,24 @@ namespace Qrack
         protected float timer = 0.0f;
         protected ulong direction = 0;
 
+        protected void EvolveGate(float dTime, QuantumSystem qs) {
+            if (isDiagonal) {
+                if (isDiagonalReversed) {
+                    qs.PowMCX(new ulong[] { 1 }, dTime, 0);
+                    qs.PowMCX(new ulong[] { 4 }, dTime, 3);
+                } else {
+                    qs.PowMCX(new ulong[] { 0 }, dTime, 1);
+                    qs.PowMCX(new ulong[] { 3 }, dTime, 4);
+                }
+            } else if (isSpokeReversed) {
+                ulong target = (direction < 2) ? direction : (direction + 1);
+                qs.PowMCX(new ulong[] { 2 }, dTime, target);
+            } else {
+                ulong control = (direction < 2) ? direction : (direction + 1);
+                qs.PowMCX(new ulong[] { control }, dTime, 2);
+            }
+        }
+
         // Prepare a Bell pair for Alice and Bob to share
         protected override void StartProgram()
         {
@@ -30,9 +48,9 @@ namespace Qrack
                     float dTime = deltaTime;
                     timer += deltaTime;
                     if (isGateActing && (timer >= gateInterval)) {
+                        EvolveGate(gateInterval + deltaTime - timer, qs);
                         isGateActing = false;
                         timer -= gateInterval;
-                        dTime -= timer;
                     } else if (!isGateActing && (timer >= gateDelay)) {
                         isGateActing = true;
                         timer -= gateDelay;
@@ -50,21 +68,7 @@ namespace Qrack
                     }
 
                     if (isGateActing) {
-                        if (isDiagonal) {
-                            if (isDiagonalReversed) {
-                                qs.PowMCX(new ulong[] { 1 }, dTime, 0);
-                                qs.PowMCX(new ulong[] { 4 }, dTime, 3);
-                            } else {
-                                qs.PowMCX(new ulong[] { 0 }, dTime, 1);
-                                qs.PowMCX(new ulong[] { 3 }, dTime, 4);
-                            }
-                        } else if (isSpokeReversed) {
-                            ulong target = (direction < 2) ? direction : (direction + 1);
-                            qs.PowMCX(new ulong[] { 2 }, dTime, target);
-                        } else {
-                            ulong control = (direction < 2) ? direction : (direction + 1);
-                            qs.PowMCX(new ulong[] { control }, dTime, 2);
-                        }
+                        EvolveGate(dTime, qs);
                     }
                 }
             });
