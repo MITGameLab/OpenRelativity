@@ -253,7 +253,10 @@
 				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
 				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
 				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
-			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+
+            // See this link for criticism that suggests this should be the fifth power, rather than the third:
+		    // https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+			return constrainRGB(XYZToRGBC(pow(1 / shift, 5) * xyz));
 		}
 
         float4 skybox_frag(v2f i, sampler2D smp, half4 smpDecode) {
