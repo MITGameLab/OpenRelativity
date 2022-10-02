@@ -1198,6 +1198,7 @@ namespace OpenRelativity.Objects
             colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
             for (int i = 0; i < myRenderer.sharedMaterials.Length; ++i)
             {
+                myRenderer.sharedMaterials[i] = Instantiate(myRenderer.sharedMaterials[i]);
                 myRenderer.sharedMaterials[i].SetVector("_viw", tempViw);
                 myRenderer.sharedMaterials[i].SetVector("_pao", tempPao);
                 myRenderer.sharedMaterials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
