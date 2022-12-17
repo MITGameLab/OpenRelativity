@@ -115,11 +115,11 @@ namespace Qrack
 
             if ((nextFrame >= expectationFrames.Count) || (expectationFrames[nextFrame].Time >= state.TotalTimeWorld))
             {
-                schwarzschild.doEvaporate = true;
+                schwarzschild.doMonopoleEvaporate = true;
                 return;
             }
 
-            schwarzschild.doEvaporate = false;
+            schwarzschild.doMonopoleEvaporate = false;
 
             int lastFrame = nextFrame - 1;
 

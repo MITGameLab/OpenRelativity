@@ -7,7 +7,8 @@ namespace OpenRelativity.ConformalMaps
     {
         public bool isExterior { get; set; }
 
-        public bool doEvaporate = true;
+        public bool doMonopoleEvaporate = true;
+        public bool doHawkingEvaporate = true;
         public float schwarzschildRadius = 0.5f;
 
         protected System.Random rng = new System.Random();
@@ -147,14 +148,20 @@ namespace OpenRelativity.ConformalMaps
                 // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
                 double r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundPlanckTemperature);
 
-                double diffR;
-                if (r > state.planckLength)
-                {
-                    diffR = SRelativityUtil.SchwarzschildRadiusDecay(state.DeltaTimeWorld, r);
+                double diffR = 0;
+                if (doMonopoleEvaporate) {
+                    if (r > state.planckLength)
+                    {
+                        diffR = SRelativityUtil.SchwarzschildRadiusDecay(state.DeltaTimeWorld, r);
+                    }
+                    else
+                    {
+                        diffR = -state.DeltaTimeWorld * state.planckLength / (2 * state.planckTime);
+                    }
                 }
-                else
-                {
-                    diffR = -state.DeltaTimeWorld * state.planckLength / (2 * state.planckTime);
+
+                if (doHawkingEvaporate) {
+                    diffR += SRelativityUtil.HawkingSchwarzschildRadiusDecay(state.DeltaTimeWorld, r);
                 }
 
                 if (!isExterior)
@@ -181,7 +188,7 @@ namespace OpenRelativity.ConformalMaps
                 return;
             }
 
-            if (!doEvaporate || state.isMovementFrozen)
+            if (state.isMovementFrozen || (!doMonopoleEvaporate && !doHawkingEvaporate))
             {
                 return;
             }
