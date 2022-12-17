@@ -56,3 +56,11 @@ Update Mode: updateDependencies
 
 The following packages were updated:
   com.unity.xr.legacyinputhelpers from version 2.1.9 to 2.1.10
+
+=== Sat Dec 17 09:07:34 2022
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.rider from version 3.0.15 to 3.0.16
