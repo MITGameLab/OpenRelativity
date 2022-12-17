@@ -424,18 +424,11 @@ namespace OpenRelativity
 
         public static double HawkingSchwarzschildRadiusDecay(double deltaTime, double r)
         {
-            double origR = r;
-
-            if (r < state.planckLength)
-            {
-                r = state.planckLength;
-            }
-
             double deltaR = -deltaTime * state.hbar / (1920 * Math.PI * r * r * Math.Pow(c, 6));
 
-            if ((origR + deltaR) < 0)
+            if ((r + deltaR) < 0)
             {
-                deltaR = -origR;
+                deltaR = -r;
             }
 
             return deltaR;
