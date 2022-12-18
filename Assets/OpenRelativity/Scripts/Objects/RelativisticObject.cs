@@ -309,7 +309,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                return state.conformalMap.GetFreeFallVelocity(piw);
+                return state.conformalMap ? state.conformalMap.GetFreeFallVelocity(piw) : Vector3.zero;
             }
         }
 
