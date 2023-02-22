@@ -64,3 +64,12 @@ Update Mode: updateDependencies
 
 The following packages were updated:
   com.unity.ide.rider from version 3.0.15 to 3.0.16
+
+=== Wed Feb 22 08:33:13 2023
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.rider from version 3.0.16 to 3.0.18
+  com.unity.ide.visualstudio from version 2.0.16 to 2.0.17
