@@ -7,7 +7,8 @@ namespace OpenRelativity.ConformalMaps
     {
         public bool isExterior { get; set; }
 
-        public bool doEvaporate = true;
+        public bool doMonopoleEvaporate = true;
+        public bool doHawkingEvaporate = true;
         public float schwarzschildRadius = 0.5f;
 
         protected System.Random rng = new System.Random();
@@ -29,7 +30,7 @@ namespace OpenRelativity.ConformalMaps
                 // Can we actually back-track to perfect 0 folds on the basis of exterior time?
                 // We don't know exactly how long the evaporation will take, in the quantum limit.
                 // If the black hole is "hairless," shouldn't this only depend on radius, rather than time?
-                return Mathf.Log(schwarzschildRadius / state.planckLength) / Mathf.Log(2);
+                return (float)(Math.Log(schwarzschildRadius / state.planckLength) / Math.Log(2));
             }
         }
 
@@ -53,40 +54,28 @@ namespace OpenRelativity.ConformalMaps
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            if (schwarzschildRadius <= 0)
-            {
-                Vector4 toRet = piw;
-                toRet.w = properTDiff;
-                return new Comovement
-                {
-                    piw = toRet,
-                    riw = riw
-                };
-            }
-
-            // Assume that the spatial component is in world coordinates, and the time is a local time differential 
-            double r;
+            // Assume that the spatial component is in world coordinates, and the time is a local time differential
             double tau = properTDiff;
-            double rsCubeRoot = Math.Pow(schwarzschildRadius, 1.0 / 3.0);
+            double rsCubeRoot = Math.Pow(schwarzschildRadius, 1 / 3.0);
+            double r;
             double rho;
-
             if (isExterior)
             {
                 r = piw.magnitude;
-                rho = (2.0 * r * Math.Sqrt(r / rsCubeRoot)) / (3.0 * rsCubeRoot);
+                rho = (2 * r * Math.Sqrt(r / rsCubeRoot)) / (3 * rsCubeRoot);
             } else {
                 tau *= -1;
                 rho = state.SpeedOfLight * state.TotalTimeWorld;
-                r = Math.Pow(rho / (2 * rsCubeRoot), 2.0 / 3.0);
+                r = Math.Pow(rho / (2 * rsCubeRoot), 2 / 3.0);
             }
 
             // Partial differential, finite difference approach:
-            //double diffR = Mathf.Pow(2 * radius / (rho - tau), 1.0f / 3.0f);
+            //double diffR = Mathf.Pow(2 * radius / (rho - tau), 1 / 3.0f);
             //r -= diffR;
             // Unless we have a really small and/or adaptive finite difference time step, the above approximation fails close to the event horizon.
 
             // We can try the integral form, instead, with a major caveat...
-            double nR = Math.Pow(schwarzschildRadius * Math.Pow(3.0 / 2.0 * (rho - tau), 2.0), 1.0 / 3.0);
+            double nR = Math.Pow(schwarzschildRadius * Math.Pow(3.0 / 2 * (rho - tau), 2), 1 / 3.0);
             double diffR = nR - r;
             // The equation we derive this closed-form integral from has many roots.
             // Some of these roots are not admissible without the existence of complex numbers.
@@ -157,21 +146,22 @@ namespace OpenRelativity.ConformalMaps
                 // This is speculative, but it can simply be turned off, in the editor.
                 // This attempts to simulate black hole evaporation at a rate inversely proportional to Schwarzschild radius.
                 // It's not properly Hawking radition, but this could be easily modified to approximate that instead.
-                if (float.IsInfinity(state.DeltaTimeWorld) || float.IsNaN(state.DeltaTimeWorld))
-                {
-                    return 0;
-                }
-
                 double r = SRelativityUtil.EffectiveRaditiativeRadius(schwarzschildRadius, state.gravityBackgroundPlanckTemperature);
 
-                double diffR;
-                if (r > state.planckLength)
-                {
-                    diffR = SRelativityUtil.SchwarzschildRadiusDecay(state.DeltaTimeWorld, r);
+                double diffR = 0;
+                if (doMonopoleEvaporate) {
+                    if (r > state.planckLength)
+                    {
+                        diffR = SRelativityUtil.SchwarzschildRadiusDecay(state.DeltaTimeWorld, r);
+                    }
+                    else
+                    {
+                        diffR = -state.DeltaTimeWorld * state.planckLength / (2 * state.planckTime);
+                    }
                 }
-                else
-                {
-                    diffR = -state.DeltaTimeWorld * state.planckLength / (2.0f * state.planckTime);
+
+                if (doHawkingEvaporate) {
+                    diffR += SRelativityUtil.HawkingSchwarzschildRadiusDecay(state.DeltaTimeWorld, r);
                 }
 
                 if (!isExterior)
@@ -192,22 +182,21 @@ namespace OpenRelativity.ConformalMaps
         {
             EnforceHorizon();
 
-            if (schwarzschildRadius <= 0 || !doEvaporate || state.isMovementFrozen)
+            if (schwarzschildRadius <= 0)
+            {
+                schwarzschildRadius = 0;
+                return;
+            }
+
+            if (state.isMovementFrozen || (!doMonopoleEvaporate && !doHawkingEvaporate))
             {
                 return;
             }
 
             float deltaT = state.FixedDeltaTimeWorld;
-
-            if (float.IsNaN(deltaT) || float.IsInfinity(deltaT))
-            {
-                return;
-            }
-
-            float f = fold;
-            float deltaF = (isExterior ? -deltaT : deltaT) / (state.planckTime * Mathf.Pow(2.0f, f));
-
-            float deltaR = Mathf.Pow(2.0f, f) * deltaF * (float)rng.NextDouble() / 2.0f;
+            float powf = Mathf.Pow(2, fold);
+            float deltaF = (float)((isExterior ? -deltaT : deltaT) / (state.planckTime * powf));
+            float deltaR = powf * deltaF * (float)rng.NextDouble() / 2;
             float thermoDeltaR = deltaRadius;
 
             schwarzschildRadius += (isExterior != (deltaR > thermoDeltaR)) ? thermoDeltaR : deltaR;

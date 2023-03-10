@@ -1,0 +1,75 @@
+
+=== Tue Jan 25 17:51:07 2022
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were added:
+  com.unity.2d.sprite@1.0.0
+  com.unity.2d.tilemap@1.0.0
+  com.unity.ide.rider@2.0.7
+  com.unity.ide.visualstudio@2.0.11
+  com.unity.ide.vscode@1.2.4
+  com.unity.modules.androidjni@1.0.0
+  com.unity.modules.animation@1.0.0
+  com.unity.modules.director@1.0.0
+  com.unity.modules.jsonserialize@1.0.0
+  com.unity.modules.particlesystem@1.0.0
+  com.unity.modules.ui@1.0.0
+  com.unity.modules.unitywebrequest@1.0.0
+  com.unity.modules.video@1.0.0
+  com.unity.modules.vr@1.0.0
+  com.unity.modules.xr@1.0.0
+  com.unity.test-framework@1.1.29
+  com.unity.timeline@1.4.8
+  com.unity.ugui@1.0.0
+  com.unity.xr.legacyinputhelpers@2.1.8
+
+=== Tue Apr  5 21:48:43 2022
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.vscode from version 1.2.4 to 1.2.5
+  com.unity.test-framework from version 1.1.29 to 1.1.31
+  com.unity.xr.legacyinputhelpers from version 2.1.8 to 2.1.9
+
+=== Sat Jul 16 12:22:22 2022
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.rider from version 2.0.7 to 3.0.15
+  com.unity.ide.visualstudio from version 2.0.14 to 2.0.16
+  com.unity.timeline from version 1.4.8 to 1.6.4
+
+<<<<<<< Updated upstream
+=== Tue Sep  6 12:25:05 2022
+=======
+=== Fri Sep 16 09:20:36 2022
+>>>>>>> Stashed changes
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.xr.legacyinputhelpers from version 2.1.9 to 2.1.10
+
+=== Sat Dec 17 09:07:34 2022
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.rider from version 3.0.15 to 3.0.16
+
+=== Wed Feb 22 08:33:13 2023
+
+Packages were changed.
+Update Mode: updateDependencies
+
+The following packages were updated:
+  com.unity.ide.rider from version 3.0.16 to 3.0.18
+  com.unity.ide.visualstudio from version 2.0.16 to 2.0.17

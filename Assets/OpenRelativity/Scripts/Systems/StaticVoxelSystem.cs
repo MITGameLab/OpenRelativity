@@ -159,7 +159,7 @@ namespace OpenRelativity
 
             int startIndex = 0;
             Guid guid;
-            for (int i = 0; i < batchSizeDict.Count; i++)
+            for (int i = 0; i < batchSizeDict.Count; ++i)
             {
                 if (!serialQueue[i].Equals(qn))
                 {
@@ -170,7 +170,7 @@ namespace OpenRelativity
                 {
                     int size = batchSizeDict[qn];
 
-                    for (int j = startIndex; j < (startIndex + size); j++)
+                    for (int j = startIndex; j < (startIndex + size); ++j)
                     {
                         allColliders[i].center = allColliders[i].transform.InverseTransformPoint(origPositionsList[i]);
                     }
@@ -206,7 +206,9 @@ namespace OpenRelativity
         {
             if (!state.isMovementFrozen)
             {
-                if (sphericalCulling) cullingFrameCount++;
+                if (sphericalCulling) {
+                    ++cullingFrameCount;
+                }
 
                 if (!finishedCoroutine)
                 {
@@ -296,7 +298,7 @@ namespace OpenRelativity
 
                 //Update the old result while waiting:
                 float nanInfTest;
-                for (int i = 0; i < queuedColliders.Count; i++)
+                for (int i = 0; i < queuedColliders.Count; ++i)
                 {
                     nanInfTest = Vector3.Dot(trnsfrmdPositions[i], trnsfrmdPositions[i]);
                     if (float.IsInfinity(nanInfTest) || float.IsNaN(nanInfTest))
@@ -329,14 +331,14 @@ namespace OpenRelativity
                 Cull();
             }
 
-            for (int i = 0; i < queuedColliders.Count; i++)
+            for (int i = 0; i < queuedColliders.Count; ++i)
             {
                 if (i >= queuedColliders.Count || i >= queuedOrigPositionsList.Count)
                 {
                     break;
                 }
                 queuedColliders[i].center = queuedColliders[i].transform.InverseTransformPoint(
-                    ((Vector4)queuedOrigPositionsList[i]).WorldToOptical(Vector3.zero, state.playerTransform.position, state.PlayerVelocityVector, state.PlayerAccelerationVector, state.PlayerAngularVelocityVector, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity, Matrix4x4.identity)
+                    queuedOrigPositionsList[i].WorldToOptical(Vector3.zero, state.conformalMap.GetRindlerAcceleration(queuedOrigPositionsList[i]))
                 );
 
                 //Change mesh:
@@ -362,7 +364,7 @@ namespace OpenRelativity
 
             RelativisticObject[] ros = FindObjectsOfType<RelativisticObject>();
             List<Vector3> rosPiw = new List<Vector3>();
-            for (int i = 0; i < ros.Length; i++)
+            for (int i = 0; i < ros.Length; ++i)
             {
                 if (!ros[i].isLightMapStatic && ros[i].GetComponent<Rigidbody>() != null)
                 {
@@ -379,10 +381,10 @@ namespace OpenRelativity
             Vector3 playerPos = state.playerTransform.position;
             float distSqr;
 
-            for (int i = 0; i < origPositionsList.Count; i++)
+            for (int i = 0; i < origPositionsList.Count; ++i)
             {
                 // Don't cull anything (spherically) close to the player.
-                Vector3 colliderPos = ((Vector4)origPositionsList[i]).WorldToOptical(Vector3.zero, Vector3.zero.ProperToWorldAccel(Vector3.zero, 1), Matrix4x4.identity);
+                Vector3 colliderPos = origPositionsList[i].WorldToOptical(Vector3.zero, state.conformalMap.GetRindlerAcceleration(queuedOrigPositionsList[i]));
                 distSqr = (colliderPos - playerPos).sqrMagnitude;
                 if (distSqr < cullingSqrDistance)
                 {
@@ -393,7 +395,7 @@ namespace OpenRelativity
                 {
                     bool didCull = true;
                     // The object isn't close to the player, but remote RelativisticObjects still need their own active collider spheres, if they're colliding far away.
-                    for (int j = 0; j < rosPiw.Count; j++)
+                    for (int j = 0; j < rosPiw.Count; ++j)
                     {
                         distSqr = (colliderPos - rosPiw[j]).sqrMagnitude;
                         if (distSqr < cullingSqrDistance)

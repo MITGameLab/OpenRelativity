@@ -33,7 +33,7 @@ namespace OpenRelativity.Objects
 
             //Store a copy of our original mesh
             original = origBoxColliders;
-            for (int i = 0; i < original.Length; i++)
+            for (int i = 0; i < original.Length; ++i)
             {
                 original[i].enabled = false;
                 //Split this collider until all of its dimensions have length less than our chosen value
@@ -57,7 +57,7 @@ namespace OpenRelativity.Objects
             if (svt != null)
             {
                 Vector3[] worldPositions = new Vector3[origPositions.Length];
-                for (int i = 0; i < origPositions.Length; i++)
+                for (int i = 0; i < origPositions.Length; ++i)
                 {
                     worldPositions[i] = transform.TransformPoint(origPositions[i]);
                 }
@@ -91,37 +91,37 @@ namespace OpenRelativity.Objects
             Vector3 origCenter = orig.center;
             Vector3 origWorldCenter = origTransform.TransformPoint(origCenter);
 
-            Vector3 xEdge = origSize.x / 2.0f * new Vector3(1.0f, 0.0f, 0.0f);
+            Vector3 xEdge = origSize.x / 2 * new Vector3(1, 0, 0);
             float xFar = (origCenter + xEdge).x;
             float xNear = (origCenter - xEdge).x;
             float xExtent = (origTransform.TransformPoint(xEdge + origCenter) - origWorldCenter).magnitude;
-            Vector3 yEdge = origSize.y / 2.0f * new Vector3(0.0f, 1.0f, 0.0f);
+            Vector3 yEdge = origSize.y / 2 * new Vector3(0, 1, 0);
             float yFar = (origCenter + yEdge).y;
             float yNear = (origCenter - yEdge).y;
             float yExtent = (origTransform.TransformPoint(yEdge + origCenter) - origWorldCenter).magnitude;
-            Vector3 zEdge = origSize.z / 2.0f * new Vector3(0.0f, 0.0f, 1.0f);
+            Vector3 zEdge = origSize.z / 2 * new Vector3(0, 0, 1);
             float zFar = (origCenter + zEdge).z;
             float zNear = (origCenter - zEdge).z;
             float zExtent = (origTransform.TransformPoint(zEdge + origCenter) - origWorldCenter).magnitude;
 
-            int xCount = ((int)(2.0f * xExtent / constant + 1.0f));
-            int yCount = ((int)(2.0f * yExtent / constant + 1.0f));
-            int zCount = ((int)(2.0f * zExtent / constant + 1.0f));
+            int xCount = ((int)(2 * xExtent / constant + 1));
+            int yCount = ((int)(2 * yExtent / constant + 1));
+            int zCount = ((int)(2 * zExtent / constant + 1));
 
             Vector3 newColliderPos = new Vector3();
             Vector3 newColliderSize = new Vector3(origSize.x / xCount, origSize.y / yCount, origSize.z / zCount);
             if (xCount > 1) newColliderSize.x = newColliderSize.x * (1 + oversizePercent);
             if (yCount > 1) newColliderSize.y = newColliderSize.y * (1 + oversizePercent);
             if (zCount > 1) newColliderSize.z = newColliderSize.z * (1 + oversizePercent);
-            for (int i = 0; i < xCount; i++)
+            for (int i = 0; i < xCount; ++i)
             {
-                newColliderPos.x = xNear + ((xFar - xNear) * i / xCount) + newColliderSize.x /2.0f;
-                for (int j = 0; j < yCount; j++)
+                newColliderPos.x = xNear + ((xFar - xNear) * i / xCount) + newColliderSize.x / 2;
+                for (int j = 0; j < yCount; ++j)
                 {
-                    newColliderPos.y = yNear + ((yFar - yNear) * j / yCount) + newColliderSize.y / 2.0f;
-                    for (int k = 0; k < zCount; k++)
+                    newColliderPos.y = yNear + ((yFar - yNear) * j / yCount) + newColliderSize.y / 2;
+                    for (int k = 0; k < zCount; ++k)
                     {
-                        newColliderPos.z = zNear + ((zFar - zNear) * k / zCount) + newColliderSize.z / 2.0f;
+                        newColliderPos.z = zNear + ((zFar - zNear) * k / zCount) + newColliderSize.z / 2;
                         BoxCollider newCollider = gameObject.AddComponent<BoxCollider>();
                         newCollider.isTrigger = orig.isTrigger;
                         newColliders.Add(newCollider);
@@ -139,7 +139,7 @@ namespace OpenRelativity.Objects
 
         void OnDestroy()
         {
-            for (int i = 0; i < original.Length; i++)
+            for (int i = 0; i < original.Length; ++i)
             {
                 original[i].enabled = true;
             }

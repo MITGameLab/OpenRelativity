@@ -144,7 +144,7 @@ namespace OpenRelativity.Audio
             if (pitches == null || pitches.Length == 0)
             {
                 pitches = new float[audioSources.Length];
-                for (int i = 0; i < audioSources.Length; i++)
+                for (int i = 0; i < audioSources.Length; ++i)
                 {
                     pitches[i] = audioSources[i].pitch;
 
@@ -161,7 +161,7 @@ namespace OpenRelativity.Audio
         {
             if (state.isMovementFrozen)
             {
-                for (int i = 0; i < audioSources.Length; i++)
+                for (int i = 0; i < audioSources.Length; ++i)
                 {
                     audioSources[i].pitch = 0;
                 }
@@ -255,7 +255,7 @@ namespace OpenRelativity.Audio
 
         public void ShiftPitches(float frequencyFactor)
         {
-            for (int i = 0; i < pitches.Length; i++)
+            for (int i = 0; i < pitches.Length; ++i)
             {
                 audioSources[i].pitch = frequencyFactor * pitches[i];
             }

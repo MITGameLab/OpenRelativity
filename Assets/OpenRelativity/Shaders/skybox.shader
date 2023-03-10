@@ -92,7 +92,7 @@ Shader "Relativity/SkyboxShift" {
 		//You need this otherwise the screen flips and weird stuff happens
 		#ifdef SHADER_API_D3D9
 		if (_MainTex_TexelSize.y < 0)
-			 o.uv1.y = 1.0- o.uv1.y;
+			 o.uv1.y = 1- o.uv1.y;
 		#endif 
 		
 		return o;
@@ -223,7 +223,7 @@ Shader "Relativity/SkyboxShift" {
 	
 		if(_colorShift == 0)
 		{
-			svc = 1.0f;
+			svc = 1;
 		}
 		//Get initial color
 		float3 rgb = tex2D (_MainTex, i.uv1).rgb;  
@@ -239,14 +239,16 @@ Shader "Relativity/SkyboxShift" {
 		UVParam.x = 0.1; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)1;
 		IRParam.x = 0.1; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)1;
 		
-		xyz.x = pow((1/svc),3)*(getXFromCurve(rParam, svc) + getXFromCurve(gParam,svc) + getXFromCurve(bParam,svc) + getXFromCurve(IRParam,svc) + getXFromCurve(UVParam,svc));
-		xyz.y = pow((1/svc),3)*(getYFromCurve(rParam, svc) + getYFromCurve(gParam,svc) + getYFromCurve(bParam,svc) + getYFromCurve(IRParam,svc) + getYFromCurve(UVParam,svc));
-		xyz.z = pow((1/svc),3)*(getZFromCurve(rParam, svc) + getZFromCurve(gParam,svc) + getZFromCurve(bParam,svc) + getZFromCurve(IRParam,svc) + getZFromCurve(UVParam,svc));
-		
+		// See this link for criticism that suggests this should be the fifth power, rather than the third:
+		// https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+		xyz.x = pow((1/svc),5)*(getXFromCurve(rParam, svc) + getXFromCurve(gParam,svc) + getXFromCurve(bParam,svc) + getXFromCurve(IRParam,svc) + getXFromCurve(UVParam,svc));
+		xyz.y = pow((1/svc),5)*(getYFromCurve(rParam, svc) + getYFromCurve(gParam,svc) + getYFromCurve(bParam,svc) + getYFromCurve(IRParam,svc) + getYFromCurve(UVParam,svc));
+		xyz.z = pow((1/svc),5)*(getZFromCurve(rParam, svc) + getZFromCurve(gParam,svc) + getZFromCurve(bParam,svc) + getZFromCurve(IRParam,svc) + getZFromCurve(UVParam,svc));
+
 		float3 rgbFinal = XYZToRGBC(xyz);
 		//rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z);
 
-  		float4x4 temp  = mul(1.0*unity_ObjectToWorld, unity_WorldToObject);
+  		float4x4 temp  = mul(unity_ObjectToWorld, unity_WorldToObject);
 		float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1));
 		//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1);
 		return temp2; 

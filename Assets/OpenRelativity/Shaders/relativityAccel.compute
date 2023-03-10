@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 
 //Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 //#define quaternion float4
 //
@@ -66,10 +66,11 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	float4x4 invIntrinsicMetric = glblPrms[0].invIntrinsicMetric;
 
 	float4 pos = float4(verts[id.x].xyz, 0);
-	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1.0f));
+	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1));
 	pos = float4(tempPos.xyz / tempPos.w - playerOffset.xyz, 0);
 
-	float speed = length(vpc.xyz);
+	float speedSqr = dot(vpc.xyz, vpc.xyz);
+	float speed = sqrt(speedSqr);
 	float spdOfLightSqrd = spdOfLight * spdOfLight;
 
 	//riw = location in world, for reference
@@ -85,7 +86,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 	angFac *= angFac;
 	float avpMagSqr = dot(avp.xyz, avp.xyz);
 	float3 angVec = float3(0, 0, 0);
-	if (avpMagSqr > divByZeroCutoff) {
+	if (avpMagSqr > FLT_EPSILON) {
 		angVec = 2 * angFac / (spdOfLight * avpMagSqr) * avp.xyz;
 	}
 
@@ -104,30 +105,27 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	//Apply Lorentz transform:
 	metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
+
+	float4 paoTransformed = mul(viwLorentzMatrix, pao);
 	float4 riwTransformed = mul(viwLorentzMatrix, riw);
 	//Translate in time:
 	float tisw = riwTransformed.w;
 	riwTransformed.w = 0;
 
 	//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
-	float4 paoTransformed = mul(viwLorentzMatrix, pao);
 	float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 	float4 paot = mul(metric, paoTransformed);
 	float paoDotpao = -dot(paoTransformed, paot);
 	float riwDotpao = -dot(riwTransformed, paot);
 
 	float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotpao) * (spdOfLightSqrd - riwDotpao));
-	float paoMag = length(paoTransformed.xyz);
-	float t2 = 0;
-	if (sqrtArg > 0)
-	{
-		t2 = -sqrt(sqrtArg);
-	}
-	tisw += t2;
+	float paoMagSqr = dot(paoTransformed.xyz, paoTransformed.xyz);
+	float paoMag = sqrt(paoMagSqr);
+	tisw += (sqrtArg > 0) ? -sqrt(sqrtArg) : 0;
 	//add the position offset due to acceleration
-	if (paoMag > divByZeroCutoff)
+	if (paoMag > FLT_EPSILON)
 	{
-		riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / spdOfLight) * (paoMag * t2 / spdOfLight)) - 1);
+		riwTransformed.xyz -= paoTransformed.xyz * spdOfLightSqrd * (sqrt(1 + sqrtArg * paoMagSqr / spdOfLightSqrd) - 1) / paoMag;
 	}
 	riwTransformed.w = tisw;
 
@@ -138,15 +136,15 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	float newz = speed * spdOfLight * tisw;
 
-	if (speed > divByZeroCutoff) {
+	if (speed > FLT_EPSILON) {
 		float3 vpcUnit = vpc.xyz / speed;
-		newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+		newz = (dot(riw.xyz, vpcUnit) + newz) / sqrt(1 - speedSqr);
 		riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 	}
 
 	riw += float4(playerOffset.xyz, 0);
 
 	//Transform the vertex back into local space for the mesh to use it
-	tempPos = mul(wtlMatrix, float4(riw.xyz, 1.0f));
+	tempPos = mul(wtlMatrix, float4(riw.xyz, 1));
 	verts[id.x] = tempPos.xyz / tempPos.w;
 }

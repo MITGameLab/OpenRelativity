@@ -39,7 +39,7 @@ namespace OpenRelativity.Audio
         // speed of light and other constants.
 
         // Static system physical constants:
-        public float RapidityOfSound = 343.0f;
+        public float RapidityOfSound = 343;
         public Vector3 WorldSoundMediumRapidity = Vector3.zero;
     }
 }

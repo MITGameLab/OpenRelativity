@@ -55,7 +55,7 @@ Shader "Relativity/Unlit/ColorOnly"
 #define UV_START 0
 
 		//Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 	//This is the data sent from the vertex shader to the fragment shader
 	struct v2f
@@ -97,10 +97,10 @@ Shader "Relativity/Unlit/ColorOnly"
 																   //You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 		if (_MainTex_TexelSize.y < 0)
-			o.uv1.y = 1.0 - o.uv1.y;
+			o.uv1.y = 1 - o.uv1.y;
 #endif 
 
-		float4 piw = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+		float4 piw = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1));
 		piw = float4(piw.xyz / piw.w - _playerOffset.xyz, 0);
 
 		float speed = length(_vpc.xyz);
@@ -155,7 +155,7 @@ Shader "Relativity/Unlit/ColorOnly"
 		float bottom2 = param.z * shift;
 		bottom2 *= bottom2;
 		if (bottom2 == 0) {
-			bottom2 = 1.0f;
+			bottom2 = 1;
 		}
 
 		float paramYShift = param.y * shift;
@@ -179,7 +179,7 @@ Shader "Relativity/Unlit/ColorOnly"
 		float bottom = param.z * shift;
 		bottom *= bottom;
 		if (bottom == 0) {
-			bottom = 1.0f;
+			bottom = 1;
 		}
 
 		float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
@@ -198,7 +198,7 @@ Shader "Relativity/Unlit/ColorOnly"
 		float bottom = param.z * shift;
 		bottom *= bottom;
 		if (bottom == 0) {
-			bottom = 1.0f;
+			bottom = 1;
 		}
 
 		float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
@@ -234,8 +234,8 @@ Shader "Relativity/Unlit/ColorOnly"
 
 	float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 		//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-		if (shift < divByZeroCutoff) {
-			shift = divByZeroCutoff;
+		if (shift < FLT_EPSILON) {
+			shift = FLT_EPSILON;
 		}
 
 		float mixIntensity = _dopplerIntensity;
@@ -250,17 +250,20 @@ Shader "Relativity/Unlit/ColorOnly"
 		float3 xyz = RGBToXYZC(rgb);
 		float3 weights = weightFromXYZCurves(xyz);
 		float3 rParam, gParam, bParam, UVParam, IRParam;
-		rParam = float3(weights.x, 615.0f, 8.0f);
-		gParam = float3(weights.y, 550.0f, 4.0f);
-		bParam = float3(weights.z, 463.0f, 5.0f);
-		UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-		IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+		rParam = float3(weights.x, 615, 8);
+		gParam = float3(weights.y, 550, 4);
+		bParam = float3(weights.z, 463, 5);
+		UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5);
+		IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5);
 
 		xyz = float3(
 			(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + mixIntensity * (getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift))),
 			(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + mixIntensity * (getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift))),
 			(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + mixIntensity * (getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift))));
-		return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+
+        // See this link for criticism that suggests this should be the fifth power, rather than the third:
+		// https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+		return constrainRGB(XYZToRGBC(pow(1 / shift, 5) * xyz));
 	}
 
 	//Per pixel shader, does color modifications
@@ -268,8 +271,8 @@ Shader "Relativity/Unlit/ColorOnly"
 	{
 		// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
 		float shift;
-		if ((i.svc < divByZeroCutoff) || (dot(_vr.xyz, _vr.xyz) < divByZeroCutoff)) {
-			shift = 1.0f;
+		if ((i.svc <= FLT_EPSILON) || (dot(_vr.xyz, _vr.xyz) <= FLT_EPSILON)) {
+			shift = 1;
 		}
 		else
 		{

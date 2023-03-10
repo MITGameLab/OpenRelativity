@@ -24,10 +24,11 @@ namespace OpenRelativity
                 combine[i].transform = meshFilters[i].transform.localToWorldMatrix;
                 meshFilters[i].gameObject.SetActive(false);
 
-                i++;
+                ++i;
             }
-            transform.GetComponent<MeshFilter>().mesh = new Mesh();
-            transform.GetComponent<MeshFilter>().mesh.CombineMeshes(combine);
+            Mesh mesh = new Mesh();
+            transform.GetComponent<MeshFilter>().mesh = mesh;
+            mesh.CombineMeshes(combine);
             transform.gameObject.SetActive(true);
         }
     }

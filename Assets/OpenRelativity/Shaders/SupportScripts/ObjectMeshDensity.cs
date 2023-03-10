@@ -41,7 +41,7 @@ namespace OpenRelativity
                 while (isDone == true)
                 {
                     isDone = Subdivide(change, meshFilter.transform);
-                    numberOfLoops++;
+                    ++numberOfLoops;
 
                 }
                 if (numberOfLoops == 1)
@@ -109,12 +109,12 @@ namespace OpenRelativity
         //Find the midpoint between two vectors
         Vector3 Mid(Vector3 one, Vector3 two)
         {
-            return 1.0f / 2.0f * (one + two);
+            return (one + two) / 2;
         }
         //Finds midpoint of two V2s
         Vector2 Mid2(Vector2 one, Vector2 two)
         {
-            return 1.0f / 2.0f * (one + two);
+            return (one + two) / 2;
         }
 
         //Just subdivide something
@@ -134,7 +134,7 @@ namespace OpenRelativity
             int lastTriangleIndexAdded = 0; //Use this to keep track of the last vertex that you added to the list from each loop.
 
             //Loop through the triangles. If one has an area greater than our chosen constant, then subdivide it
-            for (int i = 0; i < mesh.triangles.Length / 3; i++)
+            for (int i = 0; i < mesh.triangles.Length / 3; ++i)
             {
                 //Get two edges, take their cross product, and divide the magnitude in half. That should give us the triangle's area.
                 Vector3 dist1 = (transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded]]) - transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 1]]));
@@ -238,11 +238,11 @@ namespace OpenRelativity
 
             //Loop through the triangles. If one has an area greater than our chosen constant, then subdivide it]
             int offset = 0;
-            for (int q = 0; q < mesh.subMeshCount; q++)
+            for (int q = 0; q < mesh.subMeshCount; ++q)
             {
 
                 oldTriangles[q] = mesh.GetTriangles(q);
-                for (int i = 0; i < oldTriangles[q].Length / 3; i++)
+                for (int i = 0; i < oldTriangles[q].Length / 3; ++i)
                 {
                     Vector3 dist1 = (transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded]]) - transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 1]]));
                     Vector3 dist2 = (transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 2]]) - transform.TransformPoint(mesh.vertices[mesh.triangles[lastIndexAdded + 1]]));
@@ -324,7 +324,7 @@ namespace OpenRelativity
             oldVerts = newVerts.ToArray();
             mesh.vertices = oldVerts;
             mesh.subMeshCount = count;
-            for (int j = 0; j < count; j++)
+            for (int j = 0; j < count; ++j)
             {
                 mesh.SetTriangles(oldTriangles[j], j);
             }

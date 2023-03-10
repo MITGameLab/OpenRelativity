@@ -23,7 +23,6 @@
 #pragma exclude_renderers xbox360
 #pragma glsl
 
-#define divByZeroCutoff 1e-8f
 #define PI_2 1.57079632679489661923
 
 //Color shift variables, used to make Gaussians for XYZ curves
@@ -241,7 +240,9 @@
 		xyz.x = getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift);
 		xyz.y = getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift);
 		xyz.z = getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift);
-		sourceColor = XYZToRGBC(pow(1 / shift, 3) * xyz);
+		// See this link for criticism that suggests this should be the fifth power, rather than the third:
+		// https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+		sourceColor = XYZToRGBC(pow(1 / shift, 5) * xyz);
 
 		return float4(sourceColor, 1);
 	}

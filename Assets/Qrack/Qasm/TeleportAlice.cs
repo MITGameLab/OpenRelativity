@@ -18,17 +18,12 @@ namespace Qrack
                 quantumProgramUpdate = (x, y) =>
                 {
                     QuantumSystem qs = QuantumSystem;
-                    RelativisticObject ro = RelativisticObject;
 
                     qs.Rand(0);
 
-                    float zProb = qs.Prob(0);
-                    qs.H(0);
-                    float xProb = qs.Prob(0);
-                    qs.S(0);
-                    float yProb = qs.Prob(0);
-                    qs.Z(0);
-                    qs.S(0);
+                    BlochSphereCoordinates coords = qs.Prob3Axis(0);
+
+                    qs.MCX(new ulong[] { 0 }, 1);
                     qs.H(0);
 
                     HistoryPoints.Add(new RealTimeQasmProgramHistoryPoint
@@ -36,13 +31,12 @@ namespace Qrack
                         WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
-                            ro.transform.eulerAngles = new Vector3(xProb * 360.0f, yProb * 360.0f, zProb * 360.0f);
+                            RelativisticObject ro = RelativisticObject;
+                            ro.transform.rotation = Quaternion.Euler((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0);
                             ro.riw = qs.transform.rotation;
+                            ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
                         }
                     });
-
-                    qs.MCX(new uint[] { 0 }, 1);
-                    qs.H(0);
                 }
             });
 

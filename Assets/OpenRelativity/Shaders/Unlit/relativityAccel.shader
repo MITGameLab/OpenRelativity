@@ -57,7 +57,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 #define UV_START 0
 
 //Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 
 		//This is the data sent from the vertex shader to the fragment shader
@@ -112,13 +112,14 @@ Shader "Relativity/Unlit/ColorLorentz"
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 			if (_MainTex_TexelSize.y < 0)
-				o.uv1.y = 1.0 - o.uv1.y;
+				o.uv1.y = 1 - o.uv1.y;
 #endif 
 
-			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1));
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 
-			float speed = length(_vpc.xyz);
+			float speedSqr = dot(_vpc.xyz, _vpc.xyz);
+			float speed = sqrt(speedSqr);
 			float spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
 			//relative speed
@@ -138,7 +139,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			angFac *= angFac;
 			float avpMagSqr = dot(_avp.xyz, _avp.xyz);
 			float3 angVec = float3(0, 0, 0);
-			if (avpMagSqr > divByZeroCutoff) {
+			if (avpMagSqr > FLT_EPSILON) {
 				angVec = 2 * angFac / (_spdOfLight * avpMagSqr) * _avp.xyz;
 			}
 
@@ -172,17 +173,13 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float riwDotpao = -dot(riwTransformed, paot);
 
 			float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotpao) * (spdOfLightSqrd - riwDotpao));
-			float paoMag = length(paoTransformed.xyz);
-			float t2 = 0;
-			if (sqrtArg > 0)
-			{
-				t2 = -sqrt(sqrtArg);
-			}
-			tisw += t2;
+			float paoMagSqr = dot(paoTransformed.xyz, paoTransformed.xyz);
+			float paoMag = sqrt(paoMagSqr);
+			tisw += (sqrtArg > 0) ? -sqrt(sqrtArg) : 0;
 			//add the position offset due to acceleration
-			if (paoMag > divByZeroCutoff)
+			if (paoMag > FLT_EPSILON)
 			{
-				riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / _spdOfLight) * (paoMag * t2 / _spdOfLight)) - 1);
+				riwTransformed.xyz -= paoTransformed.xyz / paoMag * spdOfLightSqrd * (sqrt(1 + sqrtArg * paoMagSqr / spdOfLightSqrd) - 1);
 			}
 			riwTransformed.w = tisw;
 
@@ -193,16 +190,16 @@ Shader "Relativity/Unlit/ColorLorentz"
 
 			float newz = speed * _spdOfLight * tisw;
 
-			if (speed > divByZeroCutoff) {
+			if (speed > FLT_EPSILON) {
 				float3 vpcUnit = _vpc.xyz / speed;
-				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+				newz = (dot(riw.xyz, vpcUnit) + newz) / sqrt(1 - speedSqr);
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 			}
 
 			riw += float4(_playerOffset.xyz, 0);
 
 			//Transform the vertex back into local space for the mesh to use
-			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1.0f));
+			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1));
 			o.pos = float4(tempPos.xyz / tempPos.w, 0);
 
 			o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
@@ -250,7 +247,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
 			if (bottom2 == 0) {
-				bottom2 = 1.0f;
+				bottom2 = 1;
 			}
 
 			float paramYShift = param.y * shift;
@@ -274,7 +271,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float bottom = param.z * shift;
 			bottom *= bottom;
 			if (bottom == 0) {
-				bottom = 1.0f;
+				bottom = 1;
 			}
 
 			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
@@ -293,7 +290,7 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float bottom = param.z * shift;
 			bottom *= bottom;
 			if (bottom == 0) {
-				bottom = 1.0f;
+				bottom = 1;
 			}
 
 			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
@@ -330,8 +327,8 @@ Shader "Relativity/Unlit/ColorLorentz"
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 #if DOPPLER_SHIFT
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			if (shift < divByZeroCutoff) {
-				shift = divByZeroCutoff;
+			if (shift < FLT_EPSILON) {
+				shift = FLT_EPSILON;
 			}
 
 			float mixIntensity = _dopplerIntensity;
@@ -346,17 +343,20 @@ Shader "Relativity/Unlit/ColorLorentz"
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam = float3(weights.x, 615.0f, 8.0f);
-			gParam = float3(weights.y, 550.0f, 4.0f);
-			bParam = float3(weights.z, 463.0f, 5.0f);
-			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+			rParam = float3(weights.x, 615, 8);
+			gParam = float3(weights.y, 550, 4);
+			bParam = float3(weights.z, 463, 5.);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5);
 
 			xyz = float3(
 				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + mixIntensity * (getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift))),
 				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + mixIntensity * (getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift))),
 				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + mixIntensity * (getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift))));
-			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+
+            // See this link for criticism that suggests this should be the fifth power, rather than the third:
+			// https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+			return constrainRGB(XYZToRGBC(pow(1 / shift, 5) * xyz));
 #else
 			return rgb;
 #endif
@@ -365,10 +365,10 @@ Shader "Relativity/Unlit/ColorLorentz"
 		//Per pixel shader, does color modifications
 		float4 frag(v2f i) : COLOR
 		{
-			float shift = 1.0f;
+			float shift = 1;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			if ((i.svc.x > divByZeroCutoff) && (dot(_vr.xyz, _vr.xyz) > divByZeroCutoff)) {
+			if ((i.svc.x > FLT_EPSILON) && (dot(_vr.xyz, _vr.xyz) > FLT_EPSILON)) {
 				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc.x;
 			}
 #endif

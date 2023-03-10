@@ -7,14 +7,14 @@ namespace Qrack
     {
         public QuantumSystem QuantumSystem;
 
-        public uint[] QuantumSystemMappings;
+        public ulong[] QuantumSystemMappings;
 
-        override protected uint GetSystemIndex(uint registerIndex)
+        override protected ulong GetSystemIndex(ulong registerIndex)
         {
             return QuantumSystemMappings[registerIndex];
         }
 
-        public override void CheckAlloc(List<uint> bits)
+        public override void CheckAlloc(List<ulong> bits)
         {
             QuantumSystem.CheckAlloc(bits);
         }

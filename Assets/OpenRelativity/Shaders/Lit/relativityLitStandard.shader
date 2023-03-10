@@ -20,7 +20,6 @@ Shader "Relativity/Lit/Standard" {
 		[Toggle(SPECULAR)] _SpecularOn("Specular reflections", Range(0, 1)) = 0
 		_Smoothness("Smoothness", Range(0, 1)) = 0
 		_Metallic("Metallic", Range(0, 1)) = 0
-		_Metallic("Metallic", Range(0, 1)) = 0
 		_Attenuation("Attenuation", Range(0, 10)) = 1
 		[Toggle(_EMISSION)] _EmissionOn("Emission lighting", Range(0, 1)) = 0
 		_EmissionMap("Emission map", 2D) = "black" {}
@@ -75,7 +74,7 @@ Shader "Relativity/Lit/Standard" {
 #define FORWARD_FOG (!defined(UNITY_PASS_DEFERRED) && defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2))
 
 //Prevent NaN and Inf
-#define divByZeroCutoff 1e-8f
+#define FLT_EPSILON 1.192092896e-07F
 
 #define CAST_LIGHTCOLOR0 float4((float)_LightColor0.r, (float)_LightColor0.g, (float)_LightColor0.b, (float)_LightColor0.a)
 
@@ -253,8 +252,8 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom2 = param.z * shift;
 			bottom2 *= bottom2;
-			if (bottom2 < divByZeroCutoff) {
-				bottom2 = divByZeroCutoff;
+			if (bottom2 < FLT_EPSILON) {
+				bottom2 = FLT_EPSILON;
 			}
 
 			float paramYShift = param.y * shift;
@@ -277,8 +276,8 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
-			if (bottom < divByZeroCutoff) {
-				bottom = divByZeroCutoff;
+			if (bottom < FLT_EPSILON) {
+				bottom = FLT_EPSILON;
 			}
 
 			float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
@@ -295,8 +294,8 @@ Shader "Relativity/Lit/Standard" {
 			//Re-use memory to save per-vertex operations:
 			float bottom = param.z * shift;
 			bottom *= bottom;
-			if (bottom < divByZeroCutoff) {
-				bottom = divByZeroCutoff;
+			if (bottom < FLT_EPSILON) {
+				bottom = FLT_EPSILON;
 			}
 
 			float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
@@ -347,8 +346,8 @@ Shader "Relativity/Lit/Standard" {
 		float3 DopplerShift(float3 rgb, float UV, float IR, float shift) {
 #if DOPPLER_SHIFT
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
-			if (shift < divByZeroCutoff) {
-				shift = divByZeroCutoff;
+			if (shift < FLT_EPSILON) {
+				shift = FLT_EPSILON;
 			}
 
 			float mixIntensity = _dopplerIntensity;
@@ -363,17 +362,20 @@ Shader "Relativity/Lit/Standard" {
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam = float3(weights.x, 615.0f, 8.0f);
-			gParam = float3(weights.y, 550.0f, 4.0f);
-			bParam = float3(weights.z, 463.0f, 5.0f);
-			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+			rParam = float3(weights.x, 615, 8);
+			gParam = float3(weights.y, 550, 4);
+			bParam = float3(weights.z, 463, 5);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5);
 
 			xyz = float3(
 				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + mixIntensity * (getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift))),
 				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + mixIntensity * (getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift))),
 				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + mixIntensity * (getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift))));
-			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+
+            // See this link for criticism that suggests this should be the fifth power, rather than the third:
+			// https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+			return constrainRGB(XYZToRGBC(pow(1 / shift, 5) * xyz));
 #else
 			return rgb;
 #endif
@@ -427,14 +429,14 @@ Shader "Relativity/Lit/Standard" {
 			//You need this otherwise the screen flips and weird stuff happens
 #ifdef SHADER_API_D3D9
 			if (_MainTex_TexelSize.y < 0)
-				o.albedoUV.y = 1.0f - o.albedoUV.y;
+				o.albedoUV.y = 1 - o.albedoUV.y;
 #endif 
 
 #if defined(UNITY_PASS_FORWARDBASE) && _EMISSION
 			o.emissionUV.xy = (v.texcoord + _EmissionMap_ST.zw) * _EmissionMap_ST.xy;
 #endif
 
-			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1.0f));
+			float4 tempPos = mul(unity_ObjectToWorld, float4(v.vertex.xyz, 1));
 #if FORWARD_FOG
 			o.pos3 = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 			o.pos = o.pos3;
@@ -442,7 +444,8 @@ Shader "Relativity/Lit/Standard" {
 			o.pos = float4(tempPos.xyz / tempPos.w - _playerOffset.xyz, 0);
 #endif
 
-			float speed = length(_vpc.xyz);
+            float speedSqr = dot(_vpc.xyz, _vpc.xyz);
+			float speed = sqrt(speedSqr);
 			_spdOfLightSqrd = _spdOfLight * _spdOfLight;
 
 			//relative speed
@@ -465,7 +468,7 @@ Shader "Relativity/Lit/Standard" {
 			angFac *= angFac;
 			float avpMagSqr = dot(_avp.xyz, _avp.xyz);
 			float3 angVec = float3(0, 0, 0);
-			if (avpMagSqr > divByZeroCutoff) {
+			if (avpMagSqr > FLT_EPSILON) {
 				angVec = 2 * angFac / (_spdOfLight * avpMagSqr) * _avp.xyz;
 			}
 
@@ -497,32 +500,22 @@ Shader "Relativity/Lit/Standard" {
 			//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
 			float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
 		    float4 paot = mul(metric, paoTransformed);
-			float4 paoDotpao = -dot(paoTransformed, paot);
+			float paoDotpao = -dot(paoTransformed, paot);
 
     #if IS_STATIC
 			float sqrtArg = riwDotRiw / _spdOfLightSqrd;
-
-			float t2 = 0;
-			if (sqrtArg > 0)
-			{
-				t2 = -sqrt(sqrtArg);
-			}
-			tisw += t2;
+			tisw += (sqrtArg > 0) ? -sqrt(sqrtArg) : 0;
     #else
 			float riwDotpao = -dot(riwTransformed, paot);
 
 			float sqrtArg = riwDotRiw * (_spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * _spdOfLightSqrd)) / ((_spdOfLightSqrd - riwDotpao) * (_spdOfLightSqrd - riwDotpao));
-			float paoMag = length(paoTransformed.xyz);
-			float t2 = 0;
-			if (sqrtArg > 0)
-			{
-				t2 = -sqrt(sqrtArg);
-			}
-			tisw += t2;
+			float paoMagSqr = dot(paoTransformed.xyz, paoTransformed.xyz);
+			float paoMag = sqrt(paoMagSqr);
+			tisw += (sqrtArg > 0) ? -sqrt(sqrtArg) : 0;
 			//add the position offset due to acceleration
-			if (paoMag > divByZeroCutoff)
+			if (paoMag > FLT_EPSILON)
 			{
-				riwTransformed.xyz -= paoTransformed.xyz / paoMag * _spdOfLightSqrd * (sqrt(1 + (paoMag * t2 / _spdOfLight) * (paoMag * t2 / _spdOfLight)) - 1);
+				riwTransformed.xyz -= paoTransformed.xyz / paoMag * _spdOfLightSqrd * (sqrt(1 + sqrtArg * paoMagSqr / _spdOfLightSqrd) - 1);
 			}
     #endif
 			riwTransformed.w = tisw;
@@ -534,16 +527,16 @@ Shader "Relativity/Lit/Standard" {
 
 			float newz = speed * _spdOfLight * tisw;
 
-			if (speed > divByZeroCutoff) {
+			if (speed > FLT_EPSILON) {
 				float3 vpcUnit = _vpc.xyz / speed;
-				newz = (dot(riw.xyz, vpcUnit) + newz) / (float)sqrt(1 - (speed * speed));
+				newz = (dot(riw.xyz, vpcUnit) + newz) / sqrt(1 - speedSqr);
 				riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
 			}
 
 			riw += float4(_playerOffset.xyz, 0);
 
 			//Transform the vertex back into local space for the mesh to use
-			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1.0f));
+			tempPos = mul(unity_WorldToObject, float4(riw.xyz, 1));
 			o.pos = float4(tempPos.xyz / tempPos.w, 0);
 
 			o.pos2 = float4(riw.xyz - _playerOffset.xyz, 0);
@@ -578,16 +571,16 @@ Shader "Relativity/Lit/Standard" {
 			float4 lightPosition;
 			float3 lightSourceToVertex, lightDirection, diffuseReflection;
 			float squaredDistance, attenuation, shift;
-			for (int index = 0; index < 4; index++)
+			for (int index = 0; index < 4; ++index)
 			{
 				lightPosition = float4(unity_4LightPosX0[index],
 					unity_4LightPosY0[index],
-					unity_4LightPosZ0[index], 1.0f);
+					unity_4LightPosZ0[index], 1);
 				lightSourceToVertex =
 					mul(_viwLorentzMatrix, float4((o.pos2.xyz + _playerOffset.xyz) - _WorldSpaceLightPos0.xyz, 0));
 				squaredDistance = -dot(lightSourceToVertex.xyz, mul(metric, lightSourceToVertex).xyz);
-				if (squaredDistance < 0.0f) {
-					squaredDistance = 0.0f;
+				if (squaredDistance < 0) {
+					squaredDistance = 0;
 				}
 
 				// Red/blue shift light due to gravity
@@ -595,18 +588,18 @@ Shader "Relativity/Lit/Standard" {
 
 				if (unity_SpotDirection[index].z != 1) // directional light?
 				{
-					attenuation = 1.0f; // no attenuation
+					attenuation = 1; // no attenuation
 					lightDirection =
 						normalize(unity_SpotDirection[index]);
 				}
 				else {
-					attenuation = 1.0f / (1.0f +
+					attenuation = 1 / (1 +
 						unity_4LightAtten0[index] * squaredDistance * _Attenuation);
 					lightDirection = normalize(-lightSourceToVertex);
 				}
 				diffuseReflection = attenuation
 					* lightColor * _Color.rgb
-					* max(0.0f, dot(o.normal.xyz, lightDirection));
+					* max(0, dot(o.normal.xyz, lightDirection));
 
 				o.diff.rgb += diffuseReflection;
 			}
@@ -625,10 +618,10 @@ Shader "Relativity/Lit/Standard" {
 		//Per pixel shader, does color modifications
 		f2o frag(v2f i)
 		{
-			float shift = 1.0f;
+			float shift = 1;
 #if DOPPLER_SHIFT
 			// ( 1 - (v/c)cos(theta) ) / sqrt ( 1 - (v/c)^2 )
-			if ((i.svc.x > divByZeroCutoff) && (dot(_vr.xyz, _vr.xyz) > divByZeroCutoff)) {
+			if ((i.svc.x > FLT_EPSILON) && (dot(_vr.xyz, _vr.xyz) > FLT_EPSILON)) {
 				shift = (1 - dot(normalize(i.pos2), _vr.xyz)) / i.svc.x;
 			}
 #endif
@@ -668,7 +661,7 @@ Shader "Relativity/Lit/Standard" {
 			half3 lms = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, i.lightmapUV));
 
 		#if defined(DIRLIGHTMAP_COMBINED)
-			attenuation = 1.0f;
+			attenuation = 1;
 
 			lightDirection = UNITY_SAMPLE_TEX2D_SAMPLER(
 				unity_LightmapInd, unity_Lightmap, i.lightmapUV
@@ -678,7 +671,7 @@ Shader "Relativity/Lit/Standard" {
 
 			// The length of the direction vector is the light's "directionality", i.e. 1 for all light coming from this direction,
 			// lower values for more spread out, ambient light.
-			float directionality = max(0.001, length(lightDirection));
+			float directionality = max(0.001f, length(lightDirection));
 			lightDirection /= directionality;
 
 			lightDirection = normalize(mul(_viwLorentzMatrix, float4(lightDirection, 0)).xyz);
@@ -701,8 +694,8 @@ Shader "Relativity/Lit/Standard" {
 			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - halfAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			specFactor = min(1.0f, specFactor);
-			lightRgb *= 1.0f - specFactor;
+			specFactor = min(1, specFactor);
+			lightRgb *= 1 - specFactor;
 			lightRgb += lightRgb * specFactor;
 			#endif
 
@@ -715,9 +708,9 @@ Shader "Relativity/Lit/Standard" {
 			i.diff = float4((float3)lms, 0);
 		#endif
 	#elif defined(POINT)
-			if (0.0 == _WorldSpaceLightPos0.w) // directional light?
+			if (0 == _WorldSpaceLightPos0.w) // directional light?
 			{
-				attenuation = 1.0f; // no attenuation
+				attenuation = 1; // no attenuation
 				lightDirection = normalize(_WorldSpaceLightPos0.xyz);
 			}
 			else // point or spot light
@@ -725,10 +718,10 @@ Shader "Relativity/Lit/Standard" {
 				float3 lightSourceToVertex =
 					mul(_viwLorentzMatrix, float4((i.pos2.xyz + _playerOffset.xyz) - _WorldSpaceLightPos0.xyz, 0));
 				float squaredDistance = -dot(lightSourceToVertex.xyz, i.lstv.xyz);
-				if (squaredDistance < 0.0f) {
-					squaredDistance = 0.0f;
+				if (squaredDistance < 0) {
+					squaredDistance = 0;
 				}
-				attenuation = 1.0f / (1.0f + squaredDistance * _Attenuation);
+				attenuation = 1 / (1 + squaredDistance * _Attenuation);
 				lightDirection = normalize(-lightSourceToVertex);
 			}
 			float nl = max(0, dot(i.normal, lightDirection));
@@ -745,14 +738,14 @@ Shader "Relativity/Lit/Standard" {
 			// Assuming the Doppler shift were perfect, this should behave similarly to INVERSE Doppler shifting the albedo color
 			// to calculate the reflectance, but this probably isn't physically meaningful: the albedo is a proper intrinsic property.
 
-			float pShift = 1.0f;
-			if ((i.svc.y > divByZeroCutoff) && (dot(_viw.xyz, _viw.xyz) > divByZeroCutoff)) {
+			float pShift = 1;
+			if ((i.svc.y > FLT_EPSILON) && (dot(_viw.xyz, _viw.xyz) > FLT_EPSILON)) {
 				pShift = (1 - dot(lightDirection, _viw.xyz)) / i.svc.x;
 			}
 
 			float3 albedoColor = _Color.rgb;
 
-			albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1.0f / pShift);
+			albedoColor = DopplerShift(albedoColor, albedoColor.b * bFac, albedoColor.r * rFac, 1 / pShift);
 
 			float3 lightRgb = FadeShadows(i, attenuation) * CAST_LIGHTCOLOR0.rgb * albedoColor * nl;
 
@@ -765,8 +758,8 @@ Shader "Relativity/Lit/Standard" {
 			float specFactor = (_Smoothness + (1 - _Smoothness) * pow(1 - halfAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			specFactor = min(1.0f, specFactor);
-			lightRgb *= 1.0f - specFactor;
+			specFactor = min(1, specFactor);
+			lightRgb *= 1 - specFactor;
 			lightRgb += lightRgb * specFactor;
 		#endif
 			i.diff += float4(lightRgb, 0);
@@ -793,8 +786,8 @@ Shader "Relativity/Lit/Standard" {
 			float specFactor2 = (_Smoothness + (1 - _Smoothness) * pow(1 - cosAngle, 5)) * _Metallic;
 
 			// Specular reflection is added after lightmap and shadow
-			specFactor2 = min(1.0f, specFactor2);
-			rgbFinal *= 1.0f - specFactor2;
+			specFactor2 = min(1, specFactor2);
+			rgbFinal *= 1 - specFactor2;
 
 	#if !(defined(UNITY_PASS_DEFERRED) && UNITY_ENABLE_REFLECTION_BUFFERS)
 			Unity_GlossyEnvironmentData envData;
@@ -866,9 +859,9 @@ Shader "Relativity/Lit/Standard" {
 #if defined(UNITY_PASS_DEFERRED)
 			output.gBuffer0.rgb = albedo.rgb;
 			output.gBuffer0.a = 1; // No occlusion
-			output.gBuffer1.rgb = float3(1.0f, 1.0f, 1.0f);
+			output.gBuffer1.rgb = float3(1, 1, 1);
 			output.gBuffer1.a = _Smoothness;
-			output.gBuffer2 = float4(i.normal.xyz * 0.5f + 0.5f, 1.0f);
+			output.gBuffer2 = float4((1 + i.normal.xyz) / 2, 1);
 			output.gBuffer3 = float4(rgbFinal.rgb, albedo.a);
 #if !defined(UNITY_HDR_ON)
 			output.gBuffer3.rgb = exp2(-output.gBuffer3.rgb);
@@ -954,17 +947,17 @@ Shader "Relativity/Lit/Standard" {
 
 				sampler2D _GIAlbedoTex;
 				fixed4 _GIAlbedoColor;
-				float4 frag_meta2(v2f i) : SV_Target
+				float4 frag_meta2(v2f_meta i) : SV_Target
 				{
 					// We're interested in diffuse & specular colors
 					// and surface roughness to produce final albedo.
 
-					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.albedoUV.xy,0,0));
+					FragmentCommonData data = UNITY_SETUP_BRDF_INPUT(float4(i.uv.xy,0,0));
 					UnityMetaInput o;
 					UNITY_INITIALIZE_OUTPUT(UnityMetaInput, o);
-					fixed4 c = tex2D(_GIAlbedoTex, i.albedoUV);
+					fixed4 c = tex2D(_GIAlbedoTex, i.uv);
 #if _EMISSION
-					o.Emission = (tex2D(_EmissionMap, i.emissionUV) * _EmissionMultiplier) * _EmissionColor;
+					o.Emission = (tex2D(_EmissionMap, i.uv) * _EmissionMultiplier) * _EmissionColor;
 #else
 					o.Emission = 0;
 #endif

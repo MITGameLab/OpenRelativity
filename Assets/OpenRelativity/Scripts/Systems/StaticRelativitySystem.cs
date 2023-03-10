@@ -29,7 +29,7 @@ namespace OpenRelativity {
             // so it saves redundant GPU time to calculate them beforehand.
             Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(Vector3.zero);
 
-            for (int i = 0; i < staticRelativisticMaterials.Count; i++)
+            for (int i = 0; i < staticRelativisticMaterials.Count; ++i)
             {
                 staticRelativisticMaterials[i].SetVector("_viw", Vector3.zero);
                 staticRelativisticMaterials[i].SetVector("_aiw", Vector3.zero);

@@ -19,7 +19,6 @@
 
 #include "UnityCG.cginc"
 
-#define divByZeroCutoff 1e-8f
 #define PI_2 1.57079632679489661923
 
 //Color shift variables, used to make Gaussians for XYZ curves
@@ -238,23 +237,26 @@
 			//Color shift due to doppler, go from RGB -> XYZ, shift, then back to RGB.
 
 			if (shift == 0) {
-				shift = 1.0f;
+				shift = 1;
 			}
 
 			float3 xyz = RGBToXYZC(rgb);
 			float3 weights = weightFromXYZCurves(xyz);
 			float3 rParam, gParam, bParam, UVParam, IRParam;
-			rParam = float3(weights.x, 615.0f, 8.0f);
-			gParam = float3(weights.y, 550.0f, 4.0f);
-			bParam = float3(weights.z, 463.0f, 5.0f);
-			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5.0f);
-			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5.0f);
+			rParam = float3(weights.x, 615, 8);
+			gParam = float3(weights.y, 550, 4);
+			bParam = float3(weights.z, 463, 5);
+			UVParam = float3(0.02f, UV_START + UV_RANGE * UV, 5);
+			IRParam = float3(0.02f, IR_START + IR_RANGE * IR, 5);
 
 			xyz = float3(
 				(getXFromCurve(rParam, shift) + getXFromCurve(gParam, shift) + getXFromCurve(bParam, shift) + getXFromCurve(IRParam, shift) + getXFromCurve(UVParam, shift)),
 				(getYFromCurve(rParam, shift) + getYFromCurve(gParam, shift) + getYFromCurve(bParam, shift) + getYFromCurve(IRParam, shift) + getYFromCurve(UVParam, shift)),
 				(getZFromCurve(rParam, shift) + getZFromCurve(gParam, shift) + getZFromCurve(bParam, shift) + getZFromCurve(IRParam, shift) + getZFromCurve(UVParam, shift)));
-			return constrainRGB(XYZToRGBC(pow(1 / shift, 3) * xyz));
+
+            // See this link for criticism that suggests this should be the fifth power, rather than the third:
+		    // https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+			return constrainRGB(XYZToRGBC(pow(1 / shift, 5) * xyz));
 		}
 
         float4 skybox_frag(v2f i, sampler2D smp, half4 smpDecode) {
@@ -263,7 +265,7 @@
             c = c * _Tint.rgb * unity_ColorSpaceDouble.rgb;
             c *= _Exposure;
 
-            float shift = 1.0f / sqrt(_lensRadius / _playerDist - 1);
+            float shift = 1 / sqrt(_lensRadius / _playerDist - 1);
 
             return float4(DopplerShift(c, bFac * c.b, rFac * c.r, shift), tex.w);
         }

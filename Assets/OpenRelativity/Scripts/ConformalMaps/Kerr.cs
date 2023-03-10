@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace OpenRelativity.ConformalMaps
 {
@@ -7,14 +8,14 @@ namespace OpenRelativity.ConformalMaps
         public float spinMomentum;
         public Vector3 spinAxis = Vector3.up;
 
-        protected float spinRadiusDiff = 0.0f;
-        protected float timeScale = 1.0f;
+        protected float spinRadiusDiff = 0;
+        protected float timeScale = 1;
 
         virtual public float aParam
         {
             get
             {
-                return spinMomentum / (2 * state.gConst * Mathf.Pow(state.SpeedOfLight, 4.0f) * schwarzschildRadius);
+                return (float)(spinMomentum / (2 * state.gConst * Math.Pow(state.SpeedOfLight, 4) * schwarzschildRadius));
             }
         }
 
@@ -23,14 +24,13 @@ namespace OpenRelativity.ConformalMaps
             // If our "SetEffectiveRadius(piw)" is expected to be exact at the equator, but we use it in all cases,
             // then we can better our overall approximation by assuming an inclincation-dependent time coordinate scaling.
 
-            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            if (spinMomentum <= SRelativityUtil.FLT_EPSILON)
             {
                 return;
             }
 
             float a = aParam;
             float aSqr = a * a;
-
             float rSqr = piw.sqrMagnitude;
             // Radius:
             float r = Mathf.Sqrt(rSqr);
@@ -42,20 +42,20 @@ namespace OpenRelativity.ConformalMaps
             float sigma = rSqr + aSqr * cosIncSqr;
             float delta = rSqr - schwarzschildRadius * r + aSqr;
 
-            float effectiveR = (schwarzschildRadius * r * r) / (r * r + a * a * cosInc * cosInc);
+            float effectiveR = (schwarzschildRadius * rSqr) / (rSqr + aSqr * cosIncSqr);
 
             float kerrScale = Mathf.Sqrt(((aSqr + rSqr) * (aSqr + rSqr) - aSqr * delta * sinIncSqr) / (delta * sigma));
-            float schwarzScale = 1.0f / Mathf.Sqrt(1.0f - effectiveR / r);
+            float schwarzScale = 1 / Mathf.Sqrt(1 - effectiveR / r);
 
             timeScale = kerrScale / schwarzScale;
         }
 
         override public void SetEffectiveRadius(Vector3 piw)
         {
-            if (spinMomentum <= SRelativityUtil.divByZeroCutoff)
+            if (spinMomentum <= SRelativityUtil.FLT_EPSILON)
             {
-                spinRadiusDiff = 0.0f;
-                timeScale = 1.0f;
+                spinRadiusDiff = 0;
+                timeScale = 1;
                 return;
             }
 
@@ -65,14 +65,14 @@ namespace OpenRelativity.ConformalMaps
             SetTimeCoordScale(piw);
 
             float rs = schwarzschildRadius;
-            float r = piw.magnitude;
-            float cosInc = piw.z / r;
+            float rSqr = piw.sqrMagnitude;
+            float cosIncSqr = piw.z * piw.z / rSqr;
             float a = aParam;
 
             // I'm forced to approximate, for now. This might be avoided with tractable free fall coordinates.
             // This is a more accurate approximation, as (rs * r) tends >> (a * a * sinInc * sinInc),
             // such as at the equator or long radial distances.
-            spinRadiusDiff = rs - (rs * r * r) / (r * r + a * a * cosInc * cosInc);
+            spinRadiusDiff = rs - (rs * rSqr) / (rSqr + a * a * cosIncSqr);
 
             schwarzschildRadius -= spinRadiusDiff;
         }
@@ -80,8 +80,8 @@ namespace OpenRelativity.ConformalMaps
         override public void ResetSchwarschildRadius()
         {
             schwarzschildRadius += spinRadiusDiff;
-            spinRadiusDiff = 0.0f;
-            timeScale = 1.0f;
+            spinRadiusDiff = 0;
+            timeScale = 1;
         }
 
         virtual public float GetOmega(Vector3 piw)
@@ -89,15 +89,13 @@ namespace OpenRelativity.ConformalMaps
             float rSqr = piw.sqrMagnitude;
             // Radius:
             float r = Mathf.Sqrt(rSqr);
-            // Inclination:
-            float inc = Mathf.Acos(piw.z / r);
             // Azimuth:
-            float azi = Mathf.Atan2(piw.y, piw.x);
+            float cosAzi = Mathf.Cos(Mathf.Atan2(piw.y, piw.x));
+            // Inclination:
+            float cosInc = Mathf.Cos(Mathf.Acos(piw.z / r));
 
-            float a = spinMomentum / (schwarzschildRadius * state.planckMass / state.planckLength);
+            float a = (float)(spinMomentum / (schwarzschildRadius * state.planckMass / state.planckLength));
             float aSqr = a * a;
-            float cosAzi = Mathf.Cos(azi);
-            float cosInc = Mathf.Cos(inc);
 
             float sigma = rSqr + aSqr * cosAzi * cosAzi;
 
@@ -108,7 +106,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public Comovement ComoveOptical(float properTDiff, Vector3 piw, Quaternion riw)
         {
-            if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
+            if ((spinMomentum <= SRelativityUtil.FLT_EPSILON) || (piw.sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
             {
                 return base.ComoveOptical(properTDiff, piw, riw);
             }
@@ -132,7 +130,7 @@ namespace OpenRelativity.ConformalMaps
             float omega = GetOmega(piw);
             float frameDragAngle = omega * tDiff;
             // We will apply HALF the rotation, at BOTH ends of the finite difference time interval.
-            Quaternion frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2.0f, spinAxis);
+            Quaternion frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2, spinAxis);
 
             // If interior... (reverse signature change).
             if (!isExterior)
@@ -163,7 +161,7 @@ namespace OpenRelativity.ConformalMaps
             omega = GetOmega(piw);
             frameDragAngle = omega * tDiff;
             // We will apply HALF the rotation, at BOTH ends of the finite difference time interval.
-            frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2.0f, spinAxis);
+            frameDragRot = Quaternion.AngleAxis(frameDragAngle / 2, spinAxis);
 
             // If interior... (reverse signature change).
             if (!isExterior)
@@ -190,7 +188,7 @@ namespace OpenRelativity.ConformalMaps
 
         override public Vector3 GetRindlerAcceleration(Vector3 piw)
         {
-            if ((spinMomentum <= SRelativityUtil.divByZeroCutoff) || (piw.sqrMagnitude <= SRelativityUtil.divByZeroCutoff))
+            if ((spinMomentum <= SRelativityUtil.FLT_EPSILON) || (piw.sqrMagnitude <= SRelativityUtil.FLT_EPSILON))
             {
                 return base.GetRindlerAcceleration(piw);
             }
@@ -209,7 +207,7 @@ namespace OpenRelativity.ConformalMaps
 
             Vector3 frameDragAccel = (omega * omega * lpiw.magnitude) * Vector3.ProjectOnPlane(lpiw, spinAxis).normalized;
 
-            Vector3 totalAccel = 1.0f / (timeScale * timeScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
+            Vector3 totalAccel = 1 / (timeScale * timeScale) * (frameDragAccel + base.GetRindlerAcceleration(piw));
 
             ResetSchwarschildRadius();
 
@@ -220,7 +218,7 @@ namespace OpenRelativity.ConformalMaps
         {
             EnforceHorizon();
 
-            if (schwarzschildRadius <= 0 || !doEvaporate || state.isMovementFrozen)
+            if ((schwarzschildRadius <= 0) || state.isMovementFrozen || (!doMonopoleEvaporate && !doHawkingEvaporate))
             {
                 return;
             }
@@ -244,7 +242,7 @@ namespace OpenRelativity.ConformalMaps
 
             // These happen to be equal:
             // float constRatio = state.planckAngularMomentum / state.planckLength;
-            float constRatio = state.planckMomentum;
+            float constRatio = (float)state.planckMomentum;
             float extremalFrac = spinMomentum / (schwarzschildRadius * constRatio);
             spinMomentum += extremalFrac * deltaR * constRatio;
         }

@@ -2,14 +2,16 @@ using OpenRelativity.ConformalMaps;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace OpenRelativity.Objects
 {
+    [ExecuteInEditMode]
     public class RelativisticObject : RelativisticBehavior
     {
         #region Public Settings
         public bool isLightMapStatic = false;
-        public bool useGravity;
+        public bool useGravity = false;
         // Use this instead of relativistic parent
         public bool isParent = false;
         // Combine colliders under us in the hierarchy
@@ -17,9 +19,9 @@ namespace OpenRelativity.Objects
         // Use this if not using an explicitly relativistic shader
         public bool isNonrelativisticShader = false;
         // We set the Rigidbody "drag" parameter in this object.
-        public float unityDrag = 0.0f;
+        public float unityDrag = 0;
         // We also set the Rigidbody "angularDrag" parameter in this object.
-        public float unityAngularDrag = 0.0f;
+        public float unityAngularDrag = 0;
         // Comove via ConformalMap acceleration, or ComoveOptical?
         public bool comoveViaAcceleration = false;
         // The composite scalar monopole graviton gas is described by statistical mechanics and heat flow equations
@@ -31,12 +33,12 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                if (!myRigidbody)
+                if (myRigidbody)
                 {
-                    return 0.0f;
+                    return myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
                 }
 
-                return myRigidbody.mass * SRelativityUtil.avogadroNumber / baryonCount;
+                return 0;
             }
             protected set
             {
@@ -81,29 +83,38 @@ namespace OpenRelativity.Objects
         #region Local Time
         //Acceleration desyncronizes our clock from the world clock:
         public float localTimeOffset { get; private set; }
-        public float localDeltaTime { get; private set; }
-        public float localFixedDeltaTime { get; private set; }
+        private float oldLocalTimeUpdate;
+        public float localDeltaTime
+        {
+            get
+            {
+                return GetLocalTime() - oldLocalTimeUpdate;
+            }
+        }
+        public float localFixedDeltaTime
+        {
+            get
+            {
+                return GetLocalTime() - oldLocalTimeFixedUpdate;
+            }
+        }
+        private float oldLocalTimeFixedUpdate;
         public float GetLocalTime()
         {
             return state.TotalTimeWorld + localTimeOffset;
         }
         public void ResetLocalTime()
         {
-            localTimeOffset = 0.0f;
+            localTimeOffset = 0;
         }
-        public float GetTisw(Vector3? pos = null)
+        public float GetTisw()
         {
-            if (pos == null)
-            {
-                pos = piw;
-            }
-
-            if (isPhysicsCacheValid && pos == piw)
+            if (isPhysicsCacheValid)
             {
                 return updateTisw;
             }
 
-            return ((Vector4)pos.Value).GetTisw(viw, GetComoving4Acceleration());
+            return piw.GetTisw(viw, GetComoving4Acceleration());
         }
         public float GetVisualTime()
         {
@@ -136,15 +147,8 @@ namespace OpenRelativity.Objects
             Matrix4x4 invVpcLorentz = state.PlayerLorentzMatrix.inverse;
             metric = invVpcLorentz.transpose * metric * invVpcLorentz;
 
-            if (state.conformalMap == null)
-            {
-                return metric;
-            }
-            else
-            {
-                Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
-                return intrinsicMetric * metric * intrinsicMetric.inverse;
-            }
+            Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
+            return intrinsicMetric * metric * intrinsicMetric.inverse;
         }
 
         public Vector4 Get4Velocity()
@@ -159,45 +163,27 @@ namespace OpenRelativity.Objects
                 return updateWorld4Acceleration;
             }
 
-            return comovingAccel.ProperToWorldAccel(viw, GetTimeFactor(viw));
+            return comovingAccel.ProperToWorldAccel(viw, GetTimeFactor());
         }
 
         public Vector4 GetWorld4Acceleration()
         {
-            return aiw.ProperToWorldAccel(viw, GetTimeFactor(viw));
+            return aiw.ProperToWorldAccel(viw, GetTimeFactor());
         }
 
         // This is the factor commonly referred to as "gamma," for length contraction and time dilation,
         // only also with consideration for a gravitationally curved background, such as due to Rindler coordinates.
         // (Rindler coordinates are actually Minkowski flat, but the same principle applies.)
-        public float GetTimeFactor(Vector3? pVel = null)
+        public float GetTimeFactor()
         {
-            if (!pVel.HasValue)
-            {
-                // The common default case is, we want the player's "gamma,"
-                // at this RO's position in space-time.
-                pVel = state.PlayerVelocityVector;
-            }
-
             if (isPhysicsCacheValid)
             {
-                if (pVel == state.PlayerAngularVelocityVector)
-                {
-                    return updatePlayerViwTimeFactor;
-                }
-
-                if (pVel == viw)
-                {
-                    return updateViwTimeFactor;
-                }
+                return updateViwTimeFactor;
             }
 
             // However, sometimes we want a different velocity, at this space-time point,
             // such as this RO's own velocity.
-
-            Matrix4x4 metric = GetMetric();
-
-            return pVel.Value.InverseGamma(metric);
+            return viw.InverseGamma(GetMetric());
         }
         #endregion
 
@@ -244,16 +230,17 @@ namespace OpenRelativity.Objects
                     return;
                 }
             }
+
             switch (mode)
             {
                 case ForceMode.Impulse:
-                    viw += force / myRigidbody.mass;
+                    peculiarVelocity += force / mass;
                     break;
                 case ForceMode.VelocityChange:
-                    viw += force;
+                    peculiarVelocity += force;
                     break;
                 case ForceMode.Force:
-                    nonGravAccel += force / myRigidbody.mass;
+                    nonGravAccel += force / mass;
                     break;
                 case ForceMode.Acceleration:
                     nonGravAccel += force;
@@ -270,6 +257,10 @@ namespace OpenRelativity.Objects
             }
             set
             {
+                if ((value - _piw).sqrMagnitude <= SRelativityUtil.FLT_EPSILON) {
+                    return;
+                }
+
                 _piw = value;
                 UpdatePhysicsCaches();
             }
@@ -278,17 +269,17 @@ namespace OpenRelativity.Objects
         public Vector3 opticalPiw {
             get
             {
-                return ((Vector4)piw).WorldToOptical(peculiarVelocity, GetComoving4Acceleration());
+                return piw.WorldToOptical(peculiarVelocity, GetComoving4Acceleration());
             }
             set
             {
-                piw = ((Vector4)value).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration());
+                piw = value.OpticalToWorld(peculiarVelocity, GetComoving4Acceleration());
             }
         }
 
         public void ResetPiw()
         {
-            piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
+            piw = isNonrelativisticShader ? transform.position.OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
         }
         //Store rotation quaternion
         public Quaternion riw { get; set; }
@@ -304,7 +295,7 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if ((value - _peculiarVelocity).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                if ((value - _peculiarVelocity).sqrMagnitude <= SRelativityUtil.FLT_EPSILON)
                 {
                     return;
                 }
@@ -318,7 +309,7 @@ namespace OpenRelativity.Objects
         {
             get
             {
-                return (state.conformalMap == null) ? Vector3.zero : state.conformalMap.GetFreeFallVelocity(piw);
+                return state.conformalMap ? state.conformalMap.GetFreeFallVelocity(piw) : Vector3.zero;
             }
         }
 
@@ -365,7 +356,7 @@ namespace OpenRelativity.Objects
             set
             {
                 // Skip this all, if the change is negligible.
-                if (isKinematic || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.divByZeroCutoff)
+                if (isKinematic || (value - _nonGravAccel).sqrMagnitude <= SRelativityUtil.FLT_EPSILON)
                 {
                     return;
                 }
@@ -387,10 +378,7 @@ namespace OpenRelativity.Objects
                     accel += Physics.gravity;
                 }
 
-                if (state.conformalMap)
-                {
-                    accel += state.conformalMap.GetRindlerAcceleration(piw);
-                }
+                accel += state.conformalMap.GetRindlerAcceleration(piw);
 
                 return accel;
             }
@@ -441,7 +429,7 @@ namespace OpenRelativity.Objects
             {
                 if (!myRigidbody)
                 {
-                    return 0.0f;
+                    return 0;
                 }
 
                 // Per Strano 2019, due to the interaction with the thermal graviton gas radiated by the Rindler horizon,
@@ -453,18 +441,18 @@ namespace OpenRelativity.Objects
                 // then it will spontaneously emit this excitation, with a coupling constant proportional to the
                 // gravitational constant "G" times (baryon) constituent particle rest mass.
 
-                double nuclearMass = myRigidbody.mass / baryonCount;
+                double nuclearMass = mass / baryonCount;
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
 
                 if (nuclearMass < fundamentalNuclearMass)
                 {
                     // We can't support negative temperatures, yet, for realistic constants,
                     // (not that we'd necessarily want them).
-                    return 0.0f;
+                    return 0;
                 }
 
                 double excitationEnergy = (nuclearMass - fundamentalNuclearMass) * state.SpeedOfLightSqrd;
-                double temperature = excitationEnergy * 2.0 / state.boltzmannConstant;
+                double temperature = 2 * excitationEnergy / state.boltzmannConstant;
 
                 return (float)temperature;
 
@@ -479,14 +467,14 @@ namespace OpenRelativity.Objects
                 }
 
                 double fundamentalNuclearMass = fundamentalAverageMolarMass / SRelativityUtil.avogadroNumber;
-                double excitationEnergy = value * state.boltzmannConstant / 2.0;
-                if (excitationEnergy < 0.0)
+                double excitationEnergy = value * state.boltzmannConstant / 2;
+                if (excitationEnergy < 0)
                 {
-                    excitationEnergy = 0.0;
+                    excitationEnergy = 0;
                 }
                 double nuclearMass = excitationEnergy / state.SpeedOfLightSqrd + fundamentalNuclearMass;
 
-                myRigidbody.mass = (float)(nuclearMass * baryonCount);
+                mass = (float)(nuclearMass * baryonCount);
             }
         }
 
@@ -506,7 +494,7 @@ namespace OpenRelativity.Objects
 
             float timeFac = GetTimeFactor();
 
-            _piw = ((Vector4)((Vector4)piw).WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac))).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
+            _piw = piw.WorldToOptical(pvi, ai.ProperToWorldAccel(pvi, timeFac)).OpticalToWorld(pvf, comovingAccel.ProperToWorldAccel(pvf, timeFac));
 
             if (isNonrelativisticShader)
             {
@@ -541,20 +529,41 @@ namespace OpenRelativity.Objects
         }
         //If we specifically have a mesh collider, we need to know to transform the verts of the mesh itself.
         private bool isMyColliderMesh;
-        private bool isMyColliderBox;
         private bool isMyColliderVoxel;
+        private bool isMyColliderGeneral {
+            get {
+                return !isMyColliderMesh && !isMyColliderVoxel;
+            }
+        }
+
         //If we have a collider to transform, we cache it here
         private Collider[] myColliders;
+        private SphereCollider[] mySphereColliders;
+        private BoxCollider[] myBoxColliders;
+        private CapsuleCollider[] myCapsuleColliders;
+
         private Vector3[] colliderPiw { get; set; }
         public void MarkStaticColliderPos()
         {
-            if (isMyColliderBox && myColliders != null)
+            if (isMyColliderGeneral)
             {
                 List<Vector3> sttcPosList = new List<Vector3>();
-                for (int i = 0; i < myColliders.Length; i++)
+
+                for (int i = 0; i < mySphereColliders.Length; ++i)
                 {
-                    sttcPosList.Add(((BoxCollider)myColliders[i]).center);
+                    sttcPosList.Add(mySphereColliders[i].center);
                 }
+
+                for (int i = 0; i < myBoxColliders.Length; ++i)
+                {
+                    sttcPosList.Add(myBoxColliders[i].center);
+                }
+
+                for (int i = 0; i < myCapsuleColliders.Length; ++i)
+                {
+                    sttcPosList.Add(myCapsuleColliders[i].center);
+                }
+
                 colliderPiw = sttcPosList.ToArray();
             }
         }
@@ -589,7 +598,7 @@ namespace OpenRelativity.Objects
         // Based on Strano 2019, (preprint).
         // (I will always implement potentially "cranky" features so you can toggle them off, but I might as well.)
         public bool isMonopoleAccel = false;
-        public float monopoleAccelerationSoften = 0.0f;
+        public float monopoleAccelerationSoften = 0;
         #endregion
 
         #region Collider transformation and update
@@ -628,17 +637,16 @@ namespace OpenRelativity.Objects
                 {
                     //Read the state of the rigidbody and shut it off, once.
                     wasFrozen = true;
-                    if (myRigidbody)
+                    if (!myRigidbody) {
+                        wasKinematic = true;
+                        collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+                    }
+                    else      
                     {
                         wasKinematic = myRigidbody.isKinematic;
                         collisionDetectionMode = myRigidbody.collisionDetectionMode;
                         myRigidbody.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                         myRigidbody.isKinematic = true;
-                    }
-                    else
-                    {
-                        wasKinematic = true;
-                        collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                     }
                 }
 
@@ -666,16 +674,9 @@ namespace OpenRelativity.Objects
             colliderShaderParams.spdOfLight = state.SpeedOfLight;
             colliderShaderParams.vpcLorentzMatrix = state.PlayerLorentzMatrix;
             colliderShaderParams.invVpcLorentzMatrix = state.PlayerLorentzMatrix.inverse;
-            if (state.conformalMap) {
-                Matrix4x4 metric = state.conformalMap.GetMetric(piw);
-                colliderShaderParams.intrinsicMetric = metric;
-                colliderShaderParams.invIntrinsicMetric = metric.inverse;
-            }
-            else
-            {
-                colliderShaderParams.intrinsicMetric = Matrix4x4.identity;
-                colliderShaderParams.intrinsicMetric = Matrix4x4.identity;
-            }
+            Matrix4x4 metric = state.conformalMap.GetMetric(piw);
+            colliderShaderParams.intrinsicMetric = metric;
+            colliderShaderParams.invIntrinsicMetric = metric.inverse;
 
             ShaderParams[] spa = new ShaderParams[1];
             spa[0] = colliderShaderParams;
@@ -692,6 +693,7 @@ namespace OpenRelativity.Objects
             trnsfrmdMesh.vertices = trnsfrmdMeshVerts;
             trnsfrmdMesh.RecalculateBounds();
             trnsfrmdMesh.RecalculateNormals();
+            trnsfrmdMesh.RecalculateTangents();
             transformCollider.sharedMesh = trnsfrmdMesh;
 
             if (myRigidbody)
@@ -726,7 +728,6 @@ namespace OpenRelativity.Objects
             if (GetComponent<ObjectBoxColliderDensity>())
             {
                 isMyColliderVoxel = true;
-                isMyColliderBox = false;
                 isMyColliderMesh = false;
             }
             else
@@ -735,25 +736,22 @@ namespace OpenRelativity.Objects
                 if (myColliders.Length > 0)
                 {
                     isMyColliderMesh = true;
-                    isMyColliderBox = false;
                     isMyColliderVoxel = false;
                 }
                 else
                 {
-                    myColliders = GetComponents<BoxCollider>();
-                    isMyColliderBox = (myColliders.Length > 0);
                     isMyColliderMesh = false;
                     isMyColliderVoxel = false;
                 }
             }
 
-            if (myColliders == null)
-            {
-                return;
-            }
+            mySphereColliders = GetComponents<SphereCollider>();
+            myBoxColliders = GetComponents<BoxCollider>();
+            myCapsuleColliders = GetComponents<CapsuleCollider>();
 
+            myColliders = GetComponents<Collider>();
             List<PhysicMaterial> origMaterials = new List<PhysicMaterial>();
-            for (int i = 0; i < myColliders.Length; i++)
+            for (int i = 0; i < myColliders.Length; ++i)
             {
                 // Friction needs a relativistic correction, so we need variable PhysicMaterial parameters.
                 Collider collider = myColliders[i];
@@ -765,31 +763,50 @@ namespace OpenRelativity.Objects
 
         public void UpdateColliderPosition()
         {
-            if (isMyColliderVoxel || isNonrelativisticShader || myColliders == null || myColliders.Length == 0)
+            if (isMyColliderVoxel || isNonrelativisticShader || (myColliders.Length == 0))
             {
                 return;
             }
 
             //If we have a MeshCollider and a compute shader, transform the collider verts relativistically:
-            if (isMyColliderMesh && colliderShader && (myColliders.Length > 0) && SystemInfo.supportsComputeShaders)
+            if (isMyColliderMesh && colliderShader && SystemInfo.supportsComputeShaders)
             {
                 UpdateMeshCollider((MeshCollider)myColliders[0]);
             }
-            //If we have a BoxCollider, transform its center to its optical position
-            else if (isMyColliderBox)
+            //If we have a Collider, transform its center to its optical position
+            else if (isMyColliderGeneral)
             {
                 Vector4 aiw4 = GetComoving4Acceleration();
-                Vector3 pos;
-                BoxCollider collider;
-                Vector3 testPos;
-                float testMag;
-                for (int i = 0; i < myColliders.Length; i++)
+
+                int iTot = 0;
+                for (int i = 0; i < mySphereColliders.Length; ++i)
                 {
-                    collider = (BoxCollider)myColliders[i];
-                    pos = transform.TransformPoint((Vector4)colliderPiw[i]);
-                    testPos = transform.InverseTransformPoint(((Vector4)pos).WorldToOptical(peculiarVelocity, aiw4));
-                    testMag = testPos.sqrMagnitude;
+                    SphereCollider collider = mySphereColliders[i];
+                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
+                    Vector3 pw = pos.WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 testPos = transform.InverseTransformPoint(pw);
                     collider.center = testPos;
+                    ++iTot;
+                }
+
+                for (int i = 0; i < myBoxColliders.Length; ++i)
+                {
+                    BoxCollider collider = myBoxColliders[i];
+                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
+                    Vector3 pw = pos.WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 testPos = transform.InverseTransformPoint(pw);
+                    collider.center = testPos;
+                    ++iTot;
+                }
+
+                for (int i = 0; i < myCapsuleColliders.Length; ++i)
+                {
+                    CapsuleCollider collider = myCapsuleColliders[i];
+                    Vector3 pos = transform.TransformPoint((Vector4)colliderPiw[iTot]);
+                    Vector3 pw = pos.WorldToOptical(peculiarVelocity, aiw4);
+                    Vector3 testPos = transform.InverseTransformPoint(pw);
+                    collider.center = testPos;
+                    ++iTot;
                 }
             }
         }
@@ -801,9 +818,8 @@ namespace OpenRelativity.Objects
             _localScale = transform.localScale;
             if (contractor)
             {
-                Transform prnt = contractor.parent;
                 contractor.parent = null;
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+                contractor.localScale = new Vector3(1, 1, 1);
                 transform.parent = null;
                 Destroy(contractor.gameObject);
             }
@@ -831,10 +847,10 @@ namespace OpenRelativity.Objects
 
             //Undo length contraction from previous state, and apply updated contraction:
             // - First, return to world frame:
-            contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+            contractor.localScale = new Vector3(1, 1, 1);
             transform.localScale = _localScale;
 
-            if (relVelMag > SRelativityUtil.divByZeroCutoff)
+            if (relVelMag > SRelativityUtil.FLT_EPSILON)
             {
                 Quaternion rot = transform.rotation;
 
@@ -851,13 +867,13 @@ namespace OpenRelativity.Objects
                 transform.rotation = origRot;
 
                 // - Set the scale based only on the velocity relative to the player:
-                contractor.localScale = new Vector3(1.0f, 1.0f, 1.0f).ContractLengthBy(relVelMag * Vector3.forward);
+                contractor.localScale = new Vector3(1, 1, 1).ContractLengthBy(relVelMag * Vector3.forward);
             }
         }
 
         public void UpdateContractorPosition()
         {
-            if (!isNonrelativisticShader)
+            if (!Application.isPlaying || !isNonrelativisticShader)
             {
                 return;
             }
@@ -928,7 +944,7 @@ namespace OpenRelativity.Objects
             List<string> uniqueMaterialNames = new List<string>();
 
             //For every meshfilter,
-            for (int y = 0; y < meshFilterLength; y++)
+            for (int y = 0; y < meshFilterLength; ++y)
             {
                 //If it's null, ignore it.
                 if (!meshFilters[y]) continue;
@@ -948,7 +964,7 @@ namespace OpenRelativity.Objects
             //And make a triangle array for every submesh
             int[][] tempTriangles = new int[subMeshCounts][];
 
-            for (int u = 0; u < subMeshCounts; u++)
+            for (int u = 0; u < subMeshCounts; ++u)
             {
                 //Make every array the correct length of triangles
                 tempTriangles[u] = new int[triangleCount];
@@ -962,7 +978,7 @@ namespace OpenRelativity.Objects
             Mesh MFs;
             int subMeshIndex = 0;
             //For all meshfilters
-            for (int i = 0; i < meshFilterLength; i++)
+            for (int i = 0; i < meshFilterLength; ++i)
             {
                 //just doublecheck that the mesh isn't null
                 MFs = meshFilters[i].sharedMesh;
@@ -970,7 +986,7 @@ namespace OpenRelativity.Objects
                 if (!MFs.isReadable) continue;
 
                 //Otherwise, for all submeshes in the current mesh
-                for (int q = 0; q < subMeshCount[i]; q++)
+                for (int q = 0; q < subMeshCount[i]; ++q)
                 {
                     //turn off the original renderer
                     meshRenderers[i].enabled = false;
@@ -991,21 +1007,21 @@ namespace OpenRelativity.Objects
                     //Grab its triangles
                     int[] tempSubTriangles = MFs.GetTriangles(q);
                     //And put them into the submesh's triangle array
-                    for (int k = 0; k < tempSubTriangles.Length; k++)
+                    for (int k = 0; k < tempSubTriangles.Length; ++k)
                     {
                         tempTriangles[subMeshIndex][k] = tempSubTriangles[k] + vertIndex;
                     }
                     //Increment the submesh index
-                    subMeshIndex++;
+                    ++subMeshIndex;
                 }
                 Matrix4x4 cTrans = worldLocalMatrix * meshFilters[i].transform.localToWorldMatrix;
                 //For all the vertices in the mesh
-                for (int v = 0; v < MFs.vertices.Length; v++)
+                for (int v = 0; v < MFs.vertices.Length; ++v)
                 {
                     //Get the vertex and the UV coordinate
                     tempVerts[vertIndex] = cTrans.MultiplyPoint3x4(MFs.vertices[v]);
                     tempUVs[vertIndex] = MFs.uv[v];
-                    vertIndex++;
+                    ++vertIndex;
                 }
             }
 
@@ -1015,11 +1031,11 @@ namespace OpenRelativity.Objects
             myMesh.subMeshCount = uniqueMaterials.Count;
             myMesh.vertices = tempVerts;
             Material[] finalMaterials = new Material[uniqueMaterials.Count];
-            for (int i = 0; i < uniqueMaterialNames.Count; i++)
+            for (int i = 0; i < uniqueMaterialNames.Count; ++i)
             {
                 string uniqueName = uniqueMaterialNames[i];
                 List<int> combineTriangles = new List<int>();
-                for (int j = 0; j < tempMaterials.Length; j++)
+                for (int j = 0; j < tempMaterials.Length; ++j)
                 {
                     string name = tempMaterials[j].name.Replace(" (Instance)", "");
                     if (uniqueName.Equals(name))
@@ -1075,7 +1091,7 @@ namespace OpenRelativity.Objects
             {
                 MeshCollider[] childrenColliders = GetComponentsInChildren<MeshCollider>();
                 List<Collider> dupes = new List<Collider>();
-                for (int i = 0; i < childrenColliders.Length; i++)
+                for (int i = 0; i < childrenColliders.Length; ++i)
                 {
                     MeshCollider orig = childrenColliders[i];
                     MeshCollider dupe = CopyComponent(childrenColliders[i], gameObject);
@@ -1094,7 +1110,7 @@ namespace OpenRelativity.Objects
                 }
             }
             //"Delete" all children.
-            for (int i = 0; i < transform.childCount; i++)
+            for (int i = 0; i < transform.childCount; ++i)
             {
                 GameObject child = transform.GetChild(i).gameObject;
                 if (child.tag != "Contractor" && child.tag != "Voxel Collider")
@@ -1121,6 +1137,43 @@ namespace OpenRelativity.Objects
 
         private void UpdateShaderParams()
         {
+            if (!Application.isPlaying || !myRenderer)
+            {
+                return;
+            }
+
+            //Send our object's v/c (Velocity over the Speed of Light) to the shader
+
+            Vector3 tempViw = peculiarVelocity / state.SpeedOfLight;
+            Vector4 tempPao = GetComoving4Acceleration();
+            Vector4 tempVr = (-state.PlayerVelocityVector).AddVelocity(peculiarVelocity) / state.SpeedOfLight;
+
+            //Velocity of object Lorentz transforms are the same for all points in an object,
+            // so it saves redundant GPU time to calculate them beforehand.
+            Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
+
+            // Metric default (doesn't have correct signature):
+            Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
+
+            colliderShaderParams.viw = tempViw;
+            colliderShaderParams.pao = tempPao;
+            colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
+            colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
+            for (int i = 0; i < myRenderer.materials.Length; ++i)
+            {
+                myRenderer.materials[i].SetVector("_viw", tempViw);
+                myRenderer.materials[i].SetVector("_pao", tempPao);
+                myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
+                myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
+                myRenderer.materials[i].SetMatrix("_intrinsicMetric", intrinsicMetric);
+                myRenderer.materials[i].SetMatrix("_invIntrinsicMetric", intrinsicMetric.inverse);
+                myRenderer.materials[i].SetVector("_vr", tempVr);
+                myRenderer.materials[i].SetFloat("_lastUpdateSeconds", Time.time);
+            }
+        }
+
+        private void UpdateBakingShaderParams()
+        {
             if (!myRenderer)
             {
                 return;
@@ -1137,25 +1190,26 @@ namespace OpenRelativity.Objects
             Matrix4x4 viwLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(tempViw);
 
             // Metric default (doesn't have correct signature):
-            Matrix4x4 intrinsicMetric = Matrix4x4.identity;
-            if (state.conformalMap) {
-                intrinsicMetric = state.conformalMap.GetMetric(piw);
-            }
+            Matrix4x4 intrinsicMetric = state.conformalMap.GetMetric(piw);
 
             colliderShaderParams.viw = tempViw;
             colliderShaderParams.pao = tempPao;
             colliderShaderParams.viwLorentzMatrix = viwLorentzMatrix;
             colliderShaderParams.invViwLorentzMatrix = viwLorentzMatrix.inverse;
-            for (int i = 0; i < myRenderer.materials.Length; i++)
+            for (int i = 0; i < myRenderer.sharedMaterials.Length; ++i)
             {
-                myRenderer.materials[i].SetVector("_viw", tempViw);
-                myRenderer.materials[i].SetVector("_pao", tempPao);
-                myRenderer.materials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
-                myRenderer.materials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
-                myRenderer.materials[i].SetMatrix("_intrinsicMetric", intrinsicMetric);
-                myRenderer.materials[i].SetMatrix("_invIntrinsicMetric", intrinsicMetric.inverse);
-                myRenderer.materials[i].SetVector("_vr", tempVr);
-                myRenderer.materials[i].SetFloat("_lastUpdateSeconds", Time.time);
+                if (myRenderer.sharedMaterials[i] == null) {
+                    continue;
+                }
+                myRenderer.sharedMaterials[i] = Instantiate(myRenderer.sharedMaterials[i]);
+                myRenderer.sharedMaterials[i].SetVector("_viw", tempViw);
+                myRenderer.sharedMaterials[i].SetVector("_pao", tempPao);
+                myRenderer.sharedMaterials[i].SetMatrix("_viwLorentzMatrix", viwLorentzMatrix);
+                myRenderer.sharedMaterials[i].SetMatrix("_invViwLorentzMatrix", viwLorentzMatrix.inverse);
+                myRenderer.sharedMaterials[i].SetMatrix("_intrinsicMetric", intrinsicMetric);
+                myRenderer.sharedMaterials[i].SetMatrix("_invIntrinsicMetric", intrinsicMetric.inverse);
+                myRenderer.sharedMaterials[i].SetVector("_vr", tempVr);
+                myRenderer.sharedMaterials[i].SetFloat("_lastUpdateSeconds", Time.time);
             }
         }
 
@@ -1189,7 +1243,7 @@ namespace OpenRelativity.Objects
             // The tangential velocities of each vertex should also not be greater than the maximum speed.
             // (This is a relatively computationally costly check, but it's good practice.
 
-            for (int i = 0; i < trnsfrmdMeshVerts.Length; i++)
+            for (int i = 0; i < trnsfrmdMeshVerts.Length; ++i)
             {
                 Vector3 disp = Vector3.Scale(trnsfrmdMeshVerts[i], transform.lossyScale);
                 Vector3 tangentialVel = Vector3.Cross(aviw, disp);
@@ -1209,7 +1263,7 @@ namespace OpenRelativity.Objects
             {
                 // If movement is frozen, set to zero.
                 // If we're in an invalid state, (such as before full initialization,) set to zero.
-                if (state.isMovementFrozen || (updatePlayerViwTimeFactor == 0))
+                if (state.isMovementFrozen)
                 {
                     myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
@@ -1222,12 +1276,12 @@ namespace OpenRelativity.Objects
                     myRigidbody.angularVelocity = gamma * aviw;
 
                     Vector3 properAccel = nonGravAccel + leviCivitaDevAccel;
-                    if (comoveViaAcceleration && state.conformalMap)
+                    if (comoveViaAcceleration)
                     {
                         // This is not actually "proper acceleration," with this option active.
                         properAccel += state.conformalMap.GetRindlerAcceleration(piw);
                     }
-                    if (properAccel.sqrMagnitude > SRelativityUtil.divByZeroCutoff)
+                    if (properAccel.sqrMagnitude > SRelativityUtil.FLT_EPSILON)
                     {
                         myRigidbody.AddForce(gamma * properAccel, ForceMode.Acceleration);
                     }
@@ -1243,22 +1297,19 @@ namespace OpenRelativity.Objects
                 myRigidbody.angularDrag = unityAngularDrag / gamma;
             }
 
-            if (myColliders == null)
-            {
-                return;
-            }
-
-            for (int i = 0; i < myColliders.Length; i++)
+            for (int i = 0; i < myColliders.Length; ++i)
             {
                 Collider collider = myColliders[i];
 
                 // Energy dissipation goes like mu * F_N * d.
-                // d "already looks like" d / gamma, to player,
-                // so multiply gamma * mu.
+                // If the path parallel to d is also parallel to relative velocity,
+                // d "already looks like" d' / gamma, to player, so multiply gamma * mu.
+                // If the path parallel to d is perpendicular to relative velocity,
+                // F_N "already looks like" it's being applied in time t' * gamma, to player, so multiply gamma * mu.
                 collider.material.staticFriction = gamma * origPhysicMaterials[i].staticFriction;
                 collider.material.dynamicFriction = gamma * origPhysicMaterials[i].dynamicFriction;
-                // vel_after / vel_before - Doesn't seem to need an adjustment.
-                collider.material.bounciness = origPhysicMaterials[i].bounciness / gamma;
+                // rapidity_after / rapidity_before - Doesn't seem to need an adjustment.
+                collider.material.bounciness = origPhysicMaterials[i].bounciness;
             }
         }
         #endregion
@@ -1268,7 +1319,20 @@ namespace OpenRelativity.Objects
         {
             if (paramsBuffer != null) paramsBuffer.Release();
             if (vertBuffer != null) vertBuffer.Release();
-            if (contractor != null) Destroy(contractor.gameObject);
+            if (Application.isPlaying && (contractor != null)) Destroy(contractor.gameObject);
+        }
+
+        void OnEnable() {
+            //Also get the meshrenderer so that we can give it a unique material
+            if (myRenderer == null)
+            {
+                myRenderer = GetComponent<Renderer>();
+            }
+            //If we have a MeshRenderer on our object and it's not world-static
+            if (myRenderer)
+            {
+                UpdateBakingShaderParams();
+            }
         }
 
         void Awake()
@@ -1286,10 +1350,10 @@ namespace OpenRelativity.Objects
             {
                 myRigidbody.drag = unityDrag;
                 myRigidbody.angularDrag = unityAngularDrag;
-                baryonCount = myRigidbody.mass * SRelativityUtil.avogadroNumber / initialAverageMolarMass;
+                baryonCount = mass * SRelativityUtil.avogadroNumber / initialAverageMolarMass;
             }
-
-            _piw = isNonrelativisticShader ? (Vector3)((Vector4)transform.position).OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
+            
+            _piw = isNonrelativisticShader ? transform.position.OpticalToWorld(peculiarVelocity, GetComoving4Acceleration()) : transform.position;
             riw = transform.rotation;
             checkSpeed();
             UpdatePhysicsCaches();
@@ -1326,37 +1390,6 @@ namespace OpenRelativity.Objects
                 //Native rigidbody gravity should not be used except during isFullPhysX.
                 myRigidbody.useGravity = useGravity && !isLightMapStatic;
             }
-
-            colliderShaderParams.viw = new Vector4(0, 0, 0, 1);
-
-            //Also get the meshrenderer so that we can give it a unique material
-            if (myRenderer == null)
-            {
-                myRenderer = GetComponent<Renderer>();
-            }
-            //If we have a MeshRenderer on our object and it's not world-static
-            if (myRenderer && !isLightMapStatic)
-            {
-                //And if we have a texture on our material
-                for (int i = 0; i < myRenderer.materials.Length; i++)
-                {
-                    //So that we can set unique values to every moving object, we have to instantiate a material
-                    //It's the same as our old one, but now it's not connected to every other object with the same material
-                    Material quickSwapMaterial = Instantiate(myRenderer.materials[i]) as Material;
-                    //Then, set the value that we want
-                    quickSwapMaterial.SetVector("_viw", new Vector4(0, 0, 0, 1));
-                    quickSwapMaterial.SetVector("_vr", new Vector4(0, 0, 0, 1));
-                    quickSwapMaterial.SetVector("_aiw", new Vector4(0, 0, 0, 0));
-                    quickSwapMaterial.SetMatrix("_viwLorentzMatrix", Matrix4x4.identity);
-                    quickSwapMaterial.SetMatrix("_invViwLorentzMatrix", Matrix4x4.identity);
-                    quickSwapMaterial.SetMatrix("_intrinsicMetric", Matrix4x4.identity);
-                    quickSwapMaterial.SetMatrix("_invIntrinsicMetric", Matrix4x4.identity);
-
-
-                    //And stick it back into our renderer. We'll do the SetVector thing every frame.
-                    myRenderer.materials[i] = quickSwapMaterial;
-                }
-            }
         }
 
         protected bool isPhysicsCacheValid;
@@ -1369,23 +1402,28 @@ namespace OpenRelativity.Objects
             updatePlayerViwTimeFactor = state.PlayerVelocityVector.InverseGamma(updateMetric);
             updateViwTimeFactor = viw.InverseGamma(updateMetric);
             updateWorld4Acceleration = comovingAccel.ProperToWorldAccel(viw, updateViwTimeFactor);
-            updateTisw = ((Vector4)piw).GetTisw(viw, updateWorld4Acceleration);
+            updateTisw = piw.GetTisw(viw, updateWorld4Acceleration);
 
             isPhysicsCacheValid = true;
         }
 
-        protected void  AfterPhysicsUpdate()
+        protected void AfterPhysicsUpdate()
         {
-            if (!isNonrelativisticShader)
-            {
-                // Get the relativistic position and rotation after the physics update:
-                riw = myRigidbody.rotation;
-                _piw = myRigidbody.position;
-            }
+            oldLocalTimeFixedUpdate = GetLocalTime();
 
-            // Now, update the velocity and angular velocity based on the collision result:
-            _peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
-            aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+            if (myRigidbody)
+            {
+                if (!isNonrelativisticShader)
+                {
+                    // Get the relativistic position and rotation after the physics update:
+                    riw = myRigidbody.rotation;
+                    _piw = myRigidbody.position;
+                }
+
+                // Now, update the velocity and angular velocity based on the collision result:
+                _aviw = myRigidbody.angularVelocity / updatePlayerViwTimeFactor;
+                peculiarVelocity = myRigidbody.velocity.RapidityToVelocity(updateMetric);
+            }
 
             if (isNonrelativisticShader)
             {
@@ -1395,8 +1433,8 @@ namespace OpenRelativity.Objects
 
             if (isMonopoleAccel)
             {
-                float softenFactor = 1.0f + monopoleAccelerationSoften;
-                float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4.0f);
+                float softenFactor = 1 + monopoleAccelerationSoften;
+                float tempSoftenFactor = Mathf.Pow(softenFactor, 1.0f / 4);
 
                 monopoleTemperature /= tempSoftenFactor;
                 float origBackgroundTemp = state.gravityBackgroundPlanckTemperature;
@@ -1423,8 +1461,19 @@ namespace OpenRelativity.Objects
             isPhysicsUpdateFrame = false;
         }
 
+        private void LateUpdate()
+        {
+            oldLocalTimeUpdate = GetLocalTime();
+        }
+
         void FixedUpdate()
         {
+            if (isPhysicsUpdateFrame)
+            {
+                AfterPhysicsUpdate();
+            }
+            isPhysicsUpdateFrame = false;
+
             if (!isPhysicsCacheValid)
             {
                 UpdatePhysicsCaches();
@@ -1441,8 +1490,7 @@ namespace OpenRelativity.Objects
             }
 
             float deltaTime = state.FixedDeltaTimePlayer * GetTimeFactor();
-            localFixedDeltaTime = deltaTime - state.FixedDeltaTimeWorld;
-            localTimeOffset += localFixedDeltaTime;
+            localTimeOffset += deltaTime - state.FixedDeltaTimeWorld;
 
             if (isLightMapStatic)
             {
@@ -1452,20 +1500,20 @@ namespace OpenRelativity.Objects
                 }
 
                 UpdateColliderPosition();
+
                 return;
             }
 
-            if (state.conformalMap && !comoveViaAcceleration)
+            if (!comoveViaAcceleration)
             {
                 Comovement cm = state.conformalMap.ComoveOptical(deltaTime, piw, riw);
-                Vector3 dispUnit = (piw - (Vector3)cm.piw).normalized;
                 riw = cm.riw;
                 _piw = cm.piw;
 
-                if (myRigidbody && !isNonrelativisticShader)
+                if (!isNonrelativisticShader && myRigidbody)
                 {
-                    myRigidbody.MovePosition(piw);
                     // We'll MovePosition() for isNonrelativisticShader, further below.
+                    myRigidbody.MovePosition(piw);
                 }
             }
 
@@ -1488,7 +1536,7 @@ namespace OpenRelativity.Objects
                         AudioSource[] audioSources = GetComponents<AudioSource>();
                         if (audioSources.Length > 0)
                         {
-                            for (int i = 0; i < audioSources.Length; i++)
+                            for (int i = 0; i < audioSources.Length; ++i)
                             {
                                 audioSources[i].enabled = true;
                             }
@@ -1501,19 +1549,19 @@ namespace OpenRelativity.Objects
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
             if (isKinematic || !myRigidbody || myRigidbody.IsSleeping())
             {
-
                 if (myRigidbody)
                 {
-                    myRigidbody.velocity = Vector3.zero;
                     myRigidbody.angularVelocity = Vector3.zero;
+                    myRigidbody.velocity = Vector3.zero;
+
+                    if (!isKinematic)
+                    {
+                        _aviw = Vector3.zero;
+                        UpdateMotion(Vector3.zero, Vector3.zero);
+                    }
                 }
 
-                if (!isKinematic)
-                {
-                    peculiarVelocity = Vector3.zero;
-                    aviw = Vector3.zero;
-                }
-                else
+                if (!isLightMapStatic)
                 {
                     transform.position = isNonrelativisticShader ? opticalPiw : piw;
                 }
@@ -1529,7 +1577,7 @@ namespace OpenRelativity.Objects
                 // Update riw
                 float aviwMag = aviw.magnitude;
                 Quaternion diffRot;
-                if (aviwMag <= SRelativityUtil.divByZeroCutoff)
+                if (aviwMag <= SRelativityUtil.FLT_EPSILON)
                 {
                     diffRot = Quaternion.identity;
                 }
@@ -1573,7 +1621,7 @@ namespace OpenRelativity.Objects
             // The Rindler horizon evaporates as a Schwarzschild event horizon with the same surface gravity, according to Strano.
             // We add any background radiation power, proportional to the fourth power of the background temperature.
             double alpha = myAccel.magnitude;
-            bool isNonZeroTemp = alpha > SRelativityUtil.divByZeroCutoff;
+            bool isNonZeroTemp = alpha > SRelativityUtil.FLT_EPSILON;
 
             double r = double.PositiveInfinity;
             // If alpha is in equilibrium with the background temperature, there is no evaporation.
@@ -1590,11 +1638,11 @@ namespace OpenRelativity.Objects
                 r = state.planckLength;
             }
 
-            if (!IsNaNOrInf((float)r))
+            if (!double.IsInfinity(r) && !double.IsNaN(r))
             {
                 isNonZeroTemp = true;
                 r += SRelativityUtil.SchwarzschildRadiusDecay(deltaTime, r);
-                if (r <= SRelativityUtil.divByZeroCutoff)
+                if (r <= SRelativityUtil.FLT_EPSILON)
                 {
                     leviCivitaDevAccel += myAccel;
                 }
@@ -1612,7 +1660,7 @@ namespace OpenRelativity.Objects
                 if (meshFilter == null)
                 {
                     Vector3 lwh = transform.localScale;
-                    surfaceArea = 2.0f * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
+                    surfaceArea = 2 * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
                 }
                 else
                 {
@@ -1620,41 +1668,41 @@ namespace OpenRelativity.Objects
                 }
                 // This is the ambient temperature, including contribution from comoving accelerated rest temperature.
                 double ambientTemperature = isNonZeroTemp ? SRelativityUtil.SchwarzRadiusToPlanckScaleTemp(r) : state.gravityBackgroundPlanckTemperature;
-                double dm = (gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4.0f) - Math.Pow(ambientTemperature, 4.0f))) / state.planckArea;
+                double dm = (gravitonEmissivity * surfaceArea * SRelativityUtil.sigmaPlanck * (Math.Pow(myTemperature, 4) - Math.Pow(ambientTemperature, 4))) / state.planckArea;
 
                 // Momentum is conserved. (Energy changes.)
-                Vector3 momentum = myRigidbody.mass * peculiarVelocity;
+                Vector3 momentum = mass * peculiarVelocity;
 
-                double camm = (myRigidbody.mass - dm) * SRelativityUtil.avogadroNumber / baryonCount;
+                double camm = (mass - dm) * SRelativityUtil.avogadroNumber / baryonCount;
 
-                if ((myTemperature >= 0) && (IsNaNOrInf((float)dm) || (camm < fundamentalAverageMolarMass)))
+                if ((myTemperature >= 0) && (camm < fundamentalAverageMolarMass))
                 {
                     currentAverageMolarMass = fundamentalAverageMolarMass;
                 }
                 else if (camm <= 0)
                 {
-                    myRigidbody.mass = 0;
+                    mass = 0;
                 }
                 else
                 {
-                    myRigidbody.mass -= (float)dm;
+                    mass -= (float)dm;
                 }
 
-                if (myRigidbody.mass > SRelativityUtil.divByZeroCutoff)
+                if (mass > SRelativityUtil.FLT_EPSILON)
                 {
-                    peculiarVelocity = momentum / myRigidbody.mass;
+                    peculiarVelocity = momentum / mass;
                 }
             }
         }
 
         public void OnCollisionEnter(Collision collision)
         {
-            OnCollision(collision);
+            OnCollision();
         }
 
         public void OnCollisionStay(Collision collision)
         {
-            OnCollision(collision);
+            OnCollision();
         }
 
         public void OnCollisionExit(Collision collision)
@@ -1664,24 +1712,12 @@ namespace OpenRelativity.Objects
         #endregion
 
         #region Rigidbody mechanics
-        public void OnCollision(Collision collision)
+        public void OnCollision()
         {
-            if (myRigidbody == null || myColliders == null || isKinematic || state.isMovementFrozen)
+            if (isKinematic || state.isMovementFrozen || !myRigidbody)
             {
                 return;
-            }    
-
-            // Let's start simple:
-            // At low enough velocities, where the Newtonian approximation is reasonable,
-            // PhysX is probably MORE accurate for even relativistic collision than the hacky relativistic collision we had
-            // (which is still in the commit history, for reference).
-            EnforceCollision(collision);
-            // EnforceCollision() might opt not to set didCollide
-        }
-
-        private void EnforceCollision(Collision collision)
-        {
-            isPhysicsUpdateFrame = false;
+            }
 
             // Like how Rigidbody components are co-opted for efficient relativistic motion,
             // it's feasible to get (at least reasonable, if not exact) relativistic collision
@@ -1693,16 +1729,13 @@ namespace OpenRelativity.Objects
             if (isNonrelativisticShader)
             {
                 riw = myRigidbody.rotation;
-                _piw = ((Vector4)myRigidbody.position).OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
+                _piw = myRigidbody.position.OpticalToWorld(peculiarVelocity, updateWorld4Acceleration);
             }
 
+            isPhysicsUpdateFrame = true;
             AfterPhysicsUpdate();
+            isPhysicsUpdateFrame = false;
         }
         #endregion
-
-        private bool IsNaNOrInf(float p)
-        {
-            return float.IsInfinity(p) || float.IsNaN(p);
-        }
     }
 }

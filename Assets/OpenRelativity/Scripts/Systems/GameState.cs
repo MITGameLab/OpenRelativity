@@ -1,16 +1,21 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.GlobalIllumination;
+using UnityEngine.SceneManagement;
 
 using OpenRelativity.ConformalMaps;
 
 namespace OpenRelativity
 {
+    [ExecuteInEditMode]
     public class GameState : MonoBehaviour
     {
         #region Static Variables
         // We want a "System" (in Entity-Component-Systems) to be unique.
         private static GameState _instance;
-        public static GameState Instance { get { return _instance; } }
+        public static GameState Instance { get { return _instance ? _instance : FindObjectOfType<GameState>(); } }
         #endregion
 
         #region Member Variables
@@ -22,27 +27,27 @@ namespace OpenRelativity
         //player Velocity as a scalar magnitude
         public float playerVelocity { get; set; }
         public bool IsPlayerFalling { get; set; }
-        //speed of light
-        private float c = 200;
         //max speed the player can achieve (starting value accessible from Unity Editor)
         public float maxPlayerSpeed;
+        //speed of light
+        private double c = 200;
         //Speed of light that is affected by the Unity editor
-        public float totalC = 200;
+        public double totalC = 200;
         // Reduced Planck constant divided by gravitational constant
         // (WARNING: Effects implemented based on this have not been peer reviewed,
         // but that doesn't mean they wouldn't be "cool" in a video game, at least.)
-        public float hbar = 1e-12f;
-        public float gConst = 1;
-        public float boltzmannConstant = 1;
-        public float vacuumPermeability = 1.0f;
-        public float vacuumPermittivity
+        public double hbar = 1e-12f;
+        public double gConst = 1;
+        public double boltzmannConstant = 1;
+        public double vacuumPermeability = 1;
+        public double vacuumPermittivity
         {
             get
             {
-                return 1.0f / (vacuumPermeability * SpeedOfLightSqrd);
+                return 1 / (vacuumPermeability * SpeedOfLightSqrd);
             }
         }
-        public float hbarOverG
+        public double hbarOverG
         {
             // Physically would be ~7.038e-45f m^5/s^3, in our universe
             get
@@ -50,78 +55,78 @@ namespace OpenRelativity
                 return hbar / gConst;
             }
         }
-        public float planckLength
+        public double planckLength
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst / Mathf.Pow(SpeedOfLight, 3));
+                return Math.Sqrt(hbar * gConst / Math.Pow(SpeedOfLight, 3));
             }
         }
-        public float planckArea
+        public double planckArea
         {
             get
             {
-                return hbar * gConst / Mathf.Pow(SpeedOfLight, 3);
+                return hbar * gConst / Math.Pow(SpeedOfLight, 3);
             }
         }
-        public float planckTime
+        public double planckTime
         {
             get
             {
-                return Mathf.Sqrt(hbar * gConst / Mathf.Pow(SpeedOfLight, 5));
+                return Math.Sqrt(hbar * gConst / Math.Pow(SpeedOfLight, 5));
             }
         }
-        public float planckMass
+        public double planckMass
         {
             get
             {
-                return Mathf.Sqrt(hbar * SpeedOfLight / gConst);
+                return Math.Sqrt(hbar * SpeedOfLight / gConst);
             }
         }
-        public float planckEnergy
+        public double planckEnergy
         {
             get
             {
-                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5) / gConst);
+                return Math.Sqrt(hbar * Math.Pow(SpeedOfLight, 5) / gConst);
             }
         }
-        public float planckPower
+        public double planckPower
         {
             get
             {
-                return Mathf.Pow(SpeedOfLight, 5) / gConst;
+                return Math.Pow(SpeedOfLight, 5) / gConst;
             }
         }
-        public float planckTemperature
+        public double planckTemperature
         {
             get
             {
-                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 5) / (gConst * boltzmannConstant * boltzmannConstant));
+                return Math.Sqrt(hbar * Math.Pow(SpeedOfLight, 5) / (gConst * boltzmannConstant * boltzmannConstant));
             }
         }
-        public float planckCharge
+        public double planckCharge
         {
             get
             {
                 //The energy required to accumulate one Planck charge on a sphere one Planck length in diameter will make the sphere one Planck mass heavier
-                return Mathf.Sqrt(4.0f * Mathf.PI * vacuumPermittivity * hbar * SpeedOfLight);
+                return Math.Sqrt(4 * Math.PI * vacuumPermittivity * hbar * SpeedOfLight);
             }
         }
-        public float planckAccel
+        public double planckAccel
         {
             get
             {
-                return Mathf.Sqrt(Mathf.Pow(SpeedOfLight, 7) / (hbar * gConst));
+                return Math.Sqrt(Math.Pow(SpeedOfLight, 7) / (hbar * gConst));
             }
         }
-        public float planckMomentum
+        public double planckMomentum
         {
             get
             {
-                return Mathf.Sqrt(hbar * Mathf.Pow(SpeedOfLight, 3) / gConst);
+                return Math.Sqrt(hbar * Math.Pow(SpeedOfLight, 3) / gConst);
             }
         }
-        public float planckAngularMomentum
+        public double planckAngularMomentum
         {
             get
             {
@@ -179,7 +184,7 @@ namespace OpenRelativity
         public float TotalTimePlayer { get; set; }
         public float TotalTimeWorld;
         public float SpeedOfLight {
-            get { return c; }
+            get { return (float)c; }
             set { c = value; SpeedOfLightSqrd = value * value; }
         }
         public float SpeedOfLightSqrd { get; private set; }
@@ -207,19 +212,25 @@ namespace OpenRelativity
         public const int splitDistance = 21000;
         #endregion
 
-        public virtual void Awake()
+        public void OnEnable()
         {
             // Ensure a singleton
             if (_instance != null && _instance != this)
             {
                 Destroy(this.gameObject);
+                return;
             }
             else
             {
                 _instance = this;
             }
 
-            SqrtOneMinusVSquaredCWDividedByCSquared = 1.0f;
+            if (!conformalMap)
+            {
+                conformalMap = gameObject.AddComponent<Minkowski>();
+            }
+
+            SqrtOneMinusVSquaredCWDividedByCSquared = 1;
 
             //Initialize the player's speed to zero
             playerVelocity = 0;
@@ -228,7 +239,7 @@ namespace OpenRelativity
             MaxSpeed = maxPlayerSpeed;
 
             c = totalC;
-            SpeedOfLightSqrd = c * c;
+            SpeedOfLightSqrd = (float)(c * c);
             //And ensure that the game starts
             isMovementFrozen = false;
             menuKeyDown = false;
@@ -238,7 +249,61 @@ namespace OpenRelativity
             playerRotation = Vector3.zero;
             deltaRotation = Vector3.zero;
 
-            PlayerLorentzMatrix = Matrix4x4.identity;
+            PlayerAccelerationVector = conformalMap.GetRindlerAcceleration(playerTransform.position);
+            PlayerLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(Vector3.zero);
+
+            if (shaderOff)
+            {
+                Shader.SetGlobalFloat("_colorShift", 0);
+                //shaderParams.colorShift = 0;
+            }
+            else
+            {
+                Shader.SetGlobalFloat("_colorShift", 1);
+                //shaderParams.colorShift = 1;
+            }
+
+            //Send velocities and acceleration to shader
+            Shader.SetGlobalVector("_playerOffset", new Vector4(playerTransform.position.x, playerTransform.position.y, playerTransform.position.z, 0));
+            Shader.SetGlobalVector("_vpc", Vector3.zero);
+            Shader.SetGlobalVector("_pap", PlayerAccelerationVector);
+            Shader.SetGlobalVector("_avp", PlayerAngularVelocityVector);
+            Shader.SetGlobalMatrix("_vpcLorentzMatrix", PlayerLorentzMatrix);
+            Shader.SetGlobalMatrix("_invVpcLorentzMatrix", PlayerLorentzMatrix.inverse);
+
+            // See https://docs.unity3d.com/Manual/ProgressiveLightmapper-CustomFallOff.html
+            Lightmapping.RequestLightsDelegate testDel = (Light[] requests, Unity.Collections.NativeArray<LightDataGI> lightsOutput) =>
+            {
+                DirectionalLight dLight = new DirectionalLight();
+                PointLight point = new PointLight();
+                SpotLight spot = new SpotLight();
+                RectangleLight rect = new RectangleLight();
+                DiscLight disc = new DiscLight();
+                Cookie cookie = new Cookie();
+                LightDataGI ld = new LightDataGI();
+
+                for (int i = 0; i < requests.Length; i++)
+                {
+                    Light l = requests[i];
+                    switch (l.type)
+                    {
+                        case UnityEngine.LightType.Directional: LightmapperUtils.Extract(l, ref dLight); LightmapperUtils.Extract(l, out cookie); ld.Init(ref dLight, ref cookie); break;
+                        case UnityEngine.LightType.Point: LightmapperUtils.Extract(l, ref point); LightmapperUtils.Extract(l, out cookie); ld.Init(ref point, ref cookie); break;
+                        case UnityEngine.LightType.Spot: LightmapperUtils.Extract(l, ref spot); LightmapperUtils.Extract(l, out cookie); ld.Init(ref spot, ref cookie); break;
+                        case UnityEngine.LightType.Area: LightmapperUtils.Extract(l, ref rect); LightmapperUtils.Extract(l, out cookie); ld.Init(ref rect, ref cookie); break;
+                        case UnityEngine.LightType.Disc: LightmapperUtils.Extract(l, ref disc); LightmapperUtils.Extract(l, out cookie); ld.Init(ref disc, ref cookie); break;
+                        default: ld.InitNoBake(l.GetInstanceID()); break;
+                    }
+                    ld.cookieID = l.cookie?.GetInstanceID() ?? 0;
+                    ld.falloff = FalloffType.InverseSquared;
+                    lightsOutput[i] = ld;
+                }
+            };
+            Lightmapping.SetDelegate(testDel);
+        }
+        void OnDisable()
+        {
+            Lightmapping.ResetDelegate();
         }
 
         //Call this function to pause and unpause the game
@@ -254,7 +319,7 @@ namespace OpenRelativity
             else
             {
                 //When we pause, set our velocity to zero, show the cursor and unlock it.
-                GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>().velocity = Vector3.zero;
+                GameObject.FindGameObjectWithTag(Tags.playerRigidbody).GetComponent<Rigidbody>().velocity = Vector3.zero;
                 isMovementFrozen = true;
                 Cursor.visible = true;
                 Cursor.lockState = CursorLockMode.None;
@@ -307,7 +372,7 @@ namespace OpenRelativity
 
                 //update our player velocity
                 playerVelocity = PlayerVelocityVector.magnitude;
-                Vector4 vpc = -PlayerVelocityVector / c;
+                Vector4 vpc = -PlayerVelocityVector / (float)c;
                 PlayerLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(vpc);
 
                 //update our acceleration (which relates rapidities rather than velocities)
@@ -320,13 +385,13 @@ namespace OpenRelativity
                 //colors changing so they can apperciate the other effects
                 if (shaderOff)
                 {
-                    Shader.SetGlobalFloat("_colorShift", 0.0f);
-                    //shaderParams.colorShift = 0.0f;
+                    Shader.SetGlobalFloat("_colorShift", 0);
+                    //shaderParams.colorShift = 0;
                 }
                 else
                 {
                     Shader.SetGlobalFloat("_colorShift", 1);
-                    //shaderParams.colorShift = 1.0f;
+                    //shaderParams.colorShift = 1;
                 }
 
                 //Send velocities and acceleration to shader
@@ -377,7 +442,7 @@ namespace OpenRelativity
 
                 cameraForward = playerTransform.forward;
                 deltaCameraAngle = Vector3.SignedAngle(oldCameraForward, cameraForward, playerTransform.up);
-                if (deltaCameraAngle == 180.0f)
+                if (deltaCameraAngle == 180)
                 {
                     deltaCameraAngle = 0;
                 }
@@ -389,20 +454,29 @@ namespace OpenRelativity
 
         void FixedUpdate()
         {
-            Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerMesh).GetComponent<Rigidbody>();
+            Rigidbody playerRB = GameObject.FindGameObjectWithTag(Tags.playerRigidbody).GetComponent<Rigidbody>();
 
-            if (!isMovementFrozen && !float.IsNaN(DeltaTimePlayer) && (SpeedOfLight > 0))
+            if (!isMovementFrozen && (SpeedOfLight > 0))
             {
-                if (conformalMap != null && isPlayerComoving)
+                if (isPlayerComoving)
                 {
                     // Assume local player coordinates are comoving
                     Comovement cm = conformalMap.ComoveOptical(FixedDeltaTimePlayer, playerTransform.position, Quaternion.identity);
-                    playerTransform.rotation = cm.riw * playerTransform.rotation;
-                    playerTransform.position = cm.piw;
+                    float test = cm.piw.sqrMagnitude;
+                    if (!float.IsNaN(test) && !float.IsInfinity(test))
+                    {
+                        playerTransform.rotation = cm.riw * playerTransform.rotation;
+                        playerTransform.position = cm.piw;
+                    }
                 }
 
-                Vector3 velocity = -PlayerVelocityVector;
-                playerRB.velocity = velocity / SqrtOneMinusVSquaredCWDividedByCSquared;
+                Vector3 pVel = -PlayerVelocityVector;
+                playerRB.velocity = pVel / SqrtOneMinusVSquaredCWDividedByCSquared;
+                pVel = playerRB.velocity;
+                if (!IsPlayerFalling && (-pVel .y <= Physics.bounceThreshold)) {
+                    Vector3 pVelPerp = new Vector3(pVel.x, 0, pVel.z);
+                    playerRB.velocity = pVel.AddVelocity(new Vector3(0, -pVel.y * pVelPerp.Gamma(), 0));
+                }
             } else
             {
                 playerRB.velocity = Vector3.zero;
@@ -424,23 +498,12 @@ namespace OpenRelativity
             float ySqrd = y * y;
             float zSqrd = z * z;
 
-            Matrix4x4 matrix;
-            matrix.m00 = wSqrd + xSqrd - ySqrd - zSqrd;
-            matrix.m01 = 2 * x * y - 2 * w * z;
-            matrix.m02 = 2 * x * z + 2 * w * y;
-            matrix.m03 = 0;
-            matrix.m10 = 2 * x * y + 2 * w * z;
-            matrix.m11 = wSqrd - xSqrd + ySqrd - zSqrd;
-            matrix.m12 = 2 * y * z + 2 * w * x;
-            matrix.m13 = 0;
-            matrix.m20 = 2 * x * z - 2 * w * y;
-            matrix.m21 = 2 * y * z - 2 * w * x;
-            matrix.m22 = wSqrd - xSqrd - ySqrd + zSqrd;
-            matrix.m23 = 0;
-            matrix.m30 = 0;
-            matrix.m31 = 0;
-            matrix.m32 = 0;
-            matrix.m33 = 1;
+            Matrix4x4 matrix = new Matrix4x4();
+            matrix.SetColumn(0, new Vector4(wSqrd + xSqrd - ySqrd - zSqrd, 2 * x * y + 2 * w * z, 2 * x * z - 2 * w * y, 0));
+            matrix.SetColumn(1, new Vector4(2 * x * y - 2 * w * z, wSqrd - xSqrd + ySqrd - zSqrd, 2 * y * z - 2 * w * x, 0));
+            matrix.SetColumn(2, new Vector4(2 * x * z + 2 * w * y, 2 * y * z + 2 * w * x, wSqrd - xSqrd - ySqrd + zSqrd, 0));
+            matrix.SetColumn(3, new Vector4(0, 0, 0, 1));
+
             return matrix;
         }
         #endregion

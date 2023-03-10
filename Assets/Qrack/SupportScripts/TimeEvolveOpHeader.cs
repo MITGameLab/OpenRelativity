@@ -5,14 +5,14 @@ namespace Qrack
     [StructLayout(LayoutKind.Sequential)]
     public struct TimeEvolveOpHeader
     {
-        public uint target;
-        public uint controlLen;
+        public ulong target;
+        public ulong controlLen;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-        public uint[] controls;
+        public ulong[] controls;
 
-        public TimeEvolveOpHeader(uint t, uint[] c)
+        public TimeEvolveOpHeader(ulong t, ulong[] c)
         {
-            controls = new uint[32];
+            controls = new ulong[32];
 
             target = t;
 
@@ -22,9 +22,9 @@ namespace Qrack
                 return;
             }
 
-            controlLen = (uint)c.Length;
+            controlLen = (ulong)c.Length;
             
-            for (int i = 0; i < c.Length; i++)
+            for (int i = 0; i < c.Length; ++i)
             {
                 controls[i] = c[i];
             }

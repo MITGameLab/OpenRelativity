@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace OpenRelativity.Objects
 {
-    public class RelativisticParent : MonoBehaviour
+    public class RelativisticParent : RelativisticBehavior
     {
         // Do we use (pseudo-Newtonian) world gravity?
         public bool useGravity = false;
@@ -20,8 +20,6 @@ namespace OpenRelativity.Objects
 
         // Keep track of our own Mesh Filter
         private MeshFilter meshFilter;
-        // Keep track of the GameState singleton;
-        private GameState state;
 
         // When was this object created? use for moving objects
         private float startTime = 0;
@@ -31,7 +29,6 @@ namespace OpenRelativity.Objects
         // Get the start time of our object, so that we know where not to draw it
         public void SetStartTime()
         {
-            if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
             startTime = state.TotalTimeWorld;
         }
         // Set the death time, so that we know at what point to destroy the object in the player's view point.
@@ -42,8 +39,7 @@ namespace OpenRelativity.Objects
         // This is a function that just ensures we're slower than our maximum speed. The VIW that Unity sets SHOULD (it's creator-chosen) be smaller than the maximum speed.
         private void checkSpeed()
         {
-            if (state == null) state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-            if (viw.magnitude > state.MaxSpeed - .01)
+            if (viw.magnitude > state.MaxSpeed - .01f)
             {
                 viw = viw.normalized * (state.MaxSpeed - .01f);
             }
@@ -73,7 +69,7 @@ namespace OpenRelativity.Objects
             int subMeshCounts = 0;
 
             //For every meshfilter,
-            for (int y = 0; y < meshFilterLength; y++)
+            for (int y = 0; y < meshFilterLength; ++y)
             {
                 //If it's null, ignore it.
                 if (meshFilters[y] == null) continue;
@@ -92,7 +88,7 @@ namespace OpenRelativity.Objects
             //And make a triangle array for every submesh
             int[][] tempTriangles = new int[subMeshCounts][];
 
-            for (int u = 0; u < subMeshCounts; u++)
+            for (int u = 0; u < subMeshCounts; ++u)
             {
                 //Make every array the correct length of triangles
                 tempTriangles[u] = new int[triangleCount];
@@ -106,35 +102,35 @@ namespace OpenRelativity.Objects
             Mesh MFs;
             int subMeshIndex = 0;
             //For all meshfilters
-            for (int i = 0; i < meshFilterLength; i++)
+            for (int i = 0; i < meshFilterLength; ++i)
             {
                 //just doublecheck that the mesh isn't null
                 MFs = meshFilters[i].sharedMesh;
                 if (MFs == null) continue;
 
                 //Otherwise, for all submeshes in the current mesh
-                for (int q = 0; q < subMeshCount[i]; q++)
+                for (int q = 0; q < subMeshCount[i]; ++q)
                 {
                     //grab its material
                     tempMaterials[subMeshIndex] = meshRenderers[i].materials[q];
                     //Grab its triangles
                     int[] tempSubTriangles = MFs.GetTriangles(q);
                     //And put them into the submesh's triangle array
-                    for (int k = 0; k < tempSubTriangles.Length; k++)
+                    for (int k = 0; k < tempSubTriangles.Length; ++k)
                     {
                         tempTriangles[subMeshIndex][k] = tempSubTriangles[k] + vertIndex;
                     }
                     //Increment the submesh index
-                    subMeshIndex++;
+                    ++subMeshIndex;
                 }
                 Matrix4x4 cTrans = worldLocalMatrix * meshFilters[i].transform.localToWorldMatrix;
                 //For all the vertices in the mesh
-                for (int v = 0; v < MFs.vertices.Length; v++)
+                for (int v = 0; v < MFs.vertices.Length; ++v)
                 {
                     //Get the vertex and the UV coordinate
                     tempVerts[vertIndex] = cTrans.MultiplyPoint3x4(MFs.vertices[v]);
                     tempUVs[vertIndex] = MFs.uv[v];
-                    vertIndex++;
+                    ++vertIndex;
                 }
                 //And delete that gameobject.
                 meshFilters[i].gameObject.SetActive(false);
@@ -148,14 +144,14 @@ namespace OpenRelativity.Objects
             //start at the first submesh
             subMeshIndex = 0;
             //For every submesh in each meshfilter
-            for (int l = 0; l < meshFilterLength; l++)
+            for (int l = 0; l < meshFilterLength; ++l)
             {
-                for (int g = 0; g < subMeshCount[l]; g++)
+                for (int g = 0; g < subMeshCount[l]; ++g)
                 {
                     //Set a new submesh, using the triangle array and its submesh index (built in unity function)
                     myMesh.SetTriangles(tempTriangles[subMeshIndex], subMeshIndex);
                     //increment the submesh index
-                    subMeshIndex++;
+                    ++subMeshIndex;
                 }
             }
             //Just shunt in the UV coordinates, we don't need to change them
@@ -169,15 +165,9 @@ namespace OpenRelativity.Objects
             transform.gameObject.SetActive(true);
             //End section of combining meshes
 
-
-
-            state = GameObject.FindGameObjectWithTag(Tags.player).GetComponent<GameState>();
-
             meshFilter = GetComponent<MeshFilter>();
 
             MeshRenderer tempRenderer = GetComponent<MeshRenderer>();
-
-
 
             //Then the standard RelativisticObject startup
             if (tempRenderer.materials[0].mainTexture != null)
@@ -206,9 +196,9 @@ namespace OpenRelativity.Objects
             //This code is a hack to ensure that frustrum culling does not take place
             //It changes the render bounds so that everything is contained within them
             Transform camTransform = Camera.main.transform;
-            float distToCenter = (Camera.main.farClipPlane - Camera.main.nearClipPlane) / 2.0f;
+            float distToCenter = (Camera.main.farClipPlane - Camera.main.nearClipPlane) / 2;
             Vector3 center = camTransform.position + camTransform.forward * distToCenter;
-            float extremeBound = 500000.0f;
+            float extremeBound = 500000;
             meshFilter.sharedMesh.bounds = new Bounds(center, Vector3.one * extremeBound);
 
 
