@@ -1227,6 +1227,14 @@ namespace Qrack
             return toRet;
         }
 
+        public double GetFidelity() {
+            return QuantumManager.GetFidelity(SystemId);
+        }
+
+        public void ResetFidelity() {
+            QuantumManager.ResetFidelity(SystemId);
+        }
+
         public void SetReactiveSeparate(bool irs)
         {
             QuantumManager.SetReactiveSeparate(SystemId, irs);

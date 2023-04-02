@@ -254,6 +254,12 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TrySeparateTol")]
         public static extern bool TrySeparateTol(ulong simId, ulong n, ulong[] q, double error_tol);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "GetUnitaryFidelity")]
+        public static extern double GetUnitaryFidelity(ulong simId);
+
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "ResetUnitaryFidelity")]
+        public static extern void ResetUnitaryFidelity(ulong simId);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SetReactiveSeparate")]
         public static extern void SetReactiveSeparate(ulong simId, bool irs);
 
@@ -362,6 +368,16 @@ namespace Qrack
         public static bool TrySeparate(ulong simId, ulong n, ulong[] q, double error_tol)
         {
             return TrySeparateTol(simId, n, q, error_tol);
+        }
+
+        public static double GetFidelity(ulong simId)
+        {
+            return GetUnitaryFidelity(simId);
+        }
+
+        public static void ResetFidelity(ulong simId)
+        {
+            ResetUnitaryFidelity(simId);
         }
 
         public static ulong Measure(ulong simId, ulong[] bases, ulong[] qubits)
