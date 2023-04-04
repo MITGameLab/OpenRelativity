@@ -1,4 +1,4 @@
-﻿#if OPEN_RELATIVITY_INCLUDED
+#if OPEN_RELATIVITY_INCLUDED
 using OpenRelativity;
 using OpenRelativity.Objects;
 using System;
@@ -194,18 +194,12 @@ namespace Qrack
             if (lastApproximationLevel != ApproximationLevel) {
                 if (Debug.isDebugBuild)
                 {
-                    //Debug.Log("Automatically changed approximation level in system " + SystemId + ", original: " + lastApproximationLevel + ", new: " + ApproximationLevel);
-                    Debug.Log("Changing in-flight approximation level not currently supported, in system " + SystemId);
+                    Debug.Log("Automatically changed approximation level in system " + SystemId + ", original: " + lastApproximationLevel + ", new: " + ApproximationLevel);
                 }
 
-                // ulong nSystemId = qMan.CloneSimulator(SystemId, ApproximationLevel);
-                // qMan.DeallocateSimulator(SystemId);
-                // SystemId = nSystemId;
-
-                ApproximationLevel = lastApproximationLevel;
+                SetApproximationLevel(ApproximationLevel);
             }
-
-            // lastApproximationLevel = ApproximationLevel;
+            lastApproximationLevel = ApproximationLevel;
         }
 
         void OnDestroy()
@@ -1274,6 +1268,10 @@ namespace Qrack
 
         public void ResetFidelity() {
             QuantumManager.ResetFidelity(SystemId);
+        }
+
+        public void SetApproximationLevel(double sdrp) {
+            QuantumManager.SetApproximationLevel(SystemId, sdrp);
         }
 
         public void SetReactiveSeparate(bool irs)

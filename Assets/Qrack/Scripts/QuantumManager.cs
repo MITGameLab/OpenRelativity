@@ -260,6 +260,9 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "ResetUnitaryFidelity")]
         public static extern void ResetUnitaryFidelity(ulong simId);
 
+        [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SetSdrp")]
+        public static extern void SetSdrp(ulong simId, double sdrp);
+
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SetReactiveSeparate")]
         public static extern void SetReactiveSeparate(ulong simId, bool irs);
 
@@ -284,15 +287,10 @@ namespace Qrack
                 throw new ArgumentException(String.Format("In QuantumManager.AllocateSimulator(): {0} SDRP approximation level argument is not between 0 and 1!", sdrp));
             }
 
-            if (sdrp > 0) {
-                Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
-            }
-
             ulong simId = Init(numQubits, false);
+            SetSdrp(simId, sdrp);
             SimulatorIds.Add(simId);
             SimulatorSdrps[simId] = sdrp;
-
-            Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", null);
 
             return simId;
         }
@@ -300,15 +298,11 @@ namespace Qrack
         public ulong CloneSimulator(ulong simId)
         {
             float sdrp = SimulatorSdrps[simId];
-            if (sdrp > 0) {
-                Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
-            }
 
             ulong nSimId = Clone(simId);
+            SetSdrp(simId, sdrp);
             SimulatorIds.Add(nSimId);
             SimulatorSdrps[nSimId] = sdrp;
-
-            Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", null);
 
             return nSimId;
         }
@@ -319,15 +313,10 @@ namespace Qrack
                 throw new ArgumentException(String.Format("In QuantumManager.CloneSimulator(): {0} SDRP approximation level argument is not between 0 and 1!", sdrp));
             }
 
-            if (sdrp > 0) {
-                Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
-            }
-
             ulong nSimId = Clone(simId);
+            SetSdrp(simId, sdrp);
             SimulatorIds.Add(nSimId);
             SimulatorSdrps[nSimId] = sdrp;
-
-            Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", null);
 
             return nSimId;
         }
@@ -426,6 +415,11 @@ namespace Qrack
         public static void ResetFidelity(ulong simId)
         {
             ResetUnitaryFidelity(simId);
+        }
+
+        public static void SetApproximationLevel(ulong simId, double sdrp)
+        {
+            SetSdrp(simId, sdrp);
         }
 
         public static ulong Measure(ulong simId, ulong[] bases, ulong[] qubits)
