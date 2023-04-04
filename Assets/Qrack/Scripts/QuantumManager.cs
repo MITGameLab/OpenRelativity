@@ -297,9 +297,28 @@ namespace Qrack
             return simId;
         }
 
-        public static ulong CloneSimulator(ulong simId)
+        public ulong CloneSimulator(ulong simId)
         {
             float sdrp = SimulatorSdrps[simId];
+            if (sdrp > 0) {
+                Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
+            }
+
+            ulong nSimId = Clone(simId);
+            SimulatorIds.Add(nSimId);
+            SimulatorSdrps[nSimId] = sdrp;
+
+            Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", null);
+
+            return nSimId;
+        }
+
+        public ulong CloneSimulator(ulong simId, float sdrp)
+        {
+            if ((sdrp < 0) || (sdrp > 1)) {
+                throw new ArgumentException(String.Format("In QuantumManager.CloneSimulator(): {0} SDRP approximation level argument is not between 0 and 1!", sdrp));
+            }
+
             if (sdrp > 0) {
                 Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
             }

@@ -23,6 +23,7 @@ namespace Qrack
         public ulong SystemId { get; set; }
 
         protected ulong lastQubitCount;
+        protected float lastApproximationLevel;
 
         private QuantumManager _qMan = null;
 
@@ -115,21 +116,39 @@ namespace Qrack
         // Awake() is called before Start()
         void Awake()
         {
+            if (ApproximationLevel > 1) {
+                if (Debug.isDebugBuild)
+                {
+                    Debug.Log("Automatically clamped approximation level to 1, original: " + ApproximationLevel);
+                }
+
+                ApproximationLevel = 1;
+            }
+            if (ApproximationLevel < 0) {
+                if (Debug.isDebugBuild)
+                {
+                    Debug.Log("Automatically clamped approximation level to 0, original: " + ApproximationLevel);
+                }
+
+                ApproximationLevel = 0;
+            }
+
+            if (QubitCount < 1)
+            {
+                if (Debug.isDebugBuild)
+                {
+                    Debug.LogWarning("Tried to initialize with fewer than 1 qubit, clamped to 1, original: " + QubitCount);
+                }
+                QubitCount = 1;
+            }
+
             SystemId = qMan.AllocateSimulator(QubitCount, ApproximationLevel);
             lastQubitCount = QubitCount;
+            lastApproximationLevel = ApproximationLevel;
         }
 
         void Update()
         {
-            if (QubitCount > 64)
-            {
-                if (Debug.isDebugBuild)
-                {
-                    Debug.LogWarning("Tried to realloc more than 64 qubits in system " + SystemId + ", clamped to 64");
-                }
-                QubitCount = 64;
-            }
-
             if (QubitCount < 1)
             {
                 if (Debug.isDebugBuild)
@@ -151,7 +170,6 @@ namespace Qrack
                     AllocateQubit(i);
                 }
             }
-
             if (lastQubitCount > QubitCount)
             {
                 if (Debug.isDebugBuild)
@@ -166,6 +184,28 @@ namespace Qrack
             }
 
             lastQubitCount = QubitCount;
+
+            if (ApproximationLevel > 1) {
+                ApproximationLevel = 1;
+            }
+            if (ApproximationLevel < 0) {
+                ApproximationLevel = 0;
+            }
+            if (lastApproximationLevel != ApproximationLevel) {
+                if (Debug.isDebugBuild)
+                {
+                    //Debug.Log("Automatically changed approximation level in system " + SystemId + ", original: " + lastApproximationLevel + ", new: " + ApproximationLevel);
+                    Debug.Log("Changing in-flight approximation level not currently supported, in system " + SystemId);
+                }
+
+                // ulong nSystemId = qMan.CloneSimulator(SystemId, ApproximationLevel);
+                // qMan.DeallocateSimulator(SystemId);
+                // SystemId = nSystemId;
+
+                ApproximationLevel = lastApproximationLevel;
+            }
+
+            // lastApproximationLevel = ApproximationLevel;
         }
 
         void OnDestroy()
