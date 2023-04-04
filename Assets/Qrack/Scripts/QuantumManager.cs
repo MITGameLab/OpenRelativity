@@ -266,7 +266,9 @@ namespace Qrack
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "TimeEvolve")]
         public static extern void TimeEvolve(ulong simId, double t, ulong n, TimeEvolveOpHeader[] teos, ulong mn, double[] mtrx);
 
-        private List<ulong> SimulatorIds = new List<ulong>();
+        private static List<ulong> SimulatorIds = new List<ulong>();
+
+        private static Dictionary<ulong, float> SimulatorSdrps = new Dictionary<ulong, float>();
 
         private void OnDestroy()
         {
@@ -276,18 +278,38 @@ namespace Qrack
             }
         }
 
-        public ulong AllocateSimulator(ulong numQubits)
+        public ulong AllocateSimulator(ulong numQubits, float sdrp = 0.0f)
         {
-            // ulong simId = Init(numQubits, false);
-            ulong simId = InitType(numQubits, false, false, false, false, false, false, false, false, false);
+            if ((sdrp < 0) || (sdrp > 1)) {
+                throw new ArgumentException(String.Format("In QuantumManager.AllocateSimulator(): {0} SDRP approximation level argument is not between 0 and 1!", sdrp));
+            }
+
+            if (sdrp > 0) {
+                Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
+            }
+
+            ulong simId = Init(numQubits, false);
             SimulatorIds.Add(simId);
+            SimulatorSdrps[simId] = sdrp;
+
+            Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", null);
+
             return simId;
         }
 
-        public ulong CloneSimulator(ulong simId)
+        public static ulong CloneSimulator(ulong simId)
         {
+            float sdrp = SimulatorSdrps[simId];
+            if (sdrp > 0) {
+                Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
+            }
+
             ulong nSimId = Clone(simId);
             SimulatorIds.Add(nSimId);
+            SimulatorSdrps[nSimId] = sdrp;
+
+            Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", null);
+
             return nSimId;
         }
 
@@ -302,7 +324,14 @@ namespace Qrack
 
         public static void AllocateQubit(ulong simId, ulong qubitId)
         {
+            float sdrp = SimulatorSdrps[simId];
+            if (sdrp > 0) {
+                Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", sdrp.ToString());
+            }
+
             AllocQubit(simId, qubitId);
+
+            Environment.SetEnvironmentVariable("QRACK_QUNIT_SEPARABILITY_THRESHOLD", null);
         }
 
         public static void ReleaseQubit(ulong simId, ulong qubitId)

@@ -17,6 +17,7 @@ namespace Qrack
     {
 
         public ulong QubitCount = 1;
+        public float ApproximationLevel = 0.0f;
         public float ClockOffset;
 
         public ulong SystemId { get; set; }
@@ -114,7 +115,7 @@ namespace Qrack
         // Awake() is called before Start()
         void Awake()
         {
-            SystemId = qMan.AllocateSimulator(QubitCount);
+            SystemId = qMan.AllocateSimulator(QubitCount, ApproximationLevel);
             lastQubitCount = QubitCount;
         }
 
