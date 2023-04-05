@@ -30,9 +30,7 @@ namespace OpenRelativity
         //max speed the player can achieve (starting value accessible from Unity Editor)
         public float maxPlayerSpeed;
         //speed of light
-        private double c = 200;
-        //Speed of light that is affected by the Unity editor
-        public double totalC = 200;
+        public double _c = 200;
         // Reduced Planck constant divided by gravitational constant
         // (WARNING: Effects implemented based on this have not been peer reviewed,
         // but that doesn't mean they wouldn't be "cool" in a video game, at least.)
@@ -184,8 +182,8 @@ namespace OpenRelativity
         public float TotalTimePlayer { get; set; }
         public float TotalTimeWorld;
         public float SpeedOfLight {
-            get { return (float)c; }
-            set { c = value; SpeedOfLightSqrd = value * value; }
+            get { return (float)_c; }
+            set { _c = value; SpeedOfLightSqrd = value * value; }
         }
         public float SpeedOfLightSqrd { get; private set; }
 
@@ -238,8 +236,7 @@ namespace OpenRelativity
             //Set our constants
             MaxSpeed = maxPlayerSpeed;
 
-            c = totalC;
-            SpeedOfLightSqrd = (float)(c * c);
+            SpeedOfLightSqrd = (float)(_c * _c);
             //And ensure that the game starts
             isMovementFrozen = false;
             menuKeyDown = false;
@@ -330,6 +327,8 @@ namespace OpenRelativity
         //We set this in late update because of timing issues with collisions
         public virtual void LateUpdate()
         {
+            SpeedOfLightSqrd = (float)(_c * _c);
+
             //Set the pause code in here so that our other objects can access it.
             if (Input.GetAxis("Menu Key") > 0 && !menuKeyDown)
             {
@@ -372,7 +371,7 @@ namespace OpenRelativity
 
                 //update our player velocity
                 playerVelocity = PlayerVelocityVector.magnitude;
-                Vector4 vpc = -PlayerVelocityVector / (float)c;
+                Vector4 vpc = -PlayerVelocityVector / (float)_c;
                 PlayerLorentzMatrix = SRelativityUtil.GetLorentzTransformMatrix(vpc);
 
                 //update our acceleration (which relates rapidities rather than velocities)
