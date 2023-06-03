@@ -24,7 +24,7 @@ AssetImportWorker0
 -logFile
 Logs/AssetImportWorker0.log
 -srvPort
-46339
+43911
 Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
 /home/iamu/GitHub/OpenRelativity
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
@@ -56,11 +56,11 @@ Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
     "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [139795632411520] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 410052346 [EditorId] 410052346 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined multi-casting on [225.0.0.222:54997]...
+Player connection [140094624101248] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 1957345764 [EditorId] 1957345764 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined multi-casting on [225.0.0.222:54997]...
 
-Player connection [139795632411520] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 410052346 [EditorId] 410052346 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [140094624101248] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 1957345764 [EditorId] 1957345764 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined alternative multi-casting on [225.0.0.222:34997]...
 
-Refreshing native plugins compatible for Editor in 11.96 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 12.59 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 2021.3.18f1 (3129e69bc0c7)
 [Subsystems] Discovering subsystems at path /home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/Resources/UnitySubsystems
@@ -81,43 +81,43 @@ blend_equation_advanced_coherent GL_NVX_blend_equation_advanced_multi_draw_buffe
 der_passthrough GL_NV_gpu_program4 GL_NV_internalformat_sample_query GL_NV_gpu_program4_1 GL_NV_gpu_program5 GL_NV_gpu_program5_mem_extended GL_NV_gpu_program_fp64 GL_NV_gpu_shader5 GL_NV_half_float GL_NV_light_max_exponent GL_NV_memory_attachment GL_NV_mesh_shader GL_NV_multisample_coverage GL_NV_multisample_filter_hint GL_NV_occlusion_query GL_NV_packed_depth_stencil GL_NV_parameter_buffer_object GL_NV_parameter_buffer_object2 GL_NV_path_rendering GL_NV_path_rendering_shared_edge GL_NV_pixel_data_range GL_NV_point_sprite GL_NV_primitive_restart GL_NV_primitive_shading_rate GL_NV_query_resource GL_NV_query_resource_tag GL_NV_register_combiners GL_NV_register_combiners2 GL_NV_representative_fragment_test GL_NV_sample_locations GL_NV_sample_mask_override_coverage GL_NV_scissor_exclusive GL_NV_shader_atomic_counters GL_NV_shader_atomic_float GL_NV_shader_atomic_float64 GL_NV_shader_atomic_fp16_vector GL_NV_shader_atomic_int64 GL_NV_shader_buffer_load GL_NV_shader_storage_buffer_object GL_NV_shader_subgroup_par
 titioned GL_NV_shader_texture_footprint GL_NV_shading_rate_image GL_NV_stereo_view_rendering GL_NV_texgen_reflection GL_NV_texture_barrier GL_NV_texture_compression_vtc GL_NV_texture_dirty_tile_map GL_NV_texture_env_combine4 GL_NV_texture_multisample GL_NV_texture_rectangle GL_NV_texture_rectangle_compressed GL_NV_texture_shader GL_NV_texture_shader2 GL_NV_texture_shader3 GL_NV_transform_feedback GL_NV_transform_feedback2 GL_NV_uniform_buffer_unified_memory GL_NV_uniform_buffer_std430_layout GL_NV_vdpau_interop GL_NV_vdpau_interop2 GL_NV_vertex_array_range GL_NV_vertex_array_range2 GL_NV_vertex_attrib_integer_64bit GL_NV_vertex_buffer_unified_memory GL_NV_vertex_program GL_NV_vertex_program1_1 GL_NV_vertex_program2 GL_NV_vertex_program2_option GL_NV_vertex_program3 GL_NV_viewport_array2 GL_NV_viewport_swizzle GL_NVX_conditional_render GL_NV_gpu_multicast GL_NVX_progress_fence GL_NVX_gpu_memory_info GL_NVX_nvenc_interop GL_NV_shader_thread_group GL_NV_shader_thread_shuffle GL_KHR_blend_equation_advanced GL_KH
 R_blend_equation_advanced_coherent GL_OVR_multiview GL_OVR_multiview2 GL_SGIS_generate_mipmap GL_SGIS_texture_lod GL_SGIX_depth_texture GL_SGIX_shadow GL_SUN_slice_accum
-OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle -856025288
+OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle 220379240
 Initialize mono
 Mono path[0] = '/home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/Managed'
 Mono path[1] = '/home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
 Mono config path = '/home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56657
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56667
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.004614 seconds.
+Registered in 0.004911 seconds.
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Android Extension - Scanning For ADB Devices 108 ms
-Refreshing native plugins compatible for Editor in 12.13 ms, found 0 plugins.
+Android Extension - Scanning For ADB Devices 102 ms
+Refreshing native plugins compatible for Editor in 12.52 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
 - Completed reload, in  0.542 seconds
 Domain Reload Profiling:
 	ReloadAssembly (543ms)
-		BeginReloadAssembly (37ms)
+		BeginReloadAssembly (36ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (0ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
 			CreateAndSetChildDomain (1ms)
-		EndReloadAssembly (422ms)
-			LoadAssemblies (36ms)
+		EndReloadAssembly (421ms)
+			LoadAssemblies (35ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (81ms)
+			SetupTypeCache (84ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (24ms)
-			SetupLoadedEditorAssemblies (281ms)
+			RebuildScriptCaches (25ms)
+			SetupLoadedEditorAssemblies (276ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (166ms)
+				InitializePlatformSupportModulesInManaged (161ms)
 				SetLoadedEditorAssemblies (0ms)
-				RefreshPlugins (12ms)
+				RefreshPlugins (13ms)
 				BeforeProcessingInitializeOnLoad (1ms)
 				ProcessInitializeOnLoadAttributes (70ms)
 				ProcessInitializeOnLoadMethodAttributes (32ms)
@@ -127,36 +127,36 @@ Domain Reload Profiling:
 			AwakeInstancesAfterBackupRestoration (0ms)
 Platform modules already initialized, skipping
 Registering precompiled user dll's ...
-Registered in 0.000148 seconds.
+Registered in 0.000180 seconds.
 Begin MonoManager ReloadAssembly
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Refreshing native plugins compatible for Editor in 0.19 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 0.20 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.535 seconds
+- Completed reload, in  0.519 seconds
 Domain Reload Profiling:
-	ReloadAssembly (536ms)
-		BeginReloadAssembly (67ms)
+	ReloadAssembly (519ms)
+		BeginReloadAssembly (65ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (5ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
 			CreateAndSetChildDomain (15ms)
-		EndReloadAssembly (383ms)
+		EndReloadAssembly (371ms)
 			LoadAssemblies (30ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (97ms)
+			SetupTypeCache (94ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (35ms)
-			SetupLoadedEditorAssemblies (167ms)
+			RebuildScriptCaches (34ms)
+			SetupLoadedEditorAssemblies (163ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (19ms)
+				InitializePlatformSupportModulesInManaged (18ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (0ms)
-				BeforeProcessingInitializeOnLoad (36ms)
+				BeforeProcessingInitializeOnLoad (35ms)
 				ProcessInitializeOnLoadAttributes (84ms)
-				ProcessInitializeOnLoadMethodAttributes (22ms)
+				ProcessInitializeOnLoadMethodAttributes (21ms)
 				AfterProcessingInitializeOnLoad (5ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
@@ -164,13 +164,13 @@ Domain Reload Profiling:
 Platform modules already initialized, skipping
 ========================================================================
 Worker process is ready to serve import requests
-Launched and connected shader compiler UnityShaderCompiler after 0.01 seconds
-Refreshing native plugins compatible for Editor in 0.19 ms, found 0 plugins.
+Launched and connected shader compiler UnityShaderCompiler after 0.00 seconds
+Refreshing native plugins compatible for Editor in 0.28 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 1105 Unused Serialized files (Serialized files now loaded: 0)
 Unloading 23 unused Assets / (75.2 KB). Loaded Objects now: 1582.
 Memory consumption went from 51.6 MB to 51.6 MB.
-Total: 2.646344 ms (FindLiveObjects: 0.093550 ms CreateObjectMapping: 0.035131 ms MarkObjects: 2.421247 ms  DeleteObjects: 0.095633 ms)
+Total: 2.407360 ms (FindLiveObjects: 0.084903 ms CreateObjectMapping: 0.029078 ms MarkObjects: 2.200670 ms  DeleteObjects: 0.092077 ms)
 
 AssetImportParameters requested are different than current active one (requested -> active):
   custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
@@ -183,79 +183,19 @@ AssetImportParameters requested are different than current active one (requested
   custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
 ========================================================================
 Received Import Request.
-  Time since last request: 1568.944103 seconds.
+  Time since last request: 723.121638 seconds.
+  path: Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.4.dylib
+  artifactKey: Guid(ecdad2207e9cea84dac7148b2d623a13) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.4.dylib using Guid(ecdad2207e9cea84dac7148b2d623a13) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'd745f17027d11a1961e8fe1e0c705fb9') in 0.008866 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 9.652295 seconds.
+  path: Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.4.dylib
+  artifactKey: Guid(ecdad2207e9cea84dac7148b2d623a13) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
+Start importing Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.4.dylib using Guid(ecdad2207e9cea84dac7148b2d623a13) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '46e3801cb7cc2b8cf9edf0540fac1ae9') in 0.000707 seconds 
+========================================================================
+Received Import Request.
+  Time since last request: 1.328179 seconds.
   path: Assets/Qrack/Plugin/iOS/libqrack.a
   artifactKey: Guid(1be18f8f770226d499cb67994d8eff05) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/iOS/libqrack.a using Guid(1be18f8f770226d499cb67994d8eff05) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '1966b8516f26ff6bc95890ac87ab87a1') in 0.015701 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 0.000010 seconds.
-  path: Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.3.dylib
-  artifactKey: Guid(af02920005c0b0b338e3fd63f17b27fd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.3.dylib using Guid(af02920005c0b0b338e3fd63f17b27fd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '2a6cd8204e5b9fcef262099d0ac32edc') in 0.000535 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 9.646127 seconds.
-  path: Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.3.dylib
-  artifactKey: Guid(af02920005c0b0b338e3fd63f17b27fd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/iOS/libqrack_pinvoke.8.11.3.dylib using Guid(af02920005c0b0b338e3fd63f17b27fd) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '174f5c7e5701201738f0b3e9f4724cbd') in 0.000672 seconds 
-========================================================================
-Received Import Request.
-  Time since last request: 1.409283 seconds.
-  path: Assets/Qrack/Plugin/iOS/libqrack_pinvoke.dylib
-  artifactKey: Guid(06367304982121c4c91c746ea0b0e9eb) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/iOS/libqrack_pinvoke.dylib using Guid(06367304982121c4c91c746ea0b0e9eb) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: 'c6bf3ababb32ca56d80e364ffd35d628') in 0.001438 seconds 
-========================================================================
-Received Prepare
-Registering precompiled user dll's ...
-Registered in 0.000143 seconds.
-Begin MonoManager ReloadAssembly
-Native extension for LinuxStandalone target not found
-Native extension for Android target not found
-Refreshing native plugins compatible for Editor in 0.20 ms, found 0 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
-Mono: successfully reloaded assembly
-- Completed reload, in  0.509 seconds
-Domain Reload Profiling:
-	ReloadAssembly (510ms)
-		BeginReloadAssembly (71ms)
-			ExecutionOrderSort (0ms)
-			DisableScriptedObjects (6ms)
-			BackupInstance (0ms)
-			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (18ms)
-		EndReloadAssembly (364ms)
-			LoadAssemblies (30ms)
-			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (98ms)
-			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (28ms)
-			SetupLoadedEditorAssemblies (151ms)
-				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (18ms)
-				SetLoadedEditorAssemblies (0ms)
-				RefreshPlugins (0ms)
-				BeforeProcessingInitializeOnLoad (33ms)
-				ProcessInitializeOnLoadAttributes (78ms)
-				ProcessInitializeOnLoadMethodAttributes (18ms)
-				AfterProcessingInitializeOnLoad (4ms)
-				EditorAssembliesLoaded (0ms)
-			ExecutionOrderSort2 (0ms)
-			AwakeInstancesAfterBackupRestoration (3ms)
-Platform modules already initialized, skipping
-Refreshing native plugins compatible for Editor in 0.61 ms, found 0 plugins.
-Preloading 0 native plugins for Editor in 0.00 ms.
-Unloading 1091 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 11 unused Assets / (57.3 KB). Loaded Objects now: 1586.
-Memory consumption went from 50.4 MB to 50.3 MB.
-Total: 2.059572 ms (FindLiveObjects: 0.089375 ms CreateObjectMapping: 0.030143 ms MarkObjects: 1.920208 ms  DeleteObjects: 0.019261 ms)
-
-AssetImportParameters requested are different than current active one (requested -> active):
-  custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
-  custom:container-muxer-webm: aa71ff27fc2769a1b78a27578f13a17b -> 
-  custom:container-demuxer-webm: 4f35f7cbe854078d1ac9338744f61a02 -> 
-  custom:video-encoder-webm-vp8: eb34c28f22e8b96e1ab97ce403110664 -> 
-  custom:audio-encoder-webm-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
-  custom:container-demuxer-ogg: 62fdf1f143b41e24485cea50d1cbac27 -> 
-  custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
-  custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
+Start importing Assets/Qrack/Plugin/iOS/libqrack.a using Guid(1be18f8f770226d499cb67994d8eff05) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '4ff46bc63c419dfc27aa947d6964f36d') in 0.000695 seconds 
