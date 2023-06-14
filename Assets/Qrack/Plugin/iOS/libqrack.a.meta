@@ -67,7 +67,7 @@ PluginImporter:
     second:
       enabled: 1
       settings:
-        CPU: AnyCPU
+        CPU: None
   - first:
       Standalone: LinuxUniversal
     second:
@@ -85,13 +85,13 @@ PluginImporter:
     second:
       enabled: 1
       settings:
-        CPU: x86
+        CPU: None
   - first:
       Standalone: Win64
     second:
       enabled: 1
       settings:
-        CPU: x86_64
+        CPU: None
   - first:
       iPhone: iOS
     second:
