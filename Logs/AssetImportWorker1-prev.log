@@ -24,7 +24,7 @@ AssetImportWorker1
 -logFile
 Logs/AssetImportWorker1.log
 -srvPort
-42991
+39179
 Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
 /home/iamu/GitHub/OpenRelativity
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
@@ -56,11 +56,11 @@ Successfully changed project path to: /home/iamu/GitHub/OpenRelativity
     "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [139680037487488] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 3989374926 [EditorId] 3989374926 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined multi-casting on [225.0.0.222:54997]...
+Player connection [140369335886720] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 466818275 [EditorId] 466818275 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined multi-casting on [225.0.0.222:54997]...
 
-Player connection [139680037487488] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 3989374926 [EditorId] 3989374926 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [140369335886720] Host "[IP] 192.168.1.78 [Port] 0 [Flags] 2 [Guid] 466818275 [EditorId] 466818275 [Version] 1048832 [Id] LinuxEditor(16,192.168.1.78) [Debug] 1 [PackageName] LinuxEditor [ProjectName] Editor" joined alternative multi-casting on [225.0.0.222:34997]...
 
-Refreshing native plugins compatible for Editor in 12.31 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 12.72 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 2021.3.18f1 (3129e69bc0c7)
 [Subsystems] Discovering subsystems at path /home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/Resources/UnitySubsystems
@@ -81,96 +81,96 @@ blend_equation_advanced_coherent GL_NVX_blend_equation_advanced_multi_draw_buffe
 der_passthrough GL_NV_gpu_program4 GL_NV_internalformat_sample_query GL_NV_gpu_program4_1 GL_NV_gpu_program5 GL_NV_gpu_program5_mem_extended GL_NV_gpu_program_fp64 GL_NV_gpu_shader5 GL_NV_half_float GL_NV_light_max_exponent GL_NV_memory_attachment GL_NV_mesh_shader GL_NV_multisample_coverage GL_NV_multisample_filter_hint GL_NV_occlusion_query GL_NV_packed_depth_stencil GL_NV_parameter_buffer_object GL_NV_parameter_buffer_object2 GL_NV_path_rendering GL_NV_path_rendering_shared_edge GL_NV_pixel_data_range GL_NV_point_sprite GL_NV_primitive_restart GL_NV_primitive_shading_rate GL_NV_query_resource GL_NV_query_resource_tag GL_NV_register_combiners GL_NV_register_combiners2 GL_NV_representative_fragment_test GL_NV_sample_locations GL_NV_sample_mask_override_coverage GL_NV_scissor_exclusive GL_NV_shader_atomic_counters GL_NV_shader_atomic_float GL_NV_shader_atomic_float64 GL_NV_shader_atomic_fp16_vector GL_NV_shader_atomic_int64 GL_NV_shader_buffer_load GL_NV_shader_storage_buffer_object GL_NV_shader_subgroup_par
 titioned GL_NV_shader_texture_footprint GL_NV_shading_rate_image GL_NV_stereo_view_rendering GL_NV_texgen_reflection GL_NV_texture_barrier GL_NV_texture_compression_vtc GL_NV_texture_dirty_tile_map GL_NV_texture_env_combine4 GL_NV_texture_multisample GL_NV_texture_rectangle GL_NV_texture_rectangle_compressed GL_NV_texture_shader GL_NV_texture_shader2 GL_NV_texture_shader3 GL_NV_transform_feedback GL_NV_transform_feedback2 GL_NV_uniform_buffer_unified_memory GL_NV_uniform_buffer_std430_layout GL_NV_vdpau_interop GL_NV_vdpau_interop2 GL_NV_vertex_array_range GL_NV_vertex_array_range2 GL_NV_vertex_attrib_integer_64bit GL_NV_vertex_buffer_unified_memory GL_NV_vertex_program GL_NV_vertex_program1_1 GL_NV_vertex_program2 GL_NV_vertex_program2_option GL_NV_vertex_program3 GL_NV_viewport_array2 GL_NV_viewport_swizzle GL_NVX_conditional_render GL_NV_gpu_multicast GL_NVX_progress_fence GL_NVX_gpu_memory_info GL_NVX_nvenc_interop GL_NV_shader_thread_group GL_NV_shader_thread_shuffle GL_KHR_blend_equation_advanced GL_KH
 R_blend_equation_advanced_coherent GL_OVR_multiview GL_OVR_multiview2 GL_SGIS_generate_mipmap GL_SGIS_texture_lod GL_SGIX_depth_texture GL_SGIX_shadow GL_SUN_slice_accum
-OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle 178742712
+OPENGL LOG: Creating OpenGL 4.5 graphics device ; Context level  <OpenGL 4.5> ; Context handle 1184210232
 Initialize mono
 Mono path[0] = '/home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/Managed'
 Mono path[1] = '/home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
 Mono config path = '/home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56259
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56083
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
 Register platform support module: /home/iamu/Unity/Hub/Editor/2021.3.18f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.005030 seconds.
+Registered in 0.004725 seconds.
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Android Extension - Scanning For ADB Devices 109 ms
-Refreshing native plugins compatible for Editor in 12.68 ms, found 0 plugins.
+Android Extension - Scanning For ADB Devices 98 ms
+Refreshing native plugins compatible for Editor in 13.04 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.560 seconds
+- Completed reload, in  0.552 seconds
 Domain Reload Profiling:
-	ReloadAssembly (560ms)
-		BeginReloadAssembly (38ms)
+	ReloadAssembly (553ms)
+		BeginReloadAssembly (37ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (0ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (0ms)
-		EndReloadAssembly (436ms)
-			LoadAssemblies (37ms)
+			CreateAndSetChildDomain (1ms)
+		EndReloadAssembly (429ms)
+			LoadAssemblies (36ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (87ms)
+			SetupTypeCache (86ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (26ms)
-			SetupLoadedEditorAssemblies (285ms)
+			RebuildScriptCaches (27ms)
+			SetupLoadedEditorAssemblies (278ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (170ms)
+				InitializePlatformSupportModulesInManaged (159ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (13ms)
 				BeforeProcessingInitializeOnLoad (1ms)
-				ProcessInitializeOnLoadAttributes (69ms)
-				ProcessInitializeOnLoadMethodAttributes (32ms)
+				ProcessInitializeOnLoadAttributes (72ms)
+				ProcessInitializeOnLoadMethodAttributes (33ms)
 				AfterProcessingInitializeOnLoad (0ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
 			AwakeInstancesAfterBackupRestoration (0ms)
 Platform modules already initialized, skipping
 Registering precompiled user dll's ...
-Registered in 0.000157 seconds.
+Registered in 0.000155 seconds.
 Begin MonoManager ReloadAssembly
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Refreshing native plugins compatible for Editor in 0.20 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 0.19 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.566 seconds
+- Completed reload, in  0.554 seconds
 Domain Reload Profiling:
-	ReloadAssembly (567ms)
-		BeginReloadAssembly (70ms)
+	ReloadAssembly (554ms)
+		BeginReloadAssembly (69ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (5ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (16ms)
-		EndReloadAssembly (403ms)
+			CreateAndSetChildDomain (15ms)
+		EndReloadAssembly (396ms)
 			LoadAssemblies (32ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (107ms)
+			SetupTypeCache (101ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (36ms)
-			SetupLoadedEditorAssemblies (172ms)
+			RebuildScriptCaches (35ms)
+			SetupLoadedEditorAssemblies (173ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (19ms)
+				InitializePlatformSupportModulesInManaged (20ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (0ms)
 				BeforeProcessingInitializeOnLoad (38ms)
-				ProcessInitializeOnLoadAttributes (86ms)
+				ProcessInitializeOnLoadAttributes (87ms)
 				ProcessInitializeOnLoadMethodAttributes (23ms)
-				AfterProcessingInitializeOnLoad (5ms)
+				AfterProcessingInitializeOnLoad (4ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
 			AwakeInstancesAfterBackupRestoration (3ms)
 Platform modules already initialized, skipping
 ========================================================================
 Worker process is ready to serve import requests
-Launched and connected shader compiler UnityShaderCompiler after 0.01 seconds
-Refreshing native plugins compatible for Editor in 0.19 ms, found 0 plugins.
+Launched and connected shader compiler UnityShaderCompiler after 0.00 seconds
+Refreshing native plugins compatible for Editor in 0.18 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 1105 Unused Serialized files (Serialized files now loaded: 0)
 Unloading 23 unused Assets / (75.2 KB). Loaded Objects now: 1582.
 Memory consumption went from 51.6 MB to 51.6 MB.
-Total: 8.747611 ms (FindLiveObjects: 0.090458 ms CreateObjectMapping: 0.029991 ms MarkObjects: 8.496137 ms  DeleteObjects: 0.130341 ms)
+Total: 2.683077 ms (FindLiveObjects: 0.082475 ms CreateObjectMapping: 0.024404 ms MarkObjects: 2.457512 ms  DeleteObjects: 0.118064 ms)
 
 AssetImportParameters requested are different than current active one (requested -> active):
   custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
@@ -182,55 +182,49 @@ AssetImportParameters requested are different than current active one (requested
   custom:video-decoder-webm-vp8: 9c59270c3fd7afecdb556c50c9e8de78 -> 
   custom:audio-decoder-ogg-vorbis: bf7c407c2cedff20999df2af8eb42d56 -> 
 ========================================================================
-Received Import Request.
-  Time since last request: 102.173651 seconds.
-  path: Assets/Qrack/Plugin/iOS/libqrack.a
-  artifactKey: Guid(1be18f8f770226d499cb67994d8eff05) Importer(815301076,1909f56bfc062723c751e8b465ee728b)
-Start importing Assets/Qrack/Plugin/iOS/libqrack.a using Guid(1be18f8f770226d499cb67994d8eff05) Importer(815301076,1909f56bfc062723c751e8b465ee728b)  -> (artifact id: '65c63163e4b17cdfbfa5b6e6ac8f75cf') in 0.014779 seconds 
-========================================================================
 Received Prepare
 Registering precompiled user dll's ...
-Registered in 0.000154 seconds.
+Registered in 0.000141 seconds.
 Begin MonoManager ReloadAssembly
 Native extension for LinuxStandalone target not found
 Native extension for Android target not found
-Refreshing native plugins compatible for Editor in 0.20 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 0.19 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Mono: successfully reloaded assembly
-- Completed reload, in  0.555 seconds
+- Completed reload, in  0.558 seconds
 Domain Reload Profiling:
-	ReloadAssembly (556ms)
-		BeginReloadAssembly (77ms)
+	ReloadAssembly (558ms)
+		BeginReloadAssembly (78ms)
 			ExecutionOrderSort (0ms)
 			DisableScriptedObjects (6ms)
 			BackupInstance (0ms)
 			ReleaseScriptingObjects (0ms)
-			CreateAndSetChildDomain (19ms)
-		EndReloadAssembly (399ms)
+			CreateAndSetChildDomain (20ms)
+		EndReloadAssembly (401ms)
 			LoadAssemblies (33ms)
 			RebuildTransferFunctionScriptingTraits (0ms)
-			SetupTypeCache (107ms)
+			SetupTypeCache (106ms)
 			ReleaseScriptCaches (0ms)
-			RebuildScriptCaches (37ms)
-			SetupLoadedEditorAssemblies (161ms)
+			RebuildScriptCaches (30ms)
+			SetupLoadedEditorAssemblies (167ms)
 				LogAssemblyErrors (0ms)
-				InitializePlatformSupportModulesInManaged (19ms)
+				InitializePlatformSupportModulesInManaged (20ms)
 				SetLoadedEditorAssemblies (0ms)
 				RefreshPlugins (0ms)
-				BeforeProcessingInitializeOnLoad (35ms)
-				ProcessInitializeOnLoadAttributes (83ms)
-				ProcessInitializeOnLoadMethodAttributes (19ms)
-				AfterProcessingInitializeOnLoad (4ms)
+				BeforeProcessingInitializeOnLoad (36ms)
+				ProcessInitializeOnLoadAttributes (85ms)
+				ProcessInitializeOnLoadMethodAttributes (20ms)
+				AfterProcessingInitializeOnLoad (5ms)
 				EditorAssembliesLoaded (0ms)
 			ExecutionOrderSort2 (0ms)
 			AwakeInstancesAfterBackupRestoration (3ms)
 Platform modules already initialized, skipping
-Refreshing native plugins compatible for Editor in 0.60 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 0.59 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Unloading 1091 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 11 unused Assets / (57.3 KB). Loaded Objects now: 1586.
-Memory consumption went from 50.4 MB to 50.3 MB.
-Total: 2.473169 ms (FindLiveObjects: 0.083716 ms CreateObjectMapping: 0.024284 ms MarkObjects: 2.345372 ms  DeleteObjects: 0.019256 ms)
+Unloading 11 unused Assets / (57.3 KB). Loaded Objects now: 1585.
+Memory consumption went from 50.4 MB to 50.4 MB.
+Total: 2.402340 ms (FindLiveObjects: 0.082134 ms CreateObjectMapping: 0.024496 ms MarkObjects: 2.276447 ms  DeleteObjects: 0.018783 ms)
 
 AssetImportParameters requested are different than current active one (requested -> active):
   custom:video-decoder-ogg-theora: a1e56fd34408186e4bbccfd4996cb3dc -> 
