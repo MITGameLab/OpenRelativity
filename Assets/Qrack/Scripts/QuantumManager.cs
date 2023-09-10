@@ -48,7 +48,7 @@ namespace Qrack
         public static extern int GetError(ulong simId);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_count_type")]
-        public static extern ulong InitType(ulong numQubits, bool decomposeMulti, bool decompose, bool stabilizer, bool bdt, bool pager, bool fusion, bool hybrid, bool opencl, bool hostPointer);
+        public static extern ulong InitType(ulong numQubits, bool tensorNet, bool decomposeMulti, bool decompose, bool stabilizer, bool bdt, bool pager, bool fusion, bool hybrid, bool opencl, bool hostPointer);
 
         [DllImport(QRACKSIM_DLL_NAME, ExactSpelling = true, CallingConvention = CallingConvention.Cdecl, EntryPoint = "init_count")]
         public static extern ulong Init(ulong numQubits, bool hostPointer);
