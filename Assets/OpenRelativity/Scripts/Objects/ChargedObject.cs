@@ -17,11 +17,6 @@ namespace OpenRelativity.Objects {
             if (electricCharge <= SRelativityUtil.FLT_EPSILON) {
                 return;
             }
-        
-            Collider myCollider = GetComponent<Collider>();
-            if (!myCollider) {
-                return;
-            }
 
             RelativisticObject myRO = GetComponent<RelativisticObject>();
             if (!myRO) {
