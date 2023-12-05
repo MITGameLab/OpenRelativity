@@ -42,15 +42,17 @@ namespace OpenRelativity.Objects {
                 Vector3 rUnit = displacement.normalized;
                 Vector3 bVec = (otherRO.viw.magnitude <= SRelativityUtil.FLT_EPSILON) ? Vector3.zero : Vector3.Cross(otherRO.viw, rUnit);
 
+                float rSqr4Pi = 4 * Mathf.PI * displacement.sqrMagnitude;
+
                 // Electric field:
-                electricField += (float)(otherCO.electricCharge / (4 * Mathf.PI * state.vacuumPermittivity * displacement.sqrMagnitude)) * rUnit;
+                electricField += (float)(otherCO.electricCharge / (rSqr4Pi * state.vacuumPermittivity)) * rUnit;
                 // Magnetic monopole contribution:
-                electricField += (float)((state.vacuumPermittivity *  otherCO.magneticMonopoleCharge) / (4 * Mathf.PI * displacement.sqrMagnitude)) * bVec;
+                electricField += (float)((state.vacuumPermittivity *  otherCO.magneticMonopoleCharge) / rSqr4Pi) * bVec;
 
                 // Magnetic field:
-                magneticField += (float)((state.vacuumPermeability *  otherCO.electricCharge) / (4 * Mathf.PI * displacement.sqrMagnitude)) * bVec;
+                magneticField += (float)((state.vacuumPermeability *  otherCO.electricCharge) / rSqr4Pi) * bVec;
                 // Magnetic monopole contribution:
-                magneticField += (float)(otherCO.magneticMonopoleCharge / (4 * Mathf.PI * state.vacuumPermeability * displacement.sqrMagnitude)) * rUnit;
+                magneticField += (float)(otherCO.magneticMonopoleCharge / (rSqr4Pi * state.vacuumPermeability)) * rUnit;
             }
 
             bool isNonzeroViw = myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON;
