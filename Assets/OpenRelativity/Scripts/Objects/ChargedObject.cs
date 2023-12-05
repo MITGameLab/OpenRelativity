@@ -9,6 +9,8 @@ namespace OpenRelativity.Objects {
         public float electricCharge = 0.03f;
         // Outside of a radius, the effects of electric charge can be ignored.
         public float electromagnetismRange = 32.0f;
+        // Do we distribute net charge over collding ChargeObjects?
+        public bool combineChargeOnCollide = true;
         // Maximum force that can be applied.
         private float maxForce = 1e32f;
 
@@ -73,6 +75,22 @@ namespace OpenRelativity.Objects {
         void FixedUpdate()
         {
             AddElectromagneticForces();
+        }
+
+        public void OnCollisionEnter(Collision collision)
+        {
+            if (!combineChargeOnCollide) {
+                return;
+            }
+
+            ChargedObject otherCO = collision.collider.GetComponent<ChargedObject>();
+            if (!otherCO || !otherCO.combineChargeOnCollide) {
+                return;
+            }
+
+            float halfNetCharge = (electricCharge + otherCO.electricCharge) / 2;
+            electricCharge = halfNetCharge;
+            otherCO.electricCharge = halfNetCharge;
         }
     }
 }
