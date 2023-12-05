@@ -28,7 +28,7 @@ namespace OpenRelativity.Objects {
                 return;
             }
 
-            Collider[] otherColliders = Physics.OverlapSphere(myCollider.transform.position, electromagnetismRange);
+            Collider[] otherColliders = Physics.OverlapSphere(myRO.piw, electromagnetismRange);
             foreach (Collider otherCollider in otherColliders)
             {
                 ChargedObject otherCO = otherCollider.GetComponent<ChargedObject>();
@@ -38,7 +38,13 @@ namespace OpenRelativity.Objects {
                 if (otherCO.electricCharge <= SRelativityUtil.FLT_EPSILON) {
                     continue;
                 }
-                Vector3 displacement = myCollider.transform.position - otherCollider.transform.position;
+
+                RelativisticObject otherRO = otherCollider.GetComponent<RelativisticObject>();
+                if (!otherRO) {
+                    continue;
+                }
+
+                Vector3 displacement = myRO.piw - otherRO.piw;
                 float force = (float)(electricCharge * otherCO.electricCharge / (4 * Mathf.PI * state.vacuumPermittivity * displacement.sqrMagnitude));
                 if (float.IsInfinity(force) || float.IsNaN(force) || (Mathf.Abs(force) > maxForce)) {
                     myRO.AddForce(((Mathf.Sign(electricCharge) == Mathf.Sign(otherCO.electricCharge)) ? maxForce : -maxForce) * displacement.normalized);
