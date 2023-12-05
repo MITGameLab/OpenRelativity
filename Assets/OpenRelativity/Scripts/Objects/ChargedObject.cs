@@ -6,15 +6,15 @@ namespace OpenRelativity.Objects {
     public class ChargedObject : RelativisticBehavior
     {
         // The object can be electrically charged
-        public float electricCharge = 1;
+        public float electricCharge = 0.03f;
         // Outside of a radius, the effects of electric charge can be ignored.
-        public float electromagnetismRange = 16.0f;
+        public float electromagnetismRange = 32.0f;
         // Maximum force that can be applied.
         private float maxForce = 1e32f;
 
         void AddElectromagneticForces()
         {
-            if (electricCharge <= SRelativityUtil.FLT_EPSILON) {
+            if (Mathf.Abs(electricCharge) <= SRelativityUtil.FLT_EPSILON) {
                 return;
             }
 
@@ -30,7 +30,7 @@ namespace OpenRelativity.Objects {
                 if (!otherCO) {
                     continue;
                 }
-                if (otherCO.electricCharge <= SRelativityUtil.FLT_EPSILON) {
+                if (Mathf.Abs(otherCO.electricCharge) <= SRelativityUtil.FLT_EPSILON) {
                     continue;
                 }
 
