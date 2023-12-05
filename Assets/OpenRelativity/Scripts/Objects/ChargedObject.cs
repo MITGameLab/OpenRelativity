@@ -65,6 +65,17 @@ namespace OpenRelativity.Objects {
             }
         }
 
+        float GetSurfaceArea() {
+            MeshFilter meshFilter = GetComponent<MeshFilter>();
+            if (meshFilter)
+            {
+                return meshFilter.sharedMesh.SurfaceArea();
+            }
+
+            Vector3 lwh = transform.localScale;
+            return 2 * (lwh.x * lwh.y + lwh.x * lwh.z + lwh.y * lwh.z);
+        }
+
         // Start is called before the first frame update
         void Start()
         {
@@ -87,10 +98,14 @@ namespace OpenRelativity.Objects {
             if (!otherCO || !otherCO.combineChargeOnCollide) {
                 return;
             }
+            
+            float mySurfaceArea = GetSurfaceArea();
+            float otherSurfaceArea = otherCO.GetSurfaceArea();
+            float totSurfaceArea = mySurfaceArea + otherSurfaceArea;
 
-            float halfNetCharge = (electricCharge + otherCO.electricCharge) / 2;
-            electricCharge = halfNetCharge;
-            otherCO.electricCharge = halfNetCharge;
+            float netCharge = (electricCharge + otherCO.electricCharge);
+            electricCharge = netCharge * mySurfaceArea / totSurfaceArea;
+            otherCO.electricCharge = netCharge * otherSurfaceArea / totSurfaceArea;
         }
     }
 }
