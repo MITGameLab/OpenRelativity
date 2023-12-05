@@ -1259,7 +1259,7 @@ namespace OpenRelativity.Objects
         {
             float gamma = GetTimeFactor();
 
-            if (myRigidbody)
+            if (myRigidbody && !myRigidbody.isKinematic)
             {
                 // If movement is frozen, set to zero.
                 // If we're in an invalid state, (such as before full initialization,) set to zero.
@@ -1295,6 +1295,8 @@ namespace OpenRelativity.Objects
                 // where we counterbalance the time-dilation factor above, for observer path invariance.
                 myRigidbody.drag = unityDrag / gamma;
                 myRigidbody.angularDrag = unityAngularDrag / gamma;
+            } else {
+                nonGravAccel = Vector3.zero;
             }
 
             for (int i = 0; i < myColliders.Length; ++i)
