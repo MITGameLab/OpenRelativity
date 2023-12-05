@@ -7,6 +7,8 @@ namespace OpenRelativity.Objects {
     {
         // The object can be electrically charged
         public float electricCharge = 0.03f;
+        // Magnetic monopole quasi-particles were recently discovered on the surface of hematite, so we might as well:
+        public float magneticMonopoleCharge = 0.03f;
         // Outside of a radius, the effects of electric charge can be ignored.
         public float electromagnetismRange = 32.0f;
         // Do we distribute net charge over collding ChargeObjects?
@@ -16,10 +18,6 @@ namespace OpenRelativity.Objects {
 
         void AddElectromagneticForces()
         {
-            if (Mathf.Abs(electricCharge) <= SRelativityUtil.FLT_EPSILON) {
-                return;
-            }
-
             RelativisticObject myRO = GetComponent<RelativisticObject>();
             if (!myRO) {
                 return;
@@ -32,9 +30,6 @@ namespace OpenRelativity.Objects {
                 if (!otherCO) {
                     continue;
                 }
-                if (Mathf.Abs(otherCO.electricCharge) <= SRelativityUtil.FLT_EPSILON) {
-                    continue;
-                }
 
                 RelativisticObject otherRO = otherCollider.GetComponent<RelativisticObject>();
                 if (!otherRO) {
@@ -43,25 +38,39 @@ namespace OpenRelativity.Objects {
 
                 Vector3 displacement = myRO.piw - otherRO.piw;
                 Vector3 rUnit = displacement.normalized;
+                Vector3 bVec = (otherRO.viw.magnitude <= SRelativityUtil.FLT_EPSILON) ? Vector3.zero : Vector3.Cross(otherRO.viw, rUnit);
 
-                // Electrostatic force:
-                float force = (float)(electricCharge * otherCO.electricCharge / (4 * Mathf.PI * state.vacuumPermittivity * displacement.sqrMagnitude));
-                if (float.IsInfinity(force) || float.IsNaN(force) || (Mathf.Abs(force) > maxForce)) {
-                    myRO.AddForce(((Mathf.Sign(electricCharge) == Mathf.Sign(otherCO.electricCharge)) ? maxForce : -maxForce) * rUnit);
-                } else {
-                    myRO.AddForce(force * displacement.normalized);
-                }
+                // Electric field:
+                Vector3 electricField = (float)(otherCO.electricCharge / (4 * Mathf.PI * state.vacuumPermittivity * displacement.sqrMagnitude)) * rUnit;
+                // Magnetic monopole contribution:
+                electricField += (float)((state.vacuumPermittivity *  otherCO.magneticMonopoleCharge) / (4 * Mathf.PI * displacement.sqrMagnitude)) * bVec;
 
-                // Magnetic force:
-                float magneticMag = (float)((state.vacuumPermeability *  otherCO.electricCharge) / (4 * Mathf.PI * displacement.sqrMagnitude));
-                Vector3 magneticField = magneticMag * Vector3.Cross(otherRO.viw, rUnit);
-                Vector3 magneticForce = electricCharge * Vector3.Cross(myRO.viw, magneticField);
-                force = magneticForce.magnitude;
-                if (float.IsInfinity(force) || float.IsNaN(force) || (Mathf.Abs(force) > maxForce)) {
-                    myRO.AddForce(maxForce * magneticForce.normalized);
-                } else {
-                    myRO.AddForce(magneticForce);
+                Vector3 electricForce = electricCharge * electricField;
+                if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
+                    electricForce += magneticMonopoleCharge * Vector3.Cross(myRO.viw, electricField);
                 }
+                float forceMag = electricForce.magnitude;
+                Vector3 direction = electricForce.normalized;
+                if (float.IsInfinity(forceMag) || float.IsNaN(forceMag) || (forceMag > maxForce)) {
+                    forceMag = maxForce;
+                }
+                myRO.AddForce(forceMag * direction);
+
+                // Magnetic field:
+                Vector3 magneticField = (float)((state.vacuumPermeability *  otherCO.electricCharge) / (4 * Mathf.PI * displacement.sqrMagnitude)) * bVec;
+                // Magnetic monopole contribution:
+                magneticField += (float)(otherCO.magneticMonopoleCharge / (4 * Mathf.PI * state.vacuumPermeability * displacement.sqrMagnitude)) * rUnit;
+
+                Vector3 magneticForce = magneticMonopoleCharge * magneticField;
+                if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
+                    magneticForce += electricCharge * Vector3.Cross(myRO.viw, magneticField);
+                }
+                forceMag = magneticForce.magnitude;
+                direction = magneticForce.normalized;
+                if (float.IsInfinity(forceMag) || float.IsNaN(forceMag) || (forceMag > maxForce)) {
+                    forceMag = maxForce;
+                }
+                myRO.AddForce(forceMag * direction);
             }
         }
 
@@ -106,6 +115,10 @@ namespace OpenRelativity.Objects {
             float netCharge = (electricCharge + otherCO.electricCharge);
             electricCharge = netCharge * mySurfaceArea / totSurfaceArea;
             otherCO.electricCharge = netCharge * otherSurfaceArea / totSurfaceArea;
+
+            netCharge = (magneticMonopoleCharge + otherCO.magneticMonopoleCharge);
+            magneticMonopoleCharge = netCharge * mySurfaceArea / totSurfaceArea;
+            otherCO.magneticMonopoleCharge = netCharge * otherSurfaceArea / totSurfaceArea;
         }
     }
 }
