@@ -53,8 +53,10 @@ namespace OpenRelativity.Objects {
                 magneticField += (float)(otherCO.magneticMonopoleCharge / (4 * Mathf.PI * state.vacuumPermeability * displacement.sqrMagnitude)) * rUnit;
             }
 
+            bool isNonzeroViw = myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON;
+
             Vector3 electricForce = electricCharge * electricField;
-            if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
+            if (isNonzeroViw) {
                 electricForce += magneticMonopoleCharge * Vector3.Cross(myRO.viw, electricField);
             }
             float forceMag = electricForce.magnitude;
@@ -64,7 +66,7 @@ namespace OpenRelativity.Objects {
             myRO.AddForce(forceMag * electricForce.normalized);
 
             Vector3 magneticForce = magneticMonopoleCharge * magneticField;
-            if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
+            if (isNonzeroViw) {
                 magneticForce += electricCharge * Vector3.Cross(myRO.viw, magneticField);
             }
             forceMag = magneticForce.magnitude;
