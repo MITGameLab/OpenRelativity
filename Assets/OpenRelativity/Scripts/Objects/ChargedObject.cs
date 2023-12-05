@@ -10,7 +10,7 @@ namespace OpenRelativity.Objects {
         // Outside of a radius, the effects of electric charge can be ignored.
         public float electromagnetismRange = 16.0f;
         // Maximum force that can be applied.
-        private float maxForce = 256.0f;
+        private float maxForce = 1e32f;
 
         void AddElectricForce()
         {
