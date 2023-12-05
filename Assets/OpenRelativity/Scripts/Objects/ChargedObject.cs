@@ -23,6 +23,8 @@ namespace OpenRelativity.Objects {
                 return;
             }
 
+            Vector3 electricField = Vector3.zero;
+            Vector3 magneticField = Vector3.zero;
             Collider[] otherColliders = Physics.OverlapSphere(myRO.piw, electromagnetismRange);
             foreach (Collider otherCollider in otherColliders)
             {
@@ -41,37 +43,35 @@ namespace OpenRelativity.Objects {
                 Vector3 bVec = (otherRO.viw.magnitude <= SRelativityUtil.FLT_EPSILON) ? Vector3.zero : Vector3.Cross(otherRO.viw, rUnit);
 
                 // Electric field:
-                Vector3 electricField = (float)(otherCO.electricCharge / (4 * Mathf.PI * state.vacuumPermittivity * displacement.sqrMagnitude)) * rUnit;
+                electricField += (float)(otherCO.electricCharge / (4 * Mathf.PI * state.vacuumPermittivity * displacement.sqrMagnitude)) * rUnit;
                 // Magnetic monopole contribution:
                 electricField += (float)((state.vacuumPermittivity *  otherCO.magneticMonopoleCharge) / (4 * Mathf.PI * displacement.sqrMagnitude)) * bVec;
 
-                Vector3 electricForce = electricCharge * electricField;
-                if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
-                    electricForce += magneticMonopoleCharge * Vector3.Cross(myRO.viw, electricField);
-                }
-                float forceMag = electricForce.magnitude;
-                Vector3 direction = electricForce.normalized;
-                if (float.IsInfinity(forceMag) || float.IsNaN(forceMag) || (forceMag > maxForce)) {
-                    forceMag = maxForce;
-                }
-                myRO.AddForce(forceMag * direction);
-
                 // Magnetic field:
-                Vector3 magneticField = (float)((state.vacuumPermeability *  otherCO.electricCharge) / (4 * Mathf.PI * displacement.sqrMagnitude)) * bVec;
+                magneticField += (float)((state.vacuumPermeability *  otherCO.electricCharge) / (4 * Mathf.PI * displacement.sqrMagnitude)) * bVec;
                 // Magnetic monopole contribution:
                 magneticField += (float)(otherCO.magneticMonopoleCharge / (4 * Mathf.PI * state.vacuumPermeability * displacement.sqrMagnitude)) * rUnit;
-
-                Vector3 magneticForce = magneticMonopoleCharge * magneticField;
-                if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
-                    magneticForce += electricCharge * Vector3.Cross(myRO.viw, magneticField);
-                }
-                forceMag = magneticForce.magnitude;
-                direction = magneticForce.normalized;
-                if (float.IsInfinity(forceMag) || float.IsNaN(forceMag) || (forceMag > maxForce)) {
-                    forceMag = maxForce;
-                }
-                myRO.AddForce(forceMag * direction);
             }
+
+            Vector3 electricForce = electricCharge * electricField;
+            if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
+                electricForce += magneticMonopoleCharge * Vector3.Cross(myRO.viw, electricField);
+            }
+            float forceMag = electricForce.magnitude;
+            if (float.IsNaN(forceMag) || (forceMag > maxForce)) {
+                forceMag = maxForce;
+            }
+            myRO.AddForce(forceMag * electricForce.normalized);
+
+            Vector3 magneticForce = magneticMonopoleCharge * magneticField;
+            if (myRO.viw.magnitude > SRelativityUtil.FLT_EPSILON) {
+                magneticForce += electricCharge * Vector3.Cross(myRO.viw, magneticField);
+            }
+            forceMag = magneticForce.magnitude;
+            if (float.IsNaN(forceMag) || (forceMag > maxForce)) {
+                forceMag = maxForce;
+            }
+            myRO.AddForce(forceMag * magneticForce.normalized);
         }
 
         float GetSurfaceArea() {
