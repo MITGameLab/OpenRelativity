@@ -8,7 +8,7 @@ namespace OpenRelativity.Objects {
         // The object can be electrically charged
         public float electricCharge = 0.03f;
         // Magnetic monopole quasi-particles were recently discovered on the surface of hematite, so we might as well:
-        public float magneticMonopoleCharge = 0.03f;
+        public float magneticMonopoleCharge = 0;
         // Outside of a radius, the effects of electric charge can be ignored.
         public float electromagnetismRange = 32.0f;
         // Do we distribute net charge over collding ChargeObjects?
