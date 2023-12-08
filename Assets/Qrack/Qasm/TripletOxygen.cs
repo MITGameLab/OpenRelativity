@@ -7,6 +7,8 @@ namespace Qrack
     public class TripletOxygen : RealTimeQasmProgram
     {
         public double alphaParam = 1e-4;
+        
+        public Transform qubitIndicator;
 
         // Prepare a Bell pair for Alice and Bob to share
         protected override void StartProgram()
@@ -40,10 +42,9 @@ namespace Qrack
                         WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
-                            RelativisticObject ro = RelativisticObject;
-                            ro.transform.eulerAngles = new Vector3((float)coords.inclination * Mathf.Rad2Deg, (float)coords.azimuth * Mathf.Rad2Deg, 0);
-                            ro.riw = qs.transform.rotation;
-                            ro.localScale = new Vector3((float)coords.r, (float)coords.r, (float)coords.r);
+                            qubitIndicator.rotation = Quaternion.Euler((float)coords.azimuth * Mathf.Rad2Deg, 0, (float)coords.inclination * Mathf.Rad2Deg);
+                            Vector3 localScale = qubitIndicator.localScale;
+                            qubitIndicator.localScale = new Vector3(localScale.x, (float)coords.r, localScale.y);
                         }
                     });
                 }
