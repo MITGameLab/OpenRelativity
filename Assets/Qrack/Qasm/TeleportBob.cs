@@ -56,7 +56,7 @@ namespace Qrack
                         WorldTime = qs.VisualTime,
                         Action = (time) =>
                         {
-                            qubitIndicator.rotation = Quaternion.Euler((float)coords.azimuth * Mathf.Rad2Deg * 2, 0, (float)coords.inclination * Mathf.Rad2Deg);
+                            qubitIndicator.rotation = Quaternion.Euler((float)coords.azimuth * Mathf.Rad2Deg, 0, (float)coords.inclination * Mathf.Rad2Deg);
                             Vector3 localScale = qubitIndicator.localScale;
                             qubitIndicator.localScale = new Vector3(localScale.x, (float)coords.r, localScale.y);
                         }
