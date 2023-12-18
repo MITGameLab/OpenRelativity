@@ -28,7 +28,6 @@ namespace Tachyoid
         public bool verticalLock = false;
         //Let portal visibility system know if we're time traveling through portals:
         public int? pvsInstanceID { get; set; }
-        public DoorController doorController { get; set; } = null;
 
         //When we time travel, cache our original velocity,
         // and replace it with a time travel prediction
@@ -308,11 +307,6 @@ namespace Tachyoid
                                 {
                                     PrepTimeTravelPreview();
                                 }
-                            }
-                            else if (doorController != null)
-                            {
-                                // TODO: FIX DOOR CONTROLLER
-                                // doorController.OpenDoor();
                             }
                             //If not holding item:
                             else if (state.TotalTimePlayer > levelStartTimeTravelDelay)

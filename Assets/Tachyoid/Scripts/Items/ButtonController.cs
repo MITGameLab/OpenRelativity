@@ -379,7 +379,7 @@ namespace Tachyoid.Objects
         public override void ReverseTime()
         {
             FTLPlayerController player = state.GetComponent<FTLPlayerController>();
-            float doppler = SRelativityUtil.GetTisw(state.PlayerPositionBeforeReverse, Vector3.zero, Vector3.zero);
+            float doppler = SRelativityUtil.GetTisw(state.PlayerPositionBeforeReverse, Vector3.zero, Vector4.zero);
             if ((gameObjectsOnButton.Count == 1 || gameObjectsOnButton.Count == 2)
                 && (CheckIfDupeTrigger(gameObjectsOnButton, player.gameObject)
                     || (player.itemInHand != null && CheckIfDupeTrigger(gameObjectsOnButton, player.itemInHand.gameObject))))
