@@ -282,7 +282,9 @@ namespace Tachyoid
                                 state.PlayerVelocityVector = pausedPlayerVelocity;
                                 state.isMovementFrozen = false;
                                 timeTravelInitiated = false;
-                                hud.SetActive(false);
+                                if (hud != null) {
+                                   hud.SetActive(false);
+                                }
                                 reticle.Hide();
                                 if (warpCancelSound != null)
                                 {
@@ -499,7 +501,9 @@ namespace Tachyoid
                         //Physics update happens here:
                         ReverseTime();
                         state.isMovementFrozen = false;
-                        hud.SetActive(false);
+                        if (hud != null) {
+                            hud.SetActive(false);
+                        }
                         timeTravelInitiated = false;
                     }
                 }
