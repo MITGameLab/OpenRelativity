@@ -763,7 +763,7 @@ namespace OpenRelativity.Objects
 
         public void UpdateColliderPosition()
         {
-            if (isMyColliderVoxel || isNonrelativisticShader || (myColliders.Length == 0))
+            if (isMyColliderVoxel || isNonrelativisticShader || (myColliders == null) || (myColliders.Length == 0))
             {
                 return;
             }
@@ -1299,6 +1299,10 @@ namespace OpenRelativity.Objects
                 nonGravAccel = Vector3.zero;
             }
 
+            if (myColliders == null) {
+                return;
+            }
+
             for (int i = 0; i < myColliders.Length; ++i)
             {
                 Collider collider = myColliders[i];
@@ -1551,7 +1555,7 @@ namespace OpenRelativity.Objects
             // The rest of the updates are for objects with Rigidbodies that move and aren't asleep.
             if (isKinematic || !myRigidbody || myRigidbody.IsSleeping())
             {
-                if (myRigidbody)
+                if (myRigidbody && !myRigidbody.isKinematic)
                 {
                     myRigidbody.angularVelocity = Vector3.zero;
                     myRigidbody.velocity = Vector3.zero;

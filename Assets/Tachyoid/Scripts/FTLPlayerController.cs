@@ -92,7 +92,9 @@ namespace Tachyoid
                 menuUIOffString = "";
             }
 
-            menuUI.text = menuUIOffString;
+            if (menuUI != null) {
+                menuUI.text = menuUIOffString;
+            }
 
             isMenuUIOn = false;
             DeactivateMenus();
@@ -126,6 +128,8 @@ namespace Tachyoid
             else if (warpSounds.Length > 0)
             {
                 walkingSound = warpSounds[0];
+            } else {
+                walkingSound = null;
             }
 
             cachedPlayerTransform = state.playerTransform;
@@ -148,7 +152,9 @@ namespace Tachyoid
             tState.PlayerVelocityVector = Vector3.zero;
             tState.isMovementFrozen = true;
             tState.playerTransform = reticle.transform;
-            hud.SetActive(true);
+            if (hud != null) {
+                hud.SetActive(true);
+            }
             clickTimer = doubleClickInterval + 0.1f;
         }
 
@@ -211,7 +217,7 @@ namespace Tachyoid
                 wasPressedTime = Time.time;
             }
 
-            if (walkingSound != null && !isPressed || state.isMovementFrozen)
+            if ((walkingSound != null) && (!isPressed || state.isMovementFrozen))
             {
                 walkingSound.Stop();
             }
@@ -794,7 +800,9 @@ namespace Tachyoid
 
         public void DeactivateMenus()
         {
-            selectMenu.SetActive(false);
+            if (selectMenu != null) {
+                selectMenu.SetActive(false);
+            }
             if (menuParents != null)
             {
                 for (int i = 0; i < menuParents.Count; i++)
