@@ -15,8 +15,12 @@ namespace PastInfinity
         const int xTiles = 24;
         const int yTiles = 7;
         const float scaleX = 1.0f / xTiles;
-        const float scaleY = (13720.0f / 13848.0f) / yTiles;
-        const float offsetY = 128.0f / 13848.0f;
+
+        const float scaleY = 1.0f / yTiles;
+
+        // For perfect 4096x4096 texture:
+        // const float scaleY = (13720.0f / 13848.0f) / yTiles;
+        // const float offsetY = 128.0f / 13848.0f;
 
         // Use this for initialization, before relativistic object CombineParent() starts.
         void Awake()
@@ -40,7 +44,9 @@ namespace PastInfinity
             Vector2[] nUv = new Vector2[change.uv.Length];
             for (int uvIndex = 0; uvIndex < nUv.Length; uvIndex++)
             {
-                nUv[uvIndex] = Vector2.Scale(scale, change.uv[uvIndex]) + new Vector2(scaleX * xIndex + offsetX, scaleY * yIndex + offsetY);
+                nUv[uvIndex] = Vector2.Scale(scale, change.uv[uvIndex]) + new Vector2(scaleX * xIndex + offsetX, scaleY * yIndex);
+                // For perfect 4096x4096 texture:
+                // nUv[uvIndex] = Vector2.Scale(scale, change.uv[uvIndex]) + new Vector2(scaleX * xIndex + offsetX, scaleY * yIndex + offsetY);
             }
 
             change.uv = nUv;
