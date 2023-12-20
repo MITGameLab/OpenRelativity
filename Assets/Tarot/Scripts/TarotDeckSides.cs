@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace PastInfinity
 {
-    [ExecuteInEditMode]
     public class TarotDeckSides : MonoBehaviour
     {
 
@@ -37,7 +36,7 @@ namespace PastInfinity
             int yIndex = (yTiles - 1) - (catalogCardIndex / xTiles);
 
             //Prepare a new mesh for our split mesh
-            change = meshFilter.sharedMesh;
+            change = Instantiate(meshFilter.mesh);
 
             Vector2 scale = new Vector2(scaleX, scaleY);
             float offsetX = (isLongSide ? 1 : 0) * scaleX;

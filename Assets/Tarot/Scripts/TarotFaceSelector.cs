@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace PastInfinity
 {
-    [ExecuteInEditMode]
     public class TarotFaceSelector : MonoBehaviour
     {
 
@@ -36,7 +35,7 @@ namespace PastInfinity
             }
 
             //Prepare a new mesh for our split mesh
-            change = meshFilter.sharedMesh;
+            change = Instantiate(meshFilter.mesh);
 
             origUV = new Vector2[change.uv.Length];
             change.uv.CopyTo(origUV, 0);
