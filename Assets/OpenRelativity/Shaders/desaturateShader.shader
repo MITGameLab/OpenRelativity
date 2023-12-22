@@ -13,7 +13,7 @@ Shader "Colors/Desaturate" {
 	
 	struct v2f {
 		float4 pos : POSITION;
-		float2 uv1;
+		float2 uv1 : TEXCOORD0;
 	};
 		
 	sampler2D _MainTex;
@@ -26,9 +26,9 @@ Shader "Colors/Desaturate" {
 		HSV.x /= 360;
 		float var_h = HSV.x * 6;
 
-		float var_1 = HSV.z * ( 1.0 - HSV.y );
-		float var_2 = HSV.z * ( 1.0 - HSV.y * (var_h-floor( var_h )));
-		float var_3 = HSV.z * ( 1.0 - HSV.y * (1-(var_h-floor( var_h ))));
+		float var_1 = HSV.z * ( 1 - HSV.y );
+		float var_2 = HSV.z * ( 1 - HSV.y * (var_h-floor( var_h )));
+		float var_3 = HSV.z * ( 1 - HSV.y * (1-(var_h-floor( var_h ))));
 
 		float3 RGB = float3(HSV.z, var_1, var_2);
 
@@ -99,11 +99,8 @@ Shader "Colors/Desaturate" {
 		half4 color = (half4)tex2D(_MainTex, i.uv1).rgba;
 
 		float3 hsv = rgb_to_hsv(float3(color.x,color.y,color.z));
-		hsv.y *= 0.5;
+		hsv.y *= 0.5f;
 		float3 rgb = hsv_to_rgb(hsv);
-		
-		
-		
 		
 		return float4(rgb.x,rgb.y,rgb.z,0);
 	}

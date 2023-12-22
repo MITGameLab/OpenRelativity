@@ -1,0 +1,150 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+//Prevent NaN and Inf
+#define FLT_EPSILON 1.192092896e-07F
+
+//#define quaternion float4
+//
+//inline quaternion fromToRotation(float3 from, float3 to) {
+//	quaternion rotation;
+//	rotation.xyz = cross(from, to);
+//	rotation.w = sqrt(dot(from, from) + dot(to, to) + dot(from, to));
+//	return normalize(rotation);
+//}
+//
+////See: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
+//inline float3 rotate(quaternion rot, float3 vec) {
+//	float3 temp;
+//	temp = 2 * cross(rot.xyz, vec.xyz);
+//	return vec + rot.w * temp + cross(rot.xyz, temp);
+//}
+//
+//inline quaternion inverse(quaternion q) {
+//	return quaternion(-q.xyz, q.w) / length(q);
+//}
+
+struct GlobalParams {
+	float4x4 ltwMatrix; //local-to-world transform matrix
+	float4x4 wtlMatrix; //world-to-local transform matrix
+	float4x4 vpcLorentzMatrix; //Lorentz transform between world and player
+	float4x4 viwLorentzMatrix; //Lorentz transform between world and object
+	float4x4 intrinsicMetric; //Transform-center metric in world coordinates
+	float4x4 invVpcLorentzMatrix; //Lorentz transform between player and world
+	float4x4 invViwLorentzMatrix; //Lorentz transform between object and world
+	float4x4 invIntrinsicMetric; //Transform-center metric in world coordinates
+	float4 viw; //velocity of object in synchronous coordinates
+	float4 vpc; //velocity of player
+	float4 playerOffset; //player position in world
+	float4 pap; //acceleration of player in world coordinates
+	float4 avp; //angular velocity of player in world coordinates
+	float4 pao; //acceleration of object in world coordinates
+	float spdOfLight; //current speed of light
+};
+
+StructuredBuffer<GlobalParams> glblPrms;
+RWStructuredBuffer<float3> verts;
+
+[numthreads(256, 1, 1)]
+//[numthreads(64,1,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+	float4x4 ltwMatrix = glblPrms[0].ltwMatrix;
+	float4x4 wtlMatrix = glblPrms[0].wtlMatrix;
+	float4 viw = glblPrms[0].viw;
+	float4 vpc = glblPrms[0].vpc;
+	float4 playerOffset = glblPrms[0].playerOffset;
+	float spdOfLight = glblPrms[0].spdOfLight;
+	float4 pap = glblPrms[0].pap;
+	float4 avp = glblPrms[0].avp;
+	float4 pao = glblPrms[0].pao;
+	float4x4 vpcLorentzMatrix = glblPrms[0].vpcLorentzMatrix;
+	float4x4 viwLorentzMatrix = glblPrms[0].viwLorentzMatrix;
+	float4x4 intrinsicMetric = glblPrms[0].intrinsicMetric;
+	float4x4 invVpcLorentzMatrix = glblPrms[0].invVpcLorentzMatrix;
+	float4x4 invViwLorentzMatrix = glblPrms[0].invViwLorentzMatrix;
+	float4x4 invIntrinsicMetric = glblPrms[0].invIntrinsicMetric;
+
+	float4 pos = float4(verts[id.x].xyz, 0);
+	float4 tempPos = mul(ltwMatrix, float4(pos.xyz, 1));
+	pos = float4(tempPos.xyz / tempPos.w - playerOffset.xyz, 0);
+
+	float speedSqr = dot(vpc.xyz, vpc.xyz);
+	float speed = sqrt(speedSqr);
+	float spdOfLightSqrd = spdOfLight * spdOfLight;
+
+	//riw = location in world, for reference
+	float4 riw = float4(pos.xyz, 0); //Position that will be used in the output
+
+	//Boost to rest frame of player:
+	float4 riwForMetric = mul(vpcLorentzMatrix, riw);
+
+	//Find metric based on player acceleration and rest frame:
+	float linFac = 1 + dot(pap.xyz, riwForMetric.xyz) / spdOfLightSqrd;
+	linFac *= linFac;
+	float angFac = dot(avp.xyz, riwForMetric.xyz) / spdOfLight;
+	angFac *= angFac;
+	float avpMagSqr = dot(avp.xyz, avp.xyz);
+	float3 angVec = float3(0, 0, 0);
+	if (avpMagSqr > FLT_EPSILON) {
+		angVec = 2 * angFac / (spdOfLight * avpMagSqr) * avp.xyz;
+	}
+
+	float4x4 metric = {
+		-1, 0, 0, -angVec.x,
+		0, -1, 0, -angVec.y,
+		0, 0, -1, -angVec.z,
+		-angVec.x, -angVec.y, -angVec.z, (linFac * (1 - angFac) - angFac)
+	};
+
+	// Lorentz boost back to world frame:
+	metric = mul(transpose(invVpcLorentzMatrix), mul(metric, invVpcLorentzMatrix));
+
+	// Apply intrinsic gravitational curvature:
+	metric = mul(intrinsicMetric, mul(metric, invIntrinsicMetric));
+
+	//Apply Lorentz transform:
+	metric = mul(transpose(viwLorentzMatrix), mul(metric, viwLorentzMatrix));
+
+	float4 paoTransformed = mul(viwLorentzMatrix, pao);
+	float4 riwTransformed = mul(viwLorentzMatrix, riw);
+	//Translate in time:
+	float tisw = riwTransformed.w;
+	riwTransformed.w = 0;
+
+	//(When we "dot" four-vectors, always do it with the metric at that point in space-time, like we do so here.)
+	float riwDotRiw = -dot(riwTransformed, mul(metric, riwTransformed));
+	float4 paot = mul(metric, paoTransformed);
+	float paoDotpao = -dot(paoTransformed, paot);
+	float riwDotpao = -dot(riwTransformed, paot);
+
+	float sqrtArg = riwDotRiw * (spdOfLightSqrd - riwDotpao + paoDotpao * riwDotRiw / (4 * spdOfLightSqrd)) / ((spdOfLightSqrd - riwDotpao) * (spdOfLightSqrd - riwDotpao));
+	float paoMagSqr = dot(paoTransformed.xyz, paoTransformed.xyz);
+	float paoMag = sqrt(paoMagSqr);
+	tisw += (sqrtArg > 0) ? -sqrt(sqrtArg) : 0;
+	//add the position offset due to acceleration
+	if (paoMag > FLT_EPSILON)
+	{
+		riwTransformed.xyz -= paoTransformed.xyz * spdOfLightSqrd * (sqrt(1 + sqrtArg * paoMagSqr / spdOfLightSqrd) - 1) / paoMag;
+	}
+	riwTransformed.w = tisw;
+
+	//Inverse Lorentz transform the position:
+	riw = mul(invViwLorentzMatrix, riwTransformed);
+	tisw = riw.w;
+	riw = float4(riw.xyz + tisw * spdOfLight * viw.xyz, 0);
+
+	float newz = speed * spdOfLight * tisw;
+
+	if (speed > FLT_EPSILON) {
+		float3 vpcUnit = vpc.xyz / speed;
+		newz = (dot(riw.xyz, vpcUnit) + newz) / sqrt(1 - speedSqr);
+		riw += (newz - dot(riw.xyz, vpcUnit)) * float4(vpcUnit, 0);
+	}
+
+	riw += float4(playerOffset.xyz, 0);
+
+	//Transform the vertex back into local space for the mesh to use it
+	tempPos = mul(wtlMatrix, float4(riw.xyz, 1));
+	verts[id.x] = tempPos.xyz / tempPos.w;
+}

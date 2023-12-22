@@ -86,73 +86,95 @@ Shader "Relativity/SkyboxShift" {
 
 	    float4 vr = _vpc - _viw;
 		o.vr = vr;
-		float s = sqrt( pow((vr.x),2) + pow((vr.y),2) + pow((vr.z),2));
+		float s = sqrt(dot(vr, vr));
 		o.svc = sqrt( 1 - s * s); // To decrease number of operations in fragment shader 
 		
 		//You need this otherwise the screen flips and weird stuff happens
 		#ifdef SHADER_API_D3D9
 		if (_MainTex_TexelSize.y < 0)
-			 o.uv1.y = 1.0- o.uv1.y;
+			 o.uv1.y = 1- o.uv1.y;
 		#endif 
 		
 		return o;
 	}
 	
 	
-	float3 RGBToXYZC(  float r,  float g,  float b)
+	//Color functions, there's no check for division by 0 which may cause issues on
+	//some graphics cards.
+	float3 RGBToXYZC(float3 rgb)
 	{
 		float3 xyz;
-		xyz.x = 0.135134*r + 0.120531*g + 0.0570346*b;
-		xyz.y = 0.0669015*r + 0.23295*g + 0.0291481*b;
-		xyz.z = 0.0*r + 0.0000247454*g + 0.358275*b;
+		xyz.x = dot(float3(0.13514, 0.120432, 0.057128), rgb);
+		xyz.y = dot(float3(0.0668999, 0.232706, 0.0293946), rgb);
+		xyz.z = dot(float3(0.0, 0.0000218959, 0.358278), rgb);
 		return xyz;
 	}
-	float3 XYZToRGBC(  float x,  float y,  float z)
+	float3 XYZToRGBC(float3 xyz)
 	{
 		float3 rgb;
-		rgb.x = 9.94832*x -5.14725*y - 1.16493*z;
-		rgb.y = -2.91664*x + 5.85296*y - 0.0379474*z;
-		rgb.z = 0.000197335*x - 0.000398597*y + 2.79115*z;
-
+		rgb.x = dot(float3(9.94845, -5.1485, -1.16389), xyz);
+		rgb.y = dot(float3(-2.86007, 5.77745, -0.0179627), xyz);
+		rgb.z = dot(float3(0.000174791, -0.000353084, 2.79113), xyz);
 		return rgb;
 	}
 	float3 weightFromXYZCurves(float3 xyz)
 	{
 		float3 returnVal;
-		returnVal.x = 0.0735764 * xyz.x -0.0380683 * xyz.y - 0.00861569 * xyz.z;
-		returnVal.y = -0.0665233 * xyz.x +  0.13437 * xyz.y - 0.000341907 * xyz.z;
-		returnVal.z = 0.00000345602 * xyz.x - 0.0000069808 * xyz.y + 0.0485362 * xyz.z;
+		returnVal.x = dot(float3(0.0735806, -0.0380793, -0.00860837), xyz);
+		returnVal.y = dot(float3(-0.0665378, 0.134408, -0.000417865), xyz);
+		returnVal.z = dot(float3(0.00000299624, -0.00000605249, 0.0484424), xyz);
 		return returnVal;
 	}
-	
-	 float getXFromCurve(float3 param,  float shift)
+
+	float getXFromCurve(float3 param, float shift)
 	{
-		 float top1 = param.x * xla * exp( (float)(-(pow((param.y*shift) - xlb,2)
-			/(2*(pow(param.z*shift,2)+pow(xlc,2))))))*sqrt( (float)(float(2)*(float)3.14159265358979323));
-		 float bottom1 = sqrt((float)(1/pow(param.z*shift,2))+(1/pow(xlc,2))); 
+		//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+		const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
 
-		 float top2 = param.x * xha * exp( float(-(pow((param.y*shift) - xhb,2)
-			/(2*(pow(param.z*shift,2)+pow(xhc,2))))))*sqrt( (float)(float(2)*(float)3.14159265358979323));
-		 float bottom2 = sqrt((float)(1/pow(param.z*shift,2))+(1/pow(xhc,2)));
+		//Re-use memory to save per-vertex operations:
+		float bottom2 = param.z * shift;
+		bottom2 *= bottom2;
 
-		return (top1/bottom1) + (top2/bottom2);
+		float top1 = param.x * xla * exp(-((((param.y * shift) - xlb) * ((param.y * shift) - xlb))
+			/ (2 * (bottom2 + (xlc * xlc))))) * sqrt2Pi;
+		float bottom1 = sqrt(1 / bottom2 + 1 / (xlc * xlc));
+
+		float top2 = param.x * xha * exp(-((((param.y * shift) - xhb) * ((param.y * shift) - xhb))
+			/ (2 * (bottom2 + (xhc * xhc))))) * sqrt2Pi;
+		bottom2 = sqrt(1 / bottom2 + 1 / (xhc * xhc));
+
+		return (top1 / bottom1) + (top2 / bottom2);
 	}
-	 float getYFromCurve(float3 param,  float shift)
+	float getYFromCurve(float3 param, float shift)
 	{
-		 float top = param.x * ya * exp( float(-(pow((param.y*shift) - yb,2)
-			/(2*(pow(param.z*shift,2)+pow(yc,2))))))*sqrt( float(float(2)*(float)3.14159265358979323));
-		 float bottom = sqrt((float)(1/pow(param.z*shift,2))+(1/pow(yc,2))); 
+		//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+		const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
 
-		return top/bottom;
+		//Re-use memory to save per-vertex operations:
+		float bottom = param.z * shift;
+		bottom *= bottom;
+
+		float top = param.x * ya * exp(-((((param.y * shift) - yb) * ((param.y * shift) - yb))
+			/ (2 * (bottom + yc * yc)))) * sqrt2Pi;
+		bottom = sqrt(1 / bottom + 1 / (yc * yc));
+
+		return top / bottom;
 	}
 
-	 float getZFromCurve(float3 param,  float shift)
+	float getZFromCurve(float3 param, float shift)
 	{
-		 float top = param.x * za * exp( float(-(pow((param.y*shift) - zb,2)
-			/(2*(pow(param.z*shift,2)+pow(zc,2))))))*sqrt( float(float(2)*(float)3.14159265358979323));
-		 float bottom = sqrt((float)(1/pow(param.z*shift,2))+(1/pow(zc,2)));
+		//Use constant memory, or let the compiler optimize constants, where we can get away with it:
+		const float sqrt2Pi = sqrt(2 * 3.14159265358979323f);
 
-		return top/bottom;
+		//Re-use memory to save per-vertex operations:
+		float bottom = param.z * shift;
+		bottom *= bottom;
+
+		float top = param.x * za * exp(-((((param.y * shift) - zb) * ((param.y * shift) - zb))
+			/ (2 * (bottom + zc * zc))))* sqrt2Pi;
+		bottom = sqrt(1 / bottom + 1 / (zc * zc));
+
+		return top / bottom;
 	}
 	
 	float3 constrainRGB( float r,  float g,  float b)
@@ -201,14 +223,14 @@ Shader "Relativity/SkyboxShift" {
 	
 		if(_colorShift == 0)
 		{
-			svc = 1.0f;
+			svc = 1;
 		}
 		//Get initial color
 		float3 rgb = tex2D (_MainTex, i.uv1).rgb;  
 		float UV = tex2D( _UVTex, i.uv1).r;
 		float IR = tex2D( _IRTex, i.uv1).r;
 		
-		float3 xyz = RGBToXYZC(float(rgb.x),float(rgb.y),float(rgb.z));
+		float3 xyz = RGBToXYZC(rgb.xyz);
 		float3 weights = weightFromXYZCurves(xyz);
 		float3 rParam,gParam,bParam,UVParam,IRParam;
 		rParam.x = weights.x; rParam.y = ( float) 615; rParam.z = ( float)8;
@@ -217,14 +239,16 @@ Shader "Relativity/SkyboxShift" {
 		UVParam.x = 0.1; UVParam.y = UV_START + UV_RANGE*UV; UVParam.z = (float)1;
 		IRParam.x = 0.1; IRParam.y = IR_START + IR_RANGE*IR; IRParam.z = (float)1;
 		
-		float xf = pow((1/svc),3)*(getXFromCurve(rParam, svc) + getXFromCurve(gParam,svc) + getXFromCurve(bParam,svc) + getXFromCurve(IRParam,svc) + getXFromCurve(UVParam,svc));
-		float yf = pow((1/svc),3)*(getYFromCurve(rParam, svc) + getYFromCurve(gParam,svc) + getYFromCurve(bParam,svc) + getYFromCurve(IRParam,svc) + getYFromCurve(UVParam,svc));
-		float zf = pow((1/svc),3)*(getZFromCurve(rParam, svc) + getZFromCurve(gParam,svc) + getZFromCurve(bParam,svc) + getZFromCurve(IRParam,svc) + getZFromCurve(UVParam,svc));
-		
-		float3 rgbFinal = XYZToRGBC(xf,yf,zf);
+		// See this link for criticism that suggests this should be the fifth power, rather than the third:
+		// https://physics.stackexchange.com/questions/43695/how-realistic-is-the-game-a-slower-speed-of-light#answer-587149
+		xyz.x = pow((1/svc),5)*(getXFromCurve(rParam, svc) + getXFromCurve(gParam,svc) + getXFromCurve(bParam,svc) + getXFromCurve(IRParam,svc) + getXFromCurve(UVParam,svc));
+		xyz.y = pow((1/svc),5)*(getYFromCurve(rParam, svc) + getYFromCurve(gParam,svc) + getYFromCurve(bParam,svc) + getYFromCurve(IRParam,svc) + getYFromCurve(UVParam,svc));
+		xyz.z = pow((1/svc),5)*(getZFromCurve(rParam, svc) + getZFromCurve(gParam,svc) + getZFromCurve(bParam,svc) + getZFromCurve(IRParam,svc) + getZFromCurve(UVParam,svc));
+
+		float3 rgbFinal = XYZToRGBC(xyz);
 		//rgbFinal = constrainRGB(rgbFinal.x,rgbFinal.y, rgbFinal.z);
 
-  		float4x4 temp  = mul(1.0*unity_ObjectToWorld, unity_WorldToObject);
+  		float4x4 temp  = mul(unity_ObjectToWorld, unity_WorldToObject);
 		float4 temp2 = mul( temp,float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1));
 		//float4 temp2 =float4( (float)rgbFinal.x,(float)rgbFinal.y,(float)rgbFinal.z,1);
 		return temp2; 
